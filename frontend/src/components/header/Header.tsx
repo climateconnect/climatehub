@@ -35,6 +35,7 @@ import NotificationsBox from "../communication/notifications/NotificationsBox";
 import UserContext from "../context/UserContext";
 import ProfileBadge from "../profile/ProfileBadge";
 import DropDownButton from "./DropDownButton";
+import HubLogoMenu from "./HubLogoMenu";
 import LanguageSelect from "./LanguageSelect";
 import StaticPageLinks from "./StaticPageLinks";
 import { HeaderProps } from "./types";
@@ -375,14 +376,24 @@ export default function Header({
       className={`${classes.root} ${className} ${!noSpacingBottom && classes.spacingBottom}`}
     >
       <Container className={classes.container}>
-        <Link href={logoLink} className={classes.logoLink} underline="hover">
-          <img
-            src={logo}
-            alt={texts.climate_connect_logo}
-            className={classes.logo}
-            onError={loadFallbackLogo}
+        {isNarrowScreen ? (
+          <HubLogoMenu
+            isLocationHub={isLocationHub}
+            isCustomHub={isCustomHub}
+            hubUrl={hubUrl}
+            logo={logo}
+            logoAlt={texts.climate_connect_logo}
           />
-        </Link>
+        ) : (
+          <Link href={logoLink} className={classes.logoLink} underline="hover">
+            <img
+              src={logo}
+              alt={texts.climate_connect_logo}
+              className={classes.logo}
+              onError={loadFallbackLogo}
+            />
+          </Link>
+        )}
         {isCustomHub && (
           <Link href={localePrefix + "/"} className={classes.poweredByContainer}>
             <span className={classes.poweredByTxt}>{texts.powered_by}</span>

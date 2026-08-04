@@ -242,31 +242,50 @@ export default function HubTabsNavigation({
 
   return (
     <div className={`${className} ${classes.root}`}>
-      <Container maxWidth="lg" className={classes.container}>
-        <div className={classes.linksAndTabsWrapper}>
-          {renderTabs()}
-          {isEventsEnabled && !isNarrowScreen && (
-            <Link
-              className={isEventsPage ? classes.activeEventLink : classes.link}
-              href={`${getLocalePrefix(locale)}${hubUrl ? `/hubs/${hubUrl}/events` : "/events"}`}
-              underline={isEventsPage ? "none" : "hover"}
-            >
-              {texts.event_calendar ?? "Event calendar"}
-            </Link>
-          )}
-          {isEmmendingenHub && (
-            <Link
-              className={classes.climateMatchLink}
-              href="https://climatehub.earth/burgerenergie-em"
-              underline="hover"
-            >
-              {texts.emmerdingen_buergerenergie}
-            </Link>
-          )}
-          {renderNarrowScreenLinks()}
-        </div>
-        {renderRightSection()}
-      </Container>
+      {isNarrowScreen ? (
+        isEmmendingenHub || hubTabLink ? (
+          <Container maxWidth="lg" className={classes.container}>
+            <div className={classes.linksAndTabsWrapper}>
+              {isEmmendingenHub && (
+                <Link
+                  className={classes.climateMatchLink}
+                  href="https://climatehub.earth/burgerenergie-em"
+                  underline="hover"
+                >
+                  {texts.emmerdingen_buergerenergie}
+                </Link>
+              )}
+              {renderNarrowScreenLinks()}
+            </div>
+          </Container>
+        ) : null
+      ) : (
+        <Container maxWidth="lg" className={classes.container}>
+          <div className={classes.linksAndTabsWrapper}>
+            {renderTabs()}
+            {isEventsEnabled && !isNarrowScreen && (
+              <Link
+                className={isEventsPage ? classes.activeEventLink : classes.link}
+                href={`${getLocalePrefix(locale)}${hubUrl ? `/hubs/${hubUrl}/events` : "/events"}`}
+                underline={isEventsPage ? "none" : "hover"}
+              >
+                {texts.event_calendar ?? "Event calendar"}
+              </Link>
+            )}
+            {isEmmendingenHub && (
+              <Link
+                className={classes.climateMatchLink}
+                href="https://climatehub.earth/burgerenergie-em"
+                underline="hover"
+              >
+                {texts.emmerdingen_buergerenergie}
+              </Link>
+            )}
+            {renderNarrowScreenLinks()}
+          </div>
+          {renderRightSection()}
+        </Container>
+      )}
     </div>
   );
 }
