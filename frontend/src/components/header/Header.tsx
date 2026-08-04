@@ -377,13 +377,17 @@ export default function Header({
     >
       <Container className={classes.container}>
         {isNarrowScreen ? (
-          <HubLogoMenu
-            isLocationHub={isLocationHub}
-            isCustomHub={isCustomHub}
-            hubUrl={hubUrl}
-            logo={logo}
-            logoAlt={texts.climate_connect_logo}
-          />
+          <Box sx={{ display: "flex", alignItems: "center", minWidth: 0, flex: "0 1 auto" }}>
+            <Link href={logoLink} className={classes.logoLink} underline="hover">
+              <img
+                src={logo}
+                alt={texts.climate_connect_logo}
+                className={classes.logo}
+                onError={loadFallbackLogo}
+              />
+            </Link>
+            <HubLogoMenu />
+          </Box>
         ) : (
           <Link href={logoLink} className={classes.logoLink} underline="hover">
             <img
