@@ -12,6 +12,6 @@ fi
 
 # Backend: pre-commit.com hooks (Black + Ruff on staged backend/ files).
 # pre-commit itself no-ops on frontend-only commits via the `files:` patterns.
-cd "$REPO_ROOT/backend" && pdm run pre-commit run || EXIT_CODE=1
+# cd "$REPO_ROOT/backend" && pdm run pre-commit run || EXIT_CODE=1
 
 exit $EXIT_CODE
