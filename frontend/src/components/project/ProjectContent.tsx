@@ -29,13 +29,17 @@ const useStyles = makeStyles((theme: Theme) => ({
     display: "block",
     fontSize: 14,
   },
-  creator: (props) => ({
-    paddingTop: props.isPersonalProject && theme.spacing(0.25),
+  creator: {
     paddingLeft: theme.spacing(1),
     color: theme.palette.grey[800],
     cursor: "pointer",
     wordBreak: "break-word",
-  }),
+    "& h6": {
+      fontSize: "inherit",
+      fontWeight: 600,
+      lineHeight: "inherit",
+    },
+  },
   collaboratingOrganization: {
     paddingLeft: theme.spacing(1),
     paddingRight: theme.spacing(1),
@@ -185,7 +189,7 @@ export default function ProjectContent({
   onEventRegistrationUpdated,
   onMembersRefreshed,
 }) {
-  const classes = useStyles({ isPersonalProject: project.isPersonalProject });
+  const classes = useStyles({});
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
   const [showFullDescription, setShowFullDescription] = useState(false);

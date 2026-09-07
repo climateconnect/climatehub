@@ -389,6 +389,33 @@ curl -X POST http://localhost:8000/api/auth/verify-token \
 | `/api/projects/{slug}/registrations/email/` | POST | Yes | Send email to all active guests (organiser/admin only) |
 | `/api/event-registration-origin/{registration_id}/` | GET | Yes | Resolve event context for an event-registration-origin chat message (issue #2102) |
 
+#### Deprecated and removed: project tag surface
+
+As of **v2.5** the project tag taxonomy (`ProjectTags` / `ProjectTagging`) has been retired
+from the API and replaced by [sectors](./domain-entities.md#sector). The models and their tables still exist —
+see the deprecation note in
+[domain-entities.md](./domain-entities.md#deprecation-project-tags-are-being-replaced-by-sector)
+for why — but **nothing in the API reads or writes them any more**.
+
+| Removed | Where | Behaviour now | Replacement |
+|---|---|---|---|
+| `GET /api/projecttags/` | endpoint | `404 Not Found` | `GET /api/sectors/` |
+| `tags` | response field on `GET /api/projects/{slug}/` | absent from the payload | `sectors` |
+| `tags` | response field on `GET /api/projects/` (and every other project-card response) | absent from the payload | `sectors` |
+| `project_tags` | request field on `POST /api/create_project/` | **silently ignored** — still returns `201` | `sectors` |
+| `project_tags` | request field on `PATCH /api/projects/{slug}/` | **silently ignored** — still returns `200` | `sectors` |
+| `?category=` | query param on `GET /api/projects/` | **silently ignored** — returns the *unfiltered* list | `?sectors=` |
+
+> ⚠️ **These removals fail open, not loud.** A client that still sends `project_tags` gets a
+> success response with the tags silently discarded, and a bookmarked or search-indexed
+> `GET /api/projects/?category=Energy` URL now returns *all* projects rather than an error.
+> If you are debugging "my categories disappeared", this is the cause — it is not data loss.
+
+**Note on `sectors` casing**: the read and write paths key off different `Sector` columns —
+`?sectors=` filters on the sector **`name`** (e.g. `?sectors=Energy`), while the
+`POST /api/create_project/` and `PATCH /api/projects/{slug}/` bodies expect the sector
+**`key`** (e.g. `"sectors": ["energy"]`). `GET /api/sectors/` returns both.
+
 #### Project description (`description_html`)
 
 The project description uses rich-text HTML stored in `description_html`. The legacy `description` field (plain text) is kept for backwards compatibility but is no longer written to by new code.

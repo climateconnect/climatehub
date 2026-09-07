@@ -34,6 +34,7 @@ const useStyles = makeStyles((theme) => {
     contentWrapper: {
       display: "inline-flex",
       alignItems: "center",
+      verticalAlign: "middle",
     },
     badge: {
       bottom: "20%",

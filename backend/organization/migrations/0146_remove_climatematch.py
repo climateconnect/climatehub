@@ -1,7 +1,7 @@
 """Remove the ClimateMatch feature.
 
 This migration is ONE-WAY. The reverse operations are no-ops so that
-`migrate organization 0144` does not fail, but the dropped tables and their
+`migrate organization 0145` does not fail, but the dropped tables and their
 data do NOT come back. The archive produced before deploy (anonymised
 aggregate CSV + full `dumpdata` JSON) is the only recovery path.
 """
@@ -18,7 +18,7 @@ def delete_climate_match_bookkeeping(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("organization", "0144_alter_project_status"),
+        ("organization", "0145_delete_organizationfieldtagging"),
         ("contenttypes", "0002_remove_content_type_name"),
     ]
 

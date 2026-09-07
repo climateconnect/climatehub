@@ -126,7 +126,6 @@ class TestCreateDraftMode(_DraftModeBase):
             "short_description": "Testing draft mode creation",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],
             "loc": self.location_data,
             "image": self.image,

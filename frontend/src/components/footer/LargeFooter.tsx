@@ -167,11 +167,7 @@ const SocialLinks = () => {
       <Link target="_blank" href="https://www.instagram.com/climatehub_netzwerk/" underline="hover">
         <InstagramIcon color="primary" className={classes.socialIcon} titleAccess="Instagram" />
       </Link>
-      <Link
-        target="_blank"
-        href="https://github.com/climateconnect/climateconnect"
-        underline="hover"
-      >
+      <Link target="_blank" href="https://github.com/climateconnect/climatehub" underline="hover">
         <GitHubIcon className={classes.socialIcon} titleAccess="GitHub" />
       </Link>
       <Link

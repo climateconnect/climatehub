@@ -3,15 +3,29 @@
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EXIT_CODE=0
 
+# Helper: run a command locally or inside the devcontainer.
+# Usage: run_in_env <local-cmd> <devcontainer-cmd>
+run_in_env() {
+    if [ -f /.dockerenv ]; then
+        eval "$1" || EXIT_CODE=1
+    elif command -v devcontainer >/dev/null 2>&1; then
+        devcontainer exec --workspace-folder "$REPO_ROOT" $2 || EXIT_CODE=1
+    else
+        eval "$1" || EXIT_CODE=1
+    fi
+}
+
 # Frontend: lint-staged (ESLint + Prettier on staged .js/.jsx/.ts/.tsx/.json/.md)
 # lint-staged exits 1 if no staged files match its tasks, which is expected
 # on backend-only commits. Only run if frontend files are staged.
 if git diff --cached --name-only --diff-filter=ACMR | grep -q '^frontend/'; then
-    cd "$REPO_ROOT/frontend" && npx lint-staged || EXIT_CODE=1
+    cd "$REPO_ROOT/frontend" && run_in_env "npx lint-staged" "npx lint-staged"
 fi
 
 # Backend: pre-commit.com hooks (Black + Ruff on staged backend/ files).
 # pre-commit itself no-ops on frontend-only commits via the `files:` patterns.
-cd "$REPO_ROOT/backend" && pdm run pre-commit run || EXIT_CODE=1
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '^backend/'; then
+    cd "$REPO_ROOT/backend" && run_in_env "pdm run pre-commit run" "pdm run pre-commit run"
+fi
 
 exit $EXIT_CODE

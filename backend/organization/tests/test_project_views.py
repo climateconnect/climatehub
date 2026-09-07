@@ -403,7 +403,7 @@ class TestCreateProjectsViews(APITestCase):
             "team_members": [],
             "description": "Test Project Description",
             "url_slug": "test-project",
-            "project_tags": [],
+            "sectors": [],
             "loc": self.default_location_data,
             "image": self.image,
             "source_language": self.default_language.language_code,

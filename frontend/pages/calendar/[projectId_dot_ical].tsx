@@ -37,10 +37,10 @@ export async function getServerSideProps(ctx) {
 
   const cal = icalGenerator({
     name: "Climate Connect",
-    prodId: { company: "Climate Connect", product: "Climate Connect" },
+    prodId: "//Climate Hub Network//EN",
   });
 
-  cal.createEvent(buildIcalEventData(event, eventUrl));
+  cal.createEvent({ ...buildIcalEventData(event, eventUrl), id: `${event.id}@climatehub.org` });
 
   const icalString = cal.toString();
 

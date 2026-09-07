@@ -61,6 +61,10 @@ const useStyles = makeStyles((theme) => ({
   containerButtonsActionBar: {
     display: "flex",
     justifyContent: "space-between",
+    "& button": {
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2),
+    },
   },
   leftActions: {
     display: "flex",

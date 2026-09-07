@@ -176,8 +176,9 @@ a `climate_match` migration** (verified: `grep -rn "climate_match" */migrations/
 outside `climate_match/` itself). The `climate_match` migrations only ever depended *outward*, on
 `climateconnect_api`, `hubs`, and `contenttypes`.
 
-`backend/organization/migrations/0145_remove_climatematch.py` (next number after
-`0144_alter_project_status`):
+`backend/organization/migrations/0146_remove_climatematch.py` (next number after
+`0145_delete_organizationfieldtagging`, which landed on `master` while this spec was being
+implemented):
 
 ```python
 from django.db import migrations
@@ -192,7 +193,7 @@ def delete_climate_match_bookkeeping(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("organization", "0144_alter_project_status"),
+        ("organization", "0145_delete_organizationfieldtagging"),
         ("contenttypes", "0002_remove_content_type_name"),
     ]
 
@@ -225,7 +226,7 @@ class Migration(migrations.Migration):
 
 Notes on the shape of this migration:
 
-- **It is one-way.** `reverse_sql`/`reverse_code` are no-ops so `migrate organization 0144` does not
+- **It is one-way.** `reverse_sql`/`reverse_code` are no-ops so `migrate organization 0145` does not
   explode, but the tables and their data do not come back. The archive from *Data Handling* is the
   only recovery path. Say so in the migration's module docstring.
 - **`CASCADE` + explicit ordering.** All eight names are listed child-first anyway; `CASCADE` covers
@@ -271,7 +272,7 @@ frontend/public/images/erlangen_climatematch.jpg
 | `backend/hubs/serializers/hub.py` | Delete `HubClimateMatchSerializer` (lines 164–172) |
 | `backend/climateconnect_api/management/commands/create_test_data.py` | Remove `show_in_climatematch=True` from both `OrganizationTags.objects.create(...)` calls (lines 148, 155) |
 | `backend/climateconnect_api/management/commands/create_sector_hub_data.py` | Reword `help` (line 8) — e.g. "Create sector hub data" |
-| `backend/organization/migrations/0145_remove_climatematch.py` | **New** — see above |
+| `backend/organization/migrations/0146_remove_climatematch.py` | **New** — see above |
 
 ### Frontend
 
@@ -308,7 +309,7 @@ Every one of these is part of the change, per `CLAUDE.md`:
 - [ ] `climate_match` is gone from `INSTALLED_APPS`, `urls.py`, and the coverage source list.
 - [ ] `ProjectSuggestionSerializer`, `OrganizationSuggestionSerializer`, and `HubClimateMatchSerializer` are gone, and `ProjectStubSerializer` / `IdeaMinimalSerializer` / `OrganizationSerializer` are untouched.
 - [ ] `show_in_climatematch` is gone from the model, from `create_test_data.py`, and from the DB.
-- [ ] Migration `organization/0145_remove_climatematch.py` applies cleanly on a copy of the production DB, and `manage.py showmigrations` afterwards lists no `climate_match` app.
+- [ ] Migration `organization/0146_remove_climatematch.py` applies cleanly on a copy of the production DB, and `manage.py showmigrations` afterwards lists no `climate_match` app.
 - [ ] After migrate, `SELECT count(*) FROM django_content_type WHERE app_label = 'climate_match'` returns 0.
 - [ ] `pdm run python manage.py makemigrations --check --dry-run` reports no pending changes.
 - [ ] `pdm run python manage.py test --keepdb --noinput` passes; `make ruff` and `make format` are clean.
@@ -400,7 +401,7 @@ Suggested commit order — each step leaves the tree in a state where `manage.py
    `ProjectSuggestionSerializer`, `HubClimateMatchSerializer`, the `show_in_climatematch` field,
    `create_climatematch_data.py`, the two kwargs in `create_test_data.py`, the `help` string in
    `create_sector_hub_data.py`. Run `make ruff` — it will catch any import left dangling.
-5. **Write the migration** `organization/0145_remove_climatematch.py` as specced, with a docstring
+5. **Write the migration** `organization/0146_remove_climatematch.py` as specced, with a docstring
    stating it is one-way. Verify with `makemigrations --check --dry-run` that Django agrees the
    model state matches; the `RemoveField` must be there or Django will want to generate its own.
 6. **Test against real data.** Restore a production dump locally, run `migrate`, then confirm:
