@@ -257,7 +257,6 @@ class TestNotifyAdminsCreateProject(APITestCase):
             "short_description": "A short description",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],
             "loc": self.location_data,
             "image": self.image,

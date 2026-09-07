@@ -279,6 +279,8 @@ STATIC_ROOT = (
 )
 MEDIA_ROOT = env("MEDIA_ROOT", os.path.join(BASE_DIR, "media"))
 MEDIA_URL = "/media/"
+# Images are sent as base64 JSON; 10 MB gives headroom above the ~33% base64 overhead
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 REST_KNOX = {"TOKEN_TTL": timedelta(days=120)}
 REST_FRAMEWORK = {
@@ -289,6 +291,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 200,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "event_feed": "20/hour",
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -367,6 +372,7 @@ ADMIN_REGISTRATION_NOTIFICATION_TEMPLATE_ID_DE = env(
 )
 
 FRONTEND_URL = env("FRONTEND_URL", "")
+ICAL_FEED_SIGNING_KEY = env("ICAL_FEED_SIGNING_KEY", "")
 LOCATION_SERVICE_BASE_URL = env("LOCATION_SERVICE_BASE_URL")
 
 # Which column of the FeatureToggle table backend code reads (see
@@ -678,5 +684,6 @@ if "test" in sys.argv or env("ENVIRONMENT") == "test":
     # Pin the toggle column tests read, so a developer whose .backend_env says
     # ENVIRONMENT=production doesn't get a different toggle state than CI.
     FEATURE_TOGGLE_ENVIRONMENT = "development"
+    ICAL_FEED_SIGNING_KEY = "test-signing-key-for-unit-tests"
 
 # --- END GLOBAL TEST SETTINGS ---

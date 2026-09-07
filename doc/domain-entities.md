@@ -162,7 +162,7 @@ This document provides comprehensive documentation of the main domain entities i
 **Relationships**:
 - **ForeignKey**: `Self` (parent_organization - hierarchical structure), `Location`, `Language`
 - **ManyToMany**: `Hub` (hubs and related_hubs - primary and followed hubs)
-- **Referenced by**: `OrganizationTranslation`, `OrganizationMember`, `OrganizationTagging`, `OrganizationSectorMapping`, `OrganizationFieldTagging`, `OrganizationFollower`, `ProjectParents`, `ProjectCollaborators`, `HubSupporter`, `Idea`, `ContentShares`
+- **Referenced by**: `OrganizationTranslation`, `OrganizationMember`, `OrganizationTagging`, `OrganizationSectorMapping`, `OrganizationFollower`, `ProjectParents`, `ProjectCollaborators`, `HubSupporter`, `Idea`, `ContentShares`
 
 ---
 
@@ -186,7 +186,7 @@ This document provides comprehensive documentation of the main domain entities i
 **Relationships**:
 - **ForeignKey**: `ProjectStatus`, `Location`, `Language`
 - **ManyToMany**: `Hub` (related_hubs)
-- **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectTagging`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `EventRegistrationConfig`
+- **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `EventRegistrationConfig`, `ProjectTagging` (**deprecated** — see [ProjectTags & OrganizationTags](#projecttags--organizationtags))
 
 ---
 
@@ -287,17 +287,41 @@ This document provides comprehensive documentation of the main domain entities i
 
 ### ProjectTags & OrganizationTags
 
-**Summary**: Hierarchical categorization system for projects and organizations.
+**Summary**: Hierarchical categorization system for projects and organizations. **`ProjectTags` / `ProjectTagging` are deprecated** — see the deprecation note below. `OrganizationTags` (organization *types*) is current and unaffected.
 
 **Description**: Tag taxonomies for content categorization. Both support parent-child relationships for hierarchical organization (e.g., "Renewable Energy" → "Solar", "Wind"). `ProjectTagging` and `OrganizationTagging` create many-to-many relationships with uniqueness constraints.
 
 **Relationships**:
-- **ProjectTags**:
+- **ProjectTags** (deprecated):
   - **ForeignKey**: `Self` (parent_tag)
   - **ManyToMany with**: `Project` (via `ProjectTagging`), `Hub` (filter_parent_tags)
 - **OrganizationTags**:
   - **ForeignKey**: `Self` (parent_tag)
   - **ManyToMany with**: `Organization` (via `OrganizationTagging`)
+
+#### Deprecation: project tags are being replaced by Sector
+
+> ⚠️ Use [Sector](#sector) for anything new.
+
+As of v2.5 the project tag taxonomy is **retired at the code level but retained in the
+database**. `ProjectTags` and `ProjectTagging` are no longer read or written by any
+application code and are **not exposed through any API** — see
+[api-documentation.md](./api-documentation.md#deprecated-and-removed-project-tag-surface) for
+the endpoints and fields that were removed.
+
+The models and their tables are kept deliberately, because:
+
+1. `organization/management/commands/create_proj_sector_mappings.py` reads `ProjectTagging`
+   to derive the `ProjectSectorMapping` rows. The tables cannot be dropped until that
+   migration has been run everywhere.
+2. The Climate Match ranking SQL (`climate_match/utility/sort_resources.py`) still joins
+   `organization_projecttagging` and `hubs_hub_filter_parent_tags` to compute the hub
+   relevancy score. Because nothing writes `ProjectTagging` any more, projects created after
+   v2.5 score `0` on that axis — this must be repointed at `ProjectSectorMapping` /
+   `Hub.sectors` before the tables can go.
+
+Retirement order: **stop writing** (done, v2.5) → **stop reading** (blocked on Climate Match)
+→ **drop the tables**. `Hub.filter_parent_tags` and `ProjectTags.parent_tag` go with them.
 
 ---
 
@@ -599,7 +623,7 @@ Re-registered — cancelled_at reset to NULL, cancelled_by reset to NULL (row re
 
 **Relationships**:
 - **ForeignKey**: `Self` (parent_hub - hierarchy), `Language`
-- **ManyToMany**: `HubStat` (displayed statistics), `ProjectTags` (filter_parent_tags), `Sector`, `Location`
+- **ManyToMany**: `HubStat` (displayed statistics), `Sector`, `Location`, `ProjectTags` (filter_parent_tags — **deprecated**, retired with the project tag taxonomy)
 - **ManyToMany with**: `UserProfile` (related_hubs), `Organization` (hubs, related_hubs), `Project` (related_hubs)
 - **Referenced by**: `HubTranslation`, `HubTheme`, `HubAmbassador`, `HubSupporter`, `DonationGoal`, `Idea`, `UserQuestionAnswer`
 
@@ -949,7 +973,7 @@ Project
 ├── Skills Required (ManyToMany)
 ├── Hubs (ManyToMany - related_hubs)
 ├── Sectors (ManyToMany via ProjectSectorMapping)
-├── Tags (ManyToMany via ProjectTagging)
+├── Tags (ManyToMany via ProjectTagging) [DEPRECATED - not exposed via API]
 ├── Parent (Organization or User via ProjectParents)
 ├── Collaborators (Organizations via ProjectCollaborators)
 ├── Members (ProjectMember)
@@ -976,7 +1000,7 @@ Hub
 ├── Locations (ManyToMany)
 ├── Sectors (ManyToMany)
 ├── Stats (ManyToMany HubStat)
-├── Filter Tags (ManyToMany ProjectTags)
+├── Filter Tags (ManyToMany ProjectTags) [DEPRECATED - retired with project tags]
 ├── Theme (OneToOne HubTheme)
 ├── Ambassadors (HubAmbassador)
 ├── Supporters (HubSupporter)

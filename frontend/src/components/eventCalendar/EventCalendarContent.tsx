@@ -18,6 +18,8 @@ import UserContext from "../context/UserContext";
 import FilterSearchBar from "../filter/FilterSearchBar";
 import GenericDialog from "../dialogs/GenericDialog";
 import EventCalendarEventList from "./EventCalendarEventList";
+import SubscribeToCalendarButton from "./SubscribeToCalendarButton";
+import { useFeatureToggles } from "../featureToggle/FeatureToggleProvider";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/de";
 import "dayjs/locale/en";
@@ -179,6 +181,8 @@ export default function EventCalendarContent({
   const texts = getTexts({ page: "hub", locale: locale });
   const filterTexts = getTexts({ page: "filter_and_search", locale: locale });
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
+  const { isEnabled } = useFeatureToggles();
+  const showSubscribe = isEnabled("ICAL_SUBSCRIPTION_FEED_FEATURE");
 
   const urlFilters = useRef(readFiltersFromUrl());
   const initialDay = initialSelectedDay
@@ -361,6 +365,15 @@ export default function EventCalendarContent({
               {texts.filters ?? "Filters"}
             </Button>
           </Badge>
+          {showSubscribe && (
+            <SubscribeToCalendarButton
+              hubUrl={hubUrl}
+              search={search}
+              sectors={sectors}
+              date={selectedDay.format("YYYY-MM-DD")}
+              variant="icon"
+            />
+          )}
         </div>
       )}
 
@@ -425,6 +438,15 @@ export default function EventCalendarContent({
             >
               {filterTexts.clear_all ?? "Clear all"}
             </Button>
+
+            {showSubscribe && (
+              <SubscribeToCalendarButton
+                hubUrl={hubUrl}
+                search={search}
+                sectors={draftSectors}
+                date={draftSelectedDay.format("YYYY-MM-DD")}
+              />
+            )}
           </div>
         </GenericDialog>
       )}
@@ -494,6 +516,15 @@ export default function EventCalendarContent({
             >
               {texts.reset ?? "Reset"}
             </Button>
+
+            {showSubscribe && (
+              <SubscribeToCalendarButton
+                hubUrl={hubUrl}
+                search={search}
+                sectors={sectors}
+                date={selectedDay.format("YYYY-MM-DD")}
+              />
+            )}
           </div>
         )}
 

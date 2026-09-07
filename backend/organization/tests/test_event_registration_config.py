@@ -98,7 +98,6 @@ class TestEventRegistrationCreate(APITestCase):
             "short_description": "A short description",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],  # required param; empty means no sector tagging
             "loc": self.location_data,
             "image": self.image,
@@ -584,7 +583,6 @@ class TestEventRegistrationStatus(APITestCase):
             "short_description": "Testing default status",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],
             "loc": location_data,
             "image": _make_black_image_b64(),

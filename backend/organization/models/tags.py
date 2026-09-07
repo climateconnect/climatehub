@@ -119,6 +119,7 @@ class OrganizationTagging(models.Model):
         return "%s => %s" % (self.organization_tag.name, self.organization.name)
 
 
+# TODO: remove
 class ProjectTags(models.Model):
     name = models.CharField(
         help_text="Points to name of the project tag",
@@ -180,6 +181,7 @@ def create_project_tag_key(sender, instance, **kwargs):
         instance.key = instance.name.replace(" ", "").lower()
 
 
+# TODO: remove
 class ProjectTagging(models.Model):
     project = models.ForeignKey(
         Project,
@@ -224,44 +226,3 @@ class ProjectTagging(models.Model):
 
     def __str__(self):
         return "Tag %s => Project %s" % (self.project_tag.name, self.project.name)
-
-
-class OrganizationFieldTagging(models.Model):
-    organization = models.ForeignKey(
-        Organization,
-        related_name="field_tag_organization",
-        verbose_name="Organization",
-        help_text="Points to an organization",
-        on_delete=models.CASCADE,
-    )
-
-    field_tag = models.ForeignKey(
-        ProjectTags,
-        related_name="field_tag",
-        verbose_name="Organization Tag",
-        help_text="Points to the tag",
-        on_delete=models.CASCADE,
-    )
-
-    created_at = models.DateTimeField(
-        help_text="Time when organization field tag was created",
-        verbose_name="Created At",
-        auto_now_add=True,
-    )
-
-    updated_at = models.DateTimeField(
-        help_text="Time when organization field tag was updated",
-        verbose_name="Updated At",
-        auto_now=True,
-    )
-
-    # TODO (Dip): Add additional data field when ready
-
-    class Meta:
-        app_label = "organization"
-        verbose_name = "Organization Field Tagging"
-        verbose_name_plural = "Organization Field Taggings"
-        unique_together = ("organization", "field_tag")
-
-    def __str__(self):
-        return "%s => %s" % (self.field_tag.name, self.organization.name)

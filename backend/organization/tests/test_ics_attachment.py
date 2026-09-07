@@ -87,7 +87,7 @@ class TestGenerateEventIcsAttachment(TestCase):
         """ICS contains VCALENDAR with required properties."""
         attachment = generate_event_ics_attachment(self.project, "en")
         cal = self._parse_ics(attachment)
-        self.assertEqual(cal.get("prodid"), "-//Climate Connect//EN")
+        self.assertEqual(cal.get("prodid"), "-//Climate Hub Network//EN")
         self.assertEqual(cal.get("version"), "2.0")
         self.assertEqual(cal.get("method"), "PUBLISH")
 

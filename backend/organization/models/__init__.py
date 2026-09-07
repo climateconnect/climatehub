@@ -5,9 +5,6 @@ from organization.models.organization import (
 from organization.models.tags import (
     OrganizationTags,
     OrganizationTagging,
-    ProjectTags,
-    ProjectTagging,
-    OrganizationFieldTagging,
 )
 from organization.models.project import Project, ProjectParents, ProjectCollaborators
 from organization.models.content import Post, Comment, PostComment, ProjectComment

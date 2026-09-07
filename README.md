@@ -1,6 +1,6 @@
 # Climate Connect
 
-The client and server code for the web platform on https://climateconnect.earth.
+The client and server code for the web platform on https://climatehub.org.
 
 ## Table of Contents
 1. [Development setup](#development-setup)  
@@ -14,7 +14,7 @@ The client and server code for the web platform on https://climateconnect.earth.
 
 # Development setup
 
-Climate Connect depends on PostgreSQL/PostGIS and Redis.
+ClimateHub depends on PostgreSQL/PostGIS and Redis.
 
 We use Python/Django for our backend and Next.js for the frontend.
 
@@ -23,7 +23,7 @@ Note: we use Python 3, so for all instructions we assume `python` means `python3
 First, clone the GitHub repository
 
 ```sh
-git clone https://github.com/climateconnect/climateconnect
+git clone https://github.com/climateconnect/climatehub.git
 ```
 
 ## One-click setup using VSCode Dev Containers
@@ -273,4 +273,4 @@ Currently the project is utilizing credits to deploy onto Azure. That deployment
 [API Interactive Docs (Swagger UI)](http://localhost:8000/api/docs/) - Test API endpoints interactively (local development)
 
 ## Production API Documentation
-For production environment, visit: `https://climateconnect.earth/api/docs/`  
+For production environment, visit: `https://climatehub.org/api/docs/`  

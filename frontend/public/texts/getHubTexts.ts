@@ -179,6 +179,38 @@ export default function getHubTexts({ hubName, hubAmbassador }) {
       en: "Search events",
       de: "Events suchen",
     },
+    subscribe_to_calendar_button: {
+      en: "Subscribe",
+      de: "Abonnieren",
+    },
+    subscribe_dialog_title: {
+      en: "Subscribe to event calendar",
+      de: "Event-Kalender abonnieren",
+    },
+    subscribe_dialog_instructions: {
+      en:
+        "Copy the URL below and add it to your calendar app using 'Subscribe to calendar' or 'Add calendar by URL'.",
+      de:
+        "Kopiere die URL unten und füge sie in deiner Kalender-App über 'Kalender abonnieren' oder 'Kalender per URL hinzufügen' hinzu.",
+    },
+    subscribe_open_in_google: {
+      en: "Open in Google Calendar",
+      de: "In Google Kalender öffnen",
+    },
+    subscribe_copy_url: {
+      en: "Copy URL",
+      de: "URL kopieren",
+    },
+    subscribe_copied: {
+      en: "Copied!",
+      de: "Kopiert!",
+    },
+    subscribe_google_lag_note: {
+      en:
+        "Note: Google Calendar refreshes subscribed feeds every 12\u201324 hours, so new events may take up to a day to appear.",
+      de:
+        "Hinweis: Google Kalender aktualisiert abonnierte Kalender alle 12\u201324 Stunden, daher können neue Events bis zu einem Tag dauern.",
+    },
   };
 
   if (hubName === "Fashion") return { ...generalHubTexts, ...getFashionHubDescription() };

@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from django.db import connection
 
 
+# TODO: when deleting ProjectTags, one should adjust the climate match sorting logic accordingly,
+# as it uses project tags. One might need to add sector logic. Yet, climate match is not activly used
+# and thus postponed.
 def sort_user_resource_preferences(
     user: User, climatematch_token: UUID, hub_id: int
 ) -> List:

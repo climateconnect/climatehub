@@ -302,8 +302,12 @@ export default function ProjectPageRoot({
 
   useEffect(() => {
     if (window.location.hash) {
-      setHash(window.location.hash.replace("#", ""));
-      setTabValue(typesByTabValue.indexOf(window.location.hash.replace("#", "")));
+      const hashValue = window.location.hash.replace("#", "");
+      const tabIndex = typesByTabValue.indexOf(hashValue);
+      if (tabIndex !== -1) {
+        setHash(hashValue);
+        setTabValue(tabIndex);
+      }
     }
   });
 

@@ -128,7 +128,7 @@ const SmallFooter = ({
   const texts = getTexts({ page: "navigation", locale: locale });
   const socialMediaLinks = [
     {
-      href: "https://github.com/climateconnect/climateconnect",
+      href: "https://github.com/climateconnect/climatehub",
       icon: GitHubIcon,
       altText: "GitHub",
       isFooterIcon: true,

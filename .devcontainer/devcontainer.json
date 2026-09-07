@@ -33,7 +33,7 @@
   // "forwardPorts": [3000, 5432],
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "./initial_dev_setup.sh"
+  "postCreateCommand": "./initial_dev_setup.sh && git config core.hooksPath .husky"
 
   // Configure tool-specific properties.
   // "customizations": {},

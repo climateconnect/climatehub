@@ -54,6 +54,7 @@ const useStyles = makeStyles<Theme, { hovering?: boolean }>((theme) => ({
     display: "inline",
     fontSize: 14,
     marginLeft: theme.spacing(0.25),
+    color: theme.palette.text.primary,
   },
   shortDescription: {
     fontSize: 13,

@@ -228,6 +228,23 @@ module.exports = withBundleAnalyzer({
 
     return [...domainRedirects, ...existingRedirects];
   },
+  async rewrites() {
+    const djangoBackend = process.env.API_URL || "";
+    return [
+      {
+        source: "/events/feed.ics",
+        destination: `${djangoBackend}/api/events/feed.ics/`,
+      },
+      {
+        source: "/hubs/:hubUrl/events/feed.ics",
+        destination: `${djangoBackend}/api/events/feed.ics/`,
+      },
+      {
+        source: "/hubs/:hubUrl/:subHub/events/feed.ics",
+        destination: `${djangoBackend}/api/events/feed.ics/`,
+      },
+    ];
+  },
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
