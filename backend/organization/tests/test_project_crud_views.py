@@ -800,6 +800,22 @@ class TestProjectApi(APITestCase):
         self.assertIsNone(project_parents.parent_organization)
 
     @tag("projects")
+    def test_patch_project_switching_to_personal_clears_parent_organization(self):
+        self._login()
+        organization = self._create_organization("owner-switch-personal")
+        project_parents = self._set_parent_organization(organization)
+
+        response = self.client.patch(
+            self.url,
+            {"is_personal_project": True, "parent_organization": None},
+            format="json",
+        )
+
+        self.assertContains(response, "successfully updated")
+        project_parents.refresh_from_db()
+        self.assertIsNone(project_parents.parent_organization)
+
+    @tag("projects")
     def test_patch_project_rejects_invalid_parent_organization_id(self):
         self._login()
         project_parents = self._set_parent_organization(
@@ -833,3 +849,21 @@ class TestProjectApi(APITestCase):
         self.assertContains(response, "successfully updated")
         project_parents.refresh_from_db()
         self.assertEqual(project_parents.parent_organization, replacement_organization)
+
+    @tag("projects")
+    def test_patch_project_assigns_valid_parent_organization_from_personal(self):
+        self._login()
+        project_parents = self.project.project_parent.get()
+        project_parents.parent_organization = None
+        project_parents.save()
+
+        organization = self._create_organization("owner-assign-from-personal")
+        response = self.client.patch(
+            self.url,
+            {"parent_organization": organization.id},
+            format="json",
+        )
+
+        self.assertContains(response, "successfully updated")
+        project_parents.refresh_from_db()
+        self.assertEqual(project_parents.parent_organization, organization)
