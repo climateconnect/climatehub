@@ -995,7 +995,7 @@ MessageParticipants (Chat)
 ## Total Entity Count
 
 - **Core Domain Models**: 80+ entities
-- **Translation Support Tables**: 14 models
+- **Translation Support Tables**: 12 models
 - **Mapping/Junction Tables**: 15+ models for many-to-many relationships
 - **Total**: 100+ database tables
 
@@ -1018,3 +1018,4 @@ This architecture supports a comprehensive climate action platform with social n
 - **2026-05-26**: Added `label` field to `RegistrationField` (max 30 chars, unique per config) and `notify_admins` field to `EventRegistrationConfig` (default `True`). Labels are auto-generated on creation and organiser-editable for export display. `notify_admins` controls whether team admins receive notification emails on registration changes.
 - **2026-06-10**: Added `last_guest_email_sent_at` field to `EventRegistrationConfig` (DateTimeField, nullable, indexed). Records when the last non-test bulk email was sent to event guests; used to filter "new guests only" recipients. Frontend toggle allows organisers to send emails only to guests who registered after the last bulk send.
 - **2026-07-02**: Added `description_html` field to `Project` (TextField, nullable) and `description_html_translation` to `ProjectTranslation` (TextField, nullable). Project descriptions now use rich-text HTML produced by a Tiptap editor, supporting bold, italic, lists, links, blockquotes, and YouTube embeds. The legacy `description` field is kept (read-only) for backwards compatibility. ICS calendar attachments use `short_description` (plain text) instead of the HTML description. Updated `Project` entity documentation with key fields and rich-text feature.
+- **2026-09-07**: Removed section 7 (Climate Match Entities) and the `climate_match` app — `Question`, `Answer`, `AnswerMetaData`, `UserQuestionAnswer` and their translation models are deleted along with their 8 tables (`organization/0146_remove_climatematch`). Sections 8–11 renumbered to 7–10. `OrganizationTags.show_in_climatematch` removed. Hub relationship list and ER summary updated.
