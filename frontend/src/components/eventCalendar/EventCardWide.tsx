@@ -7,8 +7,8 @@ import { useRouter } from "next/router";
 
 import { getDateAndTime, getTime } from "../../../public/lib/dateOperations";
 import { getImageUrl } from "../../../public/lib/imageOperations";
-import { appHref } from "../../../public/lib/appLink";
-import { HubContext } from "../context/HubContext";
+import { getLocalePrefix } from "../../../public/lib/apiOperations";
+import AppLink from "../general/AppLink";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ProjectSectorsDisplay from "../project/ProjectSectorsDisplay";
@@ -170,28 +170,19 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "default",
     color: theme.palette.background.default_contrastText,
   },
+  noUnderline: {
+    textDecoration: "inherit",
+    "&:hover": {
+      textDecoration: "inherit",
+    },
+  },
 }));
 
 export default function EventCardWide({ project }: any) {
   const { locale, user } = useContext(UserContext);
-  const { hubUrl } = useContext(HubContext);
   const router = useRouter();
   const texts = getTexts({ page: "project", locale: locale });
   const classes = useStyles();
-
-  const projectUrl = appHref(`/projects/${project.url_slug}`, { hubUrl, locale });
-
-  const handleCardClick = () => {
-    router.push(projectUrl);
-  };
-
-  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      router.push(projectUrl);
-    }
-  };
 
   const start = new Date(project.start_date);
   const end = project.end_date ? new Date(project.end_date) : null;
@@ -239,85 +230,84 @@ export default function EventCardWide({ project }: any) {
   ) : null;
 
   return (
-    <Card
-      className={classes.root}
-      variant="outlined"
-      role="link"
-      tabIndex={0}
-      onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-      aria-label={project.name}
+    <AppLink
+      href={`/projects/${project.url_slug}`}
+      underline="hover"
+      className={classes.noUnderline}
     >
-      <div className={classes.wideCard}>
-        <div className={classes.imageWrapper}>
-          <CardMedia
-            component="img"
-            className={classes.image}
-            image={getImageUrl(project.image)}
-            title={project.name}
-            alt={project.name}
-          />
-        </div>
-        <div className={classes.content}>
-          <div className={classes.topRow}>
-            <Typography className={classes.dateTime}>{dateRangeText}</Typography>
-            <div className={classes.topicDesktop}>{topic}</div>
-          </div>
-          <div className={classes.textBlock}>
-            <Typography component="h3" className={classes.title}>
-              {project.name}
-            </Typography>
-            <div>
-              <CreatorAndCollaboratorPreviews
-                collaborating_organization={project.collaborating_organizations}
-                project_parent={project.project_parents ? project.project_parents[0] : undefined}
-              />
-            </div>
-            <div className={classes.topicMobile}>{topic}</div>
-          </div>
-          <div className={classes.bottomRow}>
-            <LocationDisplay
-              className={classes.locationCell}
-              textClassName={classes.locationText}
-              iconClassName={classes.cardIcon}
-              location={project.is_online ? texts.online : project.location}
+      <Card className={classes.root} variant="outlined">
+        <div className={classes.wideCard}>
+          <div className={classes.imageWrapper}>
+            <CardMedia
+              component="img"
+              className={classes.image}
+              image={getImageUrl(project.image)}
+              title={project.name}
+              alt={project.name}
             />
-            <Box className={classes.actions}>
-              {comments > 0 && (
-                <Box className={classes.statusIcon}>
-                  <ModeCommentIcon fontSize="small" />
-                  <span className={classes.statusCount}>{comments}</span>
-                </Box>
-              )}
-              {likes > 0 && (
-                <Box className={classes.statusIcon}>
-                  <FavoriteIcon fontSize="small" />
-                  <span className={classes.statusCount}>{likes}</span>
-                </Box>
-              )}
-              {buttonConfig && (
-                <Button
-                  className={classes.registerButton}
-                  variant={buttonConfig.variant}
-                  color={buttonConfig.color}
-                  size="small"
-                  disabled={buttonConfig.disabled}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                  }}
-                  href={
-                    buttonConfig.disabled
-                      ? undefined
-                      : appHref(`/projects/${project.url_slug}/register`, { hubUrl, locale })
-                  }
-                >
-                  {buttonConfig.label}
-                </Button>
-              )}
-            </Box>
+          </div>
+          <div className={classes.content}>
+            <div className={classes.topRow}>
+              <Typography className={classes.dateTime}>{dateRangeText}</Typography>
+              <div className={classes.topicDesktop}>{topic}</div>
+            </div>
+            <div className={classes.textBlock}>
+              <Typography component="h3" className={classes.title}>
+                {project.name}
+              </Typography>
+              <div>
+                <CreatorAndCollaboratorPreviews
+                  collaborating_organization={project.collaborating_organizations}
+                  project_parent={project.project_parents ? project.project_parents[0] : undefined}
+                />
+              </div>
+              <div className={classes.topicMobile}>{topic}</div>
+            </div>
+            <div className={classes.bottomRow}>
+              <LocationDisplay
+                className={classes.locationCell}
+                textClassName={classes.locationText}
+                iconClassName={classes.cardIcon}
+                location={project.is_online ? texts.online : project.location}
+              />
+              <Box className={classes.actions}>
+                {comments > 0 && (
+                  <Box className={classes.statusIcon}>
+                    <ModeCommentIcon fontSize="small" />
+                    <span className={classes.statusCount}>{comments}</span>
+                  </Box>
+                )}
+                {likes > 0 && (
+                  <Box className={classes.statusIcon}>
+                    <FavoriteIcon fontSize="small" />
+                    <span className={classes.statusCount}>{likes}</span>
+                  </Box>
+                )}
+                {buttonConfig && (
+                  <Button
+                    className={classes.registerButton}
+                    variant={buttonConfig.variant}
+                    color={buttonConfig.color}
+                    size="small"
+                    disabled={buttonConfig.disabled}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!buttonConfig.disabled) {
+                        router.push(
+                          `${getLocalePrefix(locale)}/projects/${project.url_slug}/register`
+                        );
+                      }
+                    }}
+                  >
+                    {buttonConfig.label}
+                  </Button>
+                )}
+              </Box>
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </AppLink>
   );
 }
