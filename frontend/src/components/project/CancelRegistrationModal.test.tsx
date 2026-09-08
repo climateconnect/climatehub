@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import CancelRegistrationModal from "./CancelRegistrationModal";
@@ -57,14 +58,16 @@ function renderModal({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContextValue as any}>
-        <CancelRegistrationModal
-          open={open}
-          onClose={onClose}
-          project={project}
-          onCancellationSuccess={onCancellationSuccess}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContextValue as any}>
+          <CancelRegistrationModal
+            open={open}
+            onClose={onClose}
+            project={project}
+            onCancellationSuccess={onCancellationSuccess}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

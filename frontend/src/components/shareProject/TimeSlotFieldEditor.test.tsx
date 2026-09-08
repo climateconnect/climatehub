@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import TimeSlotFieldEditor from "./TimeSlotFieldEditor";
@@ -48,18 +49,20 @@ function renderEditor({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <TimeSlotFieldEditor
-          title={title}
-          description={description}
-          options={options}
-          onChange={onChange}
-          onRequestDeleteOption={onRequestDeleteOption}
-          titleDisabled={titleDisabled}
-          isDraft={isDraft}
-          fieldError={fieldError}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <TimeSlotFieldEditor
+            title={title}
+            description={description}
+            options={options}
+            onChange={onChange}
+            onRequestDeleteOption={onRequestDeleteOption}
+            titleDisabled={titleDisabled}
+            isDraft={isDraft}
+            fieldError={fieldError}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

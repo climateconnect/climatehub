@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import AuthOtp from "./AuthOtp";
@@ -45,9 +46,11 @@ function renderAuthOtp({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={makeContextValue(locale) as any}>
-        <AuthOtp email={email} onBack={onBack} onSuccess={onSuccess} hubUrl={hubUrl} />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={makeContextValue(locale) as any}>
+          <AuthOtp email={email} onBack={onBack} onSuccess={onSuccess} hubUrl={hubUrl} />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

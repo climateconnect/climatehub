@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import HubLinkButton from "./HubLinkButton";
 import { LinkedHub } from "../../types";
@@ -27,7 +28,9 @@ function makeLinkedHub(overrides: Partial<LinkedHub> = {}): LinkedHub {
 function renderButton(hub: LinkedHub, props: Record<string, any> = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <HubLinkButton hub={hub} {...props} />
+      <StylesThemeProvider theme={theme}>
+        <HubLinkButton hub={hub} {...props} />
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
