@@ -17,7 +17,7 @@
 ## Architecture Patterns
 
 ### Django App Structure
-Each domain has its own app (climateconnect_api, organization, chat_messages, hubs, ideas, climate_match, location, translations):
+Each domain has its own app (climateconnect_api, organization, chat_messages, hubs, ideas, location, translations):
 
 ```
 app_name/

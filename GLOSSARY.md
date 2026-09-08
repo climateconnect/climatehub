@@ -31,11 +31,6 @@ Early-stage climate action proposal before becoming a full project.
 - **Related Models**: `Idea`, `IdeaSupporter`, `IdeaComment`
 - **Lifecycle**: Idea → Project (promotion path)
 
-### **Climate Match**
-Questionnaire-based system for matching users to relevant projects and organizations.
-- **Related Models**: `ClimateMatchQuestion`, `ClimateMatchAnswer`, `ClimateMatchUserResponse`
-- **Purpose**: Personalized recommendations based on skills, interests, and availability
-
 ## Features
 
 ### **Chat/Messaging**

@@ -58,12 +58,6 @@ class OrganizationTags(models.Model):
         help_text="Time when tag was updated", verbose_name="Updated At", auto_now=True
     )
 
-    show_in_climatematch = models.BooleanField(
-        help_text="Help display organizations and projects in climate match",
-        verbose_name="Show in climatematch?",
-        default=False,
-    )
-
     class Meta:
         app_label = "organization"
         verbose_name = "Organization Tags"

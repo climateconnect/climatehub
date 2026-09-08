@@ -59,7 +59,7 @@ Climate Connect (climateconnect.earth) is a full-stack climate action platform c
 ## Architecture Patterns
 
 ### Backend Structure
-- **Modular Django Apps**: Each domain has its own app (climateconnect_api, organization, chat_messages, hubs, ideas, climate_match, location, translations)
+- **Modular Django Apps**: Each domain has its own app (climateconnect_api, organization, chat_messages, hubs, ideas, location, translations)
 - **App Structure Pattern**:
   ```
   app_name/

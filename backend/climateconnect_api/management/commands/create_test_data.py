@@ -153,14 +153,12 @@ def create_organization_tags_test_data():
         OrganizationTags.objects.create(
             name="Volunteer group",
             name_de_translation="Ehrenamtliche Gruppe",
-            show_in_climatematch=True,
             key="volunteergroup",
         )
     if not OrganizationTags.objects.filter(name="Non-profit company").exists():
         OrganizationTags.objects.create(
             name="Non-profit company",
             name_de_translation="non-profitcompany",
-            show_in_climatematch=True,
             key="encouragingaplantbasedlifestyle",
         )
     print("finished creating organization tags test data!")

@@ -267,7 +267,6 @@ Add `GLOSSARY.md` at root:
 - **Project**: Climate action initiative with members, skills, and status tracking
 - **Organization**: Registered climate organization with membership management
 - **Idea**: Early-stage climate action proposal before becoming a project
-- **Climate Match**: Questionnaire-based matching system for users to projects/orgs
 - **Badge**: Achievement recognition in gamification system
 - **Availability**: Time commitment level for user participation
 

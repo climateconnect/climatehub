@@ -159,7 +159,6 @@ source = [
     "organization",
     "hubs",
     "ideas",
-    "climate_match",
     "location",
     "translations",
     "chat_messages",

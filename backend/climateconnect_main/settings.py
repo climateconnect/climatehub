@@ -93,7 +93,6 @@ CUSTOM_APPS = [
     "hubs",
     "location",
     "ideas",
-    "climate_match",
     "feature_toggles",
     "auth_app",
 ]

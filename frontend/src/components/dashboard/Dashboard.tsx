@@ -316,8 +316,6 @@ export default function Dashboard({
                   },
                 ]}
               />
-              {/* TODO: restore Climate Match icon and link once CM is live  */}
-              {/* <Button type="submit">Climate Match</Button> */}
             </>
           ) : (
             <>

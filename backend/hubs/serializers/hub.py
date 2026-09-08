@@ -161,17 +161,6 @@ class HubStubSerializer(serializers.ModelSerializer):
         return get_hub_attribute(obj, "quick_info", get_language())
 
 
-class HubClimateMatchSerializer(serializers.ModelSerializer):
-    name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Hub
-        fields = ("name", "id", "url_slug")
-
-    def get_name(self, obj):
-        return get_hub_attribute(obj, "name", get_language())
-
-
 class HubStatSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     value = serializers.SerializerMethodField()
