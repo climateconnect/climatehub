@@ -1,5 +1,5 @@
 import React, { useContext, useMemo, useState } from "react";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import makeStyles from "@mui/styles/makeStyles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";

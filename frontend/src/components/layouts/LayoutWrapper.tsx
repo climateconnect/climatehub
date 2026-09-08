@@ -1,6 +1,7 @@
 import { Snackbar, SnackbarContent, Theme, useMediaQuery } from "@mui/material";
 
 import makeStyles from "@mui/styles/makeStyles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import { ThemeProvider } from "@mui/material/styles";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -184,46 +185,54 @@ export default function LayoutWrapper({
       </Head>
       {/* If theme is falsy, slience the MUI console.warning for having an undefined theme */}
       <ThemeProvider theme={theme}>
-        <DevLinkProvider>
-          {loading || isLoading ? (
-            <div className={classes.spinnerContainer}>
-              <LoadingContainer headerHeight={0} footerHeight={0} />
-            </div>
-          ) : (
-            <FeedbackContext.Provider value={contextValues}>
-              <div
-                className={`${classes.pageWrapper} ${
-                  !fixedHeight && !noSpaceForFooter ? classes.leaveSpaceForFooter : ""
-                }`}
-              >
-                {children}
-                {shouldShowCookieBanner() && <CookieBanner closeBanner={closeBanner} />}
-                {!noFeedbackButton && !isSmallerThanMediumScreen && <FeedbackButton />}
-                <Snackbar
-                  anchorOrigin={{
-                    vertical: "bottom",
-                    horizontal: "left",
-                  }}
-                  color="primary"
-                  open={snackbarProps.open}
-                  autoHideDuration={10000}
-                  onClose={handleSnackbarClose}
-                >
-                  <SnackbarContent
-                    message={snackbarProps.message}
-                    action={snackbarProps.action}
-                    classes={{
-                      root: `${classes.snackBar} ${snackbarProps.error && classes.errorSnackBar} ${
-                        snackbarProps.success && classes.successSnackBar
-                      }`,
-                      message: classes.snackBarMessage,
-                    }}
-                  />
-                </Snackbar>
+        {/*
+         * `@mui/styles` bundles its own `@mui/private-theming` instance, separate from the one
+         * used by `@mui/material` v7, so it can't see the theme from the `ThemeProvider` above
+         * via React context. Nesting `@mui/styles`' own `ThemeProvider` keeps `makeStyles`
+         * consumers (including this component's own `useStyles`) in sync with custom hub themes.
+         */}
+        <StylesThemeProvider theme={theme}>
+          <DevLinkProvider>
+            {loading || isLoading ? (
+              <div className={classes.spinnerContainer}>
+                <LoadingContainer headerHeight={0} footerHeight={0} />
               </div>
-            </FeedbackContext.Provider>
-          )}
-        </DevLinkProvider>
+            ) : (
+              <FeedbackContext.Provider value={contextValues}>
+                <div
+                  className={`${classes.pageWrapper} ${
+                    !fixedHeight && !noSpaceForFooter ? classes.leaveSpaceForFooter : ""
+                  }`}
+                >
+                  {children}
+                  {shouldShowCookieBanner() && <CookieBanner closeBanner={closeBanner} />}
+                  {!noFeedbackButton && !isSmallerThanMediumScreen && <FeedbackButton />}
+                  <Snackbar
+                    anchorOrigin={{
+                      vertical: "bottom",
+                      horizontal: "left",
+                    }}
+                    color="primary"
+                    open={snackbarProps.open}
+                    autoHideDuration={10000}
+                    onClose={handleSnackbarClose}
+                  >
+                    <SnackbarContent
+                      message={snackbarProps.message}
+                      action={snackbarProps.action}
+                      classes={{
+                        root: `${classes.snackBar} ${
+                          snackbarProps.error && classes.errorSnackBar
+                        } ${snackbarProps.success && classes.successSnackBar}`,
+                        message: classes.snackBarMessage,
+                      }}
+                    />
+                  </Snackbar>
+                </div>
+              </FeedbackContext.Provider>
+            )}
+          </DevLinkProvider>
+        </StylesThemeProvider>
       </ThemeProvider>
     </>
   );
