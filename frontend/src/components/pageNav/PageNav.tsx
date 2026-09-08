@@ -56,7 +56,7 @@ const useStyles = makeStyles((theme) => ({
   allProjectsLink: {
     marginRight: theme.spacing(1.5),
   },
-  climateMatchLink: {
+  highlightedLink: {
     color: theme.palette.primary.contrastText,
     fontWeight: 600,
     paddingLeft: theme.spacing(2),
@@ -209,7 +209,7 @@ export default function PageNav({
       <>
         {hubTabLink && (
           <Link
-            className={classes.climateMatchLink}
+            className={classes.highlightedLink}
             href={hubTabLink.href}
             target="_blank"
             underline="hover"
@@ -271,7 +271,7 @@ export default function PageNav({
           )}
           {isEmmendingenHub && (
             <Link
-              className={classes.climateMatchLink}
+              className={classes.highlightedLink}
               href="https://climatehub.earth/burgerenergie-em"
               underline="hover"
             >

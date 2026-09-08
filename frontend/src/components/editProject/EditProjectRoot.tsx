@@ -479,13 +479,19 @@ const parseProjectForRequest = async (project, translationChanges) => {
     translations: translationChanges,
   };
 
+  delete ret.is_personal_project;
+  delete ret.project_parents;
+
   if (project.project_type) ret.project_type = project.project_type.type_id;
   if (project.image) ret.image = await blobFromObjectUrl(project.image);
   if (project.loc) ret.loc = parseLocation(project.loc, true);
   if (project.thumbnail_image)
     ret.thumbnail_image = await blobFromObjectUrl(project.thumbnail_image);
   if (project.sectors) ret.sectors = ret.sectors.map((s) => s.key);
-  if (project.project_parents && project.project_parents.parent_organization)
-    ret.parent_organization = project.project_parents.parent_organization.id;
+  if (project.project_parents) {
+    ret.parent_organization = project.project_parents.parent_organization
+      ? project.project_parents.parent_organization.id
+      : null;
+  }
   return ret;
 };

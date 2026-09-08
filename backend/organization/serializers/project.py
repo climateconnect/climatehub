@@ -537,19 +537,6 @@ class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
         return EventRegistrationConfigSerializer(rc).data
 
 
-class ProjectSuggestionSerializer(ProjectStubSerializer):
-    project_creator = serializers.SerializerMethodField()
-
-    class Meta(ProjectStubSerializer.Meta):
-        fields = ProjectStubSerializer.Meta.fields + ("project_creator",)
-
-    def get_project_creator(self, obj):
-        member = ProjectMember.objects.filter(
-            project=obj, role__role_type=Role.ALL_TYPE
-        ).first()
-        return (ProjectMemberSerializer(member)).data
-
-
 class ProjectMemberSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     role = RoleSerializer()

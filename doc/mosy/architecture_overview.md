@@ -14,7 +14,6 @@ Climate Connect is a full-stack online climate action platform that connects act
 - **Organization Management**: Register and manage climate organizations with membership and permissions
 - **Community Hubs**: Geographic and sector-based communities with custom branding
 - **Real-Time Messaging**: Chat for user-to-user and group communication
-- **Climate Matching**: Intelligent questionnaire-based matching of users to projects and organizations
 - **Social Features**: Follow, like, comment, and share functionality
 - **Gamification**: Badge system for recognizing contributions and achievements
 - **Donations**: Fundraising campaigns and contribution tracking

@@ -31,7 +31,6 @@ Climate Connect is a full-stack online climate action platform that connects act
 - **Organization Management**: Register and manage climate organizations with membership and permissions
 - **Community Hubs**: Geographic and sector-based communities with custom branding
 - **Real-Time Messaging**: Chat for user-to-user and group communication
-- **Climate Matching**: Intelligent questionnaire-based matching of users to projects and organizations
 - **Social Features**: Follow, like, comment, and share functionality
 - **Gamification**: Badge system for recognizing contributions and achievements
 - **Donations**: Fundraising campaigns and contribution tracking
@@ -165,10 +164,6 @@ backend/
 │   ├── serializers/               # Idea serializers
 │   └── views/                     # Idea API
 │
-├── climate_match/                 # Matching questionnaire
-│   ├── models/                    # Question, Answer, UserQuestionAnswer
-│   └── views/                     # Questionnaire API
-│
 ├── locale/                        # Backend translations
 │   ├── en/                        # English
 │   └── de/                        # German
@@ -187,7 +182,6 @@ backend/
 | **hubs** | Geographic and sector-based communities | Hub, HubTheme, HubAmbassador |
 | **location** | Geographic data with spatial queries | Location (PostGIS) |
 | **ideas** | Idea proposals and collaboration | Idea, IdeaComment, IdeaSupporter |
-| **climate_match** | Intelligent user-project matching | Question, Answer, UserQuestionAnswer |
 
 ### API Design Patterns
 
@@ -218,8 +212,6 @@ backend/
 
 /api/ideas/                           # Idea listing/creation
 /api/chat/messages/                   # Message history
-
-/api/climate-match/questions/         # Questionnaire
 ```
 
 ### Key Backend Components
@@ -313,7 +305,6 @@ frontend/
 │   │   ├── hub/                   # Hub pages
 │   │   ├── communication/         # Chat, notifications
 │   │   ├── ideas/                 # Idea pages
-│   │   ├── climateMatch/          # Questionnaire
 │   │   └── indexPage/             # Homepage components
 │   │
 │   ├── context/                   # React Context providers
