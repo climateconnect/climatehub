@@ -2,6 +2,8 @@ import logging
 import re
 import traceback
 import zoneinfo
+from datetime import datetime
+from datetime import timezone as dt_timezone
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -11,7 +13,6 @@ from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Case, Prefetch, Q, When
-from datetime import datetime, timezone as dt_timezone
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
 from rest_framework import status
@@ -34,13 +35,13 @@ from climateconnect_api.models import (
 from climateconnect_api.models.language import Language
 from climateconnect_api.tasks import calculate_project_rankings
 from climateconnect_api.utility.content_shares import save_content_shared
+from climateconnect_api.utility.html import (
+    PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
+    PROJECT_DESCRIPTION_ALLOWED_TAGS,
+    sanitize_html,
+)
 from climateconnect_api.utility.translation import (
     edit_translations,
-)
-from climateconnect_api.utility.html import (
-    sanitize_html,
-    PROJECT_DESCRIPTION_ALLOWED_TAGS,
-    PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
 )
 from climateconnect_main.utility.general import get_image_from_data_url
 from hubs.models.hub import Hub
@@ -1200,23 +1201,27 @@ class ProjectAPIView(APIView):
                             },
                             status=status.HTTP_400_BAD_REQUEST,
                         )
-        if "is_personal_project" in request.data:
-            if request.data["is_personal_project"] is True:
-                project_parents = ProjectParents.objects.get(project=project)
-                project_parents.parent_organization = None
-                project_parents.save()
         if "parent_organization" in request.data:
             project_parents = ProjectParents.objects.get(project=project)
-            try:
-                organization = Organization.objects.get(
-                    id=request.data["parent_organization"]
-                )
-            except Organization.DoesNotExist:
-                organization = None
-                logger.error("Passed parent organization id {} does not exist")
+            parent_organization_id = request.data["parent_organization"]
+            if parent_organization_id in (None, "", "null"):
+                project_parents.parent_organization = None
+                project_parents.save()
+            else:
+                try:
+                    organization = Organization.objects.get(id=parent_organization_id)
+                except Organization.DoesNotExist:
+                    return Response(
+                        {
+                            "parent_organization": [
+                                "Organization not found for the provided id."
+                            ]
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            project_parents.parent_organization = organization
-            project_parents.save()
+                project_parents.parent_organization = organization
+                project_parents.save()
 
         project.save()
 

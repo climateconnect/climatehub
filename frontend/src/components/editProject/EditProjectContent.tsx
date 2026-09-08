@@ -132,20 +132,19 @@ export default function EditProjectContent({
   };
 
   const handleSwitchChange = (event) => {
-    if (
-      event.target.checked &&
-      !project?.project_parents?.parent_organization &&
-      userOrganizations[0]
-    )
-      handleSetProject({
-        ...project,
-        project_parents: {
-          ...project.project_parents,
-          parent_organization: userOrganizations[0],
-        },
-        is_personal_project: !event.target.checked,
-      });
-    else handleChangeProject(!event.target.checked, "is_personal_project");
+    const nextIsPersonal = !event.target.checked;
+    const nextParentOrganization = nextIsPersonal
+      ? null
+      : project?.project_parents?.parent_organization ?? userOrganizations[0] ?? null;
+
+    handleSetProject({
+      ...project,
+      project_parents: {
+        ...(project?.project_parents ?? {}),
+        parent_organization: nextParentOrganization,
+      },
+      is_personal_project: nextIsPersonal,
+    });
   };
 
   const handleChangeProjectType = (newProjectType) => {
