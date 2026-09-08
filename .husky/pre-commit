@@ -24,8 +24,8 @@ fi
 
 # Backend: pre-commit.com hooks (Black + Ruff on staged backend/ files).
 # pre-commit itself no-ops on frontend-only commits via the `files:` patterns.
-# if git diff --cached --name-only --diff-filter=ACMR | grep -q '^backend/'; then
-#     cd "$REPO_ROOT/backend" && run_in_env "pdm run pre-commit run" "pdm run pre-commit run"
-# fi
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '^backend/'; then
+    cd "$REPO_ROOT/backend" && run_in_env "pdm run pre-commit run" "pdm run pre-commit run"
+fi
 
 exit $EXIT_CODE
