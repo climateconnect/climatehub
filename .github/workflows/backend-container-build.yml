@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: inputs.deploy_verify
-    environment: backend-container-verify
+    environment: slot2
     permissions:
       id-token: write
       contents: read
