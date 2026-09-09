@@ -86,6 +86,16 @@ jobs:
         id: commit
         run: echo "message=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
 
+      - name: Merge image labels
+        id: labels
+        run: |
+          {
+            echo "value<<EOLABELS"
+            echo "${{ steps.meta.outputs.labels }}"
+            echo "org.opencontainers.image.description=${{ steps.commit.outputs.message }}"
+            echo "EOLABELS"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         id: push
         uses: docker/build-push-action@v5
@@ -94,12 +104,11 @@ jobs:
           file: docker/backend.Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: ${{ steps.labels.outputs.value }}
           build-args: |
             GIT_SHA=${{ github.sha }}
             GIT_REF=${{ github.ref_name }}
             BUILD_TIME=${{ steps.timestamp.outputs.value }}
-            GIT_MESSAGE=${{ steps.commit.outputs.message }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
