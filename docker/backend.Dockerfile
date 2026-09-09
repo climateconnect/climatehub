@@ -31,8 +31,13 @@ COPY backend/ ./
 ARG GIT_SHA=unknown
 ARG GIT_REF=unknown
 ARG BUILD_TIME=unknown
+ARG GIT_MESSAGE=unknown
 RUN printf '{"sha":"%s","ref":"%s","built_at":"%s"}\n' \
       "$GIT_SHA" "$GIT_REF" "$BUILD_TIME" > build_info.json
+
+LABEL org.opencontainers.image.source="https://github.com/climateconnect/climatehub"
+LABEL org.opencontainers.image.description="${GIT_MESSAGE}"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
 EXPOSE 8000
 

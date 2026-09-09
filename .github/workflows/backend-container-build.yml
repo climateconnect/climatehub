@@ -82,6 +82,10 @@ jobs:
         id: sha
         run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
+      - name: Get commit message
+        id: commit
+        run: echo "message=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         id: push
         uses: docker/build-push-action@v5
@@ -95,6 +99,7 @@ jobs:
             GIT_SHA=${{ github.sha }}
             GIT_REF=${{ github.ref_name }}
             BUILD_TIME=${{ steps.timestamp.outputs.value }}
+            GIT_MESSAGE=${{ steps.commit.outputs.message }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
