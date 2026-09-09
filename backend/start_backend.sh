@@ -28,14 +28,21 @@ die() { echo "FATAL(start_backend): $*" >&2; exit 1; }
 # exact build that ran here until 2026-09-07. So: archive.debian.org main only,
 # no security suite, and skip the Valid-Until check on those frozen indexes.
 #
-# We also install only the runtime shared objects instead of the -dev packages:
+# We install only the runtime shared objects, never the -dev packages:
 # django.contrib.gis resolves libraries through ctypes.util.find_library(),
-# which reads `ldconfig -p` and matches sonames (libgdal.so.28), so the
-# unversioned .so symlinks from -dev are unnecessary. That drops the cold-start
-# apt from ~165 packages / 648 MB to a handful, and avoids every package that
-# 404'd above (they were all -dev dependencies).
+# which reads `ldconfig -p` and matches sonames (libgdal.so.32), so the
+# unversioned .so symlinks that -dev provides are unnecessary. This drops the
+# cold-start apt from ~165 packages / 648 MB to ~112 mostly-preinstalled ones,
+# and avoids every package that 404'd above (they were all -dev dependencies).
 #
-# This is a stopgap for a dead distro -- see
+# The runtime package names are soname-versioned and therefore change with each
+# Debian release (bullseye libgdal28 / libproj19, bookworm libgdal32 /
+# libproj25, ...), so they are discovered from the apt index instead of being
+# hardcoded -- that way a Python-version bump, which silently changes the image
+# base, cannot break this again. If discovery finds nothing we fall back to the
+# distro-independent -dev package names.
+#
+# The bullseye handling above is a stopgap for a dead distro -- see
 # doc/spec/20260826_1138_container_based_deployment_pipeline.md for the
 # container-based deployment that removes cold-start apt entirely.
 # ---------------------------------------------------------------------------
@@ -44,10 +51,8 @@ if [ -r /etc/os-release ] && grep -q 'VERSION_CODENAME=bullseye' /etc/os-release
   printf '%s\n' 'deb http://archive.debian.org/debian bullseye main' > /etc/apt/sources.list \
     || die "could not rewrite /etc/apt/sources.list"
   APT_OPTS="-o Acquire::Check-Valid-Until=false"
-  SPATIAL_PKGS="libgdal28 libgeos-c1v5 libproj19"
 else
   APT_OPTS=""
-  SPATIAL_PKGS="binutils libproj-dev gdal-bin libgdal-dev"
 fi
 
 # A failing update is not necessarily fatal (install can still succeed from
@@ -55,6 +60,22 @@ fi
 # assertions below be the real gate.
 # shellcheck disable=SC2086
 apt-get $APT_OPTS update -qq || echo "WARN(start_backend): apt-get update reported errors, continuing" >&2
+
+# Newest package whose *name* matches the given regex, or empty if none.
+newest_pkg() { apt-cache --names-only search "$1" 2>/dev/null | awk '{print $1}' | sort -V | tail -n 1; }
+
+GDAL_PKG=$(newest_pkg '^libgdal[0-9]+$')
+GEOS_PKG=$(newest_pkg '^libgeos-c[0-9][a-z0-9]*$')
+PROJ_PKG=$(newest_pkg '^libproj[0-9]+$')
+
+if [ -n "$GDAL_PKG" ] && [ -n "$GEOS_PKG" ] && [ -n "$PROJ_PKG" ]; then
+  SPATIAL_PKGS="$GDAL_PKG $GEOS_PKG $PROJ_PKG"
+else
+  echo "WARN(start_backend): could not resolve runtime spatial packages (gdal='$GDAL_PKG' geos='$GEOS_PKG' proj='$PROJ_PKG'), falling back to -dev packages" >&2
+  SPATIAL_PKGS="binutils libproj-dev gdal-bin libgdal-dev"
+fi
+
+echo "start_backend: installing spatial packages: $SPATIAL_PKGS"
 # shellcheck disable=SC2086
 apt-get $APT_OPTS install -yqq $SPATIAL_PKGS \
   || die "apt-get install of spatial dependencies ($SPATIAL_PKGS) failed"
