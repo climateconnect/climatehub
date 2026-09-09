@@ -1,19 +1,77 @@
+#!/bin/bash
+# Production startup script for the Azure App Service backend.
+# Runs on EVERY cold start, inside the App Service "blessed" Python image.
 
-# Install spatial dependencies
-apt-get -o Acquire::Check-Valid-Until=false update && apt-get install binutils libproj-dev gdal-bin libgdal-dev -y --fix-missing
-ldconfig
+set -uo pipefail
 
-# Install pdm
-pip install pdm
+die() { echo "FATAL(start_backend): $*" >&2; exit 1; }
 
-# Go to backend folder
-cd backend
+# ---------------------------------------------------------------------------
+# System (spatial) dependencies
+#
+# Debian 11 (bullseye) is end-of-life: deb.debian.org no longer serves valid
+# metadata for it and the bullseye-security Release file expired on
+# 2026-09-07, which made `apt-get update` fail and silently skip the GDAL
+# install. Django's contrib.gis then died at import time with
+# "Could not find the GDAL library". Point apt at archive.debian.org and
+# ignore the expired Valid-Until stamps.
+#
+# This is a stopgap for a dead distro -- see
+# doc/spec/20260826_1138_container_based_deployment_pipeline.md for the
+# container-based deployment that removes cold-start apt entirely.
+# ---------------------------------------------------------------------------
+if [ -r /etc/os-release ] && grep -q 'VERSION_CODENAME=bullseye' /etc/os-release; then
+  echo "start_backend: Debian bullseye detected, repointing apt at archive.debian.org"
+  cat > /etc/apt/sources.list <<'EOF'
+deb http://archive.debian.org/debian bullseye main
+deb http://archive.debian.org/debian-security bullseye-security main
+EOF
+  rm -f /etc/apt/sources.list.d/*.list
+  APT_OPTS="-o Acquire::Check-Valid-Until=false"
+else
+  APT_OPTS=""
+fi
 
-# install dependencies
-pdm install
+# shellcheck disable=SC2086
+apt-get $APT_OPTS update -qq || die "apt-get update failed"
+# shellcheck disable=SC2086
+apt-get $APT_OPTS install -yqq \
+  binutils \
+  libproj-dev \
+  gdal-bin \
+  libgdal-dev \
+  || die "apt-get install of spatial dependencies failed"
 
-# activate venv
-eval "$(pdm venv activate)"
+# Fail fast and loudly here rather than 40s later inside django.setup().
+ldconfig -p | grep -q libgdal   || die "libgdal not present after apt install"
+ldconfig -p | grep -q libgeos_c || die "libgeos_c not present after apt install"
+echo "start_backend: spatial libraries OK"
+
+# ---------------------------------------------------------------------------
+# Python dependencies
+#
+# Oryx has already created and activated the virtualenv named "antenv" and put
+# it on PATH/PYTHONPATH. pdm detects it ("Inside an active virtualenv ...,
+# reusing it") and installs into it, so there is no venv to activate here.
+# ---------------------------------------------------------------------------
+# Newer Debian bases mark the system Python as externally managed (PEP 668),
+# where a plain `pip install` is refused; the fallback keeps this working if
+# the App Service image is ever rolled forward.
+pip install --quiet pdm \
+  || pip install --quiet --break-system-packages pdm \
+  || die "pip install pdm failed"
+
+cd backend || die "backend/ not found (cwd=$(pwd))"
+pdm install || die "pdm install failed"
+
+# Smoke-test the spatial stack with the interpreter that will actually serve
+# traffic, so a broken GDAL/GEOS never reaches gunicorn.
+python -c "from django.contrib.gis.gdal.libgdal import GDAL_VERSION; print('GDAL', GDAL_VERSION)" \
+  || die "django.contrib.gis cannot load GDAL"
+
+# ---------------------------------------------------------------------------
+# Processes
+# ---------------------------------------------------------------------------
 
 # Start server
 gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 4 -k uvicorn.workers.UvicornWorker &
