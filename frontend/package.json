@@ -33,7 +33,7 @@
     "@next/bundle-analyzer": "^15.5.23",
     "@sentry/nextjs": "^10.57.0",
     "@svgr/webpack": "^8.1.0",
-    "@tiptap/core": "3.30.4",
+    "@tiptap/core": "3.30.5",
     "@tiptap/extension-character-count": "3.30.4",
     "@tiptap/extension-emoji": "3.30.4",
     "@tiptap/extension-heading": "3.30.4",
