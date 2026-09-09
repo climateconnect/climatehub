@@ -1,6 +1,6 @@
 
 # Install spatial dependencies
-apt-get -o Acquire::Check-Valid-Until=false update && apt-get install binutils libproj-dev gdal-bin libgdal-dev -y
+apt-get -o Acquire::Check-Valid-Until=false update && apt-get install binutils libproj-dev gdal-bin libgdal-dev -y --fix-missing
 ldconfig
 
 # Install pdm
