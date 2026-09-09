@@ -1,6 +1,6 @@
 
 # Install spatial dependencies
-apt-get update -qq && apt-get install binutils libproj-dev gdal-bin -yqq
+apt-get update -qq && apt-get install binutils libproj-dev gdal-bin libgdal-dev -yqq
 
 # Install pdm
 pip install pdm
