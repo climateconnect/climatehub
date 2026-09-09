@@ -20,7 +20,7 @@
 #   3. The Azure service principal used by the existing backend workflow
 #      has Contributor access to the "climate-connect-backend" resource
 #      group.
-#   4. GitHub environment "backend-container-verify" exists.
+#   4. GitHub environment "slot2" exists.
 #
 # The existing production workflows are NOT modified by this file (AC-2B.6).
 
@@ -50,7 +50,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+      sha-tag: ${{ steps.sha.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v7
@@ -78,6 +78,10 @@ jobs:
         id: timestamp
         run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
+      - name: Compute short SHA
+        id: sha
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         id: push
         uses: docker/build-push-action@v5
@@ -97,7 +101,7 @@ jobs:
       - name: Print image reference
         run: |
           echo "Pushed image:"
-          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sha.outputs.tag }}"
           echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
   # ------------------------------------------------------------------
@@ -141,7 +145,7 @@ jobs:
             --slot "$SLOT" \
             --container-image-name "$IMAGE_REF"
         env:
-          IMAGE_REF: ${{ needs.build.outputs.image-ref }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.sha-tag }}
 
       - name: Restart slot2
         run: |
@@ -168,7 +172,7 @@ jobs:
         run: |
           echo ""
           echo "=== Slot2 verified ==="
-          echo "Image: ${{ needs.build.outputs.image-ref }}"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.sha-tag }}"
           echo "Slot2: https://${SLOT_URL}"
           echo ""
           echo "To swap to production, run:"
