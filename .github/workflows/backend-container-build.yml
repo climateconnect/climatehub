@@ -50,7 +50,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
     steps:
       - uses: actions/checkout@v7
@@ -97,7 +97,7 @@ jobs:
       - name: Print image reference
         run: |
           echo "Pushed image:"
-          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
           echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
   # ------------------------------------------------------------------
@@ -139,9 +139,9 @@ jobs:
             --name "$APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --slot "$SLOT" \
-            --docker-custom-image-name "$IMAGE_REF"
+            --container-image-name "$IMAGE_REF"
         env:
-          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          IMAGE_REF: ${{ needs.build.outputs.image-ref }}
 
       - name: Restart slot2
         run: |
@@ -168,7 +168,7 @@ jobs:
         run: |
           echo ""
           echo "=== Slot2 verified ==="
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "Image: ${{ needs.build.outputs.image-ref }}"
           echo "Slot2: https://${SLOT_URL}"
           echo ""
           echo "To swap to production, run:"
