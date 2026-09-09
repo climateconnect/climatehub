@@ -9,18 +9,18 @@
 # environment variables at runtime — so a public GHCR image is safe
 # (AC-2B.7).
 #
-# Prerequisites for the optional verify job:
-#   1. Create a Linux App Service configured for custom containers
-#      (e.g. "climate-backend-container-verify").
-#   2. Set the same app settings the production backend needs
-#      (DATABASE_*, REDIS_*, SECRET_KEY, ALLOWED_HOSTS, CELERY_BROKER_URL,
-#       ENVIRONMENT, etc.) on the verification App Service.
-#   3. In the GitHub repo, go to Settings > Environments and create an
-#      environment named "backend-container-verify".
-#   4. Add repository variables VERIFY_APP_NAME and VERIFY_RESOURCE_GROUP.
-#   5. Ensure the Azure service principal used by the existing backend
-#      workflow has Contributor access to the verification App Service's
-#      resource group.
+# Prerequisites (all in place as of 2026-09-09):
+#   1. App Service "climate-backend-container" (resource group
+#      "climate-connect-backend") with slot2, both configured with all
+#      production app settings, WebSockets, health check on /ping/,
+#      and Always On.
+#   2. The GHCR package is public (backend image is secret-free), so no
+#      registry credentials are needed on the App Service or in the
+#      workflow.
+#   3. The Azure service principal used by the existing backend workflow
+#      has Contributor access to the "climate-connect-backend" resource
+#      group.
+#   4. GitHub environment "backend-container-verify" exists.
 #
 # The existing production workflows are NOT modified by this file (AC-2B.6).
 
@@ -101,11 +101,14 @@ jobs:
           echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
   # ------------------------------------------------------------------
-  # Job 2: Deploy to verification App Service (opt-in)
+  # Job 2: Deploy to slot2 and verify (opt-in)
   #
-  # Disabled by default.  Enable by checking "deploy_verify" when
-  # triggering the workflow.  Requires the Azure infrastructure and
-  # GitHub environment described in the header comment.
+  # Pushes the new image to slot2 of "climate-backend-container", runs
+  # health checks, and prints the slot2 URL.  A human can then swap
+  # slots in the Azure portal once satisfied.
+  #
+  # The GHCR image is public (backend is secret-free), so no registry
+  # credentials are needed.
   # ------------------------------------------------------------------
   verify:
     runs-on: ubuntu-latest
@@ -116,6 +119,12 @@ jobs:
       id-token: write
       contents: read
 
+    env:
+      APP_NAME: climate-backend-container
+      RESOURCE_GROUP: climate-connect-backend
+      SLOT: slot2
+      SLOT_URL: climate-backend-container-slot2.azurewebsites.net
+
     steps:
       - name: Login to Azure
         uses: azure/login@v3
@@ -124,52 +133,47 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E2678D2F6F234573A28809CEDF101351 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4C2A2623C99A4C8AA6ED185840434928 }}
 
-      - name: Configure App Service for container mode
+      - name: Set container image on slot2
         run: |
           az webapp config container set \
-            --name "${VERIFY_APP_NAME}" \
-            --resource-group "${VERIFY_RESOURCE_GROUP}" \
-            --docker-custom-image-name "${IMAGE_REF}" \
-            --docker-registry-server-url "https://${REGISTRY}"
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --slot "$SLOT" \
+            --docker-custom-image-name "$IMAGE_REF"
         env:
-          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
-          VERIFY_RESOURCE_GROUP: ${{ vars.VERIFY_RESOURCE_GROUP }}
           IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Set container port
-        run: |
-          az webapp config appsettings set \
-            --name "${VERIFY_APP_NAME}" \
-            --resource-group "${VERIFY_RESOURCE_GROUP}" \
-            --settings WEBSITES_PORT=8000 SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            --output none
-        env:
-          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
-          VERIFY_RESOURCE_GROUP: ${{ vars.VERIFY_RESOURCE_GROUP }}
-
-      - name: Restart App Service
+      - name: Restart slot2
         run: |
           az webapp restart \
-            --name "${VERIFY_APP_NAME}" \
-            --resource-group "${VERIFY_RESOURCE_GROUP}"
-        env:
-          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
-          VERIFY_RESOURCE_GROUP: ${{ vars.VERIFY_RESOURCE_GROUP }}
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --slot "$SLOT"
 
       - name: Wait for cold start
         run: sleep 45
 
       - name: Health check — GET /ping/
         run: |
-          echo "GET https://${VERIFY_APP_NAME}.azurewebsites.net/ping/"
+          echo "GET https://${SLOT_URL}/ping/"
           curl -sf --retry 5 --retry-delay 10 \
-            "https://${VERIFY_APP_NAME}.azurewebsites.net/ping/"
-        env:
-          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
+            "https://${SLOT_URL}/ping/"
 
       - name: Verify build info — GET /api/version/
         run: |
-          echo "GET https://${VERIFY_APP_NAME}.azurewebsites.net/api/version/"
-          curl -sf "https://${VERIFY_APP_NAME}.azurewebsites.net/api/version/" | jq .
-        env:
-          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
+          echo "GET https://${SLOT_URL}/api/version/"
+          curl -sf "https://${SLOT_URL}/api/version/" | jq .
+
+      - name: Print next steps
+        run: |
+          echo ""
+          echo "=== Slot2 verified ==="
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "Slot2: https://${SLOT_URL}"
+          echo ""
+          echo "To swap to production, run:"
+          echo "  az webapp deployment slot swap \\"
+          echo "    --name $APP_NAME \\"
+          echo "    --resource-group $RESOURCE_GROUP \\"
+          echo "    --slot $SLOT \\"
+          echo "    --action swap"
