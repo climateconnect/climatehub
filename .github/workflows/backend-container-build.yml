@@ -1,0 +1,175 @@
+# Phase 2B: Build and push a production-ready backend container image.
+#
+# Triggered manually via workflow_dispatch.  Builds the image from
+# docker/backend.Dockerfile, pushes to GitHub Container Registry (GHCR),
+# and optionally deploys to a verification App Service to validate the
+# runtime contract (AC-2B.3, AC-2B.4).
+#
+# The backend image contains no secrets — settings.py reads everything from
+# environment variables at runtime — so a public GHCR image is safe
+# (AC-2B.7).
+#
+# Prerequisites for the optional verify job:
+#   1. Create a Linux App Service configured for custom containers
+#      (e.g. "climate-backend-container-verify").
+#   2. Set the same app settings the production backend needs
+#      (DATABASE_*, REDIS_*, SECRET_KEY, ALLOWED_HOSTS, CELERY_BROKER_URL,
+#       ENVIRONMENT, etc.) on the verification App Service.
+#   3. In the GitHub repo, go to Settings > Environments and create an
+#      environment named "backend-container-verify".
+#   4. Add repository variables VERIFY_APP_NAME and VERIFY_RESOURCE_GROUP.
+#   5. Ensure the Azure service principal used by the existing backend
+#      workflow has Contributor access to the verification App Service's
+#      resource group.
+#
+# The existing production workflows are NOT modified by this file (AC-2B.6).
+
+name: Build backend container image
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_verify:
+        description: 'Deploy to verification App Service after push'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/backend
+
+jobs:
+  # ------------------------------------------------------------------
+  # Job 1: Build the image and push to GHCR (always runs)
+  # ------------------------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set build timestamp
+        id: timestamp
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/backend.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            GIT_REF=${{ github.ref_name }}
+            BUILD_TIME=${{ steps.timestamp.outputs.value }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Print image reference
+        run: |
+          echo "Pushed image:"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  # ------------------------------------------------------------------
+  # Job 2: Deploy to verification App Service (opt-in)
+  #
+  # Disabled by default.  Enable by checking "deploy_verify" when
+  # triggering the workflow.  Requires the Azure infrastructure and
+  # GitHub environment described in the header comment.
+  # ------------------------------------------------------------------
+  verify:
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.deploy_verify
+    environment: backend-container-verify
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_133C8292DDC0414CB6E553F785F6B07D }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E2678D2F6F234573A28809CEDF101351 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4C2A2623C99A4C8AA6ED185840434928 }}
+
+      - name: Configure App Service for container mode
+        run: |
+          az webapp config container set \
+            --name "${VERIFY_APP_NAME}" \
+            --resource-group "${VERIFY_RESOURCE_GROUP}" \
+            --docker-custom-image-name "${IMAGE_REF}" \
+            --docker-registry-server-url "https://${REGISTRY}"
+        env:
+          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
+          VERIFY_RESOURCE_GROUP: ${{ vars.VERIFY_RESOURCE_GROUP }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Set container port
+        run: |
+          az webapp config appsettings set \
+            --name "${VERIFY_APP_NAME}" \
+            --resource-group "${VERIFY_RESOURCE_GROUP}" \
+            --settings WEBSITES_PORT=8000 SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            --output none
+        env:
+          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
+          VERIFY_RESOURCE_GROUP: ${{ vars.VERIFY_RESOURCE_GROUP }}
+
+      - name: Restart App Service
+        run: |
+          az webapp restart \
+            --name "${VERIFY_APP_NAME}" \
+            --resource-group "${VERIFY_RESOURCE_GROUP}"
+        env:
+          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
+          VERIFY_RESOURCE_GROUP: ${{ vars.VERIFY_RESOURCE_GROUP }}
+
+      - name: Wait for cold start
+        run: sleep 45
+
+      - name: Health check — GET /ping/
+        run: |
+          echo "GET https://${VERIFY_APP_NAME}.azurewebsites.net/ping/"
+          curl -sf --retry 5 --retry-delay 10 \
+            "https://${VERIFY_APP_NAME}.azurewebsites.net/ping/"
+        env:
+          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
+
+      - name: Verify build info — GET /api/version/
+        run: |
+          echo "GET https://${VERIFY_APP_NAME}.azurewebsites.net/api/version/"
+          curl -sf "https://${VERIFY_APP_NAME}.azurewebsites.net/api/version/" | jq .
+        env:
+          VERIFY_APP_NAME: ${{ vars.VERIFY_APP_NAME }}
