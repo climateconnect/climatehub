@@ -20,21 +20,34 @@ die() { echo "FATAL(start_backend): $*" >&2; exit 1; }
 # and Django's contrib.gis died at import time with "Could not find the GDAL
 # library" (container exit 1, startup probe timeout).
 #
-# Both bullseye repos are still served by deb.debian.org, and bullseye `main`
-# (where gdal/proj live) carries no Valid-Until at all -- only the security
-# suite is expired. So disabling the Valid-Until check is enough. Do NOT
-# repoint at archive.debian.org: it has no debian-security/bullseye-security
-# suite (HTTP 404), which makes `apt-get update` fail outright.
+# deb.debian.org still serves the bullseye *indexes*, but the security pool has
+# been purged: installs die with 404s on files like
+# debian-security/pool/updates/main/i/icu/libicu-dev_67.1-7+deb11u1_amd64.deb.
+# archive.debian.org has no bullseye-security suite at all, but its `main`
+# carries the complete pool including libgdal28 3.2.2+dfsg-2+deb11u2, i.e. the
+# exact build that ran here until 2026-09-07. So: archive.debian.org main only,
+# no security suite, and skip the Valid-Until check on those frozen indexes.
+#
+# We also install only the runtime shared objects instead of the -dev packages:
+# django.contrib.gis resolves libraries through ctypes.util.find_library(),
+# which reads `ldconfig -p` and matches sonames (libgdal.so.28), so the
+# unversioned .so symlinks from -dev are unnecessary. That drops the cold-start
+# apt from ~165 packages / 648 MB to a handful, and avoids every package that
+# 404'd above (they were all -dev dependencies).
 #
 # This is a stopgap for a dead distro -- see
 # doc/spec/20260826_1138_container_based_deployment_pipeline.md for the
 # container-based deployment that removes cold-start apt entirely.
 # ---------------------------------------------------------------------------
 if [ -r /etc/os-release ] && grep -q 'VERSION_CODENAME=bullseye' /etc/os-release; then
-  echo "start_backend: Debian bullseye (EOL) detected, ignoring expired Release stamps"
+  echo "start_backend: Debian bullseye (EOL) detected, using archive.debian.org main"
+  printf '%s\n' 'deb http://archive.debian.org/debian bullseye main' > /etc/apt/sources.list \
+    || die "could not rewrite /etc/apt/sources.list"
   APT_OPTS="-o Acquire::Check-Valid-Until=false"
+  SPATIAL_PKGS="libgdal28 libgeos-c1v5 libproj19"
 else
   APT_OPTS=""
+  SPATIAL_PKGS="binutils libproj-dev gdal-bin libgdal-dev"
 fi
 
 # A failing update is not necessarily fatal (install can still succeed from
@@ -43,12 +56,8 @@ fi
 # shellcheck disable=SC2086
 apt-get $APT_OPTS update -qq || echo "WARN(start_backend): apt-get update reported errors, continuing" >&2
 # shellcheck disable=SC2086
-apt-get $APT_OPTS install -yqq \
-  binutils \
-  libproj-dev \
-  gdal-bin \
-  libgdal-dev \
-  || die "apt-get install of spatial dependencies failed"
+apt-get $APT_OPTS install -yqq $SPATIAL_PKGS \
+  || die "apt-get install of spatial dependencies ($SPATIAL_PKGS) failed"
 
 # Fail fast and loudly here rather than 40s later inside django.setup().
 ldconfig -p | grep -q libgdal   || die "libgdal not present after apt install"
