@@ -102,7 +102,7 @@ describe("EventRegistrationSection", () => {
 
     it("renders the notify admins toggle", () => {
       renderSection();
-      expect(screen.getByRole("checkbox", { name: /send a notification/i })).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: /send a notification/i })).toBeInTheDocument();
     });
   });
 

@@ -94,7 +94,7 @@ describe("RegistrationFieldList", () => {
       renderFieldList({ fields: [makeField()] });
       expect(screen.getByText("Checkbox 1")).toBeInTheDocument();
       expect(screen.getByTestId("checkbox-description")).toBeInTheDocument();
-      expect(screen.getByRole("checkbox", { name: /required/i })).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: /required/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /delete field/i })).toBeInTheDocument();
     });
   });
@@ -501,7 +501,7 @@ describe("RegistrationFieldList", () => {
       const field = makeField({ is_required: false });
       const onFieldsChange = jest.fn();
       renderFieldList({ fields: [field], onFieldsChange });
-      fireEvent.click(screen.getByRole("checkbox", { name: /required/i }));
+      fireEvent.click(screen.getByRole("switch", { name: /required/i }));
       const [result] = onFieldsChange.mock.calls[0];
       expect(result[0].is_required).toBe(true);
     });
@@ -510,7 +510,7 @@ describe("RegistrationFieldList", () => {
       const field = makeField({ is_required: true });
       const onFieldsChange = jest.fn();
       renderFieldList({ fields: [field], onFieldsChange });
-      fireEvent.click(screen.getByRole("checkbox", { name: /required/i }));
+      fireEvent.click(screen.getByRole("switch", { name: /required/i }));
       const [result] = onFieldsChange.mock.calls[0];
       expect(result[0].is_required).toBe(false);
     });
