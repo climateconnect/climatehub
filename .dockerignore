@@ -24,3 +24,6 @@ docker-compose.yml
 *.log
 *.md
 .env*
+
+# Backend env files (contain local dev secrets — never bake into images)
+backend/.backend_env*

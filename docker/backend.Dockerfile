@@ -1,27 +1,42 @@
-FROM python:3.11-slim
+FROM python:3.12-slim-bookworm
 
-# Install system dependencies for PostGIS and GDAL
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    binutils \
-    libproj-dev \
-    gdal-bin \
-    libgdal-dev \
-    curl \
+# Install runtime spatial dependencies (bookworm packages).
+# These are the shared objects that django.contrib.gis loads via ctypes.
+# No -dev packages — keeps the image small and avoids cold-start apt entirely.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libgdal32 \
+        libgeos-c1v5 \
+        libproj25 \
+        gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PDM
-RUN pip install pdm
+RUN pip install --no-cache-dir pdm
 
 WORKDIR /app
 
-# Copy dependency files
-COPY backend/pyproject.toml backend/pdm.lock* ./
+# Dependency files first — Docker layer caching means this layer is reused
+# as long as pyproject.toml and pdm.lock don't change.
+COPY backend/pyproject.toml backend/pdm.lock backend/pdm.toml ./
 
-# Install dependencies to a location that won't be overwritten by volume mount
-RUN pdm install --no-self && pdm run pip install gunicorn uvicorn
+# Install production dependencies into .venv (skip dev group, don't install
+# the project itself as a package).
+RUN pdm install --prod --no-self --no-editable
 
-# Expose port
+# Now copy the actual backend source code.
+COPY backend/ ./
+
+# Bake build metadata into the image so /api/version/ works without a
+# build_info.json in the repo.
+ARG GIT_SHA=unknown
+ARG GIT_REF=unknown
+ARG BUILD_TIME=unknown
+RUN printf '{"sha":"%s","ref":"%s","built_at":"%s"}\n' \
+      "$GIT_SHA" "$GIT_REF" "$BUILD_TIME" > build_info.json
+
 EXPOSE 8000
 
-# Use a startup script that installs deps if needed and runs the server
-CMD ["sh", "-c", "pdm install --no-self && pdm run python manage.py migrate && pdm run gunicorn --bind 0.0.0.0:8000 climateconnect_main.asgi:application -w 4 -k uvicorn.workers.UvicornWorker"]
+COPY docker/backend-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+CMD ["/app/entrypoint.sh"]
