@@ -2,38 +2,46 @@
 # Production startup script for the Azure App Service backend.
 # Runs on EVERY cold start, inside the App Service "blessed" Python image.
 
-set -uo pipefail
+# NOTE: Azure runs this via `sh backend/start_backend.sh` (see the site's
+# appCommandLine), and /bin/sh is dash, which has no `pipefail` -- using it
+# aborts the whole script with "Illegal option -o pipefail" (exit 2). Keep
+# everything in here POSIX sh compatible.
+set -u
 
 die() { echo "FATAL(start_backend): $*" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
 # System (spatial) dependencies
 #
-# Debian 11 (bullseye) is end-of-life: deb.debian.org no longer serves valid
-# metadata for it and the bullseye-security Release file expired on
-# 2026-09-07, which made `apt-get update` fail and silently skip the GDAL
-# install. Django's contrib.gis then died at import time with
-# "Could not find the GDAL library". Point apt at archive.debian.org and
-# ignore the expired Valid-Until stamps.
+# Debian 11 (bullseye), the base of the App Service Python 3.12 image, is
+# end-of-life: the bullseye-security Release file stopped being refreshed and
+# expired on 2026-09-07. `apt-get update` then exits non-zero, and because the
+# old script chained update && install, the GDAL install was silently skipped
+# and Django's contrib.gis died at import time with "Could not find the GDAL
+# library" (container exit 1, startup probe timeout).
+#
+# Both bullseye repos are still served by deb.debian.org, and bullseye `main`
+# (where gdal/proj live) carries no Valid-Until at all -- only the security
+# suite is expired. So disabling the Valid-Until check is enough. Do NOT
+# repoint at archive.debian.org: it has no debian-security/bullseye-security
+# suite (HTTP 404), which makes `apt-get update` fail outright.
 #
 # This is a stopgap for a dead distro -- see
 # doc/spec/20260826_1138_container_based_deployment_pipeline.md for the
 # container-based deployment that removes cold-start apt entirely.
 # ---------------------------------------------------------------------------
 if [ -r /etc/os-release ] && grep -q 'VERSION_CODENAME=bullseye' /etc/os-release; then
-  echo "start_backend: Debian bullseye detected, repointing apt at archive.debian.org"
-  cat > /etc/apt/sources.list <<'EOF'
-deb http://archive.debian.org/debian bullseye main
-deb http://archive.debian.org/debian-security bullseye-security main
-EOF
-  rm -f /etc/apt/sources.list.d/*.list
+  echo "start_backend: Debian bullseye (EOL) detected, ignoring expired Release stamps"
   APT_OPTS="-o Acquire::Check-Valid-Until=false"
 else
   APT_OPTS=""
 fi
 
+# A failing update is not necessarily fatal (install can still succeed from
+# whatever lists were fetched), so warn here and let the libgdal/libgeos
+# assertions below be the real gate.
 # shellcheck disable=SC2086
-apt-get $APT_OPTS update -qq || die "apt-get update failed"
+apt-get $APT_OPTS update -qq || echo "WARN(start_backend): apt-get update reported errors, continuing" >&2
 # shellcheck disable=SC2086
 apt-get $APT_OPTS install -yqq \
   binutils \
