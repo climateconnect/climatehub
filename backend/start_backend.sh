@@ -12,7 +12,7 @@ cd backend
 pdm install
 
 # activate venv
-$(pdm venv activate)
+eval "$(pdm venv activate)"
 
 # Start server
 gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 4 -k uvicorn.workers.UvicornWorker &
