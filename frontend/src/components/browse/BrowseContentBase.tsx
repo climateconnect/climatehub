@@ -27,8 +27,11 @@ const useStyles = makeStyles((theme) => ({
   contentContainer: {
     paddingLeft: 24,
     paddingRight: 24,
-    paddingTop: theme.spacing(2),
+    paddingTop: theme.spacing(4),
     position: "relative",
+    [theme.breakpoints.down("md")]: {
+      paddingTop: theme.spacing(2),
+    },
   },
   tabContent: {
     marginTop: theme.spacing(2),
