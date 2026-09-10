@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import RegistrationFieldList from "./RegistrationFieldList";
@@ -38,9 +39,11 @@ const defaultContext = {
 function renderFieldList({ fields = [] as RegistrationField[], onFieldsChange = jest.fn() } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <RegistrationFieldList fields={fields} onFieldsChange={onFieldsChange} />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <RegistrationFieldList fields={fields} onFieldsChange={onFieldsChange} />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
@@ -91,7 +94,7 @@ describe("RegistrationFieldList", () => {
       renderFieldList({ fields: [makeField()] });
       expect(screen.getByText("Checkbox 1")).toBeInTheDocument();
       expect(screen.getByTestId("checkbox-description")).toBeInTheDocument();
-      expect(screen.getByRole("checkbox", { name: /required/i })).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: /required/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /delete field/i })).toBeInTheDocument();
     });
   });
@@ -498,7 +501,7 @@ describe("RegistrationFieldList", () => {
       const field = makeField({ is_required: false });
       const onFieldsChange = jest.fn();
       renderFieldList({ fields: [field], onFieldsChange });
-      fireEvent.click(screen.getByRole("checkbox", { name: /required/i }));
+      fireEvent.click(screen.getByRole("switch", { name: /required/i }));
       const [result] = onFieldsChange.mock.calls[0];
       expect(result[0].is_required).toBe(true);
     });
@@ -507,7 +510,7 @@ describe("RegistrationFieldList", () => {
       const field = makeField({ is_required: true });
       const onFieldsChange = jest.fn();
       renderFieldList({ fields: [field], onFieldsChange });
-      fireEvent.click(screen.getByRole("checkbox", { name: /required/i }));
+      fireEvent.click(screen.getByRole("switch", { name: /required/i }));
       const [result] = onFieldsChange.mock.calls[0];
       expect(result[0].is_required).toBe(false);
     });
@@ -521,13 +524,15 @@ describe("RegistrationFieldList", () => {
       const onRequestDeleteField = jest.fn();
       render(
         <ThemeProvider theme={theme}>
-          <UserContext.Provider value={defaultContext as any}>
-            <RegistrationFieldList
-              fields={fields}
-              onFieldsChange={onFieldsChange}
-              onRequestDeleteField={onRequestDeleteField}
-            />
-          </UserContext.Provider>
+          <StylesThemeProvider theme={theme}>
+            <UserContext.Provider value={defaultContext as any}>
+              <RegistrationFieldList
+                fields={fields}
+                onFieldsChange={onFieldsChange}
+                onRequestDeleteField={onRequestDeleteField}
+              />
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
       return { onFieldsChange, onRequestDeleteField };

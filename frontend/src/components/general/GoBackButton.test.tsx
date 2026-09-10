@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import GoBackButton from "./GoBackButton";
 
@@ -37,7 +38,9 @@ function renderButton(props: any = {}) {
   };
   return render(
     <ThemeProvider theme={theme}>
-      <GoBackButton {...merged} />
+      <StylesThemeProvider theme={theme}>
+        <GoBackButton {...merged} />
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import OptionSelectFieldEditor from "./OptionSelectFieldEditor";
@@ -28,15 +29,17 @@ function renderEditor({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <OptionSelectFieldEditor
-          title={title}
-          options={options}
-          onChange={onChange}
-          onRequestDeleteOption={onRequestDeleteOption}
-          titleDisabled={titleDisabled}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <OptionSelectFieldEditor
+            title={title}
+            options={options}
+            onChange={onChange}
+            onRequestDeleteOption={onRequestDeleteOption}
+            titleDisabled={titleDisabled}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import EditEventRegistrationModal from "./EditEventRegistrationModal";
@@ -120,17 +121,23 @@ function renderModal({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContextValue as any}>
-        <EditEventRegistrationModal
-          open={true}
-          onClose={onClose}
-          onSaved={onSaved}
-          project={project}
-          eventRegistration={eventRegistration}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContextValue as any}>
+          <EditEventRegistrationModal
+            open={true}
+            onClose={onClose}
+            onSaved={onSaved}
+            project={project}
+            eventRegistration={eventRegistration}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
+}
+
+function getStatusSwitch() {
+  return screen.getByRole("switch", { name: /registration is (open|closed)/i });
 }
 
 // ---------------------------------------------------------------------------
@@ -153,27 +160,29 @@ describe("EditEventRegistrationModal", () => {
 
     it("shows the switch as ON when status is open", () => {
       renderModal({ eventRegistration: makeRegistration({ status: "open" }) });
-      expect(screen.getByRole("checkbox", { name: /status/i })).toBeChecked();
+      expect(getStatusSwitch()).toBeChecked();
       expect(screen.getByText(/registration is open/i)).toBeInTheDocument();
     });
 
     it("shows the switch as OFF when status is closed", () => {
       renderModal({ eventRegistration: makeRegistration({ status: "closed" }) });
-      expect(screen.getByRole("checkbox", { name: /status/i })).not.toBeChecked();
+      expect(getStatusSwitch()).not.toBeChecked();
       expect(screen.getByText(/registration is closed/i)).toBeInTheDocument();
     });
 
     it("shows the 'Full' chip and switch when status is full", () => {
       renderModal({ eventRegistration: makeRegistration({ status: "full" }) });
       expect(screen.getByText(/full/i)).toBeInTheDocument();
-      expect(screen.getByRole("checkbox", { name: /status/i })).toBeInTheDocument();
+      expect(getStatusSwitch()).toBeInTheDocument();
     });
 
     it("shows an 'Ended' chip and no status switch when status is ended", () => {
       renderModal({ eventRegistration: makeRegistration({ status: "ended" }) });
       expect(screen.getByText(/ended/i)).toBeInTheDocument();
       // Status switch is hidden for "ended"
-      expect(screen.queryByRole("checkbox", { name: /status/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("switch", { name: /registration is (open|closed)/i })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -182,13 +191,13 @@ describe("EditEventRegistrationModal", () => {
   describe("status switch", () => {
     it("toggles label from open to closed", () => {
       renderModal({ eventRegistration: makeRegistration({ status: "open" }) });
-      fireEvent.click(screen.getByRole("checkbox", { name: /status/i }));
+      fireEvent.click(getStatusSwitch());
       expect(screen.getByText(/registration is closed/i)).toBeInTheDocument();
     });
 
     it("toggles label from closed to open", () => {
       renderModal({ eventRegistration: makeRegistration({ status: "closed" }) });
-      fireEvent.click(screen.getByRole("checkbox", { name: /status/i }));
+      fireEvent.click(getStatusSwitch());
       expect(screen.getByText(/registration is open/i)).toBeInTheDocument();
     });
   });
@@ -201,7 +210,7 @@ describe("EditEventRegistrationModal", () => {
 
     it("blocks switching to open when max_participants is not increased", () => {
       renderModal({ eventRegistration: fullReg });
-      const checkbox = screen.getByRole("checkbox", { name: /status/i });
+      const checkbox = getStatusSwitch();
       fireEvent.click(checkbox); // → closed
       expect(screen.getByText(/registration is closed/i)).toBeInTheDocument();
       // Try to turn it back on without raising max — should be blocked
@@ -216,7 +225,7 @@ describe("EditEventRegistrationModal", () => {
 
     it("allows switching to open after max_participants is raised above participant count", () => {
       renderModal({ eventRegistration: fullReg });
-      const checkbox = screen.getByRole("checkbox", { name: /status/i });
+      const checkbox = getStatusSwitch();
       fireEvent.click(checkbox); // → closed
       // Raise max above 30 (current participant count)
       fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "31" } });
@@ -375,7 +384,7 @@ describe("EditEventRegistrationModal", () => {
 
     it("sends status=closed after toggling the switch off", async () => {
       renderModal({ eventRegistration: makeRegistration({ status: "open" }) });
-      fireEvent.click(screen.getByRole("checkbox", { name: /status/i })); // open → closed
+      fireEvent.click(getStatusSwitch()); // open → closed
       fireEvent.click(screen.getByRole("button", { name: /save/i }));
       await waitFor(() => expect(mockApiRequest).toHaveBeenCalledTimes(1));
       const { payload } = mockApiRequest.mock.calls[0][0];

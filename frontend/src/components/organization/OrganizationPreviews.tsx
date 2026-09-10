@@ -1,4 +1,4 @@
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";

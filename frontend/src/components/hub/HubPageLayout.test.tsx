@@ -2,6 +2,7 @@ import React from "react";
 import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import UserContext from "../context/UserContext";
 import { LinkedHub } from "../../types";
 
@@ -92,20 +93,22 @@ const linkedHubs: LinkedHub[] = [
 function renderLayout(props: any) {
   return render(
     <ThemeProvider theme={testTheme}>
-      <UserContext.Provider value={userContextValue}>
-        <HubPageLayout
-          activeEntry={null}
-          hubUrl="perth"
-          subHubSegment="transport"
-          hubData={{ name: "Perth Transport", image: null }}
-          allHubs={[]}
-          linkedHubs={linkedHubs}
-          isLocationHub
-          {...props}
-        >
-          <div>content</div>
-        </HubPageLayout>
-      </UserContext.Provider>
+      <StylesThemeProvider theme={testTheme}>
+        <UserContext.Provider value={userContextValue}>
+          <HubPageLayout
+            activeEntry={null}
+            hubUrl="perth"
+            subHubSegment="transport"
+            hubData={{ name: "Perth Transport", image: null }}
+            allHubs={[]}
+            linkedHubs={linkedHubs}
+            isLocationHub
+            {...props}
+          >
+            <div>content</div>
+          </HubPageLayout>
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
@@ -135,20 +138,22 @@ describe("HubPageLayout linked-hub navigation on different page types", () => {
       ];
       render(
         <ThemeProvider theme={testTheme}>
-          <UserContext.Provider value={userContextValue}>
-            <HubPageLayout
-              activeEntry={null}
-              isEventsPage
-              hubUrl="perth"
-              subHubSegment="transport"
-              hubData={{ name: "Perth Transport", image: null }}
-              allHubs={[]}
-              linkedHubs={subHubLinked}
-              isLocationHub
-            >
-              <div>content</div>
-            </HubPageLayout>
-          </UserContext.Provider>
+          <StylesThemeProvider theme={testTheme}>
+            <UserContext.Provider value={userContextValue}>
+              <HubPageLayout
+                activeEntry={null}
+                isEventsPage
+                hubUrl="perth"
+                subHubSegment="transport"
+                hubData={{ name: "Perth Transport", image: null }}
+                allHubs={[]}
+                linkedHubs={subHubLinked}
+                isLocationHub
+              >
+                <div>content</div>
+              </HubPageLayout>
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
       const link = document.querySelector("a h3")?.parentElement as HTMLAnchorElement;
@@ -207,17 +212,19 @@ describe("HubPageLayout linked-hub navigation on different page types", () => {
     it("does not show the info text when the hub has no parent_hub", () => {
       render(
         <ThemeProvider theme={testTheme}>
-          <UserContext.Provider value={userContextValue}>
-            <HubPageLayout
-              activeEntry="projects"
-              hubUrl="kassel"
-              hubData={{ name: "Kassel", image: null, parent_hub: null }}
-              allHubs={[]}
-              linkedHubs={[]}
-            >
-              <div>content</div>
-            </HubPageLayout>
-          </UserContext.Provider>
+          <StylesThemeProvider theme={testTheme}>
+            <UserContext.Provider value={userContextValue}>
+              <HubPageLayout
+                activeEntry="projects"
+                hubUrl="kassel"
+                hubData={{ name: "Kassel", image: null, parent_hub: null }}
+                allHubs={[]}
+                linkedHubs={[]}
+              >
+                <div>content</div>
+              </HubPageLayout>
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
       expect(document.body.textContent.includes("you_are_seeing_projects_related_to")).toBe(false);
@@ -226,18 +233,20 @@ describe("HubPageLayout linked-hub navigation on different page types", () => {
     it("shows the projects variant on the projects page of a sub-hub", () => {
       render(
         <ThemeProvider theme={testTheme}>
-          <UserContext.Provider value={userContextValue}>
-            <HubPageLayout
-              activeEntry="projects"
-              hubUrl="perth"
-              subHubSegment="transport"
-              hubData={{ name: "Perth Transport", image: null, parent_hub: "perth" }}
-              allHubs={[]}
-              linkedHubs={[]}
-            >
-              <div>content</div>
-            </HubPageLayout>
-          </UserContext.Provider>
+          <StylesThemeProvider theme={testTheme}>
+            <UserContext.Provider value={userContextValue}>
+              <HubPageLayout
+                activeEntry="projects"
+                hubUrl="perth"
+                subHubSegment="transport"
+                hubData={{ name: "Perth Transport", image: null, parent_hub: "perth" }}
+                allHubs={[]}
+                linkedHubs={[]}
+              >
+                <div>content</div>
+              </HubPageLayout>
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
       // The text comes from a translated string. We just check that some
@@ -252,18 +261,20 @@ describe("HubPageLayout linked-hub navigation on different page types", () => {
     it("shows the organisations variant on the organisations page of a sub-hub", () => {
       render(
         <ThemeProvider theme={testTheme}>
-          <UserContext.Provider value={userContextValue}>
-            <HubPageLayout
-              activeEntry="organizations"
-              hubUrl="perth"
-              subHubSegment="transport"
-              hubData={{ name: "Perth Transport", image: null, parent_hub: "perth" }}
-              allHubs={[]}
-              linkedHubs={[]}
-            >
-              <div>content</div>
-            </HubPageLayout>
-          </UserContext.Provider>
+          <StylesThemeProvider theme={testTheme}>
+            <UserContext.Provider value={userContextValue}>
+              <HubPageLayout
+                activeEntry="organizations"
+                hubUrl="perth"
+                subHubSegment="transport"
+                hubData={{ name: "Perth Transport", image: null, parent_hub: "perth" }}
+                allHubs={[]}
+                linkedHubs={[]}
+              >
+                <div>content</div>
+              </HubPageLayout>
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
       const infoText = document.querySelector('[class*="subHubInfoText"]');
@@ -275,18 +286,20 @@ describe("HubPageLayout linked-hub navigation on different page types", () => {
     it("shows the members variant on the members page of a sub-hub", () => {
       render(
         <ThemeProvider theme={testTheme}>
-          <UserContext.Provider value={userContextValue}>
-            <HubPageLayout
-              activeEntry="members"
-              hubUrl="perth"
-              subHubSegment="transport"
-              hubData={{ name: "Perth Transport", image: null, parent_hub: "perth" }}
-              allHubs={[]}
-              linkedHubs={[]}
-            >
-              <div>content</div>
-            </HubPageLayout>
-          </UserContext.Provider>
+          <StylesThemeProvider theme={testTheme}>
+            <UserContext.Provider value={userContextValue}>
+              <HubPageLayout
+                activeEntry="members"
+                hubUrl="perth"
+                subHubSegment="transport"
+                hubData={{ name: "Perth Transport", image: null, parent_hub: "perth" }}
+                allHubs={[]}
+                linkedHubs={[]}
+              >
+                <div>content</div>
+              </HubPageLayout>
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
       const infoText = document.querySelector('[class*="subHubInfoText"]');
