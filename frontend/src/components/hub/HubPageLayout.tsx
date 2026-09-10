@@ -31,7 +31,7 @@ const useStyles = makeStyles((theme) => ({
     paddingLeft: 24,
     paddingRight: 24,
     marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
+    marginBottom: theme.spacing(1),
     gap: theme.spacing(1),
   },
   linkedHubsContainerMobile: {
@@ -40,7 +40,7 @@ const useStyles = makeStyles((theme) => ({
     overflowX: "auto",
     gap: theme.spacing(2),
     padding: theme.spacing(2, 0),
-    marginBottom: theme.spacing(2),
+    marginBottom: theme.spacing(1),
   },
   subHubInfoText: {
     fontStyle: "italic",
