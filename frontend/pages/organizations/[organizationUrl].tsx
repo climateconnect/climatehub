@@ -80,6 +80,17 @@ const useStyles = makeStyles((theme) => ({
     marginTop: theme.spacing(4),
     marginBottom: theme.spacing(5),
   },
+  noContentImageContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: theme.spacing(4),
+    marginBottom: theme.spacing(5),
+  },
+  noContentImage: {
+    width: "auto",
+    height: "200px",
+  },
 }));
 
 export async function getServerSideProps(ctx) {
@@ -387,9 +398,13 @@ function OrganizationLayout({
             )}
           </>
         ) : (
-          <Typography className={classes.no_content_yet}>
-            {texts.this_organization_has_not_listed_any_projects_yet}
-          </Typography>
+          <div className={classes.noContentImageContainer}>
+            <img
+              src="/images/no_content_yet.png"
+              className={classes.noContentImage}
+              alt={texts.no_project_yet}
+            />
+          </div>
         )}
       </Container>
       <Divider className={classes.divider} />
@@ -428,9 +443,13 @@ function OrganizationLayout({
             hubUrl={hubUrl}
           />
         ) : (
-          <Typography>
-            {texts.none_of_the_members_of_this_organization_has_signed_up_yet}
-          </Typography>
+          <div className={classes.noContentImageContainer}>
+            <img
+              src="/images/no_content_yet.png"
+              className={classes.noContentImage}
+              alt={texts.no_member_yet}
+            />
+          </div>
         )}
       </Container>
     </AccountPage>
