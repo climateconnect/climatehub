@@ -30,12 +30,14 @@ const useStyles = makeStyles<Theme, { visibleFooterHeight?: number }>((theme) =>
   explanation: {
     margin: "0 auto",
     textAlign: "center",
+    color: theme.palette.grey[800],
   },
   sectionHeader: {
     fontSize: 22,
     fontWeight: "bold",
     marginTop: theme.spacing(1.5),
     overflowWrap: "break-word",
+    color: theme.palette.background.default_contrastText,
   },
   divider: {
     marginTop: theme.spacing(1),
