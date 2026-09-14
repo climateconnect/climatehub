@@ -1,0 +1,183 @@
+# Phase 2B: Build and push a production-ready backend container image.
+#
+# Triggered manually via workflow_dispatch.  Builds the image from
+# docker/backend.Dockerfile, pushes to GitHub Container Registry (GHCR),
+# and optionally deploys to a verification App Service to validate the
+# runtime contract (AC-2B.3, AC-2B.4).
+#
+# The backend image contains no secrets — settings.py reads everything from
+# environment variables at runtime — so a public GHCR image is safe
+# (AC-2B.7).
+#
+# Prerequisites (all in place as of 2026-09-09):
+#   1. App Service "climate-backend-container" (resource group
+#      "climate-connect-backend") with slot2, both configured with all
+#      production app settings, WebSockets, health check on /ping/,
+#      and Always On.
+#   2. The GHCR package is public (backend image is secret-free), so no
+#      registry credentials are needed on the App Service or in the
+#      workflow.
+#   3. The Azure service principal used by the existing backend workflow
+#      has Contributor access to the "climate-connect-backend" resource
+#      group.
+#   4. GitHub environment "slot2" exists.
+#
+# The existing production workflows are NOT modified by this file (AC-2B.6).
+
+name: Build backend container image
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_verify:
+        description: 'Deploy to verification App Service after push'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/backend
+
+jobs:
+  # ------------------------------------------------------------------
+  # Job 1: Build the image and push to GHCR (always runs)
+  # ------------------------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      sha-tag: ${{ steps.sha.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set build timestamp
+        id: timestamp
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute short SHA
+        id: sha
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/backend.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            GIT_REF=${{ github.ref_name }}
+            BUILD_TIME=${{ steps.timestamp.outputs.value }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Print image reference
+        run: |
+          echo "Pushed image:"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sha.outputs.tag }}"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  # ------------------------------------------------------------------
+  # Job 2: Deploy to slot2 and verify (opt-in)
+  #
+  # Pushes the new image to slot2 of "climate-backend-container", runs
+  # health checks, and prints the slot2 URL.  A human can then swap
+  # slots in the Azure portal once satisfied.
+  #
+  # The GHCR image is public (backend is secret-free), so no registry
+  # credentials are needed.
+  # ------------------------------------------------------------------
+  verify:
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.deploy_verify
+    environment: slot2
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      APP_NAME: climate-backend-container
+      RESOURCE_GROUP: climate-connect-backend
+      SLOT: slot2
+      SLOT_URL: climate-backend-container-slot2.azurewebsites.net
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_133C8292DDC0414CB6E553F785F6B07D }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E2678D2F6F234573A28809CEDF101351 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4C2A2623C99A4C8AA6ED185840434928 }}
+
+      - name: Set container image on slot2
+        run: |
+          az webapp config container set \
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --slot "$SLOT" \
+            --container-image-name "$IMAGE_REF"
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.sha-tag }}
+
+      - name: Restart slot2
+        run: |
+          az webapp restart \
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --slot "$SLOT"
+
+      - name: Wait for cold start
+        run: sleep 45
+
+      - name: Health check — GET /ping/
+        run: |
+          echo "GET https://${SLOT_URL}/ping/"
+          curl -sf --retry 5 --retry-delay 10 \
+            "https://${SLOT_URL}/ping/"
+
+      - name: Verify build info — GET /api/version/
+        run: |
+          echo "GET https://${SLOT_URL}/api/version/"
+          curl -sf "https://${SLOT_URL}/api/version/" | jq .
+
+      - name: Print next steps
+        run: |
+          echo ""
+          echo "=== Slot2 verified ==="
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.sha-tag }}"
+          echo "Slot2: https://${SLOT_URL}"
+          echo ""
+          echo "To swap to production, run:"
+          echo "  az webapp deployment slot swap \\"
+          echo "    --name $APP_NAME \\"
+          echo "    --resource-group $RESOURCE_GROUP \\"
+          echo "    --slot $SLOT \\"
+          echo "    --action swap"
