@@ -255,8 +255,6 @@ export default function Login({ hubThemeData, hubSlug }: LoginProps) {
                   <CardContent>{getStepContent()}</CardContent>
                 </Card>
               }
-              leftGridSizes={{ md: 7 }}
-              rightGridSizes={{ md: 5 }}
               image={<CustomAuthImage hubUrl={hubSlug || undefined} texts={texts} />}
             />
           )}

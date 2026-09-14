@@ -16,16 +16,6 @@ const useStyles = makeStyles((theme) => ({
 interface ContentImageSplitViewProps {
   content: ReactNode;
   image: ReactNode;
-  leftGridSizes?: {
-    xs?: "auto" | number;
-    md?: "auto" | number;
-    lg?: "auto" | number;
-  };
-  rightGridSizes?: {
-    xs?: "auto" | number;
-    md?: "auto" | number;
-    lg?: "auto" | number;
-  };
   minHeight?: string;
   direction?: "row" | "row-reverse" | "column" | "column-reverse";
 }
@@ -33,8 +23,6 @@ interface ContentImageSplitViewProps {
 const ContentImageSplitView: FC<ContentImageSplitViewProps> = ({
   content,
   image,
-  leftGridSizes,
-  rightGridSizes,
   minHeight,
   direction,
 }) => {
@@ -57,7 +45,6 @@ const ContentImageSplitView: FC<ContentImageSplitViewProps> = ({
       {/* content pane */}
       <Grid
         size={{ xs: 12, md: 7 }}
-        {...leftGridSizes}
         className={`${classes.centerItems} ${!rightPaneHidden && classes.rightPadding}`}
       >
         {content}
@@ -65,7 +52,7 @@ const ContentImageSplitView: FC<ContentImageSplitViewProps> = ({
 
       {/* image pane */}
       {!rightPaneHidden && (
-        <Grid size={{ md: 5 }} {...rightGridSizes} style={{ display: "flex" }}>
+        <Grid size={{ md: 5 }} style={{ display: "flex" }}>
           {image}
         </Grid>
       )}

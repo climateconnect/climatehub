@@ -6,7 +6,7 @@ import {
   List,
   Switch,
   TextField,
-  Grid2,
+  Grid,
 } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import makeStyles from "@mui/styles/makeStyles";
@@ -461,7 +461,7 @@ const InputSectors = ({
             onDelete={() => handleSectorDelete(sector)}
           />
         ))}
-        <Grid2 container>
+        <Grid container>
           <SelectField
             options={sectorOptions}
             className={classes.sectorField}
@@ -473,7 +473,7 @@ const InputSectors = ({
               handleValueChange(event.target.value);
             }}
           />
-        </Grid2>
+        </Grid>
       </List>
     </div>
   );
