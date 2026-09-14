@@ -174,7 +174,9 @@ export default function EventCalendarContent({
   initialSelectedDay,
   filterChoices,
   hubUrl,
+  hubName,
   subHubName,
+  autoOpenSubscribe = false,
 }: any) {
   const { locale } = useContext(UserContext);
   const classes = useStyles();
@@ -368,10 +370,12 @@ export default function EventCalendarContent({
           {showSubscribe && (
             <SubscribeToCalendarButton
               hubUrl={hubUrl}
+              hubName={subHubName || hubName}
               search={search}
               sectors={sectors}
               date={selectedDay.format("YYYY-MM-DD")}
               variant="icon"
+              defaultOpen={autoOpenSubscribe}
             />
           )}
         </div>
@@ -442,6 +446,7 @@ export default function EventCalendarContent({
             {showSubscribe && (
               <SubscribeToCalendarButton
                 hubUrl={hubUrl}
+                hubName={subHubName || hubName}
                 search={search}
                 sectors={draftSectors}
                 date={draftSelectedDay.format("YYYY-MM-DD")}
@@ -520,9 +525,11 @@ export default function EventCalendarContent({
             {showSubscribe && (
               <SubscribeToCalendarButton
                 hubUrl={hubUrl}
+                hubName={subHubName || hubName}
                 search={search}
                 sectors={sectors}
                 date={selectedDay.format("YYYY-MM-DD")}
+                defaultOpen={autoOpenSubscribe}
               />
             )}
           </div>

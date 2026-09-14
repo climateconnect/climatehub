@@ -41,23 +41,27 @@ const useStyles = makeStyles((theme) => ({
 
 type Props = {
   hubUrl?: string;
+  hubName?: string;
   search: string;
   sectors: string[];
   date: string;
   variant?: "button" | "icon";
+  defaultOpen?: boolean;
 };
 
 export default function SubscribeToCalendarButton({
   hubUrl,
+  hubName,
   search,
   sectors,
   date,
   variant = "button",
+  defaultOpen = false,
 }: Props) {
   const { locale } = useContext(UserContext);
   const classes = useStyles();
   const texts = getTexts({ page: "hub", locale: locale });
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [feedUrl, setFeedUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -140,7 +144,11 @@ export default function SubscribeToCalendarButton({
       <GenericDialog
         open={open}
         onClose={() => setOpen(false)}
-        title={texts.subscribe_dialog_title ?? "Subscribe to event calendar"}
+        title={
+          hubName
+            ? `${texts.subscribe_dialog_title ?? "Subscribe to event calendar"} — ${hubName}`
+            : texts.subscribe_dialog_title ?? "Subscribe to event calendar"
+        }
       >
         <div className={classes.dialogContent}>
           <Typography className={classes.instructions}>

@@ -1,14 +1,14 @@
 import { GetServerSideProps, GetServerSidePropsContext } from "next";
 import NextCookies from "next-cookies";
 import React from "react";
-import { extractHubUrlsFromContext, getAllHubs } from "../../../public/lib/hubOperations";
-import { getSectorOptions } from "../../../public/lib/getOptions";
-import { apiRequest } from "../../../public/lib/apiOperations";
-import { getFeatureTogglesFromRequest } from "../../../src/hooks/featureToggles";
-import HubPageLayout from "../../../src/components/hub/HubPageLayout";
-import EventCalendarContent from "../../../src/components/eventCalendar/EventCalendarContent";
-import { getHubData, getLinkedHubsData } from "../../../public/lib/getHubData";
-import getHubTheme from "../../../src/themes/fetchHubTheme";
+import { extractHubUrlsFromContext, getAllHubs } from "../../../../public/lib/hubOperations";
+import { getSectorOptions } from "../../../../public/lib/getOptions";
+import { apiRequest } from "../../../../public/lib/apiOperations";
+import { getFeatureTogglesFromRequest } from "../../../../src/hooks/featureToggles";
+import HubPageLayout from "../../../../src/components/hub/HubPageLayout";
+import EventCalendarContent from "../../../../src/components/eventCalendar/EventCalendarContent";
+import { getHubData, getLinkedHubsData } from "../../../../public/lib/getHubData";
+import getHubTheme from "../../../../src/themes/fetchHubTheme";
 
 const toOffsetIso = (d: Date): string => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -129,6 +129,7 @@ export default function HubEventsPage({
   hubData,
   hubThemeData,
   linkedHubs,
+  autoOpenSubscribe,
 }: any) {
   const effectiveHubUrl = subHubUrl || hubUrl;
 
@@ -151,7 +152,9 @@ export default function HubEventsPage({
         initialSelectedDay={initialSelectedDay}
         filterChoices={filterChoices}
         hubUrl={effectiveHubUrl}
+        hubName={hubData?.name}
         subHubName={hubData?.parent_hub ? hubData?.name : undefined}
+        autoOpenSubscribe={autoOpenSubscribe}
       />
     </HubPageLayout>
   );

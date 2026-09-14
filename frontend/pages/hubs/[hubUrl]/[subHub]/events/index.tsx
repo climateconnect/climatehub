@@ -1,4 +1,4 @@
-import HubEventsPage, { getHubEventsServerSideProps } from "../events";
+import HubEventsPage, { getHubEventsServerSideProps } from "../../events";
 
 export const getServerSideProps = getHubEventsServerSideProps;
 
