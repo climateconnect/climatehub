@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import EditProjectOverview from "./EditProjectOverview";
@@ -54,18 +55,20 @@ function renderEditProjectOverview(overrides: Partial<typeof baseProject> = {}) 
   const handleSetProject = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <EditProjectOverview
-          project={{ ...baseProject, ...overrides } as any}
-          handleSetProject={handleSetProject}
-          smallScreen={true}
-          overviewInputsRef={{ current: null }}
-          locationOptionsOpen={false}
-          handleSetLocationOptionsOpen={jest.fn()}
-          locationInputRef={{ current: null }}
-          sectorOptions={[]}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <EditProjectOverview
+            project={{ ...baseProject, ...overrides } as any}
+            handleSetProject={handleSetProject}
+            smallScreen={true}
+            overviewInputsRef={{ current: null }}
+            locationOptionsOpen={false}
+            handleSetLocationOptionsOpen={jest.fn()}
+            locationInputRef={{ current: null }}
+            sectorOptions={[]}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
   return { ...utils, handleSetProject };

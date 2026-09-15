@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import AddPhotoSection from "./AddPhotoSection";
@@ -63,9 +64,11 @@ function renderAddPhotoSection({ image = undefined as string | undefined } = {})
   const handleSetProjectData = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <Wrapper image={image} handleSetProjectData={handleSetProjectData} />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <Wrapper image={image} handleSetProjectData={handleSetProjectData} />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
   return { ...utils, handleSetProjectData };

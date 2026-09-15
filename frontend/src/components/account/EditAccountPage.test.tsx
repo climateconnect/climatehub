@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import EditAccountPage from "./EditAccountPage";
@@ -46,23 +47,25 @@ function renderEditAccountPage(overrides: Partial<typeof baseAccount> = {}) {
   const handleCancel = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <EditAccountPage
-          account={{ ...baseAccount, ...overrides }}
-          possibleAccountTypes={undefined}
-          maxAccountTypes={5}
-          infoMetadata={{}}
-          handleSubmit={handleSubmit}
-          handleCancel={handleCancel}
-          errorMessage=""
-          existingName=""
-          existingUrlSlug=""
-          skillsOptions={[]}
-          splitName={false}
-          type="profile"
-          allSectors={[]}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <EditAccountPage
+            account={{ ...baseAccount, ...overrides }}
+            possibleAccountTypes={undefined}
+            maxAccountTypes={5}
+            infoMetadata={{}}
+            handleSubmit={handleSubmit}
+            handleCancel={handleCancel}
+            errorMessage=""
+            existingName=""
+            existingUrlSlug=""
+            skillsOptions={[]}
+            splitName={false}
+            type="profile"
+            allSectors={[]}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
   return { ...utils, handleSubmit, handleCancel };
