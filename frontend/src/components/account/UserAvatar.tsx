@@ -109,8 +109,9 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
     handleImageFile(file);
   };
 
-  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste } = useImageDrop({
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste, onKeyDown } = useImageDrop({
     onFileSelected: handleImageFile,
+    onActivate: () => inputFileRef.current?.click(),
   });
 
   const classes = useStyles({ avatarImage: avatarImage.imageUrl, isDragOver });
@@ -153,13 +154,6 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
     }
   };
 
-  const onZoneKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      inputFileRef.current?.click();
-    }
-  };
-
   return (
     <>
       <Avatar
@@ -173,14 +167,14 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
         <div
           className={classes.editIconContainer}
           onClick={avatarImage.imageUrl ? () => void 0 : onClickChangeImage}
-          onKeyDown={avatarImage.imageUrl ? undefined : onZoneKeyDown}
+          onKeyDown={onKeyDown}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           onPaste={onPaste}
           tabIndex={0}
-          role={avatarImage.imageUrl ? undefined : "button"}
-          aria-label={avatarImage.imageUrl ? undefined : texts.edit_avatar}
+          role="button"
+          aria-label={texts.edit_avatar}
           data-testid="avatar-drop-zone"
           data-drag-over={isDragOver}
         >

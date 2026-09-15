@@ -36,7 +36,11 @@ While dragging over the upload area, a visible highlight shows it is an active d
 No new npm packages. The existing crop dialog (`react-avatar-editor`) and image processing pipeline are reused unchanged.
 
 ### 8. Clipboard paste opens the same crop dialog
-Pasting (Ctrl/Cmd+V) an image while a drop zone has focus opens the same crop dialog that clicking or dragging would open — same ratio, same controls, same result on confirm. Pasting non-image clipboard content (text, a copied file that isn't an image, an empty clipboard) is a no-op — it must not show an error or interfere with pasting into a nearby text field. A drop zone must be reachable by keyboard (Tab) and support Enter/Space as a click-equivalent, since giving it focus for paste also puts it in the tab order.
+Pasting (Ctrl/Cmd+V) an image while a drop zone has focus opens the same crop dialog that clicking or dragging would open — same ratio, same controls, same result on confirm. This applies regardless of whether the zone already shows an image — pasting must always be able to replace it, not just set it the first time. Pasting non-image clipboard content (text, a copied file that isn't an image, an empty clipboard) is a no-op — it must not show an error or interfere with pasting into a nearby text field.
+
+A drop zone must be reachable by keyboard (Tab), since giving it focus for paste also puts it in the tab order. Two patterns exist, and both must avoid dead or duplicate tab stops:
+- **Zone triggers the picker itself** (`UserAvatar`, `EditAccountPage`) — the zone must support Enter/Space as a click-equivalent, in every state the zone can be in (e.g. whether or not an image is already set), and expose an accessible name (`role="button"` + `aria-label`).
+- **Zone wraps a native, independently-focusable control** (`AddPhotoSection`, `EditProjectOverview`, which wrap a `<Button>`) — the zone itself only needs `tabIndex={0}` to receive paste; it must NOT also get `role="button"`/Enter-Space handling, since that would create a second, redundant tab stop for the same action right next to the real button.
 
 ## Decisions (locked)
 | Area | Decision |
@@ -60,7 +64,7 @@ Three existing components gain drag-drop support by adding a small shared hook t
 
 `EditProjectOverview`'s `InputImage` is a separate, near-duplicate implementation of the same upload flow used by `AddPhotoSection` (edit-project is a different page/component from create-project) — it was missed in the original pass and needs the identical `useImageDrop` wiring, not a refactor to share code between the two.
 
-All three already share the same flow: select file → pre-crop to target ratio → open crop dialog → confirm → store result. The drag-drop and clipboard-paste changes only replace the first step (how the file is selected); the shared hook (`useImageDrop`) grows an `onPaste` handler alongside `onDragOver`/`onDragLeave`/`onDrop`, and each drop zone becomes focusable (`tabIndex={0}`) so it can receive paste events and is keyboard-operable (Enter/Space).
+All three already share the same flow: select file → pre-crop to target ratio → open crop dialog → confirm → store result. The drag-drop and clipboard-paste changes only replace the first step (how the file is selected); the shared hook (`useImageDrop`) grows `onPaste` and `onKeyDown` handlers alongside `onDragOver`/`onDragLeave`/`onDrop` — `onKeyDown` takes an optional `onActivate` callback and is only wired up where the zone itself needs to be keyboard-operable (see AC8's two patterns). Every drop zone gets `tabIndex={0}` so it can receive paste events.
 
 ## Out of Scope
 - **File size validation** — enforcing limits is a separate task. The backend already has its own limits (`DATA_UPLOAD_MAX_MEMORY_SIZE`); this feature does not add frontend size checks.
@@ -104,6 +108,7 @@ Each component test file covers the relevant acceptance criteria:
 | Drag-over highlight appears and disappears | AC6 |
 | Pasting a valid image while the zone is focused opens the crop dialog | AC8 |
 | Pasting non-image clipboard content is a no-op | AC8 |
+| The zone is focusable for paste; the real upload button (not the zone) is the sole keyboard tab stop for opening the picker | AC8 |
 
 **UserAvatar (profile avatar)**
 | Test | Covers |
@@ -115,6 +120,8 @@ Each component test file covers the relevant acceptance criteria:
 | Dropping non-image shows error | AC3 |
 | Drag-over highlight appears and disappears | AC6 |
 | Pasting a valid image while the zone is focused opens the crop dialog | AC8 |
+| Pasting non-image clipboard content is a no-op | AC8 |
+| Zone is reachable by keyboard and Enter opens the file picker, including when an avatar is already set | AC8 |
 
 **EditAccountPage (organisation background)**
 | Test | Covers |
@@ -126,6 +133,8 @@ Each component test file covers the relevant acceptance criteria:
 | Dropping non-image shows error | AC3 |
 | Drag-over highlight appears and disappears | AC6 |
 | Pasting a valid image while the zone is focused opens the crop dialog | AC8 |
+| Pasting non-image clipboard content is a no-op | AC8 |
+| Zone is reachable by keyboard and Enter opens the file picker, including when a background image is already set | AC8 |
 
 **EditProjectOverview / InputImage (edit an existing project's cover)**
 | Test | Covers |
@@ -137,6 +146,8 @@ Each component test file covers the relevant acceptance criteria:
 | Dropping non-image shows error, dialog stays closed | AC3 |
 | Drag-over highlight appears and disappears | AC6 |
 | Pasting a valid image while the zone is focused opens the crop dialog | AC8 |
+| Pasting non-image clipboard content is a no-op | AC8 |
+| The zone is focusable for paste; the real upload button (not the zone) is the sole keyboard tab stop for opening the picker | AC8 |
 
 ### Mobile test
 - On a simulated touch/mobile viewport, clicking the upload area still opens the file picker and the crop dialog (AC5)

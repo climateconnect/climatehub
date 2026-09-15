@@ -169,13 +169,23 @@ describe("EditProjectOverview image upload", () => {
     expect(await screen.findByTestId("upload-image-dialog")).toBeInTheDocument();
   });
 
-  it("is reachable by keyboard and Enter opens the file picker", () => {
+  it("pasting non-image clipboard content is a no-op", () => {
     renderEditProjectOverview();
     const zone = screen.getByTestId("edit-project-image-drop-zone");
+    fireEvent.paste(zone, {
+      clipboardData: { items: [{ type: "text/plain", getAsFile: () => null }] },
+    });
+    expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
+  });
+
+  it("the zone is focusable for paste, but is not a second tab stop for the upload action", () => {
+    renderEditProjectOverview();
+    const zone = screen.getByTestId("edit-project-image-drop-zone");
+    // Focusable so it can receive a paste event...
     expect(zone).toHaveAttribute("tabindex", "0");
-    const input = document.getElementById("photo") as HTMLInputElement;
-    const clickSpy = jest.spyOn(input, "click");
-    fireEvent.keyDown(zone, { key: "Enter" });
-    expect(clickSpy).toHaveBeenCalled();
+    // ...but not announced as a button itself: the real <Button> inside it is the
+    // only element a screen reader/keyboard user should reach for "Upload Image".
+    expect(zone).not.toHaveAttribute("role", "button");
+    expect(within(zone).getAllByRole("button", { name: /upload image/i })).toHaveLength(1);
   });
 });

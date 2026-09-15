@@ -200,13 +200,15 @@ describe("AddPhotoSection", () => {
     expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
   });
 
-  it("is reachable by keyboard and Enter opens the file picker", () => {
+  it("the zone is focusable for paste, but is not a second tab stop for the upload action", () => {
     renderAddPhotoSection();
     const zone = screen.getByTestId("add-photo-drop-zone");
+    // Focusable so it can receive a paste event...
     expect(zone).toHaveAttribute("tabindex", "0");
-    const input = document.getElementById("photo") as HTMLInputElement;
-    const clickSpy = jest.spyOn(input, "click");
-    fireEvent.keyDown(zone, { key: "Enter" });
-    expect(clickSpy).toHaveBeenCalled();
+    // ...but not announced as a button itself: the real <Button> inside it is the
+    // only element a screen reader/keyboard user should reach for "Upload Image",
+    // so the zone must not duplicate that as role="button".
+    expect(zone).not.toHaveAttribute("role", "button");
+    expect(within(zone).getAllByRole("button", { name: /upload image/i })).toHaveLength(1);
   });
 });

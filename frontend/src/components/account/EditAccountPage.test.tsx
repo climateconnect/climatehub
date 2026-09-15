@@ -162,8 +162,27 @@ describe("EditAccountPage background image", () => {
     expect(await screen.findByTestId("upload-image-dialog")).toBeInTheDocument();
   });
 
-  it("is reachable by keyboard and Enter opens the file picker", () => {
+  it("pasting non-image clipboard content is a no-op", () => {
     renderEditAccountPage();
+    const zone = screen.getByTestId("background-drop-zone");
+    fireEvent.paste(zone, {
+      clipboardData: { items: [{ type: "text/plain", getAsFile: () => null }] },
+    });
+    expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
+  });
+
+  it("is reachable by keyboard and Enter opens the file picker when no background image is set", () => {
+    renderEditAccountPage();
+    const zone = screen.getByTestId("background-drop-zone");
+    expect(zone).toHaveAttribute("tabindex", "0");
+    const input = document.getElementById("backgroundPhoto") as HTMLInputElement;
+    const clickSpy = jest.spyOn(input, "click");
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it("stays reachable by keyboard and Enter opens the file picker even when a background image is already set", () => {
+    renderEditAccountPage({ background_image: "https://example.com/bg.png" });
     const zone = screen.getByTestId("background-drop-zone");
     expect(zone).toHaveAttribute("tabindex", "0");
     const input = document.getElementById("backgroundPhoto") as HTMLInputElement;

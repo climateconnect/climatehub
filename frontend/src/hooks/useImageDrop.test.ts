@@ -19,6 +19,10 @@ function makeClipboardEvent(items: { type: string; getAsFile: () => File | null 
   } as any;
 }
 
+function makeKeyEvent(key: string) {
+  return { key, preventDefault: jest.fn() } as any;
+}
+
 describe("useImageDrop", () => {
   it("starts with isDragOver false", () => {
     const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn() }));
@@ -107,5 +111,31 @@ describe("useImageDrop", () => {
     const event = makeClipboardEvent([]);
     act(() => result.current.onPaste(event));
     expect(onFileSelected).not.toHaveBeenCalled();
+  });
+
+  it("calls onActivate on Enter", () => {
+    const onActivate = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn(), onActivate }));
+    act(() => result.current.onKeyDown(makeKeyEvent("Enter")));
+    expect(onActivate).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onActivate on Space", () => {
+    const onActivate = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn(), onActivate }));
+    act(() => result.current.onKeyDown(makeKeyEvent(" ")));
+    expect(onActivate).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores other keys", () => {
+    const onActivate = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn(), onActivate }));
+    act(() => result.current.onKeyDown(makeKeyEvent("Tab")));
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it("onKeyDown is a safe no-op when onActivate is not provided", () => {
+    const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn() }));
+    expect(() => act(() => result.current.onKeyDown(makeKeyEvent("Enter")))).not.toThrow();
   });
 });

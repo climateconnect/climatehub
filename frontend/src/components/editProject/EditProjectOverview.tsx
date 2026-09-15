@@ -555,13 +555,6 @@ const InputImage = ({
     inputFileRef.current!.click();
   };
 
-  const onZoneKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      inputFileRef.current?.click();
-    }
-  };
-
   const handleImageDialogClose = async (image) => {
     setImageDialogOpen(false);
     if (image && image instanceof HTMLCanvasElement) {
@@ -597,10 +590,7 @@ const InputImage = ({
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           onPaste={onPaste}
-          onKeyDown={onZoneKeyDown}
           tabIndex={0}
-          role="button"
-          aria-label={!project.image ? texts.upload_image : texts.change_image}
           data-testid="edit-project-image-drop-zone"
           data-drag-over={isDragOver}
         >

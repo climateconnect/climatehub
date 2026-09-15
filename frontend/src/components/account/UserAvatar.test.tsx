@@ -147,8 +147,27 @@ describe("UserAvatar", () => {
     expect(await screen.findByTestId("upload-image-dialog")).toBeInTheDocument();
   });
 
-  it("is reachable by keyboard and Enter opens the file picker", () => {
+  it("pasting non-image clipboard content is a no-op", () => {
     renderUserAvatar();
+    const zone = screen.getByTestId("avatar-drop-zone");
+    fireEvent.paste(zone, {
+      clipboardData: { items: [{ type: "text/plain", getAsFile: () => null }] },
+    });
+    expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
+  });
+
+  it("is reachable by keyboard and Enter opens the file picker when no avatar is set", () => {
+    renderUserAvatar();
+    const zone = screen.getByTestId("avatar-drop-zone");
+    expect(zone).toHaveAttribute("tabindex", "0");
+    const input = document.getElementById("avatarPhoto") as HTMLInputElement;
+    const clickSpy = jest.spyOn(input, "click");
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it("stays reachable by keyboard and Enter opens the file picker even when an avatar is already set", () => {
+    renderUserAvatar({ imageUrl: "https://example.com/avatar.png" });
     const zone = screen.getByTestId("avatar-drop-zone");
     expect(zone).toHaveAttribute("tabindex", "0");
     const input = document.getElementById("avatarPhoto") as HTMLInputElement;

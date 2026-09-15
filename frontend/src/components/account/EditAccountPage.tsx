@@ -609,8 +609,9 @@ export default function EditAccountPage({
     handleBackgroundImageFile(file);
   };
 
-  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste } = useImageDrop({
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste, onKeyDown } = useImageDrop({
     onFileSelected: handleBackgroundImageFile,
+    onActivate: () => imageInputFileRef.current?.click(),
   });
 
   const classes = useStyles({ background_image: editedAccount.background_image, isDragOver });
@@ -673,13 +674,6 @@ export default function EditAccountPage({
     }
   };
 
-  const onBackgroundZoneKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      imageInputFileRef.current?.click();
-    }
-  };
-
   return (
     <Container maxWidth="lg" className={classes.noPadding}>
       <form onSubmit={handleFormSubmit}>
@@ -701,14 +695,14 @@ export default function EditAccountPage({
             editedAccount.background_image ? classes.backgroundImage : classes.backgroundColor
           }`}
           onClick={editedAccount.background_image ? () => void 0 : onClickBackgroundImage}
-          onKeyDown={editedAccount.background_image ? undefined : onBackgroundZoneKeyDown}
+          onKeyDown={onKeyDown}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           onPaste={onPaste}
           tabIndex={0}
-          role={editedAccount.background_image ? undefined : "button"}
-          aria-label={editedAccount.background_image ? undefined : texts.add_background_image}
+          role="button"
+          aria-label={texts.add_background_image}
           data-testid="background-drop-zone"
           data-drag-over={isDragOver}
         >

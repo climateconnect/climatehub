@@ -109,13 +109,6 @@ export default function AddPhotoSection({
     inputFileRef.current!.click();
   };
 
-  const onZoneKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      inputFileRef.current?.click();
-    }
-  };
-
   const handleAvatarDialogClose = async (image) => {
     handleSetOpen({ avatarDialog: false });
     if (image && image instanceof HTMLCanvasElement) {
@@ -163,10 +156,7 @@ export default function AddPhotoSection({
             onDragLeave={onDragLeave}
             onDrop={onDrop}
             onPaste={onPaste}
-            onKeyDown={onZoneKeyDown}
             tabIndex={0}
-            role="button"
-            aria-label={!projectData.image ? texts.upload_image : texts.change_image}
             data-testid="add-photo-drop-zone"
             data-drag-over={isDragOver}
           >
