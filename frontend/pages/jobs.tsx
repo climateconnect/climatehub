@@ -1,14 +1,14 @@
 import React, { useContext } from "react";
-import { DeAgbs } from "../devlink/DeAgbs";
-import { EnAgbs } from "../devlink/EnAgbs";
+import { DeJobs } from "../devlink/DeJobs";
+import { EnJobs } from "../devlink/EnJobs";
 import UserContext from "../src/components/context/UserContext";
 import WideLayout from "../src/components/layouts/WideLayout";
 
-export default function Terms() {
+export default function Jobs() {
   const { locale } = useContext(UserContext);
   return (
     <WideLayout isStaticPage noSpaceBottom>
-      {locale === "de" ? <DeAgbs /> : <EnAgbs />}
+      {locale === "de" ? <DeJobs /> : <EnJobs />}
     </WideLayout>
   );
 }
