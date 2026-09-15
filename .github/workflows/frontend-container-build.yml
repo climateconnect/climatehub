@@ -114,11 +114,8 @@ jobs:
       id-token: write
       contents: read
     env:
-      # TODO: Replace with actual Azure App Service names for the frontend
-      # container verification target.  These follow the backend convention
-      # (climateconnect-frontend-container / climate-connect-frontend RG).
       APP_NAME: climateconnect-frontend-container
-      RESOURCE_GROUP: climate-connect-frontend
+      RESOURCE_GROUP: climateconnect-frontend
       SLOT: slot2
       SLOT_URL: climateconnect-frontend-container-slot2.azurewebsites.net
     steps:
@@ -163,6 +160,18 @@ jobs:
           echo "GET https://${SLOT_URL}/"
           curl -sf --retry 5 --retry-delay 10 \
             "https://${SLOT_URL}/"
+
+      - name: Verify deployed version matches commit SHA
+        run: |
+          EXPECTED="${{ github.sha }}"
+          ACTUAL=$(curl -sf "https://${SLOT_URL}/api/version" | python3 -c "import sys,json; print(json.load(sys.stdin)['sha'])")
+          echo "Expected: $EXPECTED"
+          echo "Actual:   $ACTUAL"
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::Version mismatch — expected $EXPECTED but got $ACTUAL"
+            exit 1
+          fi
+          echo "SHA matches."
 
       - name: Print next steps
         run: |
