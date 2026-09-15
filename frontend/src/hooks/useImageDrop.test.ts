@@ -8,6 +8,17 @@ function makeDragEvent(files: File[]) {
   } as any;
 }
 
+function makeClipboardItem(type: string, file: File | null) {
+  return { type, getAsFile: () => file };
+}
+
+function makeClipboardEvent(items: { type: string; getAsFile: () => File | null }[]) {
+  return {
+    preventDefault: jest.fn(),
+    clipboardData: { items },
+  } as any;
+}
+
 describe("useImageDrop", () => {
   it("starts with isDragOver false", () => {
     const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn() }));
@@ -54,6 +65,47 @@ describe("useImageDrop", () => {
     const onFileSelected = jest.fn();
     const { result } = renderHook(() => useImageDrop({ onFileSelected }));
     act(() => result.current.onDrop(makeDragEvent([])));
+    expect(onFileSelected).not.toHaveBeenCalled();
+  });
+
+  it("calls onFileSelected with the pasted image", () => {
+    const onFileSelected = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected }));
+    const file = new File(["content"], "pasted.png", { type: "image/png" });
+    const event = makeClipboardEvent([makeClipboardItem("image/png", file)]);
+    act(() => result.current.onPaste(event));
+    expect(onFileSelected).toHaveBeenCalledWith(file);
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
+  it("uses the first image item when multiple clipboard items are pasted", () => {
+    const onFileSelected = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected }));
+    const textFile = null;
+    const imageFile = new File(["b"], "second.png", { type: "image/png" });
+    const event = makeClipboardEvent([
+      makeClipboardItem("text/plain", textFile),
+      makeClipboardItem("image/png", imageFile),
+    ]);
+    act(() => result.current.onPaste(event));
+    expect(onFileSelected).toHaveBeenCalledTimes(1);
+    expect(onFileSelected).toHaveBeenCalledWith(imageFile);
+  });
+
+  it("ignores non-image clipboard content", () => {
+    const onFileSelected = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected }));
+    const event = makeClipboardEvent([makeClipboardItem("text/plain", null)]);
+    act(() => result.current.onPaste(event));
+    expect(onFileSelected).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when the clipboard is empty", () => {
+    const onFileSelected = jest.fn();
+    const { result } = renderHook(() => useImageDrop({ onFileSelected }));
+    const event = makeClipboardEvent([]);
+    act(() => result.current.onPaste(event));
     expect(onFileSelected).not.toHaveBeenCalled();
   });
 });

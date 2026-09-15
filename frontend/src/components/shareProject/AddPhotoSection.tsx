@@ -28,8 +28,8 @@ const useStyles = makeStyles<Theme, { image?: string; isDragOver?: boolean }>((t
       paddingBottom: "56.25%",
       backgroundImage: `${props.image ? `url(${props.image})` : null}`,
       backgroundSize: "contain",
-      outline: props.isDragOver ? "2px solid #1976d2" : "none",
-      outlineOffset: props.isDragOver ? "-4px" : "0",
+      outline: props.isDragOver ? "2px solid #1976d2" : undefined,
+      outlineOffset: props.isDragOver ? "-4px" : undefined,
       backgroundColor: props.isDragOver ? "rgba(25, 118, 210, 0.08)" : "transparent",
     }),
     photoIcon: {
@@ -98,7 +98,7 @@ export default function AddPhotoSection({
     handleImageFile(file);
   };
 
-  const { isDragOver, onDragOver, onDragLeave, onDrop } = useImageDrop({
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste } = useImageDrop({
     onFileSelected: handleImageFile,
   });
 
@@ -107,6 +107,13 @@ export default function AddPhotoSection({
   const onUploadImageClick = (event) => {
     event.preventDefault();
     inputFileRef.current!.click();
+  };
+
+  const onZoneKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      inputFileRef.current?.click();
+    }
   };
 
   const handleAvatarDialogClose = async (image) => {
@@ -155,6 +162,11 @@ export default function AddPhotoSection({
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
+            onPaste={onPaste}
+            onKeyDown={onZoneKeyDown}
+            tabIndex={0}
+            role="button"
+            aria-label={!projectData.image ? texts.upload_image : texts.change_image}
             data-testid="add-photo-drop-zone"
             data-drag-over={isDragOver}
           >

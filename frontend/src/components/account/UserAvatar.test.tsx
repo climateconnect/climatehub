@@ -48,6 +48,12 @@ function dropFile(zone: HTMLElement, file: File | null) {
   fireEvent.drop(zone, { dataTransfer: { files: file ? [file] : [] } });
 }
 
+function pasteFile(zone: HTMLElement, file: File | null, type = file?.type ?? "image/png") {
+  fireEvent.paste(zone, {
+    clipboardData: { items: file ? [{ type, getAsFile: () => file }] : [] },
+  });
+}
+
 beforeEach(() => {
   HTMLCanvasElement.prototype.toBlob = jest.fn(function (callback: (_blob: Blob | null) => void) {
     callback(new Blob(["mock"], { type: "image/jpeg" }));
@@ -129,5 +135,25 @@ describe("UserAvatar", () => {
     expect(zone).toHaveAttribute("data-drag-over", "true");
     fireEvent.dragLeave(zone);
     expect(zone).toHaveAttribute("data-drag-over", "false");
+  });
+
+  // AC8: clipboard paste opens the same crop dialog
+
+  it("pasting a valid image while the zone is focused opens the crop dialog", async () => {
+    renderUserAvatar();
+    const zone = screen.getByTestId("avatar-drop-zone");
+    const file = new File(["data"], "pasted.png", { type: "image/png" });
+    pasteFile(zone, file);
+    expect(await screen.findByTestId("upload-image-dialog")).toBeInTheDocument();
+  });
+
+  it("is reachable by keyboard and Enter opens the file picker", () => {
+    renderUserAvatar();
+    const zone = screen.getByTestId("avatar-drop-zone");
+    expect(zone).toHaveAttribute("tabindex", "0");
+    const input = document.getElementById("avatarPhoto") as HTMLInputElement;
+    const clickSpy = jest.spyOn(input, "click");
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(clickSpy).toHaveBeenCalled();
   });
 });

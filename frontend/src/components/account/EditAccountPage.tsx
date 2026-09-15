@@ -47,8 +47,8 @@ const useStyles = makeStyles<Theme, { background_image?: string; isDragOver?: bo
       height: 305,
       position: "relative",
       cursor: (props) => (!props.background_image ? "pointer" : "default"),
-      outline: (props) => (props.isDragOver ? "3px solid #1976d2" : "none"),
-      outlineOffset: (props) => (props.isDragOver ? "-4px" : "0"),
+      outline: (props) => (props.isDragOver ? "3px solid #1976d2" : undefined),
+      outlineOffset: (props) => (props.isDragOver ? "-4px" : undefined),
       backgroundColor: (props) => (props.isDragOver ? "rgba(25, 118, 210, 0.10)" : "transparent"),
     },
     backgroundImage: (props) => ({
@@ -609,7 +609,7 @@ export default function EditAccountPage({
     handleBackgroundImageFile(file);
   };
 
-  const { isDragOver, onDragOver, onDragLeave, onDrop } = useImageDrop({
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste } = useImageDrop({
     onFileSelected: handleBackgroundImageFile,
   });
 
@@ -673,6 +673,13 @@ export default function EditAccountPage({
     }
   };
 
+  const onBackgroundZoneKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      imageInputFileRef.current?.click();
+    }
+  };
+
   return (
     <Container maxWidth="lg" className={classes.noPadding}>
       <form onSubmit={handleFormSubmit}>
@@ -694,9 +701,14 @@ export default function EditAccountPage({
             editedAccount.background_image ? classes.backgroundImage : classes.backgroundColor
           }`}
           onClick={editedAccount.background_image ? () => void 0 : onClickBackgroundImage}
+          onKeyDown={editedAccount.background_image ? undefined : onBackgroundZoneKeyDown}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
+          onPaste={onPaste}
+          tabIndex={0}
+          role={editedAccount.background_image ? undefined : "button"}
+          aria-label={editedAccount.background_image ? undefined : texts.add_background_image}
           data-testid="background-drop-zone"
           data-drag-over={isDragOver}
         >

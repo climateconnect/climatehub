@@ -72,6 +72,12 @@ function dropFile(zone: HTMLElement, file: File | null) {
   fireEvent.drop(zone, { dataTransfer: { files: file ? [file] : [] } });
 }
 
+function pasteFile(zone: HTMLElement, file: File | null, type = file?.type ?? "image/png") {
+  fireEvent.paste(zone, {
+    clipboardData: { items: file ? [{ type, getAsFile: () => file }] : [] },
+  });
+}
+
 beforeEach(() => {
   HTMLCanvasElement.prototype.toBlob = jest.fn(function (callback: (_blob: Blob | null) => void) {
     callback(new Blob(["mock"], { type: "image/jpeg" }));
@@ -144,5 +150,38 @@ describe("EditAccountPage background image", () => {
     expect(zone).toHaveAttribute("data-drag-over", "true");
     fireEvent.dragLeave(zone);
     expect(zone).toHaveAttribute("data-drag-over", "false");
+  });
+
+  // AC8: clipboard paste opens the same crop dialog
+
+  it("pasting a valid image while the zone is focused opens the crop dialog", async () => {
+    renderEditAccountPage();
+    const zone = screen.getByTestId("background-drop-zone");
+    const file = new File(["data"], "pasted.png", { type: "image/png" });
+    pasteFile(zone, file);
+    expect(await screen.findByTestId("upload-image-dialog")).toBeInTheDocument();
+  });
+
+  it("is reachable by keyboard and Enter opens the file picker", () => {
+    renderEditAccountPage();
+    const zone = screen.getByTestId("background-drop-zone");
+    expect(zone).toHaveAttribute("tabindex", "0");
+    const input = document.getElementById("backgroundPhoto") as HTMLInputElement;
+    const clickSpy = jest.spyOn(input, "click");
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  // Decision: paste is scoped to the focused zone, not a global window listener — this page
+  // renders both the background zone and (via UserAvatar) the avatar zone at once, so a global
+  // listener would have opened both dialogs for a single paste.
+  it("pasting into the background zone opens only the background dialog, not the avatar's", async () => {
+    renderEditAccountPage();
+    const zone = screen.getByTestId("background-drop-zone");
+    expect(screen.getByTestId("avatar-drop-zone")).toBeInTheDocument();
+    const file = new File(["data"], "pasted.png", { type: "image/png" });
+    pasteFile(zone, file);
+    await screen.findByTestId("upload-image-dialog");
+    expect(screen.getAllByTestId("upload-image-dialog")).toHaveLength(1);
   });
 });
