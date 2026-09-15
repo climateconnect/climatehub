@@ -36,156 +36,163 @@ import SelectField from "../general/SelectField";
 import RequiredFieldsNotice from "../general/RequiredFieldsNotice";
 import { AvatarImage, UserAvatar } from "./UserAvatar";
 import CloseIcon from "@mui/icons-material/Close";
+import useImageDrop from "../../hooks/useImageDrop";
 const DEFAULT_BACKGROUND_IMAGE = "/images/background1.jpg";
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-const useStyles = makeStyles<Theme, { background_image?: string }>((theme) => ({
-  backgroundContainer: {
-    width: "100%",
-    height: 305,
-    position: "relative",
-    cursor: (props) => (!props.background_image ? "pointer" : "default"),
-  },
-  backgroundImage: (props) => ({
-    backgroundImage: `url(${props.background_image})`,
-    backgroundPosition: "center",
-    backgroundSize: "cover",
-  }),
-  backgroundColor: {
-    backgroundColor: "#e0e0e0",
-  },
-  backgroundImageButton: {
-    fontSize: "2.5rem",
-    cursor: "pointer",
-  },
-  backgroundImageButtonContainer: {
-    position: "absolute",
-    left: "calc(50% - 20px)",
-    top: "calc(50% - 20px)",
-  },
-  avatarWithInfo: {
-    textAlign: "center",
-    width: theme.spacing(40),
-    margin: "0 auto",
-    [theme.breakpoints.up("md")]: {
-      margin: 0,
-      display: "inline-block",
-      width: "auto",
+const useStyles = makeStyles<Theme, { background_image?: string; isDragOver?: boolean }>(
+  (theme) => ({
+    backgroundContainer: {
+      width: "100%",
+      height: 305,
+      position: "relative",
+      cursor: (props) => (!props.background_image ? "pointer" : "default"),
+      outline: (props) => (props.isDragOver ? "3px solid #1976d2" : "none"),
+      outlineOffset: (props) => (props.isDragOver ? "-4px" : "0"),
+      backgroundColor: (props) => (props.isDragOver ? "rgba(25, 118, 210, 0.10)" : "transparent"),
     },
-  },
-  avatarContainer: {
-    marginTop: theme.spacing(-11),
-    marginBottom: theme.spacing(2),
-    display: "flex",
-    justifyContent: "center",
-  },
-  accountInfo: {
-    padding: 0,
-    marginTop: theme.spacing(1),
-    [theme.breakpoints.up("md")]: {
-      paddingRight: theme.spacing(17),
+    backgroundImage: (props) => ({
+      backgroundImage: `url(${props.background_image})`,
+      backgroundPosition: "center",
+      backgroundSize: "cover",
+    }),
+    backgroundColor: {
+      backgroundColor: "#e0e0e0",
     },
-  },
-  infoElement: {
-    marginBottom: theme.spacing(2),
-    marginTop: theme.spacing(1),
-  },
-  marginBottom: {
-    marginBottom: theme.spacing(1),
-  },
-  name: {
-    fontWeight: "bold",
-    padding: theme.spacing(1),
-    paddingLeft: 0,
-    paddingRight: 0,
-  },
-  subtitle: {
-    color: `${theme.palette.secondary.main}`,
-    fontWeight: "bold",
-  },
-  noPadding: {
-    padding: 0,
-  },
-  infoContainer: {
-    [theme.breakpoints.up("md")]: {
-      display: "flex",
+    backgroundImageButton: {
+      fontSize: "2.5rem",
+      cursor: "pointer",
     },
-    position: "relative",
-  },
-  marginTop: {
-    marginTop: theme.spacing(1),
-  },
-  chip: {
-    margin: theme.spacing(0.5),
-  },
-  actionButton: {
-    position: "absolute",
-    right: theme.spacing(1),
-    width: theme.spacing(18),
-    [theme.breakpoints.down("md")]: {
-      width: theme.spacing(14),
-      fontSize: 10,
+    backgroundImageButtonContainer: {
+      position: "absolute",
+      left: "calc(50% - 20px)",
+      top: "calc(50% - 20px)",
+    },
+    avatarWithInfo: {
       textAlign: "center",
+      width: theme.spacing(40),
+      margin: "0 auto",
+      [theme.breakpoints.up("md")]: {
+        margin: 0,
+        display: "inline-block",
+        width: "auto",
+      },
     },
-  },
-  saveButton: {
-    top: theme.spacing(11.5),
-    [theme.breakpoints.up("md")]: {
-      top: theme.spacing(1),
+    avatarContainer: {
+      marginTop: theme.spacing(-11),
+      marginBottom: theme.spacing(2),
+      display: "flex",
+      justifyContent: "center",
     },
-  },
-  cancelButton: {
-    top: theme.spacing(16.5),
-    [theme.breakpoints.up("md")]: {
-      top: theme.spacing(6.5),
+    accountInfo: {
+      padding: 0,
+      marginTop: theme.spacing(1),
+      [theme.breakpoints.up("md")]: {
+        paddingRight: theme.spacing(17),
+      },
     },
-  },
-  chipArray: {
-    display: "flex",
-    flexWrap: "wrap",
-    padding: theme.spacing(0.5),
-  },
-  selectOption: {
-    width: 250,
-  },
-  dialogWidth: {
-    width: 400,
-  },
-  alert: {
-    textAlign: "center",
-    maxWidth: 1280,
-    margin: "0 auto",
-  },
-  cursorPointer: {
-    cursor: "pointer",
-  },
-  helpIcon: {
-    fontSize: 20,
-    marginTop: -2,
-  },
-  deleteMessage: {
-    display: "flex",
-    alignItems: "center",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginTop: theme.spacing(10),
-  },
-  spaceStrings: {
-    width: 4,
-  },
-  checkTranslationsButtonAndManageMembersButtonContainer: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: theme.spacing(5),
-  },
-  detailledDescriptionContainer: {
-    marginTop: theme.spacing(5),
-  },
-  requiredFieldsNotice: {
-    display: "block",
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(3),
-  },
-}));
+    infoElement: {
+      marginBottom: theme.spacing(2),
+      marginTop: theme.spacing(1),
+    },
+    marginBottom: {
+      marginBottom: theme.spacing(1),
+    },
+    name: {
+      fontWeight: "bold",
+      padding: theme.spacing(1),
+      paddingLeft: 0,
+      paddingRight: 0,
+    },
+    subtitle: {
+      color: `${theme.palette.secondary.main}`,
+      fontWeight: "bold",
+    },
+    noPadding: {
+      padding: 0,
+    },
+    infoContainer: {
+      [theme.breakpoints.up("md")]: {
+        display: "flex",
+      },
+      position: "relative",
+    },
+    marginTop: {
+      marginTop: theme.spacing(1),
+    },
+    chip: {
+      margin: theme.spacing(0.5),
+    },
+    actionButton: {
+      position: "absolute",
+      right: theme.spacing(1),
+      width: theme.spacing(18),
+      [theme.breakpoints.down("md")]: {
+        width: theme.spacing(14),
+        fontSize: 10,
+        textAlign: "center",
+      },
+    },
+    saveButton: {
+      top: theme.spacing(11.5),
+      [theme.breakpoints.up("md")]: {
+        top: theme.spacing(1),
+      },
+    },
+    cancelButton: {
+      top: theme.spacing(16.5),
+      [theme.breakpoints.up("md")]: {
+        top: theme.spacing(6.5),
+      },
+    },
+    chipArray: {
+      display: "flex",
+      flexWrap: "wrap",
+      padding: theme.spacing(0.5),
+    },
+    selectOption: {
+      width: 250,
+    },
+    dialogWidth: {
+      width: 400,
+    },
+    alert: {
+      textAlign: "center",
+      maxWidth: 1280,
+      margin: "0 auto",
+    },
+    cursorPointer: {
+      cursor: "pointer",
+    },
+    helpIcon: {
+      fontSize: 20,
+      marginTop: -2,
+    },
+    deleteMessage: {
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      marginTop: theme.spacing(10),
+    },
+    spaceStrings: {
+      width: 4,
+    },
+    checkTranslationsButtonAndManageMembersButtonContainer: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: theme.spacing(5),
+    },
+    detailledDescriptionContainer: {
+      marginTop: theme.spacing(5),
+    },
+    requiredFieldsNotice: {
+      display: "block",
+      marginTop: theme.spacing(1),
+      marginBottom: theme.spacing(3),
+    },
+  })
+);
 
 //Generic page for editing your personal profile or organization profile
 export default function EditAccountPage({
@@ -219,7 +226,6 @@ export default function EditAccountPage({
   const closeIconRef = useRef<SVGSVGElement | null>(null);
   const [editedAccount, setEditedAccount] = useState({ ...account });
   const isOrganization = type === "organization";
-  const classes = useStyles(editedAccount);
   const [tempImages, setTempImages] = useState({
     background_image: editedAccount.background_image
       ? editedAccount.background_image
@@ -573,9 +579,10 @@ export default function EditAccountPage({
     });
   };
   const [isLoading, setIsLoading] = useState(false);
-  const onBackgroundChange = async (backgroundEvent) => {
-    const file = backgroundEvent.target.files[0];
-    if (!file) {
+
+  const handleBackgroundImageFile = async (file: File) => {
+    if (!file || !file.type || !ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      alert(texts.please_upload_either_a_png_or_a_jpg_file);
       return;
     }
 
@@ -595,6 +602,18 @@ export default function EditAccountPage({
       setIsLoading(false);
     }
   };
+
+  const onBackgroundChange = async (backgroundEvent) => {
+    const file = backgroundEvent.target.files[0];
+    if (!file) return;
+    handleBackgroundImageFile(file);
+  };
+
+  const { isDragOver, onDragOver, onDragLeave, onDrop } = useImageDrop({
+    onFileSelected: handleBackgroundImageFile,
+  });
+
+  const classes = useStyles({ background_image: editedAccount.background_image, isDragOver });
 
   const handleTypeDelete = (typeToDelete) => {
     const tempEditedAccount = { ...editedAccount };
@@ -675,6 +694,11 @@ export default function EditAccountPage({
             editedAccount.background_image ? classes.backgroundImage : classes.backgroundColor
           }`}
           onClick={editedAccount.background_image ? () => void 0 : onClickBackgroundImage}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          data-testid="background-drop-zone"
+          data-drag-over={isDragOver}
         >
           <div className={classes.backgroundImageButtonContainer}>
             <AddAPhotoIcon
