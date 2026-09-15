@@ -1,4 +1,4 @@
-import { getIsUserFollowing } from "./organizationOperations";
+import { getIsUserFollowing, getUserOrganizations } from "./organizationOperations";
 import { apiRequest } from "./apiOperations";
 
 jest.mock("./apiOperations", () => ({
@@ -7,6 +7,39 @@ jest.mock("./apiOperations", () => ({
 
 const mockedApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
 
+describe("getUserOrganizations", () => {
+  beforeEach(() => {
+    mockedApiRequest.mockReset();
+  });
+
+  it("returns [] without calling the API when there is no auth token", async () => {
+    await expect(getUserOrganizations(undefined, "en")).resolves.toEqual([]);
+    expect(mockedApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns [] (not null) when the user has no organizations", async () => {
+    mockedApiRequest.mockResolvedValue({ data: [] } as any);
+
+    await expect(getUserOrganizations("token", "en")).resolves.toEqual([]);
+  });
+
+  it("returns [] (not null) when the request fails", async () => {
+    mockedApiRequest.mockRejectedValue(new Error("network error"));
+
+    await expect(getUserOrganizations("token", "en")).resolves.toEqual([]);
+  });
+
+  it("returns the mapped organizations when the user has memberships", async () => {
+    mockedApiRequest.mockResolvedValue({
+      data: [{ organization: { url_slug: "org-a" } }, { organization: { url_slug: "org-b" } }],
+    } as any);
+
+    await expect(getUserOrganizations("token", "en")).resolves.toEqual([
+      { url_slug: "org-a" },
+      { url_slug: "org-b" },
+    ]);
+  });
+});
 describe("getIsUserFollowing", () => {
   beforeEach(() => {
     mockedApiRequest.mockReset();

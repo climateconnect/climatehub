@@ -6,6 +6,7 @@ import ROLE_TYPES from "../../public/data/role_types";
 import { apiRequest, getLocalePrefix, sendToLogin } from "../../public/lib/apiOperations";
 import { getProjectTypeOptions, getSectorOptions } from "../../public/lib/getOptions";
 import { getImageUrl } from "../../public/lib/imageOperations";
+import { getUserOrganizations } from "../../public/lib/organizationOperations";
 import { nullifyUndefinedValues } from "../../public/lib/profileOperations";
 import getTexts from "../../public/texts/texts";
 import UserContext from "../../src/components/context/UserContext";
@@ -238,25 +239,6 @@ const parseProject = (project) => ({
   is_personal_project: !project.project_parents[0].parent_organization,
   sectors: project.sectors.map((item) => ({ ...item.sector, order: item.order })),
 });
-
-const getUserOrganizations = async (token, locale) => {
-  try {
-    const resp = await apiRequest({
-      method: "get",
-      url: "/api/my_organizations/",
-      token: token,
-      locale: locale,
-    });
-    if (resp.data.length === 0) return null;
-    else {
-      return resp.data.map((o) => o.organization);
-    }
-  } catch (err: any) {
-    console.log(err);
-    if (err.response && err.response.data) console.log("Error: " + err.response.data.detail);
-    return null;
-  }
-};
 
 async function getMembersByProject(projectUrl, token, locale) {
   try {

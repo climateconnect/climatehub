@@ -1,4 +1,4 @@
-# Fix crash creating/editing a project when the user has no organizations
+ # Fix crash creating/editing a project when the user has no organizations
 
 **Status**: DRAFT
 **Type**: Frontend — bugfix

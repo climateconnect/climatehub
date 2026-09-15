@@ -40,8 +40,7 @@ export function parseOrganization(organization, editMode: boolean = false) {
 }
 
 export async function getUserOrganizations(token, locale) {
-  //short circuit if the user is not logged in
-  if (!token) return null;
+  if (!token) return [];
   try {
     const resp = await apiRequest({
       method: "get",
@@ -49,14 +48,14 @@ export async function getUserOrganizations(token, locale) {
       token: token,
       locale: locale,
     });
-    if (resp.data.length === 0) return null;
+    if (resp.data.length === 0) return [];
     else {
       return resp.data.map((o) => o.organization);
     }
   } catch (err: any) {
     console.log(err);
     if (err.response && err.response.data) console.log("Error: " + err.response.data.detail);
-    return null;
+    return [];
   }
 }
 
