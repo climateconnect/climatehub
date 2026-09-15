@@ -113,6 +113,11 @@ module.exports = withBundleAnalyzer({
         destination: "/hubs/prio1/browse",
         permanent: false,
       },
+      {
+        source: "/join",
+        destination: "/jobs",
+        permanent: true,
+      },
     ];
 
     // Conditionally add Wasseraktionswochen redirect

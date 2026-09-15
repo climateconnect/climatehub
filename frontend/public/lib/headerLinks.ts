@@ -298,8 +298,8 @@ const defaultStaticLinks = (texts, hubUrl) => [
     only_show_in_languages: ["de"],
   },
   {
-    href: "/join",
-    text: texts.join,
+    href: "/jobs",
+    text: texts.jobs,
     parent_item: "/about",
   },
   {

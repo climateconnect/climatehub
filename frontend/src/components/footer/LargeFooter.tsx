@@ -214,12 +214,7 @@ const SiteLinks = ({ texts, locale }) => {
               <Typography className={classes.li}>{texts.association}</Typography>
             </AppLink>
           )}
-          <AppLink
-            href={locale === "de" ? "https://climate-connect.workwise.io/jobsuche" : "/join"}
-            leaveHub
-            underline="none"
-            className={classes.footerLink}
-          >
+          <AppLink href={"/jobs"} leaveHub underline="none" className={classes.footerLink}>
             <Typography className={classes.li}>{texts.jobs}</Typography>
           </AppLink>
         </div>

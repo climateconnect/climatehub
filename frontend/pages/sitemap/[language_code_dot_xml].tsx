@@ -12,6 +12,7 @@ const NOT_LISTED = [
   "/editprofile",
   "/inbox",
   "/createorganization",
+  "/join",
   "/resend_verification_email",
   "/resetpassword",
   "/settings",
@@ -52,6 +53,10 @@ const STATIC_PAGE_PROPS = {
   "/faq": {
     priority: 0.9,
     changefreq: "daily",
+  },
+  "/jobs": {
+    priority: 0.9,
+    changefreq: "weekly",
   },
   "/imprint": {
     priority: 0.5,
