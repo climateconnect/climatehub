@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import CancelGuestRegistrationModal, { RegistrationInfo } from "./CancelGuestRegistrationModal";
@@ -69,15 +70,17 @@ function renderModal({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContextValue as any}>
-        <CancelGuestRegistrationModal
-          open={open}
-          onClose={onClose}
-          registration={registration}
-          project={project}
-          onCancelled={onCancelled}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContextValue as any}>
+          <CancelGuestRegistrationModal
+            open={open}
+            onClose={onClose}
+            registration={registration}
+            project={project}
+            onCancelled={onCancelled}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
@@ -239,15 +242,17 @@ describe("CancelGuestRegistrationModal", () => {
 
       rerender(
         <ThemeProvider theme={theme}>
-          <UserContext.Provider value={defaultContextValue as any}>
-            <CancelGuestRegistrationModal
-              open={true}
-              onClose={jest.fn()}
-              registration={makeRegistration()}
-              project={makeProject()}
-              onCancelled={jest.fn()}
-            />
-          </UserContext.Provider>
+          <StylesThemeProvider theme={theme}>
+            <UserContext.Provider value={defaultContextValue as any}>
+              <CancelGuestRegistrationModal
+                open={true}
+                onClose={jest.fn()}
+                registration={makeRegistration()}
+                project={makeProject()}
+                onCancelled={jest.fn()}
+              />
+            </UserContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
 

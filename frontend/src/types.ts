@@ -188,7 +188,7 @@ export type Organization = {
 
 export type CcLocale = "en" | "de";
 
-declare module "@mui/material/styles/createPalette" {
+declare module "@mui/material/styles" {
   // augment theme type with climateconnect custom properties
   // eslint-disable-next-line no-unused-vars
   interface Palette {

@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import ProjectAddToCalendarButton from "./ProjectAddToCalendarButton";
@@ -42,9 +43,11 @@ function renderButton({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={{ ...defaultContextValue, ...contextOverrides } as any}>
-        <ProjectAddToCalendarButton project={project} isUserRegistered={isUserRegistered} />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={{ ...defaultContextValue, ...contextOverrides } as any}>
+          <ProjectAddToCalendarButton project={project} isUserRegistered={isUserRegistered} />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

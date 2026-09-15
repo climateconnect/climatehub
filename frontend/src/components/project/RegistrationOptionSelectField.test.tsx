@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import RegistrationOptionSelectField from "./RegistrationOptionSelectField";
 import { RegistrationField } from "../../types";
@@ -40,13 +41,15 @@ function renderField({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <RegistrationOptionSelectField
-        field={field}
-        value={value}
-        onChange={onChange}
-        error={error}
-        texts={defaultTexts}
-      />
+      <StylesThemeProvider theme={theme}>
+        <RegistrationOptionSelectField
+          field={field}
+          value={value}
+          onChange={onChange}
+          error={error}
+          texts={defaultTexts}
+        />
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

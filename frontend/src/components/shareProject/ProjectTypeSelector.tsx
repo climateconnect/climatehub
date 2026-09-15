@@ -1,5 +1,5 @@
 import { Card, Radio, RadioGroup, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import makeStyles from "@mui/styles/makeStyles";
 import React from "react";
 
