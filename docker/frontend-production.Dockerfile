@@ -83,8 +83,11 @@ ENV SOCKET_URL=$SOCKET_URL
 ENV WASSERAKTIONSWOCHEN_FEATURE=$WASSERAKTIONSWOCHEN_FEATURE
 ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 
-# 1. Sync Webflow devlink components (needs WEBFLOW_API_TOKEN + WEBFLOW_SITE_ID)
-RUN yarn devlink-sync
+# 1. Sync Webflow devlink components.
+#    The Webflow CLI needs --site and --api-token flags; it does not pick
+#    up WEBFLOW_SITE_ID / WEBFLOW_API_TOKEN from the environment.
+RUN npx webflow devlink export --site "$WEBFLOW_SITE_ID" --api-token "$WEBFLOW_API_TOKEN" \
+    && node scripts/generate-devlink-registry.js
 
 # 2. Build the Next.js application (client bundle picks up env vars above)
 RUN yarn build
