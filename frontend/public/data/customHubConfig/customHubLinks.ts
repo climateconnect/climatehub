@@ -33,7 +33,7 @@ export const getSharedLinks = (
     ...COMMON_LINKS.NOTIFICATIONS,
     text: texts.inbox,
   },
-  ...COMMON_LINKS.AUTH_LINKS(pathToRedirect, texts, `hub=${options.hubKey}`),
+  ...COMMON_LINKS.AUTH_LINKS(pathToRedirect, texts, options.hubKey),
 ];
 
 export type StaticLinkConfig = {
