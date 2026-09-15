@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import RegistrationInventoryField from "./RegistrationInventoryField";
 import { RegistrationField } from "../../types";
@@ -69,15 +70,17 @@ function renderField({
 } = {}) {
   const result = render(
     <ThemeProvider theme={theme}>
-      <RegistrationInventoryField
-        field={field}
-        optionId={optionId}
-        quantity={quantity}
-        onOptionChange={onOptionChange}
-        onQuantityChange={onQuantityChange}
-        error={error}
-        texts={defaultTexts}
-      />
+      <StylesThemeProvider theme={theme}>
+        <RegistrationInventoryField
+          field={field}
+          optionId={optionId}
+          quantity={quantity}
+          onOptionChange={onOptionChange}
+          onQuantityChange={onQuantityChange}
+          error={error}
+          texts={defaultTexts}
+        />
+      </StylesThemeProvider>
     </ThemeProvider>
   );
   return { ...result, select: result.container.querySelector("select") as HTMLSelectElement };

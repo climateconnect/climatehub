@@ -8,7 +8,31 @@ import {
   CcEnvironments,
 } from "./public/lib/environmentOperations";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const url = request.nextUrl;
+
+  const icsMatch = url.pathname.match(/^\/hubs\/([^/]+)(?:\/([^/]+))?\/events\/feed\.ics$/);
+  if (icsMatch && !url.searchParams.has("token")) {
+    const hubSlug = icsMatch[2] || icsMatch[1];
+    const today = new Date().toISOString().split("T")[0];
+
+    try {
+      const apiUrl = process.env.API_URL || "";
+      const tokenRes = await fetch(`${apiUrl}/api/event-feed-token/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hub: hubSlug, date: today }),
+      });
+
+      if (tokenRes.ok) {
+        const { url: feedUrl } = await tokenRes.json();
+        return NextResponse.redirect(feedUrl, 301);
+      }
+    } catch {
+      // fall through — rewrite will proxy to Django which returns 403
+    }
+  }
+
   const host = request.headers.get("host");
   const environment = detectEnvironmentFromHost(host);
 

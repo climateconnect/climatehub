@@ -11,6 +11,7 @@
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import "@testing-library/jest-dom";
 
 import theme from "../../themes/theme";
@@ -49,10 +50,12 @@ const DIRECT_NOMINATIM_DEBOUNCE_MS = 1000;
 const renderSearchBar = () => {
   const { container } = render(
     <ThemeProvider theme={theme}>
-      {/* The component reads locale and hubUrl from UserContext, whose default is null. */}
-      <UserContext.Provider value={{ locale: "en", hubUrl: undefined } as any}>
-        <LocationSearchBar label="Location" />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        {/* The component reads locale and hubUrl from UserContext, whose default is null. */}
+        <UserContext.Provider value={{ locale: "en", hubUrl: undefined } as any}>
+          <LocationSearchBar label="Location" />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
   return container.querySelector("input") as HTMLInputElement;

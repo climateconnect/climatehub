@@ -12,6 +12,7 @@ beforeAll(() => {
   (global as any).IntersectionObserver = IntersectionObserverStub;
 });
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import { HubContext } from "../context/HubContext";
@@ -76,11 +77,13 @@ function renderList(props: Partial<React.ComponentProps<typeof EventCalendarEven
   };
   return render(
     <ThemeProvider theme={theme}>
-      <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
-        <UserContext.Provider value={BASE_CONTEXT as any}>
-          <EventCalendarEventList {...defaultProps} />
-        </UserContext.Provider>
-      </HubContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
+          <UserContext.Provider value={BASE_CONTEXT as any}>
+            <EventCalendarEventList {...defaultProps} />
+          </UserContext.Provider>
+        </HubContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
@@ -194,18 +197,20 @@ describe("EventCalendarEventList", () => {
 
       rerender(
         <ThemeProvider theme={theme}>
-          <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
-            <UserContext.Provider value={BASE_CONTEXT as any}>
-              <EventCalendarEventList
-                initialEvents={[]}
-                initialHasMore={false}
-                search="wind"
-                sectors={[]}
-                selectedDay={dayjs()}
-                hubUrl=""
-              />
-            </UserContext.Provider>
-          </HubContext.Provider>
+          <StylesThemeProvider theme={theme}>
+            <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
+              <UserContext.Provider value={BASE_CONTEXT as any}>
+                <EventCalendarEventList
+                  initialEvents={[]}
+                  initialHasMore={false}
+                  search="wind"
+                  sectors={[]}
+                  selectedDay={dayjs()}
+                  hubUrl=""
+                />
+              </UserContext.Provider>
+            </HubContext.Provider>
+          </StylesThemeProvider>
         </ThemeProvider>
       );
 

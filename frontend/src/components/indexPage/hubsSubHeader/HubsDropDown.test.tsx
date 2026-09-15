@@ -2,6 +2,7 @@ import React from "react";
 import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 
 const testTheme = createTheme({
   palette: {
@@ -61,19 +62,21 @@ function setPathname(pathname: string) {
 function renderDropdown(props: any) {
   return render(
     <ThemeProvider theme={testTheme}>
-      <UserContext.Provider value={props.userContextValue ?? userContextValue}>
-        <HubsDropDown
-          open
-          hubs={hubs}
-          label="Alle Hubs"
-          isNarrowScreen={false}
-          onToggleOpen={() => undefined}
-          onOpen={() => undefined}
-          onClose={() => undefined}
-          addLocationHubExplainerLink
-          {...props}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={testTheme}>
+        <UserContext.Provider value={props.userContextValue ?? userContextValue}>
+          <HubsDropDown
+            open
+            hubs={hubs}
+            label="Alle Hubs"
+            isNarrowScreen={false}
+            onToggleOpen={() => undefined}
+            onOpen={() => undefined}
+            onClose={() => undefined}
+            addLocationHubExplainerLink
+            {...props}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

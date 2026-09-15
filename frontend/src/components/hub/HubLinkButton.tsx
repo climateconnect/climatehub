@@ -38,6 +38,7 @@ const useStyles = makeStyles<Theme, StyleProps>((theme) => {
       backgroundColor: "#EFF5F2",
       paddingTop: theme.spacing(3),
       paddingBottom: theme.spacing(1),
+      marginBottom: 0,
       borderRadius: theme.shape.borderRadius,
     },
     iconContainer: {
