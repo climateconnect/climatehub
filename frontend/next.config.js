@@ -109,6 +109,11 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/upcycling",
+        destination: "https://climatehub.org/de/projects/aktionstag-upcycling?hub=kassel",
+        permanent: true,
+      },
+      {
         source: "/hubs/prio1",
         destination: "/hubs/prio1/browse",
         permanent: false,
