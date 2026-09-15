@@ -30,6 +30,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: 'slot2'
     outputs:
       sha-tag: ${{ steps.sha.outputs.tag }}
     steps:
