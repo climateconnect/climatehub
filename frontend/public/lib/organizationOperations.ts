@@ -89,7 +89,7 @@ export async function getMembersByOrganization(organizationUrl, token, locale) {
     else {
       return parseOrganizationMembers(resp.data.results);
     }
-  } catch (err) {
+  } catch (err: any) {
     if (err.response && err.response.data) console.log("Error: " + err.response.data.detail);
     return null;
   }
