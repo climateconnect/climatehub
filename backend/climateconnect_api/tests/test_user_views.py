@@ -454,13 +454,26 @@ class MemberLocationHubFilterTest(TestCase):
     def test_filter_members_without_hub_parameter(self):
         """
         Test that without hub parameter, all verified members are returned.
-        Should return all 10 members.
+        Should return all 10 members created in setUp.
         """
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.json().get("results", [])
-        self.assertEqual(len(results), 10)
+        slugs = self._get_url_slugs(response)
+        expected = [
+            "member-erlangen-location",
+            "member-bubenreuth-location",
+            "member-spardorf-location",
+            "member-erlangen-address",
+            "member-bubenreuth-address",
+            "member-spardorf-address",
+            "member-nuremberg-location",
+            "member-nuremberg-address",
+            "member-paris-location",
+            "member-paris-address",
+        ]
+        for slug in expected:
+            self.assertIn(slug, slugs)
 
     @tag("location_hub", "members")
     def test_address_locations_within_hub_geometry(self):
