@@ -300,7 +300,7 @@ export default function Header({
   const texts = getTexts({ page: "navigation", locale: locale });
   const [anchorEl, setAnchorEl] = useState<false | null | HTMLElement>(false);
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
-  const isMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
+  const isMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down(960));
   const customHubUrls = CUSTOM_HUB_URLS || ["prio1"];
   const isCustomHub = customHubUrls.includes(hubUrl);
   const isLocationHub = LOCATION_HUBS.includes(hubUrl);
