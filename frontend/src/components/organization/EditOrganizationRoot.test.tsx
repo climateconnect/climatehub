@@ -1,5 +1,5 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react";
+import { render, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
@@ -7,11 +7,23 @@ import theme from "../../themes/theme";
 import EditOrganizationRoot from "./EditOrganizationRoot";
 import UserContext from "../context/UserContext";
 import FeedbackContext from "../context/FeedbackContext";
+import { apiRequest } from "../../../public/lib/apiOperations";
 
+const pushMock = jest.fn();
 jest.mock("next/router", () => ({
   useRouter: () => ({
-    push: jest.fn(),
+    push: (...args: any[]) => pushMock(...args),
   }),
+}));
+
+jest.mock("../../../public/lib/apiOperations", () => ({
+  ...jest.requireActual("../../../public/lib/apiOperations"),
+  apiRequest: jest.fn(),
+}));
+
+jest.mock("../../../public/lib/imageOperations", () => ({
+  ...jest.requireActual("../../../public/lib/imageOperations"),
+  blobFromObjectUrl: jest.fn((url) => Promise.resolve(url)),
 }));
 
 jest.mock("../account/EditAccountPage", () => {
@@ -19,7 +31,24 @@ jest.mock("../account/EditAccountPage", () => {
     if (props.checkTranslationsRef) {
       props.checkTranslationsRef.current = { scrollIntoView: jest.fn() };
     }
-    return <div data-testid="edit-account-page" />;
+    return (
+      <div data-testid="edit-account-page">
+        <button
+          data-testid="submit-button"
+          onClick={() => props.handleSubmit({ ...props.account })}
+        >
+          {props.submitMessage}
+        </button>
+        {props.onSecondarySubmit && (
+          <button
+            data-testid="secondary-button"
+            onClick={() => props.onSecondarySubmit({ ...props.account })}
+          >
+            {props.secondarySubmitMessage}
+          </button>
+        )}
+      </div>
+    );
   };
 });
 
@@ -48,9 +77,9 @@ const baseOrganization = {
   },
 };
 
-function makeUserContext(locale: "en" | "de") {
+function makeUserContext(locale: "en" | "de", user: any = null) {
   return {
-    user: null,
+    user,
     locale,
     locales: ["en", "de"],
     pathName: "/",
@@ -63,13 +92,15 @@ function renderComponent({
   locale = "en" as "en" | "de",
   organization = baseOrganization,
   showFeedbackMessage = jest.fn(),
+  user = null as any,
+  user_role = undefined as any,
 } = {}) {
   return {
     showFeedbackMessage,
     ...render(
       <ThemeProvider theme={theme}>
         <StylesThemeProvider theme={theme}>
-          <UserContext.Provider value={makeUserContext(locale) as any}>
+          <UserContext.Provider value={makeUserContext(locale, user) as any}>
             <FeedbackContext.Provider value={{ showFeedbackMessage }}>
               <EditOrganizationRoot
                 allSectors={[]}
@@ -86,12 +117,35 @@ function renderComponent({
                 organization={organization as any}
                 tagOptions={[]}
                 hubUrl={undefined}
+                user_role={user_role}
               />
             </FeedbackContext.Provider>
           </UserContext.Provider>
         </StylesThemeProvider>
       </ThemeProvider>
     ),
+  };
+}
+
+// Minimal raw API-shaped organization, as returned by GET /api/organizations/{slug}/,
+// matching what parseOrganization() (used internally by getOrganizationByUrlIfExists)
+// expects to receive.
+function rawOrganizationFixture(overrides: any = {}) {
+  return {
+    url_slug: "test-org",
+    background_image: null,
+    name: "Test Org",
+    image: null,
+    types: [],
+    language: "de",
+    translations: {},
+    sectors: [],
+    number_of_followers: 0,
+    projects_count: 0,
+    is_draft: true,
+    parent_organization: null,
+    child_organizations: [],
+    ...overrides,
   };
 }
 
@@ -120,5 +174,109 @@ describe("EditOrganizationRoot language notice", () => {
     await waitFor(() => {
       expect(showFeedbackMessage).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("EditOrganizationRoot draft publishing", () => {
+  const draftOrganization = { ...baseOrganization, is_draft: true };
+  // Publishing runs the same full validation as any other save (image + at
+  // least one type + name); leave image out of draftOrganization above so
+  // tests that don't publish aren't forced through the image blob pipeline.
+  const publishableDraftOrganization = {
+    ...draftOrganization,
+    image: "http://example.com/image.png",
+  };
+  const user = { url_slug: "test-user" };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (apiRequest as jest.Mock).mockImplementation(({ method }) => {
+      if (method === "get") {
+        return Promise.resolve({ data: rawOrganizationFixture({ is_draft: true }) });
+      }
+      return Promise.resolve({});
+    });
+  });
+
+  it("shows a Publish submit label and a Save draft action for a draft organization", () => {
+    const { getByTestId } = renderComponent({ organization: draftOrganization, user });
+
+    expect(getByTestId("submit-button")).toHaveTextContent("Publish");
+    expect(getByTestId("secondary-button")).toHaveTextContent("Save draft");
+  });
+
+  it("does not show a Save draft action for a published organization", () => {
+    const { queryByTestId } = renderComponent({ organization: baseOrganization, user });
+
+    expect(queryByTestId("secondary-button")).not.toBeInTheDocument();
+  });
+
+  it("publishing sets is_draft to false and redirects with the published message", async () => {
+    const { getByTestId } = renderComponent({
+      organization: publishableDraftOrganization,
+      user,
+    });
+
+    fireEvent.click(getByTestId("submit-button"));
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalled();
+    });
+
+    const patchCall = (apiRequest as jest.Mock).mock.calls.find(
+      ([opts]) => opts.method === "patch"
+    );
+    expect(patchCall[0].payload.is_draft).toBe(false);
+    expect(pushMock).toHaveBeenCalledWith({
+      pathname: "/organizations/test-org",
+      query: {
+        message: "Your organisation has been published. Great work!",
+        hub: undefined,
+      },
+    });
+  });
+
+  it("saving as draft does not change is_draft and redirects to the user's profile", async () => {
+    const { getByTestId } = renderComponent({ organization: draftOrganization, user });
+
+    fireEvent.click(getByTestId("secondary-button"));
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalled();
+    });
+
+    const patchCall = (apiRequest as jest.Mock).mock.calls.find(
+      ([opts]) => opts.method === "patch"
+    );
+    expect(patchCall[0].payload.is_draft).toBeUndefined();
+    expect(pushMock).toHaveBeenCalledWith({
+      pathname: "/profiles/test-user",
+      query: {
+        message: "You have successfully edited your organisation.",
+        hub: undefined,
+      },
+    });
+  });
+
+  it("shows the Delete Draft label instead of Delete organisation for a draft admin", () => {
+    const { getByLabelText, queryByLabelText } = renderComponent({
+      organization: draftOrganization,
+      user,
+      user_role: { role_type: "all" },
+    });
+
+    expect(getByLabelText("Delete Draft")).toBeInTheDocument();
+    expect(queryByLabelText("Delete organisation")).not.toBeInTheDocument();
+  });
+
+  it("shows the normal delete label for a published organization admin", () => {
+    const { getByLabelText, queryByLabelText } = renderComponent({
+      organization: baseOrganization,
+      user,
+      user_role: { role_type: "all" },
+    });
+
+    expect(getByLabelText("Delete organisation")).toBeInTheDocument();
+    expect(queryByLabelText("Delete Draft")).not.toBeInTheDocument();
   });
 });

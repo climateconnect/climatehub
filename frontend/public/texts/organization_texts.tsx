@@ -423,5 +423,31 @@ export default function getOrganizationTexts({ organization, locale }) {
       en: "Something went wrong. Please try again.",
       de: "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     },
+    save_as_draft: {
+      en: "Save as draft",
+      de: "Als Entwurf speichern",
+    },
+    save_changes_as_draft: {
+      en: "Save draft",
+      de: "Entwurf speichern",
+    },
+    publish: {
+      en: "Publish",
+      de: "Veröffentlichen",
+    },
+    delete_draft: {
+      en: "Delete Draft",
+      de: "Entwurf löschen",
+    },
+    your_organization_has_been_published_great_work: {
+      en: "Your organisation has been published. Great work!",
+      de: "Deine Organisation wurde veröffentlicht. Gute Arbeit!",
+    },
+    you_have_successfully_saved_your_organization_as_a_draft: {
+      en:
+        "You have successfully saved your organisation as a draft. You can keep editing it and publish it whenever you're ready.",
+      de:
+        "Du hast deine Organisation erfolgreich als Entwurf gespeichert. Du kannst sie weiter bearbeiten und veröffentlichen, sobald du bereit bist.",
+    },
   };
 }

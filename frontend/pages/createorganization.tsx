@@ -91,6 +91,7 @@ export default function CreateOrganization({
   const [sourceLanguage] = useState(locale);
   const [targetLanguage] = useState(locales.find((l) => l !== locale));
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const [loadingSubmitDraft, setLoadingSubmitDraft] = useState(false);
   const [existingUrlSlug, setExistingUrlSlug] = useState("");
   const [existingName, setExistingName] = useState("");
 
@@ -305,7 +306,34 @@ export default function CreateOrganization({
     await makeCreateOrganizationRequest(organizationToSubmit);
   };
 
-  const makeCreateOrganizationRequest = (organizationToSubmit) => {
+  // A location is only safe to send to the backend once it has been resolved
+  // to a real place (has a place_id or a full OSM composite key) - an empty
+  // or partially-typed location object would make the backend's location
+  // lookup throw. Drafts skip the stricter isLocationValid() check used for
+  // normal creation, so this stands in as the minimal safety check.
+  const hasResolvableLocation = (location) =>
+    !!location &&
+    typeof location !== "string" &&
+    (!!location.place_id || (!!location.osm_id && !!location.osm_type && !!location.osm_class));
+
+  const handleSaveAsDraft = async (account) => {
+    const organizationToSubmit: any = await parseOrganizationForRequest(
+      account,
+      user,
+      rolesOptions,
+      translations,
+      sourceLanguage,
+      hubUrl
+    );
+    organizationToSubmit.is_draft = true;
+    if (!hasResolvableLocation(organizationToSubmit.location)) {
+      delete organizationToSubmit.location;
+    }
+    setLoadingSubmitDraft(true);
+    await makeCreateOrganizationRequest(organizationToSubmit, true);
+  };
+
+  const makeCreateOrganizationRequest = (organizationToSubmit, isDraft = false) => {
     apiRequest({
       method: "post",
       url: "/api/create_organization/",
@@ -315,19 +343,31 @@ export default function CreateOrganization({
     })
       .then(function (response) {
         setLoadingSubmit(false);
-        router.push({
-          pathname: `/manageOrganizationMembers/${response.data.url_slug}`,
-          query: {
-            message: texts.you_have_successfully_created_an_organization_you_can_add_members,
-            isCreationStage: true,
-            hub: hubUrl ? hubUrl : "",
-          },
-        });
+        setLoadingSubmitDraft(false);
+        if (isDraft) {
+          router.push({
+            pathname: `/editOrganization/${response.data.url_slug}`,
+            query: {
+              message: texts.you_have_successfully_saved_your_organization_as_a_draft,
+              hub: hubUrl ? hubUrl : "",
+            },
+          });
+        } else {
+          router.push({
+            pathname: `/manageOrganizationMembers/${response.data.url_slug}`,
+            query: {
+              message: texts.you_have_successfully_created_an_organization_you_can_add_members,
+              isCreationStage: true,
+              hub: hubUrl ? hubUrl : "",
+            },
+          });
+        }
         return;
       })
       .catch(function (error) {
         console.log(error);
         setLoadingSubmit(false);
+        setLoadingSubmitDraft(false);
         if (error) console.log(error?.response?.data);
         if (error?.response?.data?.message)
           handleSetErrorMessages({
@@ -389,6 +429,8 @@ export default function CreateOrganization({
           handleSetLocationOptionsOpen={handleSetLocationOptionsOpen}
           loadingSubmit={loadingSubmit}
           allSectors={allSectors}
+          handleSaveAsDraft={handleSaveAsDraft}
+          loadingSubmitDraft={loadingSubmitDraft}
         />
       </WideLayout>
     );

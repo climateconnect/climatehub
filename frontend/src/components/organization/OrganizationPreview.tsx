@@ -19,6 +19,8 @@ const useStyles = makeStyles((theme) => {
     root: {
       display: "flex",
       flexDirection: "column",
+      position: "relative",
+      overflow: "hidden",
       "&:hover": {
         cursor: "pointer",
         backgroundColor: "#f1f1f1",
@@ -36,6 +38,26 @@ const useStyles = makeStyles((theme) => {
       height: "100%",
       boxShadow: "rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;",
       padding: "0 14px",
+    },
+    draftTriangle: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: 0,
+      height: 0,
+      borderTop: "60px solid " + theme.palette.primary.main,
+      borderRight: "60px solid transparent",
+      zIndex: 1,
+    },
+    draftText: {
+      transform: "rotate(-45deg)",
+      display: "block",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      marginTop: "-42px",
+      marginLeft: "2px",
+      fontSize: "12px",
+      color: "white",
     },
     button: {
       marginTop: theme.spacing(1),
@@ -78,13 +100,18 @@ const useStyles = makeStyles((theme) => {
 export default function OrganizationPreview({ organization }: { organization: any }) {
   const classes = useStyles();
 
+  const organizationUrl = organization.is_draft
+    ? `/editOrganization/${organization.url_slug}`
+    : `/organizations/${organization.url_slug}`;
+
   return (
-    <AppLink
-      href={`/organizations/${organization.url_slug}`}
-      underline="hover"
-      className={classes.wrapper}
-    >
+    <AppLink href={organizationUrl} underline="hover" className={classes.wrapper}>
       <Card className={classes.root} variant="outlined">
+        {organization.is_draft && (
+          <div className={classes.draftTriangle}>
+            <div className={classes.draftText}>Draft</div>
+          </div>
+        )}
         <OrganizationPreviewHeader organization={organization} />
         <OrganizationPreviewBody organization={organization} />
         <CardActions className={classes.footer}>
