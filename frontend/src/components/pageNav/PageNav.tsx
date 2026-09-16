@@ -269,7 +269,7 @@ export default function PageNav({
               {texts.event_calendar ?? "Event calendar"}
             </AppLink>
           )}
-          {isEmmendingenHub && (
+          {isEmmendingenHub && !isNarrowScreen && (
             <Link
               className={classes.highlightedLink}
               href="https://climatehub.earth/burgerenergie-em"

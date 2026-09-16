@@ -16,11 +16,15 @@ export const themeSignUp = createTheme(coreTheme, {
     },
     MuiCard: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           padding: "3.125rem 4.0625rem", // 50px 65px on 16px base
           boxShadow: "inset 1px 1px 6px #00000014, 6px 4px 10px #00000029",
           borderRadius: "3.75rem", // 60px on 16px base
-        },
+          [theme.breakpoints.down("sm")]: {
+            padding: "1.5rem 1.25rem", // 24px 20px
+            borderRadius: "1.25rem", // 20px
+          },
+        }),
       },
     },
     MuiCardContent: {

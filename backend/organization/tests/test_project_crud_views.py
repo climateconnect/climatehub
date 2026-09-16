@@ -766,7 +766,9 @@ class TestProjectApi(APITestCase):
         self.assertIn("is_online", res)
 
     @tag("projects")
-    def test_patch_project_keeps_organization_owner_when_is_personal_project_flag_is_stale(self):
+    def test_patch_project_keeps_organization_owner_when_is_personal_project_flag_is_stale(
+        self,
+    ):
         self._login()
         organization = self._create_organization("owner-stale-flag")
         project_parents = self._set_parent_organization(organization)
