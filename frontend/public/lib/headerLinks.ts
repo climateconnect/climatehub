@@ -165,6 +165,15 @@ const getWasseraktionswochenLinks = ({ path_to_redirect, texts, hubUrl, hasHubLa
   ];
 };
 
+const buildBuergerenergieLink = ({ texts }) => ({
+  href: "https://climatehub.earth/burgerenergie-em",
+  text: texts.emmerdingen_buergerenergie,
+  isExternalLink: true,
+  iconForDrawer: InfoIcon,
+  hideOnStaticPages: true,
+  showOnMobileOnly: true,
+});
+
 const getDefaultLinks = (
   path_to_redirect,
   texts,
@@ -178,6 +187,7 @@ const getDefaultLinks = (
     return [
       buildBrowseLink({ texts, isLocationHub, isOnLandingPage, hasHubLandingPage }),
       buildAboutLink({ texts, isLocationHub, hasHubLandingPage, isOnLandingPage, hubUrl }),
+      ...(hubUrl === "em" ? [buildBuergerenergieLink({ texts })] : []),
       buildDonateLink({ texts, hubUrl }),
       {
         ...COMMON_LINKS.SHARE(isLocationHub ? hubUrl : undefined),
