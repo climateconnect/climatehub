@@ -248,9 +248,14 @@ export default function EditProjectContent({
           ) : (
             <>
               {(!Array.isArray(userOrganizations) || userOrganizations.length === 0) && (
-                <Typography color="error" variant="body2" className={classes.block}>
-                  {texts.you_are_not_a_member_of_any_organization_yet}
-                </Typography>
+                <>
+                  <Typography color="error" variant="body2" className={classes.block}>
+                    {texts.you_are_not_a_member_of_any_organization_yet}
+                  </Typography>
+                  <Typography variant="body2" className={classes.block}>
+                    {texts.if_your_organization_does_not_exist_yet_click_here}
+                  </Typography>
+                </>
               )}
               <SelectField
                 controlled
