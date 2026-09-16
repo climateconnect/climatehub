@@ -337,14 +337,14 @@ class TestEventRegistrationRead(APITestCase):
             status=self.project_status,
             language=self.default_language,
             project_type="EV",
-            start_date="2026-09-01T10:00:00Z",
-            end_date="2026-10-01T20:00:00Z",
+            start_date=timezone.now() + timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=30),
         )
 
         self.registration_config = EventRegistrationConfig.objects.create(
             project=self.event_project,
             max_participants=100,
-            registration_end_date="2026-09-01T23:59:00Z",
+            registration_end_date=timezone.now() + timedelta(days=15),
         )
 
         self.plain_event_project = Project.objects.create(
@@ -355,8 +355,8 @@ class TestEventRegistrationRead(APITestCase):
             status=self.project_status,
             language=self.default_language,
             project_type="EV",
-            start_date="2026-09-01T10:00:00Z",
-            end_date="2026-10-01T20:00:00Z",
+            start_date=timezone.now() + timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=30),
         )
 
     @tag("registration_config", "projects")
@@ -523,13 +523,13 @@ class TestEventRegistrationStatus(APITestCase):
             status=self.project_status,
             language=self.default_language,
             project_type="EV",
-            start_date="2026-09-01T10:00:00Z",
-            end_date="2026-10-01T20:00:00Z",
+            start_date=timezone.now() + timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=30),
         )
         self.registration_config = EventRegistrationConfig.objects.create(
             project=self.event_project,
             max_participants=50,
-            registration_end_date="2026-09-15T23:59:00Z",
+            registration_end_date=timezone.now() + timedelta(days=15),
         )
         ProjectMember.objects.create(
             user=self.user,
@@ -590,11 +590,13 @@ class TestEventRegistrationStatus(APITestCase):
             "translations": {},
             "project_type": {"type_id": "event"},
             "hubName": None,
-            "start_date": "2026-09-01T10:00:00Z",
-            "end_date": "2026-10-01T20:00:00Z",
+            "start_date": (timezone.now() + timedelta(days=1)).isoformat(),
+            "end_date": (timezone.now() + timedelta(days=30)).isoformat(),
             "registration_config": {
                 "max_participants": 30,
-                "registration_end_date": "2026-09-15T23:59:00Z",
+                "registration_end_date": (
+                    timezone.now() + timedelta(days=15)
+                ).isoformat(),
             },
         }
         response = self.client.post(create_url, payload, format="json")
