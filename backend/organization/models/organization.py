@@ -230,6 +230,12 @@ class Organization(models.Model):
         blank=True,
     )
 
+    is_draft = models.BooleanField(
+        help_text="Whether organization is public or just a private draft",
+        verbose_name="Is Draft?",
+        default=False,
+    )
+
     class Meta:
         app_label = "organization"
         verbose_name = "Organization"

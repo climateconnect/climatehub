@@ -127,7 +127,7 @@ class ListOrganizationsAPIView(ListAPIView):
 
     def get_queryset(self):
         organizations = (
-            Organization.objects.all()
+            Organization.objects.filter(is_draft=False)
             .prefetch_related(
                 Prefetch(
                     "organization_sector_mapping",
@@ -328,17 +328,21 @@ class CreateOrganizationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        required_params = [
-            "name",
-            "team_members",
-            "location",
-            "image",
-            "organization_tags",
-            "sectors",
-            "translations",
-            "source_language",
-            "short_description",
-        ]
+        is_draft = request.data.get("is_draft", False) in (True, "true", "True", "1", 1)
+
+        required_params = ["name"]
+        # If 'is_draft' is not set or is set to a falsy value then run the code in this if block
+        if not is_draft:
+            required_params += [
+                "team_members",
+                "location",
+                "image",
+                "organization_tags",
+                "sectors",
+                "translations",
+                "source_language",
+                "short_description",
+            ]
         for param in required_params:
             if param not in request.data:
                 return Response(
@@ -367,16 +371,20 @@ class CreateOrganizationView(APIView):
         if "get_involved" in request.data:
             texts["get_involved"] = request.data["get_involved"]
 
-        try:
-            translations = get_translations(
-                texts,
-                request.data["translations"],
-                request.data["source_language"],
-                ["name"],
-            )
-        except ValueError as ve:
-            translations = None
-            logger.error("TranslationFailed: Error translating texts, {}".format(ve))
+        translations = None
+        if "translations" in request.data and "source_language" in request.data:
+            try:
+                translations = get_translations(
+                    texts,
+                    request.data["translations"],
+                    request.data["source_language"],
+                    ["name"],
+                )
+            except ValueError as ve:
+                translations = None
+                logger.error(
+                    "TranslationFailed: Error translating texts, {}".format(ve)
+                )
 
         try:
             # Wrap the entire organization creation in a transaction
@@ -399,11 +407,14 @@ class CreateOrganizationView(APIView):
                     organization.name, organization.id, Organization.objects
                 )
 
+                organization.is_draft = is_draft
+
                 # Add primary language
-                source_language = Language.objects.get(
-                    language_code=request.data["source_language"]
-                )
-                organization.language = source_language
+                if "source_language" in request.data:
+                    source_language = Language.objects.get(
+                        language_code=request.data["source_language"]
+                    )
+                    organization.language = source_language
 
                 # Handle images
                 if "image" in request.data:
@@ -476,7 +487,7 @@ class CreateOrganizationView(APIView):
 
                 # Create organization members
                 roles = Role.objects.all()
-                for member in request.data["team_members"]:
+                for member in request.data.get("team_members", []):
                     user_role = roles.filter(
                         id=int(member["permission_type_id"])
                     ).first()
@@ -643,6 +654,27 @@ class OrganizationAPIView(APIView):
                 {"message": _("Organization not found:") + url_slug},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        if "is_draft" in request.data:
+            new_is_draft = request.data["is_draft"] in (
+                True,
+                "true",
+                "True",
+                "1",
+                1,
+            )
+            # One way transition: draft → published, never back
+            if new_is_draft and not organization.is_draft:
+                return Response(
+                    {
+                        "message": _(
+                            "A published organisation cannot be reverted to draft."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            organization.is_draft = new_is_draft
+
         pass_through_params = [
             "name",
             "short_description",
@@ -1050,7 +1082,7 @@ class ListFeaturedOrganizations(ListAPIView):
         return {"language_code": self.request.LANGUAGE_CODE, **context}
 
     def get_queryset(self):
-        return Organization.objects.filter(rating__lte=99)[0:4]
+        return Organization.objects.filter(rating__lte=99, is_draft=False)[0:4]
 
 
 class ListOrganizationsForSitemap(ListAPIView):
@@ -1058,7 +1090,7 @@ class ListOrganizationsForSitemap(ListAPIView):
     serializer_class = OrganizationSitemapEntrySerializer
 
     def get_queryset(self):
-        return Organization.objects.all()
+        return Organization.objects.filter(is_draft=False)
 
 
 class SetOrganisationSharedView(APIView):
