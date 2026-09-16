@@ -89,6 +89,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "number_of_followers",
             "projects_count",
             "get_involved",
+            "is_draft",
         )
 
     def get_name(self, obj):
@@ -249,6 +250,7 @@ class OrganizationCardSerializer(serializers.ModelSerializer):
             "short_description",
             "members_count",
             "projects_count",
+            "is_draft",
         )
 
     def get_name(self, obj):
