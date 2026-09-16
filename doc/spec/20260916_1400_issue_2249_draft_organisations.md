@@ -1,9 +1,12 @@
 # Allow creating an organisation as draft
 
 **Issue:** [climateconnect/climatehub#2249](https://github.com/climateconnect/climatehub/issues/2249)
-**Status:** DRAFT
+**Status:** IMPLEMENTED (backend + frontend)
 **Branch:** `draft-organisation`
 **Created:** 2026-09-16
+**Updated:** 2026-09-16 — backend and frontend implemented; see
+[Implementation](#implementation) for what was actually built and
+[Open Questions](#open-questions) for how each was resolved.
 
 ## Problem Statement
 
@@ -103,10 +106,19 @@ for organisations.
 - Card components with no draft-indicator today: `OrganizationPreview.tsx`,
   `MiniOrganizationPreview.tsx`, `OrganizationPreviews.tsx`,
   `OrganizationPreviewsFixed.tsx`.
-- Create/edit forms share one root component,
-  `frontend/src/components/organization/EditOrganizationRoot.tsx`, used by
-  `frontend/pages/createorganization.tsx` and
-  `frontend/pages/editOrganization/[organizationUrl].tsx`.
+- Create and edit are **separate** component trees (not a shared root, as
+  first assumed): `frontend/pages/createorganization.tsx` drives its own
+  multi-step flow (`EnterBasicOrganizationInfo.tsx` → `EnterDetailledOrganizationInfo.tsx`
+  → translate step), while `frontend/pages/editOrganization/[organizationUrl].tsx`
+  uses `frontend/src/components/organization/EditOrganizationRoot.tsx`. Both
+  trees funnel into the same shared form component,
+  `frontend/src/components/account/EditAccountPage.tsx`, at their respective
+  final step (also used for personal profile editing).
+- The generic `frontend/src/components/general/Form.tsx` component (step 1 of
+  org creation, and unrelated flows like password reset) renders one
+  `type="submit"` button per form with fields marked via the native HTML
+  `required` attribute — there is no built-in way to add a second action that
+  bypasses that validation.
 
 ## Desired Outcome
 
@@ -189,80 +201,178 @@ when linking a project/other entity to an organisation.
    one-way publish transition (including that a client cannot set
    `is_draft: true` on an already-published organisation via this endpoint).
 
-## Proposed Implementation
+## Implementation
+
+Both the backend and frontend described below have been implemented on the
+`draft-organisation` branch, with automated test coverage. Where the original
+proposal below left a design decision open, the choice actually made is
+called out and cross-referenced to [Open Questions](#open-questions).
 
 ### Backend
 
-- Add `is_draft = models.BooleanField(default=False, help_text="Whether organization is public or just a private draft", verbose_name="Is Draft?")`
-  to `Organization`, with a single additive migration (same shape as
-  `0040_project_is_draft.py`).
-- `CreateOrganizationView.post()`: parse `is_draft` from the request body the
-  same way `CreateProjectView.post()` does
-  (`backend/organization/views/project_views.py:718`), and relax required-field
-  validation when `is_draft` is true, mirroring
-  `backend/organization/views/project_views.py:721-732`.
-- `OrganizationAPIView.patch()`: accept `is_draft` in the payload and treat it
-  as a one-way draft → published transition. Recommend the stricter,
-  serializer-validated approach used by `EventRegistrationConfig`
-  (explicitly reject a PATCH that tries to set `is_draft: True` on an
-  already-published organisation) rather than the plain project pattern,
-  which silently coerces any submitted value to `False`.
-- Add `is_draft=False` to the querysets in `ListOrganizationsAPIView`,
-  `ListFeaturedOrganizations`, `ListOrganizationsForSitemap`, and any
-  hub/organisation-picker queryset that reuses `Organization.objects` for
-  public listing purposes.
-- Leave `OrganizationReadWritePermission` as-is (SAFE_METHODS always allowed)
-  for parity with the existing project behaviour, unless the team decides to
-  close that gap as part of this change (see Open Questions).
+- Added `is_draft = models.BooleanField(default=False, help_text="Whether organization is public or just a private draft", verbose_name="Is Draft?")`
+  to `Organization` (`backend/organization/models/organization.py`), with a
+  single additive migration `backend/organization/migrations/0147_organization_is_draft.py`
+  (same shape as `0040_project_is_draft.py`).
+- `CreateOrganizationView.post()`: parses `is_draft` from the request body the
+  same way `CreateProjectView.post()` does, and only requires `name` when
+  `is_draft` is true. This required guarding several previously-unconditional
+  field accesses (`source_language`, `translations`, `team_members`) that
+  would otherwise `KeyError` once those fields stop being required.
+- `OrganizationAPIView.patch()`: accepts `is_draft` in the payload as a
+  one-way draft → published transition, and **explicitly rejects** a PATCH
+  that tries to set `is_draft: true` on an already-published organisation
+  (400) — the stricter `EventRegistrationConfig`-style option, resolving
+  [Open Question 3](#open-questions) in favour of validation over the
+  plain project pattern's silent coercion.
+- Added `is_draft=False` filtering to `ListOrganizationsAPIView`,
+  `ListFeaturedOrganizations`, and `ListOrganizationsForSitemap`.
+- **Bonus fix found during implementation:** `ListMemberOrganizationsView`
+  (`/api/member/<slug>/organizations/`, the public endpoint backing the "your
+  organisations" section of a profile page) had **zero** draft filtering at
+  all, unlike its already-fixed project sibling `ListMemberProjectsView`. Now
+  mirrors that pattern: the profile owner sees their own draft orgs, every
+  other viewer (including anonymous) does not.
+  (`backend/climateconnect_api/views/user_views.py`)
+- Added `is_draft` to `OrganizationSerializer.Meta.fields` (inherited by
+  `EditOrganizationSerializer`) and `OrganizationCardSerializer.Meta.fields`
+  so the frontend can read draft status.
+- `OrganizationReadWritePermission` was left unchanged — resolving
+  [Open Question 2](#open-questions) in favour of parity with the existing
+  (weaker) project behaviour rather than adding a new view-level ACL.
+- Tests added: `TestCreateOrganizationViewDraft`,
+  `TestOrganizationDraftListingFiltering`, `TestOrganizationPublishTransition`
+  (`backend/organization/tests/test_organization_views.py`), and
+  `TestListMemberOrganizationsViewDraftFiltering`
+  (`backend/climateconnect_api/tests/test_user_views.py`).
 
 ### Frontend
 
-- Add `is_draft: boolean` to the `Organization` type
-  (`frontend/src/types.ts:182-187`), and to any other organisation-shaped
-  type used across the create/edit/preview components.
-- Add a draft-ribbon indicator to `OrganizationPreview.tsx` (and, if drafts
-  can appear there, `MiniOrganizationPreview.tsx`), mirroring
-  `ProjectPreview.tsx:168-171`/`70-82`, including redirecting card clicks to
-  the edit page instead of the public page while the organisation is a draft.
-- In `EditOrganizationRoot.tsx` (shared create/edit root): add a "Save as
-  draft" action on create, and on edit relabel the submit button to "Publish"
-  while `is_draft` is true, plus a "save draft changes" action that PATCHes
-  without flipping `is_draft` — mirroring `ShareProjectRoot.tsx`/
-  `EditProjectRoot.tsx`/`NavigationButtons.tsx`.
-- Add draft-specific copy to `DeleteOrganizationDialog.tsx`, mirroring
-  `DeleteProjectButton.tsx`.
+- `is_draft?: boolean` added to the `Organization` type
+  (`frontend/src/types.ts`).
+- `parseOrganization()` (`frontend/public/lib/organizationOperations.ts`) was
+  silently dropping `is_draft` from API responses — fixed to pass it through,
+  since without this every `is_draft`-aware UI path (edit root, detail page)
+  would always have read `undefined`.
+- `OrganizationPreview.tsx`: draft-ribbon indicator adapted from
+  `ProjectPreview.tsx`'s CSS technique (resized for the org card's circular
+  avatar layout instead of a rectangular banner image), and card clicks route
+  to `/editOrganization/{slug}` instead of the public org page while draft.
+  This card is what renders in the "your organisations" section of a user's
+  own profile (`ProfileRoot.tsx`) — exactly where the `ListMemberOrganizationsView`
+  backend fix above matters.
+- Added a generic secondary-action extension to two **shared, reusable**
+  components rather than special-casing organisations inside them:
+  - `EditAccountPage.tsx` (org create step 2, org edit, and personal profile
+    editing): new `onSecondarySubmit` / `secondarySubmitMessage` /
+    `loadingSecondarySubmit` props, rendered as a plain (non-submit) button
+    in the existing "extra action button" slot (previously only used for
+    "Check Translations"). The button is hidden entirely while
+    `editedAccount.name` is empty/whitespace, rather than being shown and
+    then erroring on click.
+  - `Form.tsx` (org create step 1, and unrelated forms like password reset):
+    same trio of props, plus `secondarySubmitEnabledField` — the button only
+    renders once that named field's live value is non-empty (trimmed), which
+    lets it react to keystrokes without lifting state out of `Form`'s
+    internal state.
+- `EnterBasicOrganizationInfo.tsx` (step 1) and
+  `EnterDetailledOrganizationInfo.tsx` (step 2) wire a `handleSaveAsDraft` /
+  `loadingSubmitDraft` pair into `Form` / `EditAccountPage` respectively, with
+  `secondarySubmitEnabledField="organizationname"` on step 1.
+- `pages/createorganization.tsx`: two draft-save handlers, since step 1 and
+  step 2 use different form shapes:
+  - `handleSaveAsDraftFromBasicInfo` (step 1) — bypasses the checks in
+    `handleBasicInfoSubmit` that normally block progressing to step 2
+    (parent-org consistency, location validity), sending just `name` plus
+    whatever else (parent org / location / types) is already filled in.
+  - `handleSaveAsDraft` (step 2) — reuses the existing
+    `parseOrganizationForRequest` pipeline with `is_draft: true`.
+
+  Both use a `hasResolvableLocation()` check (place_id, or a full OSM
+  composite key) rather than the existing `isLocationValid()` helper, because
+  `isLocationValid({})` returns `true` — sending an empty/partial location
+  object would crash the backend's location lookup with an uncaught
+  `ValidationError`. On success, both redirect to `/editOrganization/{slug}`
+  with a "saved as draft" message, instead of the member-management page
+  used after a normal (non-draft) creation.
+- `EditOrganizationRoot.tsx` (edit flow): `saveChanges` takes an `isDraftSave`
+  flag. A draft save only requires `name` and PATCHes without touching
+  `is_draft`; the main submit always runs full validation and, if the org was
+  still a draft, sets `is_draft: false` (one-way) and shows a "published"
+  success message instead of the normal "edited" one. The delete button and
+  confirmation dialog read "Delete Draft" instead of "Delete organisation"
+  while the org is still a draft, mirroring `DeleteProjectButton.tsx` —
+  `DeleteOrganizationDialog.tsx` itself needed no changes, since it was
+  already fully prop-driven.
+- Both "Save as draft" buttons were styled to match the project's version in
+  `NavigationButtons.tsx` exactly (`color="grey"`, disabled while a save is
+  in flight) rather than the initially-used `color="secondary"`.
+- New text keys added to `organization_texts.tsx` (EN+DE): `save_as_draft`,
+  `save_changes_as_draft`, `publish`, `delete_draft`,
+  `your_organization_has_been_published_great_work`,
+  `you_have_successfully_saved_your_organization_as_a_draft`,
+  `organization_name_required_to_save_as_draft`.
+- Tests added: `EditOrganizationRoot.test.tsx` extended with a "draft
+  publishing" suite (publish transition, draft-save, delete-label
+  switching); new `Form.test.tsx` covering the secondary-button gating,
+  loading state, and click behaviour (no test file existed for this shared
+  component before).
 
 ## Open Questions
 
-1. **Org picker while drafting a project:** should an admin be able to select
-   their *own* draft organisation as a project's parent organisation before
-   the org is published? Filtering the shared listing endpoint by default
-   would hide it from that picker too. If this is needed, the picker will
-   need a separate "include my draft orgs" code path rather than reusing the
-   public listing endpoint unmodified.
-2. **Permission gap parity:** should `OrganizationReadWritePermission` keep
-   the same "no view-level ACL, `SAFE_METHODS` always pass" behaviour as
-   projects (obscurity-through-omission only), or should organisations get an
-   explicit check blocking non-member direct access to a draft org's detail
-   page? The issue text ("unavailable for use elsewhere on the platform")
-   suggests stronger enforcement than what projects currently have.
-3. **Publish-transition validation:** adopt the stricter
-   `EventRegistrationConfig`-style validated transition (reject `is_draft:
-   True` on an already-published org), or match the simpler/looser project
-   pattern for consistency with the rest of the codebase?
+1. **Org picker while drafting a project — still open, not addressed.** Should
+   an admin be able to select their *own* draft organisation as a project's
+   parent organisation before the org is published? Filtering the shared
+   listing endpoint by default hides it from that picker too
+   (`OrganizersContainer.tsx`), and this implementation did not add a
+   separate "include my draft orgs" code path. Left for a follow-up if
+   needed.
+2. **Permission gap parity — resolved: keep parity with projects.**
+   `OrganizationReadWritePermission` was left unchanged (`SAFE_METHODS`
+   always pass, no view-level ACL). Draft privacy for direct detail-page
+   access still relies entirely on omission from listings/search/sitemap,
+   same as projects today. Revisit only if this becomes an actual reported
+   issue.
+3. **Publish-transition validation — resolved: stricter than projects.**
+   Implemented the `EventRegistrationConfig`-style validated transition:
+   `OrganizationAPIView.patch()` rejects a PATCH that tries to set
+   `is_draft: true` on an already-published organisation (400), rather than
+   the plain project pattern's silent coercion of any submitted value to
+   `false`.
 
 ## Testing Plan
 
-- Backend unit tests: create org as draft with missing optional/required
-  fields succeeds; draft org excluded from `ListOrganizationsAPIView`,
-  `ListFeaturedOrganizations`, `ListOrganizationsForSitemap`; draft org's own
-  admin can still `GET`/`PATCH` it; publish transition flips `is_draft` to
-  `False` and the org then appears in listings; a PATCH attempting to set
-  `is_draft: True` on a published org is rejected (per Open Question 3's
-  resolution).
-- Frontend: create-organisation flow renders and wires up the "Save as draft"
-  action; edit flow shows "Publish" for a draft org and a normal "Save" for a
-  published one; draft indicator renders on the org's own card/preview.
-- Manual validation: create a draft org, confirm it does not show up in
-  browse/search/sitemap, confirm the admin can still see/edit it, publish it,
-  confirm it now appears everywhere expected.
+### Implemented and passing
+
+- Backend (`backend/organization/tests/test_organization_views.py`,
+  `backend/climateconnect_api/tests/test_user_views.py`): draft creation with
+  only `name` succeeds and non-draft creation still enforces full validation;
+  draft exclusion from `ListOrganizationsAPIView`, `ListFeaturedOrganizations`,
+  `ListOrganizationsForSitemap`; draft org's own admin can still `GET`/`PATCH`
+  it; publish transition flips `is_draft` to `false` and a redundant
+  draft→draft PATCH is a no-op; a PATCH attempting to set `is_draft: true` on
+  a published org is rejected; `ListMemberOrganizationsView` shows a draft
+  org only to its own profile owner (not other viewers, not anonymous). Full
+  existing backend suite (785+ tests) re-run clean.
+- Frontend (`EditOrganizationRoot.test.tsx`, `Form.test.tsx`): submit button
+  reads "Publish" and a "Save draft" action appears for a draft organisation
+  (and not for a published one); publishing sets `is_draft` to `false` and
+  redirects with the published message; saving as draft leaves `is_draft`
+  untouched and redirects to the user's profile; delete button/dialog swap
+  between "Delete Draft" and "Delete organisation" correctly; the generic
+  `Form.tsx` secondary button is hidden with an empty or whitespace-only
+  gating field, appears once filled, and is disabled with a loader while
+  saving. `tsc --noEmit`, `eslint`, and the full frontend suite (840 tests)
+  all pass.
+
+### Not automated — manual/visual verification still outstanding
+
+- No end-to-end browser click-through of the full
+  signup → create-draft → publish flow was performed (would require standing
+  up the full authenticated stack). The draft-ribbon CSS on `OrganizationPreview.tsx`
+  has not been visually inspected in a real browser, only reasoned about by
+  analogy to the already-shipped `ProjectPreview.tsx` ribbon.
+- No dedicated test file exists for `pages/createorganization.tsx` or
+  `EnterBasicOrganizationInfo.tsx` (none existed before this change either);
+  the step-1 "save as draft" path (`handleSaveAsDraftFromBasicInfo`) is
+  covered by type-checking and manual code review only, not automated tests.

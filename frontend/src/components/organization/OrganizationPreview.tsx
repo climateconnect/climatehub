@@ -45,8 +45,8 @@ const useStyles = makeStyles((theme) => {
       left: 0,
       width: 0,
       height: 0,
-      borderTop: "60px solid " + theme.palette.primary.main,
-      borderRight: "60px solid transparent",
+      borderTop: "100px solid " + theme.palette.primary.main,
+      borderRight: "100px solid transparent",
       zIndex: 1,
     },
     draftText: {
@@ -54,9 +54,9 @@ const useStyles = makeStyles((theme) => {
       display: "block",
       fontWeight: "bold",
       textTransform: "uppercase",
-      marginTop: "-42px",
-      marginLeft: "2px",
-      fontSize: "12px",
+      marginTop: "-56px",
+      marginLeft: "10px",
+      fontSize: "20px",
       color: "white",
     },
     button: {

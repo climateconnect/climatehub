@@ -825,12 +825,13 @@ export default function EditAccountPage({
                   {texts.check_translations}
                 </Button>
               )}
-              {onSecondarySubmit && (
+              {onSecondarySubmit && !!editedAccount.name?.trim() && (
                 <Button
                   type="button"
                   variant="contained"
-                  color="secondary"
+                  color="grey"
                   onClick={() => onSecondarySubmit(editedAccount)}
+                  disabled={loadingSecondarySubmit || loadingSubmit}
                 >
                   {loadingSecondarySubmit ? <ButtonLoader /> : secondarySubmitMessage}
                 </Button>

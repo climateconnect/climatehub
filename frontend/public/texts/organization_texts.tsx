@@ -443,6 +443,10 @@ export default function getOrganizationTexts({ organization, locale }) {
       en: "Your organisation has been published. Great work!",
       de: "Deine Organisation wurde veröffentlicht. Gute Arbeit!",
     },
+    organization_name_required_to_save_as_draft: {
+      en: "Please enter an organisation name before saving it as a draft.",
+      de: "Bitte gib einen Organisationsnamen an, bevor du sie als Entwurf speicherst.",
+    },
     you_have_successfully_saved_your_organization_as_a_draft: {
       en:
         "You have successfully saved your organisation as a draft. You can keep editing it and publish it whenever you're ready.",
