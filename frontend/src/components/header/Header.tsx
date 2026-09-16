@@ -840,10 +840,11 @@ function NarrowScreenLinks({
                   } else {
                     return (
                       <Link
-                        href={localePrefix + link.href}
+                        href={link.isExternalLink ? link.href : localePrefix + link.href}
                         key={index}
                         underline="hover"
                         className={classes.linkUnderline}
+                        target={link.isExternalLink ? "_blank" : undefined}
                       >
                         <ListItemButton component="a" onClick={closeDrawer}>
                           <ListItemIcon>

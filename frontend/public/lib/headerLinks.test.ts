@@ -20,6 +20,7 @@ const buildTexts = () => ({
   log_in: "Log in",
   auth_log_in: "Log in",
   sign_up: "Sign up",
+  emmerdingen_buergerenergie: "Bürgerenergie Emmendingen",
 });
 
 describe("getLinks", () => {
@@ -56,6 +57,32 @@ describe("getLinks", () => {
       text: texts.about_climatehub,
       showStaticLinksInDropdown: false,
     });
+  });
+
+  it("includes Bürgerenergie link after About link for em hub", () => {
+    const texts = buildTexts();
+    const links = getLinks("/hubs/em/browse", texts, true, false, true, "em");
+
+    expect(links[1]).toMatchObject({
+      href: "/hubs/em/",
+      text: texts.about_climatehub,
+    });
+    expect(links[2]).toMatchObject({
+      href: "https://climatehub.earth/burgerenergie-em",
+      text: texts.emmerdingen_buergerenergie,
+      isExternalLink: true,
+    });
+    expect(links[3]).toMatchObject({ text: texts.donate });
+  });
+
+  it("does not include Bürgerenergie link for other hubs", () => {
+    const texts = buildTexts();
+    const links = getLinks("/hubs/erlangen/browse", texts, true, false, true, "erlangen");
+
+    const buergerenergieLinks = links.filter(
+      (l) => l.href === "https://climatehub.earth/burgerenergie-em"
+    );
+    expect(buergerenergieLinks).toHaveLength(0);
   });
 
   it("uses global About/Browse labels for non-hub pages", () => {
