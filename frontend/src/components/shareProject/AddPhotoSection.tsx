@@ -11,9 +11,10 @@ import {
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import UploadImageDialog from "../dialogs/UploadImageDialog";
+import useImageDrop from "../../hooks/useImageDrop";
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-const useStyles = makeStyles<Theme, { image?: string }>((theme) => {
+const useStyles = makeStyles<Theme, { image?: string; isDragOver?: boolean }>((theme) => {
   return {
     imageZoneWrapper: {
       display: "block",
@@ -27,6 +28,9 @@ const useStyles = makeStyles<Theme, { image?: string }>((theme) => {
       paddingBottom: "56.25%",
       backgroundImage: `${props.image ? `url(${props.image})` : null}`,
       backgroundSize: "contain",
+      outline: props.isDragOver ? "2px solid #1976d2" : undefined,
+      outlineOffset: props.isDragOver ? "-4px" : undefined,
+      backgroundColor: props.isDragOver ? "rgba(25, 118, 210, 0.08)" : "transparent",
     }),
     photoIcon: {
       display: "block",
@@ -60,7 +64,6 @@ export default function AddPhotoSection({
   open,
   handleSetOpen,
 }) {
-  const classes = useStyles(projectData);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const [tempImage, setTempImage] = useState(projectData.image);
@@ -72,8 +75,7 @@ export default function AddPhotoSection({
     handleSetOpen({ [dialogName]: true });
   };
 
-  const onImageChange = async (event) => {
-    const file = event.target.files[0];
+  const handleImageFile = async (file: File) => {
     if (!file || !file.type || !ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       alert(texts.please_upload_either_a_png_or_a_jpg_file);
       return;
@@ -89,6 +91,18 @@ export default function AddPhotoSection({
       setIsLoading(false);
     }
   };
+
+  const onImageChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    handleImageFile(file);
+  };
+
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste } = useImageDrop({
+    onFileSelected: handleImageFile,
+  });
+
+  const classes = useStyles({ image: projectData.image, isDragOver });
 
   const onUploadImageClick = (event) => {
     event.preventDefault();
@@ -136,7 +150,16 @@ export default function AddPhotoSection({
             onChange={onImageChange}
             accept=".png,.jpeg,.jpg"
           />
-          <div className={classes.imageZone}>
+          <div
+            className={classes.imageZone}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onPaste={onPaste}
+            tabIndex={0}
+            data-testid="add-photo-drop-zone"
+            data-drag-over={isDragOver}
+          >
             <div className={classes.addPhotoWrapper}>
               <div className={classes.addPhotoContainer}>
                 <AddAPhotoIcon className={classes.photoIcon} />

@@ -12,6 +12,9 @@ import UploadImageDialog from "../dialogs/UploadImageDialog";
 import UserContext from "../context/UserContext";
 import getTexts from "../../../public/texts/texts";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import useImageDrop from "../../hooks/useImageDrop";
+
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
 export interface AvatarImage {
   imageUrl?: string;
@@ -29,7 +32,7 @@ interface UserAvatarProps {
 
 const dimensions = 150;
 
-const useStyles = makeStyles<Theme, { avatarImage?: string }>((theme) => ({
+const useStyles = makeStyles<Theme, { avatarImage?: string; isDragOver?: boolean }>((theme) => ({
   avatarImage: {
     width: `${dimensions}px`,
     height: `${dimensions}px`,
@@ -53,6 +56,9 @@ const useStyles = makeStyles<Theme, { avatarImage?: string }>((theme) => ({
     justifyContent: "center",
     cursor: (props) => (!props.avatarImage ? "pointer" : "default"),
     columnGap: theme.spacing(1),
+    outline: (props) => (props.isDragOver ? "3px solid #1976d2" : undefined),
+    outlineOffset: (props) => (props.isDragOver ? "-4px" : undefined),
+    backgroundColor: (props) => (props.isDragOver ? "rgba(25, 118, 210, 0.15)" : "transparent"),
   },
   editIcon: {
     fontSize: "40px",
@@ -78,23 +84,37 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
     thumbnailImageUrl: props.thumbnailImageUrl,
   });
 
-  const classes = useStyles({ avatarImage: avatarImage.imageUrl });
   const [isLoading, setIsLoading] = useState(false);
-  const onImageChanged = async (avatarEvent) => {
-    const file = avatarEvent.target.files[0];
-    if (file && file.type) {
-      try {
-        setIsLoading(true);
-        setDialogStates({ ...dialogStates, uploadOpen: true });
-        const compressedImage = await convertToJPGWithAspectRatio(file);
-        setTempImage(() => compressedImage);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
+
+  const handleImageFile = async (file: File) => {
+    if (!file || !file.type || !ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      alert(texts.please_upload_either_a_png_or_a_jpg_file);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setDialogStates({ ...dialogStates, uploadOpen: true });
+      const compressedImage = await convertToJPGWithAspectRatio(file);
+      setTempImage(() => compressedImage);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const onImageChanged = async (avatarEvent) => {
+    const file = avatarEvent.target.files[0];
+    if (!file) return;
+    handleImageFile(file);
+  };
+
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste, onKeyDown } = useImageDrop({
+    onFileSelected: handleImageFile,
+    onActivate: () => inputFileRef.current?.click(),
+  });
+
+  const classes = useStyles({ avatarImage: avatarImage.imageUrl, isDragOver });
 
   const removeAvatarImage = (confirm) => {
     if (confirm) {
@@ -147,6 +167,16 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
         <div
           className={classes.editIconContainer}
           onClick={avatarImage.imageUrl ? () => void 0 : onClickChangeImage}
+          onKeyDown={onKeyDown}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onPaste={onPaste}
+          tabIndex={0}
+          role="button"
+          aria-label={texts.edit_avatar}
+          data-testid="avatar-drop-zone"
+          data-drag-over={isDragOver}
         >
           <AddAPhotoIcon
             className={classes.editIcon}
