@@ -72,6 +72,7 @@ export default function MiniOrganizationPreview({
   doNotShowName,
   inline,
 }: any) {
+  if (!organization) return null;
   if (!nolink)
     return (
       <AppLink
