@@ -6,8 +6,8 @@ import React from "react";
 import WebflowPage from "../src/components/webflow/WebflowPage";
 import { retrievePage } from "../src/utils/webflow";
 
-export default function Blog({ bodyContent, headContent }) {
-  return <WebflowPage bodyContent={bodyContent} headContent={headContent} pageKey="blog" />;
+export default function Imprint({ bodyContent, headContent }) {
+  return <WebflowPage bodyContent={bodyContent} headContent={headContent} pageKey="imprint" />;
 }
 
 export async function getServerSideProps(ctx) {

@@ -12,7 +12,15 @@ from hubs.models import (
     HubThemeColor,
 )
 
-admin.site.register(Hub, admin.ModelAdmin)
+
+class HubAdmin(admin.ModelAdmin):
+    list_display = ("name", "url_slug", "hub_type", "parent_hub", "importance")
+    list_filter = ("hub_type",)
+    search_fields = ("name", "url_slug")
+    list_select_related = ("parent_hub",)
+
+
+admin.site.register(Hub, HubAdmin)
 
 admin.site.register(HubStat, admin.ModelAdmin)
 
