@@ -7,7 +7,7 @@ import theme from "../../themes/theme";
 import RegistrationFieldAnswersForm, {
   RegistrationFieldAnswersFormHandle,
 } from "./RegistrationFieldAnswersForm";
-import { RegistrationField } from "../../types";
+import { RegistrationField, RegistrationFieldOption } from "../../types";
 import UserContext from "../context/UserContext";
 
 const texts = {
@@ -19,6 +19,7 @@ const texts = {
   quantity_available: "available",
   max_per_guest: "Max per guest",
   quantity_exceeds_max: "Quantity exceeds max",
+  inventory_sold_out: "Sold out",
   please_select_time_slot: "Please select a time slot",
   seats_available: "seats available",
   registration_text_field_required_error: "Please answer this question.",
@@ -53,14 +54,32 @@ function makeOptionField(overrides: Partial<RegistrationField> = {}): Registrati
   };
 }
 
+function makeInventoryField(
+  options: RegistrationFieldOption[],
+  overrides: Partial<RegistrationField> = {}
+): RegistrationField {
+  return {
+    id: 44,
+    field_type: "inventory",
+    order: 3,
+    is_required: true,
+    label: "Inventory",
+    settings: { title: "Balcony solar" },
+    options,
+    ...overrides,
+  };
+}
+
 function renderForm({
   fields,
   serverErrors,
   ref,
+  onFirstInteraction,
 }: {
   fields: RegistrationField[];
   serverErrors?: Record<number, string>;
   ref?: React.RefObject<RegistrationFieldAnswersFormHandle>;
+  onFirstInteraction?: () => void;
 }) {
   return render(
     <UserContext.Provider value={{ locale: "en" } as any}>
@@ -70,6 +89,7 @@ function renderForm({
             ref={ref}
             fields={fields}
             serverErrors={serverErrors}
+            onFirstInteraction={onFirstInteraction}
             texts={texts}
           />
         </StylesThemeProvider>
@@ -169,5 +189,166 @@ describe("RegistrationFieldAnswersForm", () => {
     });
 
     expect(answers).toEqual([{ fieldId: 33, valueBoolean: false }]);
+  });
+});
+
+describe("RegistrationFieldAnswersForm inventory fields", () => {
+  it("seeds the single option, shows no dropdown, and validates with entered quantity", () => {
+    const formRef = createRef<RegistrationFieldAnswersFormHandle>();
+
+    renderForm({
+      ref: formRef,
+      fields: [
+        makeInventoryField([
+          {
+            id: 201,
+            title: "Number of people",
+            order: 0,
+            remaining_amount: 200,
+            max_amount_per_guest: 5,
+          },
+        ]),
+      ],
+    });
+
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.getByText("Number of people (200 available)")).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "2" } });
+
+    let answers: ReturnType<RegistrationFieldAnswersFormHandle["validate"]> = null;
+    act(() => {
+      answers = formRef.current?.validate() ?? null;
+    });
+
+    expect(answers).toEqual([{ fieldId: 44, valueOption: 201, valueNumber: 2 }]);
+  });
+
+  it("blocks submit for required single-option field with empty quantity", () => {
+    const formRef = createRef<RegistrationFieldAnswersFormHandle>();
+
+    renderForm({
+      ref: formRef,
+      fields: [makeInventoryField([{ id: 201, title: "Number of people", order: 0 }])],
+    });
+
+    let result: ReturnType<RegistrationFieldAnswersFormHandle["validate"]> = null;
+    act(() => {
+      result = formRef.current?.validate() ?? null;
+    });
+
+    expect(result).toBeNull();
+    expect(screen.getByText(texts.please_enter_quantity)).toBeInTheDocument();
+  });
+
+  it("submits no answer for optional single-option field with empty quantity", () => {
+    const formRef = createRef<RegistrationFieldAnswersFormHandle>();
+
+    renderForm({
+      ref: formRef,
+      fields: [
+        makeInventoryField([{ id: 201, title: "Number of people", order: 0 }], {
+          is_required: false,
+        }),
+      ],
+    });
+
+    let answers: ReturnType<RegistrationFieldAnswersFormHandle["validate"]> = null;
+    act(() => {
+      answers = formRef.current?.validate() ?? null;
+    });
+
+    expect(answers).toEqual([]);
+    expect(screen.queryByText(texts.please_enter_quantity)).not.toBeInTheDocument();
+  });
+
+  it("blocks submit for required sold-out single-option field with sold-out error", () => {
+    const formRef = createRef<RegistrationFieldAnswersFormHandle>();
+
+    renderForm({
+      ref: formRef,
+      fields: [
+        makeInventoryField([{ id: 201, title: "Number of people", order: 0, remaining_amount: 0 }]),
+      ],
+    });
+
+    expect(screen.getByText("Number of people (Sold out)")).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+
+    let result: ReturnType<RegistrationFieldAnswersFormHandle["validate"]> = null;
+    act(() => {
+      result = formRef.current?.validate() ?? null;
+    });
+
+    expect(result).toBeNull();
+    expect(screen.getByText(texts.inventory_sold_out)).toBeInTheDocument();
+  });
+
+  it("submits no answer for optional sold-out single-option field", () => {
+    const formRef = createRef<RegistrationFieldAnswersFormHandle>();
+
+    renderForm({
+      ref: formRef,
+      fields: [
+        makeInventoryField(
+          [{ id: 201, title: "Number of people", order: 0, remaining_amount: 0 }],
+          { is_required: false }
+        ),
+      ],
+    });
+
+    let answers: ReturnType<RegistrationFieldAnswersFormHandle["validate"]> = null;
+    act(() => {
+      answers = formRef.current?.validate() ?? null;
+    });
+
+    expect(answers).toEqual([]);
+    expect(screen.queryByText(texts.inventory_sold_out)).not.toBeInTheDocument();
+  });
+
+  it("keeps the dropdown for multi-option inventory fields without seeding an answer", () => {
+    const formRef = createRef<RegistrationFieldAnswersFormHandle>();
+
+    renderForm({
+      ref: formRef,
+      fields: [
+        makeInventoryField([
+          { id: 201, title: "Solar module", order: 0, remaining_amount: 0 },
+          { id: 202, title: "Wind turbine", order: 1, remaining_amount: 5 },
+        ]),
+      ],
+    });
+
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+
+    let result: ReturnType<RegistrationFieldAnswersFormHandle["validate"]> = null;
+    act(() => {
+      result = formRef.current?.validate() ?? null;
+    });
+
+    expect(result).toBeNull();
+    const errorMessages = screen.getAllByText(texts.please_select_inventory_option);
+    expect(errorMessages.some((el) => el.tagName === "P")).toBe(true);
+  });
+
+  it("does not fire onFirstInteraction for the automatic single-option default", () => {
+    const onFirstInteraction = jest.fn();
+
+    renderForm({
+      fields: [
+        makeInventoryField([{ id: 201, title: "Number of people", order: 0 }], {
+          is_required: false,
+        }),
+      ],
+      onFirstInteraction,
+    });
+
+    expect(onFirstInteraction).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "1" } });
+
+    expect(onFirstInteraction).toHaveBeenCalledTimes(1);
   });
 });
