@@ -1,7 +1,6 @@
-import { Container, Link, Theme, useMediaQuery } from "@mui/material";
+import { Container, Theme, useMediaQuery } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
-import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import getTexts from "../../../../public/texts/texts";
 import theme from "../../../themes/theme";
 import UserContext from "../../context/UserContext";
@@ -80,16 +79,6 @@ export default function HubsSubHeader({
           )}
         </div>
         <div className={classes.hubsContainer}>
-          {!isNarrowScreen && !onlyShowDropDown && !isCustomHub && (
-            <Link
-              className={classes.link}
-              key={"/hubs"}
-              href={`${getLocalePrefix(locale)}/hubs/`}
-              underline="hover"
-            >
-              {texts.all_hubs}
-            </Link>
-          )}
           {hubs && !isCustomHub && (
             <HubLinks
               linkClassName={classes.link}
