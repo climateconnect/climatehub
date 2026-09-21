@@ -114,6 +114,11 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/gradjetzt",
+        destination: "https://climatehub.org/de/projects/gradjetzt-gegen-die-angst-marburg",
+        permanent: true,
+      },
+      {
         source: "/hubs/prio1",
         destination: "/hubs/prio1/browse",
         permanent: false,
