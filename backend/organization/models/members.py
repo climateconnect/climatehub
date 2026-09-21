@@ -231,4 +231,14 @@ class MembershipRequests(models.Model):
 
     class Meta:
         unique_together = ("user", "target_project")
-        verbose_name = "Member Requests"
+        verbose_name = "Membership Request"
+        verbose_name_plural = "Membership Requests"
+
+    def __str__(self):
+        if self.target_project:
+            target = self.target_project.name
+        elif self.target_organization:
+            target = self.target_organization.name
+        else:
+            target = "unknown target"
+        return "Membership request by %s to join %s" % (self.user.username, target)
