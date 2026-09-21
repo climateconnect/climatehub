@@ -255,9 +255,6 @@ const SiteLinks = ({ texts, locale }) => {
           <AppLink href="/members" leaveHub underline="none" className={classes.footerLink}>
             <Typography className={classes.li}>{texts.members}</Typography>
           </AppLink>
-          <AppLink href="/hubs" leaveHub underline="none" className={classes.footerLink}>
-            <Typography className={classes.li}>{texts.hubs}</Typography>
-          </AppLink>
         </div>
       </div>
 

@@ -27,11 +27,7 @@ const HubLandingPage: FC<HubLandingPageProps> = ({ hubData, hubUrl, EnComponent,
   if (!hubData) {
     return (
       <WideLayout>
-        <PageNotFound
-          itemName="landing page"
-          returnText={texts.return_to_hubs}
-          returnLink="/hubs/"
-        />
+        <PageNotFound itemName="landing page" />
       </WideLayout>
     );
   }
