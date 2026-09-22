@@ -44,6 +44,21 @@ export function getHubslugFromUrl(query) {
   return hubUrl + "_" + sub;
 }
 
+/**
+ * Extracts the hub slug from a URL path like "/hubs/erlangen" or
+ * "/de/hubs/erlangen". Needed for static hub landing pages, which have no
+ * dynamic route segment and therefore no hub slug in router.query. The
+ * locale prefix (e.g. "de") is stripped before matching; the default locale
+ * ("en") is served without a prefix.
+ */
+export function getHubSlugFromPath(path: string, locales?: readonly string[]): string | null {
+  if (!path) return null;
+  const segments = path.split(/[?#]/)[0].split("/").filter(Boolean);
+  const withoutLocale = locales && locales.includes(segments[0]) ? segments.slice(1) : segments;
+  const [first, second] = withoutLocale;
+  return first === "hubs" && second ? second : null;
+}
+
 export async function getAllHubs(locale: any, just_sector_hubs?: boolean) {
   const url = just_sector_hubs ? `/api/sector_hubs/` : `/api/hubs/`;
   try {

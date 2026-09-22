@@ -9,6 +9,7 @@ const mockGetHubData = jest.fn();
 const mockGetHubTheme = jest.fn();
 
 jest.mock("../../../public/lib/hubOperations", () => ({
+  ...jest.requireActual("../../../public/lib/hubOperations"),
   getAllHubs: (...args: any[]) => mockGetAllHubs(...args),
   getHubslugFromUrl: (query: any) => {
     const hubUrl = query.hubUrl || query.hub;
@@ -30,8 +31,12 @@ jest.mock("next/router", () => ({
   useRouter: () => mockUseRouter(),
 }));
 
-const setRouter = (query: Record<string, any>, locale = "en") =>
-  mockUseRouter.mockReturnValue({ query, locale });
+const setRouter = (
+  query: Record<string, any>,
+  locale = "en",
+  asPath?: string,
+  locales: string[] = ["en", "de"]
+) => mockUseRouter.mockReturnValue({ query, locale, asPath, locales });
 
 // Renders the provider and lets the async hub data/theme fetch settle so that
 // the resulting state updates happen inside `act()` (no console warnings).
@@ -74,6 +79,35 @@ describe("HubProvider", () => {
     const { result } = renderHubContext([]);
     expect(result.current.hubUrl).toBe("erlangen_zerowaste");
     await settleHubFetch(result);
+  });
+
+  it("derives the slug from an unprefixed (en) static hub landing page URL", async () => {
+    // Static hub landing pages (e.g. /hubs/erlangen) have no dynamic route
+    // segment, so the slug is not part of router.query.
+    setRouter({}, "en", "/hubs/erlangen");
+    const { result } = renderHubContext([]);
+    expect(result.current.hubUrl).toBe("erlangen");
+    await settleHubFetch(result);
+  });
+
+  it("derives the slug from a locale-prefixed (de) static hub landing page URL", async () => {
+    setRouter({}, "de", "/de/hubs/erlangen");
+    const { result } = renderHubContext([]);
+    expect(result.current.hubUrl).toBe("erlangen");
+    await settleHubFetch(result);
+  });
+
+  it("strips query strings and hashes from the path before matching", async () => {
+    setRouter({}, "en", "/hubs/erlangen/browse?someQuery=1#anchor");
+    const { result } = renderHubContext([]);
+    expect(result.current.hubUrl).toBe("erlangen");
+    await settleHubFetch(result);
+  });
+
+  it("is empty on pages outside of the hubs section", async () => {
+    setRouter({}, "en", "/browse");
+    const { result } = renderHubContext([]);
+    expect(result.current.hubUrl).toBe("");
   });
 
   it("fetches the hubs list exactly once on the client when not provided by the server", async () => {

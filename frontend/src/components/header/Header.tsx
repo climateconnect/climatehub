@@ -302,6 +302,9 @@ export default function Header({
   const [anchorEl, setAnchorEl] = useState<false | null | HTMLElement>(false);
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   const isMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down(960));
+  // The PageNav desktop hub switch disappears below "md", so the header
+  // switcher must take over from there on.
+  const showHeaderHubSwitch = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
   const customHubUrls = CUSTOM_HUB_URLS || ["prio1"];
   const isCustomHub = customHubUrls.includes(hubUrl);
   const isLocationHub = LOCATION_HUBS.includes(hubUrl);
@@ -393,7 +396,7 @@ export default function Header({
       className={`${classes.root} ${className} ${!noSpacingBottom && classes.spacingBottom}`}
     >
       <Container className={classes.container}>
-        {isNarrowScreen ? (
+        {showHeaderHubSwitch ? (
           <Box sx={{ display: "flex", alignItems: "center", minWidth: 0, flex: "0 1 auto" }}>
             <Link href={logoLink} className={classes.logoLink} underline="hover">
               <img
@@ -403,7 +406,7 @@ export default function Header({
                 onError={loadFallbackLogo}
               />
             </Link>
-            <HubLogoMenu />
+            <HubLogoMenu darkBackground={transparentHeader || isLandingPage || isCustomHub} />
           </Box>
         ) : (
           <Link href={logoLink} className={classes.logoLink} underline="hover">

@@ -1,6 +1,10 @@
 import React, { createContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { getAllHubs, getHubslugFromUrl } from "../../../public/lib/hubOperations";
+import {
+  getAllHubs,
+  getHubSlugFromPath,
+  getHubslugFromUrl,
+} from "../../../public/lib/hubOperations";
 import { getHubData } from "../../../public/lib/getHubData";
 import getHubTheme from "../../themes/fetchHubTheme";
 import { HubData, HubListItem, LocaleType } from "../../types";
@@ -45,7 +49,11 @@ export function HubProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const hubUrl = getHubslugFromUrl(router.query) || "";
+  // Query-derived slug first (path params on dynamic hub routes, ?hub=
+  // fallback), then the URL path for static hub landing pages, which have no
+  // dynamic route segment (e.g. /hubs/erlangen, /de/hubs/erlangen).
+  const hubUrl =
+    getHubslugFromUrl(router.query) || getHubSlugFromPath(router.asPath, router.locales) || "";
   const [hubs, setHubs] = useState<any[]>(initialHubs ?? []);
   const [hubData, setHubData] = useState<HubData | null>(null);
   const [hubTheme, setHubTheme] = useState<any | null>(null);

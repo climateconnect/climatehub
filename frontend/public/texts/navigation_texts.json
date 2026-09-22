@@ -91,6 +91,18 @@
     "en": "All Projects",
     "de": "Alle Projekte"
   },
+  "all_places": {
+    "en": "All places",
+    "de": "Alle Orte"
+  },
+  "locations": {
+    "en": "Locations",
+    "de": "Standorte"
+  },
+  "switch_hub": {
+    "en": "Switch hub",
+    "de": "Hub wechseln"
+  },
   "jobs": {
     "en": "Jobs",
     "de": "Jobs"
