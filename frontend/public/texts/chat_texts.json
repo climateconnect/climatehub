@@ -127,6 +127,10 @@
     "en": "This is the very beginning of your conversation with",
     "de": "Dies ist der Beginn deines Gesprächs mit"
   },
+  "this_is_the_very_beginning_of_your_conversation_about": {
+    "en": "This is the very beginning of your conversation about {context} with",
+    "de": "Dies ist der Beginn deines Gesprächs über {context} mit"
+  },
   "this_is_the_very_beginning_of_your_conversation_in": {
     "en": "This is the very beginning of your conversation in",
     "de": "Dies ist der Beginn deines Gesprächs in"
@@ -170,5 +174,13 @@
   "chat_message_origin_event_registration": {
     "en": "This message is about the registration for {event_name}",
     "de": "Diese Nachricht betrifft die Anmeldung für {event_name}"
+  },
+  "close_chat": {
+    "en": "Close chat",
+    "de": "Chat schließen"
+  },
+  "could_not_start_chat": {
+    "en": "The chat could not be started. Please try again later.",
+    "de": "Der Chat konnte nicht gestartet werden. Bitte versuche es später erneut."
   }
 }

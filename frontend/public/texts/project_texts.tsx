@@ -299,6 +299,16 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       de:
         "Bitte erstelle ein Konto oder melde dich an, um die Verantwortlichen des Projektes zu kontaktieren.",
     },
+    contact_chat_context_term: {
+      en:
+        project?.project_type?.type_id === "event"
+          ? `the event “${project?.name}”`
+          : `the project “${project?.name}”`,
+      de:
+        project?.project_type?.type_id === "event"
+          ? `die Veranstaltung „${project?.name}“`
+          : `das Projekt „${project?.name}“`,
+    },
     contact_creator: {
       en: "Contact creator",
       de: "Verantwortliche Kontaktieren",
@@ -938,6 +948,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     responsible_person_project: {
       en: "Project Creator",
       de: "Verantwortliche*r",
+    },
+    responsible_person_event: {
+      en: "Event Owner",
+      de: "Veranstalter:in",
     },
     responsible_person_idea: {
       en: "Idea Creator",
