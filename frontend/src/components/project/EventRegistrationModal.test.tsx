@@ -795,10 +795,10 @@ describe("EventRegistrationModal – custom fields", () => {
       }),
     });
 
-    // MUI Dialog renders into a portal, so query the full document
-    const selectEl = document.querySelector("select") as HTMLSelectElement;
-    expect(selectEl).toBeInTheDocument();
-    fireEvent.change(selectEl, { target: { value: "20" } });
+    // Single-option inventory fields show the option as fixed text and let the
+    // guest enter the quantity without any dropdown interaction.
+    expect(document.querySelector("select")).not.toBeInTheDocument();
+    expect(screen.getByText("Vegetarian (48 available)")).toBeInTheDocument();
     // Enter quantity
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "2" } });
     // Submit

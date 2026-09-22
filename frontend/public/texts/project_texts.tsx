@@ -2084,6 +2084,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "Quantity cannot exceed the maximum per guest.",
       de: "Die Menge darf das Maximum pro Gast nicht überschreiten.",
     },
+    inventory_sold_out: {
+      en: "Sold out",
+      de: "Ausverkauft",
+    },
     please_select_time_slot: {
       en: "Please select a time slot.",
       de: "Bitte wähle ein Zeitfenster aus.",
