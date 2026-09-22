@@ -104,6 +104,12 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/balkonien-mr",
+        destination:
+          "/de/projects/alles-muss-raus-ubrige-pv-module-von-balkonien-26-zu-verschenken?hub=marburg",
+        permanent: true,
+      },
+      {
         source: "/hitzefrei",
         destination: "/de/projects/wurzburg-entsiegeln?hub=wuerzburg",
         permanent: true,
