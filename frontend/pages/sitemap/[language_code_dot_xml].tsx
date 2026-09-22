@@ -12,6 +12,7 @@ const NOT_LISTED = [
   "/editprofile",
   "/inbox",
   "/createorganization",
+  "/join",
   "/resend_verification_email",
   "/resetpassword",
   "/settings",
@@ -33,13 +34,29 @@ const STATIC_PAGE_PROPS = {
     priority: 1,
     changefreq: "hourly",
   },
+  "/organizations": {
+    priority: 0.9,
+    changefreq: "daily",
+  },
+  "/members": {
+    priority: 0.9,
+    changefreq: "daily",
+  },
   "/donate": {
+    priority: 0.9,
+    changefreq: "daily",
+  },
+  "/events": {
     priority: 0.9,
     changefreq: "daily",
   },
   "/faq": {
     priority: 0.9,
     changefreq: "daily",
+  },
+  "/jobs": {
+    priority: 0.9,
+    changefreq: "weekly",
   },
   "/imprint": {
     priority: 0.5,
@@ -75,8 +92,8 @@ async function createSitemap(
   blogPosts,
   language_code
 ) {
-  let staticPages = (await globby(["pages/*.tsx"]))
-    .map((pageUrl) => pageUrl.replace("pages", "").replace(".tsx", ""))
+  let staticPages = (await globby(["pages/*.tsx", "pages/*/index.tsx"]))
+    .map((pageUrl) => pageUrl.replace("pages", "").replace(".tsx", "").replace("/index", ""))
     .filter((pageUrl) => !NOT_LISTED.includes(pageUrl));
   if (language_code) {
     staticPages = staticPages.map((pageUrl) => {
@@ -84,6 +101,12 @@ async function createSitemap(
     });
   }
   const BASE_URL = process.env.BASE_URL ? process.env.BASE_URL : "https://climateconnect.earth";
+  const baseHubEntries = hubEntries
+    .map((m) => renderEntry(BASE_URL, m.url_slug, 1, "daily", m.updated_at))
+    .join("");
+  const hubBrowseEntries = expandHubBrowseEntries(hubEntries, language_code)
+    .map((e) => renderEntry(BASE_URL, e.url_slug, 0.9, "daily", e.updated_at))
+    .join("");
   return `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     ${getStaticPageEntries(staticPages)
@@ -98,10 +121,41 @@ async function createSitemap(
     ${memberEntries
       .map((m) => renderEntry(BASE_URL, m.url_slug, 0.8, "daily", m.updated_at))
       .join("")}
-    ${hubEntries.map((m) => renderEntry(BASE_URL, m.url_slug, 1, "daily", m.updated_at)).join("")}
+    ${baseHubEntries}${hubBrowseEntries}
     ${blogPosts.map((b) => renderEntry(BASE_URL, b.url_slug, 0.9, "daily", b.updated_at)).join("")}
     </urlset>`;
 }
+
+const expandHubBrowseEntries = (hubEntries, language_code) => {
+  const langPrefix = language_code ? `/${language_code}` : "";
+  const browseTypes = ["browse", "organizations", "members"];
+  return hubEntries.flatMap((hub) => {
+    const hubUrlSlug = hub.url_slug.split("/").filter(Boolean).pop();
+    if (!hubUrlSlug) return [];
+    const base = `${langPrefix}/hubs/${hubUrlSlug}`;
+    const subHubs = Array.isArray(hub.sub_hubs) ? hub.sub_hubs : [];
+    const subHubEntries = subHubs.flatMap((sh) => {
+      const seg = sh.url_slug?.split("/").filter(Boolean).pop();
+      if (!seg) return [];
+      const subBase = `${base}/${seg}`;
+      return [
+        ...browseTypes.map((t) => ({
+          url_slug: `${subBase}/${t}`,
+          updated_at: hub.updated_at,
+        })),
+        { url_slug: `${subBase}/events`, updated_at: hub.updated_at },
+      ];
+    });
+    const ownEntries = [
+      ...browseTypes.map((t) => ({
+        url_slug: `${base}/${t}`,
+        updated_at: hub.updated_at,
+      })),
+      { url_slug: `${base}/events`, updated_at: hub.updated_at },
+    ];
+    return [...ownEntries, ...subHubEntries];
+  });
+};
 
 const getStaticPageEntries = (staticPages) => {
   return staticPages.map((p) => {

@@ -1,10 +1,5 @@
-from organization.models import ProjectStatus
 from climateconnect_main.utility.general import get_prop_in_language
 from organization.models.type import ProjectType
-
-
-def get_project_status(status: ProjectStatus, language_code: str) -> str:
-    return get_prop_in_language(status, "name", language_code)
 
 
 def get_project_type_name(type: ProjectType, language_code: str) -> str:

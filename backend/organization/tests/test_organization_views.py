@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import MultiPolygon, Point, Polygon
-from django.test import TransactionTestCase, tag
+from django.test import TestCase, tag
 from django.urls import reverse
 from PIL import Image
 from rest_framework import status
@@ -18,8 +18,10 @@ from organization.models import (
     Organization,
     OrganizationMember,
     OrganizationSectorMapping,
+    OrganizationTranslation,
     Sector,
 )
+from organization.utility.organization import create_organization_translation
 
 NUMBER_OF_ORGANIZATIONS = 5
 
@@ -623,6 +625,66 @@ class TestOrganizationAPIView(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()["location"], "München")
 
+    @tag("organization", "translations")
+    def test_get_organization_view_uses_request_language_translations(self):
+        # arrange
+        self.org.language = Language.objects.get(language_code="en")
+        self.org.name = "Original Name"
+        self.org.short_description = "Original short description"
+        self.org.about = "Original about"
+        self.org.get_involved = "Original get involved"
+        self.org.save()
+
+        OrganizationTranslation.objects.create(
+            organization=self.org,
+            language=Language.objects.get(language_code="de"),
+            name_translation="Uebersetzter Name",
+            short_description_translation="Uebersetzte Kurzbeschreibung",
+            about_translation="Uebersetztes About",
+            get_involved_translation="Uebersetztes Mitmachen",
+        )
+
+        # act
+        response = self.client.get(self.url, HTTP_ACCEPT_LANGUAGE="de")
+        data = response.json()
+
+        # assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["name"], "Uebersetzter Name")
+        self.assertEqual(data["short_description"], "Uebersetzte Kurzbeschreibung")
+        self.assertEqual(data["about"], "Uebersetztes About")
+        self.assertEqual(data["get_involved"], "Uebersetztes Mitmachen")
+
+    @tag("organization", "translations")
+    def test_get_organization_edit_view_uses_source_language_values(self):
+        # arrange
+        self.org.language = Language.objects.get(language_code="en")
+        self.org.name = "Original Name"
+        self.org.short_description = "Original short description"
+        self.org.about = "Original about"
+        self.org.get_involved = "Original get involved"
+        self.org.save()
+
+        OrganizationTranslation.objects.create(
+            organization=self.org,
+            language=Language.objects.get(language_code="de"),
+            name_translation="Uebersetzter Name",
+            short_description_translation="Uebersetzte Kurzbeschreibung",
+            about_translation="Uebersetztes About",
+            get_involved_translation="Uebersetztes Mitmachen",
+        )
+
+        # act
+        response = self.client.get(self.edit_view_url, HTTP_ACCEPT_LANGUAGE="de")
+        data = response.json()
+
+        # assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["name"], "Original Name")
+        self.assertEqual(data["short_description"], "Original short description")
+        self.assertEqual(data["about"], "Original about")
+        self.assertEqual(data["get_involved"], "Original get involved")
+
     @tag("organiztaion", "sectors")
     def test_get_organization_by_url_slug_includes_sectors(self):
         # arrange
@@ -970,12 +1032,45 @@ class TestOrganizationAPIView(APITestCase):
             self.assertEqual(mapping.order, ordering[sector.key])
 
 
-class OrganizationLocationHubFilterTest(TransactionTestCase):
+class TestCreateOrganizationTranslation(APITestCase):
+    @tag("organization", "translations")
+    def test_create_organization_translation_persists_get_involved(self):
+        # arrange
+        org = Organization.objects.create(
+            name="Source Org",
+            url_slug="source-org",
+            language=Language.objects.get(language_code="en"),
+        )
+        target_language = Language.objects.get(language_code="de")
+
+        texts = {
+            "name": "Source Org",
+            "short_description": "Short",
+            "about": "About",
+            "get_involved": "How to help",
+        }
+
+        # act
+        create_organization_translation(
+            organization=org,
+            language=target_language,
+            texts=texts,
+            is_manual_translation=False,
+        )
+        translation = OrganizationTranslation.objects.get(
+            organization=org,
+            language=target_language,
+        )
+
+        # assert
+        self.assertEqual(translation.get_involved_translation, "How to help")
+
+
+class OrganizationLocationHubFilterTest(TestCase):
     """
     Test case for filtering organizations by location hubs.
     Tests the code in organization_views.py that handles filtering organizations
     by location hubs with aggregated geometry.
-    Uses TransactionTestCase to ensure complete database isolation and cleanup.
     """
 
     def setUp(self):
@@ -1204,16 +1299,6 @@ class OrganizationLocationHubFilterTest(TransactionTestCase):
             url_slug="paris-address-org",
             location=self.location_paris_address,
         )
-
-    def tearDown(self):
-        """
-        Clean up after each test.
-        TransactionTestCase automatically clears the database, but
-        we explicitly clear for clarity.
-        """
-        Organization.objects.all().delete()
-        Hub.objects.all().delete()
-        Location.objects.all().delete()
 
     @tag("location_hub", "organizations")
     def test_filter_organizations_by_multi_location_hub(self):

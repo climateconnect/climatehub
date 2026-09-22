@@ -59,6 +59,7 @@ type Args<P extends Page> = {
   user?: User;
   hubAmbassador?: string;
   creator?: string;
+  subHubName?: string;
 };
 
 export default function getTexts<P extends Page>({
@@ -77,6 +78,7 @@ export default function getTexts<P extends Page>({
   user,
   hubAmbassador,
   creator,
+  subHubName,
 }: Args<P>) {
   // These are the multiple text files for various translations. They're
   // split up to reduce the amount of work required to download
@@ -94,6 +96,7 @@ export default function getTexts<P extends Page>({
       filterType: filterType,
       hubName: hubName,
       locale: locale,
+      subHubName: subHubName,
     }),
     general: general_texts,
     hub: getHubTexts({ hubName: hubName, hubAmbassador: hubAmbassador }),

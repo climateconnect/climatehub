@@ -1,3 +1,6 @@
+from unittest.mock import MagicMock, patch
+
+import requests
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Point, Polygon
 from django.db.models.signals import post_save
 from django.test import TestCase, override_settings
@@ -310,6 +313,108 @@ class TestGetLocation(TestCase):
         self.assertEqual(global_location.osm_type, "R")
         self.assertEqual(global_location.osm_class, "global")
         self.assertEqual(global_location.osm_class_type, "global")
+
+
+@override_settings(
+    LOCATION_SERVICE_BASE_URL="http://mock.location.test",
+    CUSTOM_USER_AGENT="Test-Agent",
+)
+class TestGetLocationWithStrippedGeometry(TestCase):
+    """
+    Autocomplete responses no longer carry polygon coordinates (they are
+    stripped before caching, see location.providers.strip_geometry). The full
+    geometry must still reach the database, so get_location() re-fetches it
+    from the provider when it creates a Location it has never seen before.
+    """
+
+    # A small square around Berlin — enough to become a real MultiPolygon.
+    POLYGON = {
+        "type": "Polygon",
+        "coordinates": [
+            [[13.0, 52.0], [14.0, 52.0], [14.0, 53.0], [13.0, 53.0], [13.0, 52.0]]
+        ],
+    }
+
+    def setUp(self):
+        post_save.disconnect(find_location_translations, sender=Location)
+        self.stripped_location_object = {
+            "place_id": 999111,
+            "country": "Germany",
+            "name": "Brandenburg",
+            "type": "Polygon",
+            "lon": "13.5",
+            "lat": "52.5",
+            "osm_id": 62504,
+            "osm_type": "relation",
+            "osm_class": "boundary",
+            "osm_class_type": "administrative",
+            "display_name": "Brandenburg, Germany",
+            # This is what strip_geometry() leaves behind.
+            "geojson": {"type": "Polygon", "coordinates": None},
+        }
+
+    def tearDown(self):
+        post_save.connect(find_location_translations, sender=Location)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("location.utility.requests.get")
+    def test_polygon_is_refetched_and_stored(self, mock_get):
+        mock_get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: [{"geojson": self.POLYGON}],
+        )
+
+        location = get_location(self.stripped_location_object)
+
+        mock_get.assert_called_once()
+        # The looked-up object is the one the user picked.
+        self.assertEqual(mock_get.call_args.kwargs["params"]["osm_ids"], "R62504")
+        self.assertEqual(mock_get.call_args.kwargs["params"]["polygon_geojson"], 1)
+        # ...and the real geometry landed in the DB, not a point.
+        self.assertIsNotNone(location.multi_polygon)
+        self.assertGreater(location.multi_polygon.area, 0)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("location.utility.requests.get")
+    def test_falls_back_to_point_when_lookup_fails(self, mock_get):
+        # A failed geometry lookup must not block the user from saving.
+        mock_get.side_effect = requests.RequestException("upstream down")
+
+        location = get_location(self.stripped_location_object)
+
+        self.assertIsNone(location.multi_polygon)
+        self.assertIsNotNone(location.centre_point)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("location.utility.requests.get")
+    def test_no_lookup_for_a_point_geometry(self, mock_get):
+        # Points keep their coordinates through stripping, so there is
+        # nothing to re-fetch.
+        point_object = {
+            **self.stripped_location_object,
+            "type": "Point",
+            "geojson": {"type": "Point", "coordinates": [13.405, 52.52]},
+        }
+
+        get_location(point_object)
+
+        mock_get.assert_not_called()
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("location.utility.requests.get")
+    def test_no_lookup_when_location_already_exists(self, mock_get):
+        mock_get.return_value = MagicMock(
+            status_code=200, json=lambda: [{"geojson": self.POLYGON}]
+        )
+        existing = get_location(self.stripped_location_object)
+        mock_get.reset_mock()
+
+        again = get_location(self.stripped_location_object)
+
+        # Resolved straight from the DB by OSM composite key — the geometry
+        # lookup only ever costs us on first creation.
+        self.assertEqual(again.id, existing.id)
+        mock_get.assert_not_called()
 
 
 class TestGetLocationWithRange(TestCase):

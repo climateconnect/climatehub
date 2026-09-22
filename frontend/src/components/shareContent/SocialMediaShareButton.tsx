@@ -1,12 +1,11 @@
 import { IconButton, Theme, useMediaQuery } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import ShareIcon from "@mui/icons-material/Share";
-import React, { useContext, useState } from "react";
-import { apiRequest } from "../../../public/lib/apiOperations";
+import React, { useState } from "react";
 import SocialMediaShareDialog from "./SocialMediaShareDialog";
-import UserContext from "../context/UserContext";
-import Cookies from "universal-cookie";
 import theme from "../../themes/theme";
+import { SHARE_OPTIONS } from "./shareOptions";
+import useCreateShareRecord from "./useCreateShareRecord";
 
 const useStyles = makeStyles<Theme, { switchColors?: boolean }>((theme) => ({
   button: (props) => ({
@@ -46,9 +45,6 @@ export default function SocialMediaShareButton({
   hubUrl,
 }: SocialMediaShareButtonProps) {
   const classes = useStyles({ switchColors: switchColors });
-  const { locale } = useContext(UserContext);
-  const cookies = new Cookies();
-  const token = cookies.get("token");
   const isTinyScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
   const isSmallScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   const [showSocials, setShowSocials] = useState(false);
@@ -56,40 +52,7 @@ export default function SocialMediaShareButton({
     setShowSocials(value);
   };
 
-  const [linkShared, setLinkShared] = useState(false);
-  const createShareRecord = (sharedVia) => {
-    if (sharedVia === SHARE_OPTIONS.link && linkShared) return; //only create a share-record for the link once per session
-    apiRequest({
-      method: "post",
-      url: apiEndpoint,
-      payload: { shared_via: sharedVia },
-      token: token,
-      locale: locale,
-    })
-      .then(() => {
-        if (sharedVia === SHARE_OPTIONS.link) {
-          setLinkShared(true);
-        }
-      })
-      .catch(function (error) {
-        console.log(error);
-        if (error && error.reponse) console.log(error.response);
-      });
-  };
-
-  //Assignment of the numbers has to match with ContentShares.SHARE_OPTIONS in the backend
-  const SHARE_OPTIONS = {
-    facebook: 0,
-    fb_messenger: 1,
-    twitter: 2,
-    whatsapp: 3,
-    linkedin: 4,
-    reddit: 5,
-    telegram: 6,
-    e_mail: 7,
-    link: 8,
-    native_share_dialog_of_device: 9,
-  };
+  const createShareRecord = useCreateShareRecord(apiEndpoint);
 
   const queryString = hubUrl ? `?hub=${hubUrl}` : "";
   const BASE_URL = process.env.BASE_URL ? process.env.BASE_URL : `https://climateconnect.earth`;

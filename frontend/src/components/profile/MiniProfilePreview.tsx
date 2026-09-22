@@ -1,10 +1,9 @@
-import { Avatar, IconButton, Link, Typography } from "@mui/material";
+import { Avatar, IconButton, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import ClearIcon from "@mui/icons-material/Clear";
-import React, { useContext } from "react";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
-import UserContext from "../context/UserContext";
+import React from "react";
 import { getImageUrl } from "./../../../public/lib/imageOperations";
+import AppLink from "../general/AppLink";
 import ProfileBadge from "./ProfileBadge";
 
 const useStyles = makeStyles((theme) => {
@@ -35,6 +34,7 @@ const useStyles = makeStyles((theme) => {
     contentWrapper: {
       display: "inline-flex",
       alignItems: "center",
+      verticalAlign: "middle",
     },
     badge: {
       bottom: "20%",
@@ -42,7 +42,7 @@ const useStyles = makeStyles((theme) => {
   };
 });
 
-type Props = { className?; profile?; avatarClassName?; size?; nolink?; onDelete?; hubUrl?: string };
+type Props = { className?; profile?; avatarClassName?; size?; nolink?; onDelete? };
 
 export default function MiniProfilePreview({
   className,
@@ -51,22 +51,18 @@ export default function MiniProfilePreview({
   size,
   nolink,
   onDelete,
-  hubUrl,
 }: Props) {
-  const { locale } = useContext(UserContext);
-  const queryString = hubUrl ? "?hub=" + hubUrl : "";
-
   if (!nolink)
     return (
       <>
-        <Link
+        <AppLink
           color="inherit"
-          href={getLocalePrefix(locale) + `/profiles/${profile.url_slug}${queryString}`}
+          href={`/profiles/${profile.url_slug}`}
           className={`${"" /*TODO(undefined) classes.avatarWithInfo*/} ${className}`}
           underline="hover"
         >
           <Content profile={profile} avatarClassName={avatarClassName} size={size} />
-        </Link>
+        </AppLink>
         {onDelete && (
           <IconButton onClick={() => onDelete(profile)} size="large">
             <ClearIcon />

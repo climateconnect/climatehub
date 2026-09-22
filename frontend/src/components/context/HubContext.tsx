@@ -6,7 +6,8 @@ import getHubTheme from "../../themes/fetchHubTheme";
 import { HubData, HubListItem, LocaleType } from "../../types";
 
 export interface HubContextValue {
-  /** Active hub slug derived from the URL (top-level slug on sub-hub pages). */
+  /** Active hub slug derived from the URL. On sub-hub pages this is the
+   *  composed slug (e.g. "perth_energy"), on parent-hub pages the raw slug. */
   hubUrl: string;
   /** Full active hub object, when one is set. */
   hubData: HubData | null;

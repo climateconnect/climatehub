@@ -2,6 +2,8 @@ import logging
 import re
 import traceback
 import zoneinfo
+from datetime import datetime
+from datetime import timezone as dt_timezone
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -11,7 +13,6 @@ from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Case, Prefetch, Q, When
-from datetime import datetime
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
 from rest_framework import status
@@ -34,13 +35,13 @@ from climateconnect_api.models import (
 from climateconnect_api.models.language import Language
 from climateconnect_api.tasks import calculate_project_rankings
 from climateconnect_api.utility.content_shares import save_content_shared
+from climateconnect_api.utility.html import (
+    PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
+    PROJECT_DESCRIPTION_ALLOWED_TAGS,
+    sanitize_html,
+)
 from climateconnect_api.utility.translation import (
     edit_translations,
-)
-from climateconnect_api.utility.html import (
-    sanitize_html,
-    PROJECT_DESCRIPTION_ALLOWED_TAGS,
-    PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
 )
 from climateconnect_main.utility.general import get_image_from_data_url
 from hubs.models.hub import Hub
@@ -62,9 +63,6 @@ from organization.models import (
     ProjectMember,
     ProjectParents,
     ProjectSectorMapping,
-    ProjectStatus,
-    ProjectTagging,
-    ProjectTags,
     Sector,
 )
 from organization.models.event_registration import (
@@ -102,11 +100,7 @@ from organization.serializers.project import (
     ProjectSitemapEntrySerializer,
     ProjectStubSerializer,
 )
-from organization.serializers.status import (
-    ProjectStatusSerializer,
-    ProjectTypesSerializer,
-)
-from organization.serializers.tags import ProjectTagsSerializer
+from organization.serializers.project_types import ProjectTypesSerializer
 from organization.utility import MembershipTarget
 from organization.utility.cache import generate_project_ranking_cache_key
 from organization.utility.follow import (
@@ -199,10 +193,9 @@ class ListProjectsView(ListAPIView):
         # Get project ranking
         projects = (
             Project.objects.filter(is_draft=False, is_active=True)
-            .select_related("loc", "language", "status", "registration_config")
+            .select_related("loc", "language", "registration_config")
             .prefetch_related(
                 "loc__translate_location__language",
-                "tag_project",  # TODO: remove after updating frontend to use sectors
                 Prefetch(
                     "project_comment",
                     queryset=ProjectComment.objects.select_related("comment_ptr"),
@@ -266,20 +259,6 @@ class ListProjectsView(ListAPIView):
                 projects = projects.filter(collaborators_welcome=True)
             if collaborators_welcome == "no":
                 projects = projects.filter(collaborators_welcome=False)
-
-        if "category" in self.request.query_params:
-            project_category = self.request.query_params.get("category").split(",")
-            project_tags = ProjectTags.objects.filter(name__in=project_category)
-            # Use .distinct to dedupe selected rows.
-            # https://docs.djangoproject.com/en/dev/ref/models/querysets/#django.db.models.query.QuerySet.distinct
-            # We then sort by rating, to show most relevant results
-            projects = projects.filter(
-                tag_project__project_tag__in=project_tags, is_active=True
-            ).distinct()
-
-        if "status" in self.request.query_params:
-            statuses = self.request.query_params.get("status").split(",")
-            projects = projects.filter(status__name__in=statuses)
 
         if "organization_type" in self.request.query_params:
             organization_type_names = self.request.query_params.get(
@@ -550,8 +529,8 @@ class EventCalendarCountsView(APIView):
         month_end_local = (
             month_start_local + relativedelta(months=1) - relativedelta(days=1)
         ).replace(hour=23, minute=59, second=59)
-        month_start = month_start_local.astimezone(timezone.utc)
-        month_end = month_end_local.astimezone(timezone.utc)
+        month_start = month_start_local.astimezone(dt_timezone.utc)
+        month_end = month_end_local.astimezone(dt_timezone.utc)
 
         queryset = Project.objects.filter(
             is_draft=False,
@@ -731,11 +710,6 @@ class CreateProjectView(APIView):
 
     @transaction.atomic()
     def post(self, request):
-        # Temporary fix: there is no project status anymore within the frontend
-        # therefore we "overwrite" the status to published until project status
-        # is fully removed from the backend, too.
-        request.data["status"] = 2  # ProjectStatus.DEFAULT_TYPE
-
         if "parent_organization" in request.data:
             organization = check_organization(int(request.data["parent_organization"]))
         else:
@@ -747,7 +721,6 @@ class CreateProjectView(APIView):
         # If 'is_draft' is not set or is set to a falsy value then run the code in this if block
         if not is_draft:
             required_params += [
-                "status",
                 "short_description",
                 "collaborators_welcome",
                 "team_members",
@@ -824,17 +797,6 @@ class CreateProjectView(APIView):
                     er_serializer.errors, status=status.HTTP_400_BAD_REQUEST
                 )
         # --- end registration_config validation ---
-
-        try:
-            ProjectStatus.objects.get(id=int(request.data["status"]))
-        except ProjectStatus.DoesNotExist:
-            return Response(
-                {
-                    "message": "Passed status {} does not exist".format(
-                        request.data["status"]
-                    )
-                }
-            )
 
         # Sanitize description_html before saving
         if "description_html" in request.data:
@@ -975,28 +937,6 @@ class CreateProjectView(APIView):
                     for i, sector in enumerate(sectors)
                 ]
             )
-
-        # TODO (Karol): Change this to sectors
-        if "project_tags" in request.data:
-            order = len(request.data["project_tags"])
-            for project_tag_id in request.data["project_tags"]:
-                try:
-                    project_tag = ProjectTags.objects.get(id=int(project_tag_id))
-                except ProjectTags.DoesNotExist:
-                    logger.error(
-                        "Passed project tag ID {} does not exists".format(
-                            project_tag_id
-                        )
-                    )
-                    continue
-                if project_tag:
-                    ProjectTagging.objects.create(
-                        project=project, project_tag=project_tag, order=order
-                    )
-                    order = order - 1
-                    logger.info(
-                        "Project tagging created for project {}".format(project.id)
-                    )
 
         # TODO: completely remove availability
         for member in team_members:
@@ -1159,34 +1099,6 @@ class ProjectAPIView(APIView):
         if "project_type" in request.data:
             project.project_type = ProjectTypesChoices[request.data["project_type"]]
 
-        # TODO: remove the project_taggings
-        old_project_taggings = ProjectTagging.objects.filter(project=project)
-        old_project_tags = old_project_taggings.values("project_tag")
-        if "project_tags" in request.data:
-            order = len(request.data["project_tags"])
-            for tag in old_project_tags:
-                if tag["project_tag"] not in request.data["project_tags"]:
-                    tag_to_delete = ProjectTags.objects.get(id=tag["project_tag"])
-                    ProjectTagging.objects.filter(
-                        project=project, project_tag=tag_to_delete
-                    ).delete()
-            for tag_id in request.data["project_tags"]:
-                old_taggings = old_project_taggings.filter(project_tag=tag_id)
-                if not old_taggings.exists():
-                    try:
-                        tag = ProjectTags.objects.get(id=tag_id)
-                        ProjectTagging.objects.create(
-                            project_tag=tag, project=project, order=order
-                        )
-                    except ProjectTags.DoesNotExist:
-                        logger.error("Passed proj tag id {} does not exists")
-                else:
-                    old_tagging = old_taggings[0]
-                    if not old_tagging.order == order:
-                        old_tagging.order = int(order)
-                        old_tagging.save()
-                order = order - 1
-
         if "sectors" in request.data:
             _sector_keys = request.data["sectors"]
             sector_keys, err = sanitize_sector_inputs(_sector_keys)
@@ -1254,14 +1166,6 @@ class ProjectAPIView(APIView):
                 hub = Hub.objects.filter(url_slug=related_hub_slug).first()
                 if hub:
                     project.related_hubs.add(hub)
-        if "status" in request.data:
-            try:
-                project_status = ProjectStatus.objects.get(
-                    id=int(request.data["status"])
-                )
-            except ProjectStatus.DoesNotExist:
-                raise NotFound("Project status not found.")
-            project.status = project_status
         if "start_date" in request.data:
             project.start_date = parse(request.data["start_date"])
         if "end_date" in request.data:
@@ -1297,23 +1201,27 @@ class ProjectAPIView(APIView):
                             },
                             status=status.HTTP_400_BAD_REQUEST,
                         )
-        if "is_personal_project" in request.data:
-            if request.data["is_personal_project"] is True:
-                project_parents = ProjectParents.objects.get(project=project)
-                project_parents.parent_organization = None
-                project_parents.save()
         if "parent_organization" in request.data:
             project_parents = ProjectParents.objects.get(project=project)
-            try:
-                organization = Organization.objects.get(
-                    id=request.data["parent_organization"]
-                )
-            except Organization.DoesNotExist:
-                organization = None
-                logger.error("Passed parent organization id {} does not exist")
+            parent_organization_id = request.data["parent_organization"]
+            if parent_organization_id in (None, "", "null"):
+                project_parents.parent_organization = None
+                project_parents.save()
+            else:
+                try:
+                    organization = Organization.objects.get(id=parent_organization_id)
+                except Organization.DoesNotExist:
+                    return Response(
+                        {
+                            "parent_organization": [
+                                "Organization not found for the provided id."
+                            ]
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            project_parents.parent_organization = organization
-            project_parents.save()
+                project_parents.parent_organization = organization
+                project_parents.save()
 
         project.save()
 
@@ -1552,40 +1460,6 @@ class ListProjectMembersView(ListAPIView):
         project = Project.objects.get(url_slug=self.kwargs["url_slug"])
 
         return project.project_member_project.filter(is_active=True)
-
-
-# TODO (Karol): remove this view, as project tags are being replaced by sectors
-class ListProjectTags(ListAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = ProjectTagsSerializer
-
-    def get_queryset(self):
-        if "hub" in self.request.query_params:
-            try:
-                hub = Hub.objects.get(url_slug=self.request.query_params["hub"])
-                if hub.hub_type == Hub.SECTOR_HUB_TYPE:
-                    parent_tag = hub.filter_parent_tags.all()[0]
-                    return ProjectTags.objects.filter(parent_tag=parent_tag)
-                if hub.hub_type == Hub.LOCATION_HUB_TYPE:
-                    return ProjectTags.objects.all()
-                if hub.hub_type == Hub.CUSTOM_HUB_TYPE:
-                    return ProjectTags.objects.all()
-
-                # TODO(Karol): is this default needed, just in case?
-                return ProjectTags.objects.all()
-
-            except Hub.DoesNotExist:
-                return ProjectTags.objects.all()
-        else:
-            return ProjectTags.objects.all()
-
-
-class ListProjectStatus(ListAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = ProjectStatusSerializer
-
-    def get_queryset(self):
-        return ProjectStatus.objects.all()
 
 
 class ListProjectTypeOptions(APIView):

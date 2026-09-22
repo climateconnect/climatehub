@@ -79,7 +79,6 @@ export default function GoBackButton({
     if (hubPage) {
       return "/" + locale + "/hubs/" + hubPage + "/browse";
     }
-    // Default to general browse page
     return "/" + locale + "/browse";
   };
 
@@ -101,12 +100,21 @@ export default function GoBackButton({
 
     // Priority 2: Go back to the page the user actually came from, acting like
     // the browser back button. Only do so when the referrer indicates an
-    // internal page. If the user came from an external site, opened the page
-    // via "open in new tab" on an external link, or typed the URL directly,
-    // the referrer will be empty or on a different host — in those cases
-    // history.back() would either do nothing (new tab) or take the user back
-    // to the external site, so we fall back to a hard-coded internal URL.
-    if (typeof document !== "undefined" && isInternalReferrer(document.referrer)) {
+    // internal page AND there is actual history to go back to.
+    //
+    // When the user arrives via a server-side redirect (e.g. a vanity URL like
+    // /klimakuechen-erlangen → /de/projects/klimakuechen), the Fetch spec sets
+    // document.referrer to the redirect source URL (same host), which makes
+    // isInternalReferrer return true. However, for permanent (301) redirects
+    // the browser does not add the source to the history stack, so
+    // router.back() with history.length === 1 would silently do nothing.
+    // Checking history.length > 1 prevents this silent no-op.
+    const hasBackHistory = typeof window !== "undefined" && window.history.length > 1;
+    if (
+      hasBackHistory &&
+      typeof document !== "undefined" &&
+      isInternalReferrer(document.referrer)
+    ) {
       router.back();
     } else {
       router.push(getDefaultBackUrl());

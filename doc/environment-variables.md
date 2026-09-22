@@ -356,6 +356,100 @@ Azure Blob Storage is used in production for media file storage.
 - **Example**: `"https://..."`
 - **Usage**: Geocoding addresses to coordinates, location search
 
+#### LOCATIONIQ_API_KEY
+- **Required**: ❌ No (falls back to Nominatim if unset)
+- **Type**: String
+- **Default**: `""`
+- **Description**: API key for LocationIQ, the primary provider for location autocomplete
+  (`/api/location_autocomplete/`). Kept server-side and never exposed to the browser.
+- **Example**: `"pk.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"`
+- **Usage**: An empty key makes the backend skip LocationIQ entirely and use Nominatim
+  (`LOCATION_SERVICE_BASE_URL`) for autocomplete, so the feature degrades gracefully rather than
+  breaking. `initial_dev_setup.sh` writes the key (empty) into a fresh `backend/.backend_env`, so a
+  new dev environment works out of the box on Nominatim and only needs the value filled in to
+  exercise LocationIQ.
+
+#### LOCATIONIQ_DAILY_BUDGET
+- **Required**: ❌ No (no cap when unset)
+- **Type**: Integer (string)
+- **Default**: unset — **the daily cap is disabled**
+- **Description**: Maximum number of LocationIQ calls per UTC day. Once today's count crosses it,
+  the backend stops calling LocationIQ and falls through to Nominatim for the rest of the day.
+- **Example**: `"5000"`
+- **Usage**: IP-agnostic backstop that protects the shared account quota — per-IP rate limits alone
+  can't do that. Set it to your plan's daily allowance with headroom. The count comes from
+  `AutocompletePeriodStats` (provider `locationiq`) and measures **upstream calls**, not HTTP requests.
+
+> **Naming**: `LOCATIONIQ_*` settings are provider-specific (credential, endpoint, timeout, the
+> account rate limit, the quota backstop) — swapping geocoders would change them. `LOCATION_PROXY_*`
+> settings belong to the autocomplete proxy layer itself (rendezvous queue, pending-sentinel
+> lifecycle, result cache, per-IP limits) and would be unchanged by such a swap; they also govern
+> the Nominatim fallback path.
+
+#### LOCATION_PROXY_RESULT_TTL_S
+- **Required**: ❌ No
+- **Type**: Integer (string)
+- **Default**: `86400` (24 hours)
+- **Description**: How long a successful autocomplete result stays cached in Redis. The TTL is
+  *sliding*: every cache hit resets it back to this value, but never beyond
+  `LOCATION_PROXY_MAX_CACHE_AGE_S` from when the entry was first fetched.
+- **Usage**: Raise it to spend less LocationIQ quota, lower it to pick up upstream data changes
+  sooner. Failed lookups are unaffected — they use the much shorter `LOCATION_PROXY_NEGATIVE_TTL_S`.
+
+#### LOCATION_PROXY_MAX_CACHE_AGE_S
+- **Required**: ❌ No
+- **Type**: Integer (string)
+- **Default**: `172800` (48 hours)
+- **Description**: Absolute ceiling on a cached result's age. Once an entry is this old it is
+  discarded and re-fetched no matter how often it has been read.
+- **Usage**: The guarantee that a renamed place or a corrected boundary self-heals without anyone
+  clearing the cache by hand. Must be ≥ `LOCATION_PROXY_RESULT_TTL_S` to have any effect — settings
+  load emits a `RuntimeWarning` if it isn't, because the combination silently makes the sliding
+  result TTL unreachable rather than failing outright.
+
+#### LOCATION_PROXY_CACHE_MAX_ENTRIES
+- **Required**: ❌ No
+- **Type**: Integer (string)
+- **Default**: `1000` (~7 MB — cached entries are ~7 KB once polygons are stripped)
+- **Description**: Hard cap on how many autocomplete queries are cached. Enforced by an explicit
+  LRU index (`locationiq:lru`), evicting the least recently *read* entry.
+- **Usage**: Redis is shared with the Celery broker and the Channels layer, so this bounds the
+  cache's footprint there. Raising it lowers LocationIQ spend (more prefix queries stay cached);
+  lower it if the Redis tier is tight. `0` disables the cap entirely — not recommended.
+
+All three of the cache settings above are read with the `int_env()` helper in `settings.py`, so
+declaring one with an empty value (`LOCATION_PROXY_RESULT_TTL_S=`) falls back to its default instead of
+raising `ValueError` at import and refusing to boot.
+
+Related non-env settings live in `climateconnect_main/settings.py` and are tuned in code, not per
+environment: `LOCATIONIQ_MAX_RATE` (Celery `rate_limit`, 2/s — should be `1/s` while the
+`LOCATIONIQ_AUTOCOMPLETE` toggle is off in production, since the Nominatim fallback then carries
+all proxy traffic from a single server IP; note `LOCATION_PROXY_SENTINEL_TTL_S` and
+`LOCATION_PROXY_STALE_PENDING_S` are derived from it), `LOCATION_PROXY_PENDING_CAP`,
+`LOCATION_PROXY_SENTINEL_TTL_S`, `LOCATION_PROXY_STALE_PENDING_S`, `LOCATION_PROXY_NEGATIVE_TTL_S`,
+`LOCATION_PROXY_STATS_TTL_S`, and the two per-IP limits. Several of them are interdependent — see
+`doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md` before changing any.
+
+Whether the backend calls LocationIQ at all is controlled by the `LOCATIONIQ_AUTOCOMPLETE` feature
+toggle rather than by an environment variable — see `FEATURE_TOGGLE_ENVIRONMENT` below and
+`doc/spec/20260804_1202_locationiq_feature_toggle_and_result_caching.md`.
+
+#### FEATURE_TOGGLE_ENVIRONMENT
+- **Required**: ❌ No
+- **Type**: String
+- **Values**: `"development"` | `"staging"` | `"production"`
+- **Default**: falls back to `ENVIRONMENT` (with `"test"` mapped to `"development"`)
+- **Description**: Which column of the `FeatureToggle` table **backend** code reads. Frontend
+  toggle reads are unaffected — those detect the environment from the request host.
+- **Usage**: Set it explicitly to `"staging"` on the staging slot. That slot runs the same
+  artifact, and therefore the same `ENVIRONMENT` value, as production, so without this override a
+  backend toggle read on staging resolves against the *production* column. Kept separate from
+  `ENVIRONMENT` so that changing it does not also flip the Celery SSL configuration, which keys off
+  `ENVIRONMENT == "production"`.
+- **Note**: a value outside the three listed emits a `RuntimeWarning` at settings load. Without it
+  the failure is near-silent — every backend toggle read falls back to its default, which looks
+  exactly like the toggles being switched off.
+
 #### DEEPL_API_KEY
 - **Required**: ⚠️ Conditional (if using translation features)
 - **Type**: String

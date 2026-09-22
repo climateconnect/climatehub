@@ -26,7 +26,6 @@ MAPPING_TABLE_PATH = Path(__file__).parent / "osm_lookup_tables" / "mapping.csv"
 def create_name_from_translation_data(
     original_location: Location, translation_data: dict
 ) -> str:
-
     name = []
     if original_location.place_name:
         name.append(original_location.place_name)
@@ -43,7 +42,6 @@ def create_name_from_translation_data(
 
 
 def get_language_id(locale: str) -> int:
-
     try:
         language = Language.objects.get(language_code=locale.lower())
         return language.id
@@ -54,7 +52,6 @@ def get_language_id(locale: str) -> int:
 
 
 def translate_locations(locs: list["Location"], locale: str):
-
     if not locs:
         return 0
 
@@ -64,7 +61,6 @@ def translate_locations(locs: list["Location"], locale: str):
     locations_created_count = 0
 
     for i in tqdm(range(0, len(locs), batch_size)):
-
         batch_locations = locs[i : i + batch_size]
         osm_ids = set()
         unique_translations = {}

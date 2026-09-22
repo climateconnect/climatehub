@@ -2,6 +2,7 @@ import logging
 
 from django.contrib.gis.db import models
 from django.utils import timezone as tz
+
 from climateconnect_api.models.language import Language
 
 logger = logging.getLogger(__name__)
@@ -200,14 +201,19 @@ class LocationTranslation(models.Model):
         )
 
 
-class NominatimRequestLog(models.Model):
+class AutocompleteRequestLog(models.Model):
     """
-    Lightweight log of individual Nominatim autocomplete requests.
+    Lightweight log of individual autocomplete requests, tagged by provider.
 
     One row per request. A periodic Celery task reads unprocessed rows,
-    computes day/week/month aggregates into NominatimPeriodStats, and
+    computes day/week/month aggregates into AutocompletePeriodStats, and
     marks them as processed. Rows older than 7 days are cleaned up.
     """
+
+    PROVIDER_CHOICES = [
+        ("nominatim", "Nominatim"),
+        ("locationiq", "LocationIQ"),
+    ]
 
     created_at = models.DateTimeField(default=tz.now, db_index=True)
     processed = models.BooleanField(default=False, db_index=True)
@@ -215,24 +221,36 @@ class NominatimRequestLog(models.Model):
         help_text="Epoch minutes (epoch_seconds // 60) for grouping",
         db_index=True,
     )
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default="nominatim",
+    )
 
     class Meta:
         app_label = "location"
-        verbose_name = "nominatim request log"
-        verbose_name_plural = "nominatim request logs"
+        verbose_name = "autocomplete request log"
+        verbose_name_plural = "autocomplete request logs"
 
     def __str__(self):
-        return f"request at {self.created_at}"
+        return (
+            f"request at {self.created_at} ({self.provider}) processed={self.processed}"
+        )
 
 
-class NominatimPeriodStats(models.Model):
+class AutocompletePeriodStats(models.Model):
     """
     Persistent per-period (day / ISO-week / calendar-month) aggregation of
-    Nominatim autocomplete request metrics.
+    autocomplete request metrics, broken down by provider.
 
-    One row per (period_type, period_key) combination.  Updated by a periodic
-    Celery task that reads and aggregates raw NominatimRequestLog rows.
+    One row per (period_type, period_key, provider) combination.  Updated by a periodic
+    Celery task that reads and aggregates raw AutocompleteRequestLog rows.
     """
+
+    PROVIDER_CHOICES = [
+        ("nominatim", "Nominatim"),
+        ("locationiq", "LocationIQ"),
+    ]
 
     class PeriodType(models.TextChoices):
         DAY = "day", "Day"
@@ -247,6 +265,11 @@ class NominatimPeriodStats(models.Model):
         max_length=10,
         help_text="YYYY-MM-DD, YYYY-Www, or YYYY-MM",
     )
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default="nominatim",
+    )
     total_requests = models.PositiveIntegerField(default=0)
     avg_req_per_second = models.FloatField(default=0)
     peak_req_per_second = models.PositiveIntegerField(
@@ -258,12 +281,12 @@ class NominatimPeriodStats(models.Model):
 
     class Meta:
         app_label = "location"
-        verbose_name = "nominatim period stats"
-        verbose_name_plural = "nominatim period stats"
-        unique_together = [("period_type", "period_key")]
+        verbose_name = "autocomplete period stats"
+        verbose_name_plural = "autocomplete period stats"
+        unique_together = [("period_type", "period_key", "provider")]
         indexes = [
-            models.Index(fields=["period_type", "period_key"]),
+            models.Index(fields=["period_type", "period_key", "provider"]),
         ]
 
     def __str__(self):
-        return f"{self.period_type}:{self.period_key} reqs={self.total_requests}"
+        return f"{self.period_type}:{self.period_key} ({self.provider}) reqs={self.total_requests}"

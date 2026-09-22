@@ -7,6 +7,7 @@ caching to minimize database queries.
 
 import logging
 
+from django.conf import settings
 from django.core.cache import cache
 
 from feature_toggles.models import FeatureToggle
@@ -103,6 +104,30 @@ def is_feature_enabled(
             f"Returning default: {default}"
         )
         return default
+
+
+def is_feature_enabled_for_current_environment(
+    feature_name: str, default: bool = False
+) -> bool:
+    """
+    Check a feature toggle from backend code, without the caller having to work
+    out which environment it is running in.
+
+    Most toggles are read by the frontend, which detects its environment from
+    the request host. Backend code has no request to look at, so it uses
+    ``settings.FEATURE_TOGGLE_ENVIRONMENT`` — see the comment on that setting
+    for why it is not simply ``ENVIRONMENT``.
+
+    Args:
+        feature_name: The name of the feature toggle (e.g. 'LOCATIONIQ_AUTOCOMPLETE')
+        default: Value to return if the toggle doesn't exist or can't be read
+
+    Returns:
+        True if the feature is enabled for this backend's environment.
+    """
+    return is_feature_enabled(
+        feature_name, settings.FEATURE_TOGGLE_ENVIRONMENT, default
+    )
 
 
 def get_all_toggles_for_environment(environment: str) -> dict:

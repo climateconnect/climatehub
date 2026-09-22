@@ -1,10 +1,8 @@
 import NextCookies from "next-cookies";
 import React, { useContext } from "react";
 import Cookies from "universal-cookie";
-import { getProjectTypeOptions } from "../../public/lib/getOptions";
 import { apiRequest } from "../../public/lib/apiOperations";
 import getTexts from "../../public/texts/texts";
-import BrowseContext from "../../src/components/context/BrowseContext";
 import PageNotFound from "../../src/components/general/PageNotFound";
 import WideLayout from "../../src/components/layouts/WideLayout";
 import ProfileRoot from "../../src/components/profile/ProfileRoot";
@@ -21,9 +19,9 @@ import { getAllHubs } from "../../public/lib/hubOperations";
 export async function getServerSideProps(ctx) {
   const { auth_token } = NextCookies(ctx);
   const profileUrl = encodeURI(ctx.query.profileUrl);
-  // Prevent API calls with undefined slug
+  // Prevent API calls with undefined or literal route-pattern slugs
   // see https://github.com/climateconnect/climateconnect/issues/1796
-  if (profileUrl === "undefined") {
+  if (profileUrl === "undefined" || profileUrl === "[profileUrl]") {
     return {
       props: nullifyUndefinedValues({
         profile: null,
@@ -31,25 +29,16 @@ export async function getServerSideProps(ctx) {
         organizationsHasMore: false,
         projects: null,
         projectsHasMore: false,
-        projectTypes: null,
         hubUrl: ctx.query.hub,
         hubThemeData: null,
       }),
     };
   }
   const hubUrl = ctx.query.hub;
-  const [
-    profile,
-    organizationsData,
-    projectsData,
-    projectTypes,
-    hubThemeData,
-    hubs,
-  ] = await Promise.all([
+  const [profile, organizationsData, projectsData, hubThemeData, hubs] = await Promise.all([
     getProfileByUrlIfExists(profileUrl, auth_token, ctx.locale),
     getOrganizationsByUser(profileUrl, auth_token, ctx.locale),
     getProjectsByUser(profileUrl, auth_token, ctx.locale),
-    getProjectTypeOptions(ctx.locale),
     getHubTheme(hubUrl),
     getAllHubs(ctx.locale),
   ]);
@@ -60,7 +49,6 @@ export async function getServerSideProps(ctx) {
       organizationsHasMore: organizationsData?.hasMore ?? false,
       projects: projectsData?.projects ?? null,
       projectsHasMore: projectsData?.hasMore ?? false,
-      projectTypes: projectTypes,
       hubUrl: hubUrl,
       hubThemeData: hubThemeData,
       hubs: hubs,
@@ -74,7 +62,6 @@ export default function ProfilePage({
   projectsHasMore,
   organizations,
   organizationsHasMore,
-  projectTypes,
   hubUrl,
   hubThemeData,
   hubs,
@@ -88,19 +75,17 @@ export default function ProfilePage({
   const isCustomHub = CUSTOM_HUB_URLS.includes(hubUrl);
   const defaultBackUrl = hubUrl ? "/" + locale + "/hubs/" + hubUrl : "/" + locale;
 
-  const contextValues = {
-    projectTypes: projectTypes,
-  };
-
   const customTheme = hubThemeData ? transformThemeData(hubThemeData) : undefined;
   return (
     <WideLayout
       title={profile ? texts.persons_profile : texts.not_found}
       description={
-        profile.name +
-        " | " +
-        profile.info.location +
-        (profile.info.bio ? " | " + profile.info.bio : "")
+        profile
+          ? profile.name +
+            " | " +
+            profile.info.location +
+            (profile.info.bio ? " | " + profile.info.bio : "")
+          : texts.not_found
       }
       hubUrl={hubUrl}
       showDonationGoal={true}
@@ -123,21 +108,19 @@ export default function ProfilePage({
       }
     >
       {profile ? (
-        <BrowseContext.Provider value={contextValues}>
-          <ProfileRoot
-            profile={profile}
-            projects={projects}
-            projectsHasMore={projectsHasMore}
-            organizations={organizations}
-            organizationsHasMore={organizationsHasMore}
-            infoMetadata={infoMetadata}
-            user={user}
-            token={token}
-            texts={texts}
-            locale={locale}
-            hubUrl={hubUrl}
-          />
-        </BrowseContext.Provider>
+        <ProfileRoot
+          profile={profile}
+          projects={projects}
+          projectsHasMore={projectsHasMore}
+          organizations={organizations}
+          organizationsHasMore={organizationsHasMore}
+          infoMetadata={infoMetadata}
+          user={user}
+          token={token}
+          texts={texts}
+          locale={locale}
+          hubUrl={hubUrl}
+        />
       ) : (
         <PageNotFound itemName="Profile" />
       )}

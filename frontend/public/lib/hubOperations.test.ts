@@ -13,8 +13,10 @@ describe("getHubslugFromUrl", () => {
     expect(getHubslugFromUrl({ hubUrl: "erlangen", hub: "marburg" })).toBe("erlangen");
   });
 
-  it("resolves the top-level slug from a sub-hub path (/hubs/<slug>/<subHub>/browse)", () => {
-    expect(getHubslugFromUrl({ hubUrl: "erlangen", subHub: "zerowaste" })).toBe("erlangen");
+  it("composes the sub-hub slug from a sub-hub path (/hubs/<slug>/<subHub>/browse)", () => {
+    expect(getHubslugFromUrl({ hubUrl: "erlangen", subHub: "zerowaste" })).toBe(
+      "erlangen_zerowaste"
+    );
   });
 
   it("returns undefined when no hub is present", () => {

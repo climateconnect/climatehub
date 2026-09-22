@@ -58,6 +58,7 @@ class ContentShares(models.Model):
     MAIL = 7
     LINK = 8
     DEVICE_NATIVE = 9
+    BLUESKY = 10
     SHARE_OPTIONS = (
         (FACEBOOK, "facebook"),
         (FB_MESSENGER, "fb_messenger"),
@@ -69,6 +70,7 @@ class ContentShares(models.Model):
         (MAIL, "e_mail"),
         (LINK, "link"),
         (DEVICE_NATIVE, "native_share_dialog_of_device"),
+        (BLUESKY, "bluesky"),
     )
 
     shared_via = models.IntegerField(

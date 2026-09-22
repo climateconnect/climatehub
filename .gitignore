@@ -39,7 +39,7 @@ media/
 .vscode/tasks.json
 
 # devlink
-frontend/devlink/
+frontend/devlink*/
 
 /CLAUDE.md
 .kilocode/

@@ -127,7 +127,6 @@ export default function ManageProjectMembersPage({
           project={project}
           token={token}
           availabilityOptions={availabilityOptions}
-          hubUrl={hubUrl}
         />
       </Layout>
     );

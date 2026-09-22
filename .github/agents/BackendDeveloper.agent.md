@@ -32,7 +32,7 @@ Always run `make format` before committing and ensure tests pass.
 ## Tech Stack
 
 ### Backend
-- **Framework**: Django 4.2 + Django REST Framework
+- **Framework**: Django 5.2 + Django REST Framework
 - **Language**: Python 3.12
 - **Database**: PostgreSQL with PostGIS extension (geospatial data)
 - **Caching/Message Broker**: Redis

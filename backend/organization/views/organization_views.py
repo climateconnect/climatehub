@@ -165,7 +165,6 @@ class ListOrganizationsAPIView(ListAPIView):
                     ).distinct()
 
                 elif current_hub.hub_type == Hub.LOCATION_HUB_TYPE:
-
                     hub_locations = current_hub.location.all()
 
                     if not hub_locations.exists():
@@ -726,7 +725,6 @@ class OrganizationAPIView(APIView):
                 organization.parent_organization = parent_organization
 
         items_to_translate = [
-            {"key": "name", "translation_key": "name_translation"},
             {
                 "key": "short_description",
                 "translation_key": "short_description_translation",

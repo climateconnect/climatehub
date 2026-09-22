@@ -1,7 +1,6 @@
 import { GetServerSideProps } from "next";
 import NextCookies from "next-cookies";
 import React, { useContext, useMemo } from "react";
-import { useRouter } from "next/router";
 import { Theme, useMediaQuery } from "@mui/material";
 import { getSectorOptions } from "../public/lib/getOptions";
 import { apiRequest } from "../public/lib/apiOperations";
@@ -10,9 +9,9 @@ import getTexts from "../public/texts/texts";
 import UserContext from "../src/components/context/UserContext";
 import { HubContext } from "../src/components/context/HubContext";
 import WideLayout from "../src/components/layouts/WideLayout";
-import HubTabsNavigation from "../src/components/hub/HubTabsNavigation";
+import PageNav from "../src/components/pageNav/PageNav";
 import EventCalendarContent from "../src/components/eventCalendar/EventCalendarContent";
-import MobileBottomMenu from "../src/components/browse/MobileBottomMenu";
+import MobilePageNav from "../src/components/pageNav/MobilePageNav";
 
 const toOffsetIso = (d: Date): string => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -97,40 +96,25 @@ export default function EventsPage({
 }: any) {
   const { locale, hubUrl } = useContext(UserContext);
   const { hubs } = useContext(HubContext);
-  const router = useRouter();
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
   const texts = useMemo(() => getTexts({ page: "hub", locale: locale }), [locale]);
 
-  const TYPES_BY_TAB_VALUE = ["projects", "organizations", "members", "events"];
-  const EVENTS_TAB_INDEX = TYPES_BY_TAB_VALUE.indexOf("events");
   const type_names = {
     projects: texts.projects,
     organizations: isNarrowScreen ? texts.orgs : texts.organizations,
     members: texts.members,
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    const tab = TYPES_BY_TAB_VALUE[newValue];
-    if (tab === "events") return;
-    const base = hubUrl ? `/hubs/${hubUrl}` : "/browse";
-    router.push(`${base}#${tab}`);
-  };
-
   return (
     <WideLayout>
-      <HubTabsNavigation
-        TYPES_BY_TAB_VALUE={["projects", "organizations", "members"]}
-        tabValue={-1}
-        handleTabChange={(e, v) => {
-          const tab = ["projects", "organizations", "members"][v];
-          const base = hubUrl ? `/hubs/${hubUrl}` : "/browse";
-          router.push(`${base}#${tab}`);
-        }}
+      <PageNav
+        activeEntry={null}
         type_names={type_names}
         hubUrl={hubUrl}
         className=""
         allHubs={hubs}
         fromPage="browse"
+        subHubSegment={undefined}
       />
       <EventCalendarContent
         initialEvents={initialEvents}
@@ -141,15 +125,7 @@ export default function EventsPage({
         filterChoices={filterChoices}
         hubUrl={hubUrl}
       />
-      {isNarrowScreen && (
-        <MobileBottomMenu
-          tabValue={EVENTS_TAB_INDEX}
-          handleTabChange={handleTabChange}
-          TYPES_BY_TAB_VALUE={TYPES_BY_TAB_VALUE}
-          hubAmbassador={null}
-          hubUrl={hubUrl}
-        />
-      )}
+      {isNarrowScreen && <MobilePageNav activeEntry={null} hubUrl={hubUrl} hubAmbassador={null} />}
     </WideLayout>
   );
 }

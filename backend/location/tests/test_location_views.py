@@ -9,7 +9,6 @@ from location.signals import find_location_translations
 
 
 class TestGetLocationView(APITestCase):
-
     def setUp(self):
         post_save.disconnect(find_location_translations, sender=Location)
         self.url = reverse("location:get-location")

@@ -1,6 +1,6 @@
 import { Link } from "@mui/material";
 import React from "react";
-import { getLocalePrefix } from "../lib/apiOperations";
+import { appHref } from "../lib/appLink";
 
 export default function getProfileTexts({ profile, hubName, locale }) {
   return {
@@ -229,9 +229,7 @@ export default function getProfileTexts({ profile, hubName, locale }) {
         <>
           If the email does not arrive after 5 minutes,{" "}
           <Link
-            href={`${getLocalePrefix(locale)}/resend_verification_email${
-              hubName ? `?hub=${hubName}` : ""
-            }`}
+            href={appHref("/resend_verification_email", { hubUrl: hubName, locale })}
             underline="hover"
           >
             click here
@@ -243,9 +241,7 @@ export default function getProfileTexts({ profile, hubName, locale }) {
         <>
           Wenn die E-Mail nach 5 Minuten noch nicht angekommen ist,{" "}
           <Link
-            href={`${getLocalePrefix(locale)}/resend_verification_email${
-              hubName ? `?hub=${hubName}` : ""
-            }`}
+            href={appHref("/resend_verification_email", { hubUrl: hubName, locale })}
             underline="hover"
           >
             klicke hier
@@ -275,7 +271,7 @@ export default function getProfileTexts({ profile, hubName, locale }) {
         <>
           You have not activated you account yet. Click the link in the email we sent you or{" "}
           <Link
-            href={getLocalePrefix(locale) + "/resend_verification_email"}
+            href={appHref("/resend_verification_email", { locale })}
             target="_blank"
             underline="hover"
           >
@@ -289,7 +285,7 @@ export default function getProfileTexts({ profile, hubName, locale }) {
           Du hast dein Konto noch nicht aktiviert. Klicke auf den Link in der E-Mail, die wir dir
           geschickt haben, oder{" "}
           <Link
-            href={getLocalePrefix(locale) + "/resend_verification_email"}
+            href={appHref("/resend_verification_email", { locale })}
             target="_blank"
             underline="hover"
           >
@@ -319,11 +315,11 @@ export default function getProfileTexts({ profile, hubName, locale }) {
       en: (
         <>
           I agree to the{" "}
-          <Link href={getLocalePrefix(locale) + "/terms"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/terms", { locale })} target="_blank" rel="noreferrer">
             Terms of Use
           </Link>{" "}
           and{" "}
-          <Link href={getLocalePrefix(locale) + "/privacy"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/privacy", { locale })} target="_blank" rel="noreferrer">
             Privacy policy
           </Link>
           .
@@ -332,11 +328,11 @@ export default function getProfileTexts({ profile, hubName, locale }) {
       de: (
         <>
           Ich erkläre mich mit den{" "}
-          <Link href={getLocalePrefix(locale) + "/terms"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/terms", { locale })} target="_blank" rel="noreferrer">
             Nutzungsbedingungen
           </Link>{" "}
           und den{" "}
-          <Link href={getLocalePrefix(locale) + "/privacy"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/privacy", { locale })} target="_blank" rel="noreferrer">
             Datenschutzbestimmungen
           </Link>{" "}
           einverstanden.
@@ -521,11 +517,11 @@ export default function getProfileTexts({ profile, hubName, locale }) {
       en: (
         <>
           I agree to the{" "}
-          <Link href={getLocalePrefix(locale) + "/terms"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/terms", { locale })} target="_blank" rel="noreferrer">
             Terms of Use
           </Link>{" "}
           and{" "}
-          <Link href={getLocalePrefix(locale) + "/privacy"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/privacy", { locale })} target="_blank" rel="noreferrer">
             Privacy policy
           </Link>
           . I consent to the processing of my personal data and to receiving emails containing
@@ -535,11 +531,11 @@ export default function getProfileTexts({ profile, hubName, locale }) {
       de: (
         <>
           Ich stimme den{" "}
-          <Link href={getLocalePrefix(locale) + "/terms"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/terms", { locale })} target="_blank" rel="noreferrer">
             Nutzungsbedingungen
           </Link>{" "}
           und der{" "}
-          <Link href={getLocalePrefix(locale) + "/privacy"} target="_blank" rel="noreferrer">
+          <Link href={appHref("/privacy", { locale })} target="_blank" rel="noreferrer">
             Datenschutzerklärung
           </Link>{" "}
           zu. Ich willige ein, dass meine personenbezogenen Daten verarbeitet werden und ich per

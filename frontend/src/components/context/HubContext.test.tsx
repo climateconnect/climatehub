@@ -10,7 +10,12 @@ const mockGetHubTheme = jest.fn();
 
 jest.mock("../../../public/lib/hubOperations", () => ({
   getAllHubs: (...args: any[]) => mockGetAllHubs(...args),
-  getHubslugFromUrl: (query: any) => query.hubUrl || query.hub,
+  getHubslugFromUrl: (query: any) => {
+    const hubUrl = query.hubUrl || query.hub;
+    if (!hubUrl || !query.subHub) return hubUrl;
+    const sub = Array.isArray(query.subHub) ? query.subHub[0] : query.subHub;
+    return hubUrl + "_" + sub;
+  },
 }));
 jest.mock("../../../public/lib/getHubData", () => ({
   getHubData: (...args: any[]) => mockGetHubData(...args),
@@ -64,10 +69,10 @@ describe("HubProvider", () => {
     await settleHubFetch(result);
   });
 
-  it("resolves the top-level slug on a sub-hub path", async () => {
+  it("resolves the composed slug on a sub-hub path", async () => {
     setRouter({ hubUrl: "erlangen", subHub: "zerowaste" });
     const { result } = renderHubContext([]);
-    expect(result.current.hubUrl).toBe("erlangen");
+    expect(result.current.hubUrl).toBe("erlangen_zerowaste");
     await settleHubFetch(result);
   });
 

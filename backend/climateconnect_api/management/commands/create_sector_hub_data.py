@@ -5,7 +5,7 @@ from typing import Any
 
 
 class Command(BaseCommand):
-    help = "Create sector hub data which is necessary e.g. for the ClimateMatch"
+    help = "Create sector hub data"
 
     def handle(self, *args: Any, **options: Any) -> None:
         english_language = Language.objects.filter(language_code="en")[0]

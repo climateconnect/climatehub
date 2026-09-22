@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.urls import reverse
 from django.utils import timezone
@@ -16,7 +16,7 @@ from organization.models import (
 
 # Fixed dates so tests are deterministic regardless of when they run.
 # Using 2026-03 (March) avoids DST edge cases and end-of-month overflow.
-FIXED_NOW = datetime(2026, 3, 15, 12, 0, 0, tzinfo=timezone.utc)
+FIXED_NOW = datetime(2026, 3, 15, 12, 0, 0, tzinfo=dt_timezone.utc)
 FIXED_YEAR = 2026
 FIXED_MONTH = 3
 
@@ -318,10 +318,10 @@ class TestEventCalendarCountsView(APITestCase):
         )
 
         # Fixed dates within FIXED_MONTH so tests are deterministic.
-        self.day1_dt = datetime(2026, 3, 5, 12, 0, 0, tzinfo=timezone.utc)
-        self.day2_dt = datetime(2026, 3, 15, 12, 0, 0, tzinfo=timezone.utc)
-        draft_dt = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
-        idea_dt = datetime(2026, 3, 8, 12, 0, 0, tzinfo=timezone.utc)
+        self.day1_dt = datetime(2026, 3, 5, 12, 0, 0, tzinfo=dt_timezone.utc)
+        self.day2_dt = datetime(2026, 3, 15, 12, 0, 0, tzinfo=dt_timezone.utc)
+        draft_dt = datetime(2026, 3, 10, 12, 0, 0, tzinfo=dt_timezone.utc)
+        idea_dt = datetime(2026, 3, 8, 12, 0, 0, tzinfo=dt_timezone.utc)
 
         # event1: single day in the month.
         self.event1 = Project.objects.create(
@@ -507,8 +507,8 @@ class TestEventCalendarCountsView(APITestCase):
             status=self.project_status,
             language=self.language,
             project_type="EV",
-            start_date=datetime(2026, 2, 1, 23, 0, 0, tzinfo=timezone.utc),
-            end_date=datetime(2026, 2, 1, 23, 0, 0, tzinfo=timezone.utc),
+            start_date=datetime(2026, 2, 1, 23, 0, 0, tzinfo=dt_timezone.utc),
+            end_date=datetime(2026, 2, 1, 23, 0, 0, tzinfo=dt_timezone.utc),
         )
 
         tokyo = self.client.get(

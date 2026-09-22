@@ -29,10 +29,11 @@ class Command(BaseCommand):
                 for hub in hubs:
                     if hub.sectors.exists():
                         for sector in hub.sectors.all():
-                            mapping, created = (
-                                OrganizationSectorMapping.objects.get_or_create(
-                                    organization=organization, sector=sector
-                                )
+                            (
+                                mapping,
+                                created,
+                            ) = OrganizationSectorMapping.objects.get_or_create(
+                                organization=organization, sector=sector
                             )
                             if created:
                                 print(

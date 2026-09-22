@@ -132,20 +132,20 @@ export default function EditProjectContent({
   };
 
   const handleSwitchChange = (event) => {
-    if (
-      event.target.checked &&
-      !project?.project_parents?.parent_organization &&
-      userOrganizations[0]
-    )
-      handleSetProject({
-        ...project,
-        project_parents: {
-          ...project.project_parents,
-          parent_organization: userOrganizations[0],
-        },
-        is_personal_project: !event.target.checked,
-      });
-    else handleChangeProject(!event.target.checked, "is_personal_project");
+    const nextIsPersonal = !event.target.checked;
+    const organizations = Array.isArray(userOrganizations) ? userOrganizations : [];
+    const nextParentOrganization = nextIsPersonal
+      ? null
+      : project?.project_parents?.parent_organization ?? organizations[0] ?? null;
+
+    handleSetProject({
+      ...project,
+      project_parents: {
+        ...(project?.project_parents ?? {}),
+        parent_organization: nextParentOrganization,
+      },
+      is_personal_project: nextIsPersonal,
+    });
   };
 
   const handleChangeProjectType = (newProjectType) => {
@@ -246,29 +246,43 @@ export default function EditProjectContent({
               />
             </>
           ) : (
-            <SelectField
-              controlled
-              controlledValue={
-                project?.project_parents?.parent_organization
-                  ? project?.project_parents?.parent_organization
-                  : userOrganizations[0]
-              }
-              onChange={(event) =>
-                handleChangeProject(
-                  {
-                    ...project.project_parents,
-                    parent_organization: userOrganizations.find(
-                      (o) => o.name === event.target.value
-                    ),
-                  },
-                  "project_parents"
-                )
-              }
-              options={userOrganizations}
-              label={texts.created_by}
-              className={classes.select}
-              required
-            />
+            <>
+              {(!Array.isArray(userOrganizations) || userOrganizations.length === 0) && (
+                <>
+                  <Typography color="error" variant="body2" className={classes.block}>
+                    {texts.you_are_not_a_member_of_any_organization_yet}
+                  </Typography>
+                  <Typography variant="body2" className={classes.block}>
+                    {texts.if_your_organization_does_not_exist_yet_click_here}
+                  </Typography>
+                </>
+              )}
+              <SelectField
+                controlled
+                controlledValue={
+                  project?.project_parents?.parent_organization
+                    ? project?.project_parents?.parent_organization
+                    : (userOrganizations ?? [])[0]
+                }
+                onChange={(event) =>
+                  handleChangeProject(
+                    {
+                      ...project.project_parents,
+                      parent_organization: (userOrganizations ?? []).find(
+                        (o) => o.name === event.target.value
+                      ),
+                    },
+                    "project_parents"
+                  )
+                }
+                options={userOrganizations ?? []}
+                label={texts.created_by}
+                className={classes.select}
+                error={!!errors?.parent_organization}
+                helperText={errors?.parent_organization}
+                required
+              />
+            </>
           )}
         </div>
         <div className={classes.block}>

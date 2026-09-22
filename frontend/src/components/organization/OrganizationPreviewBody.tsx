@@ -44,8 +44,10 @@ const useStyles = makeStyles((theme) => {
     },
     contentWrapper: {
       padding: 0,
-      display: "grid",
-      gridTemplateRows: "min-content",
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      overflow: "hidden",
     },
     placeIcon: {
       color: theme.palette.background.default_contrastText,

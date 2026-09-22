@@ -236,6 +236,7 @@ export default function SignupPersonalInfoStep({
         label={texts.location}
         required
         value={location}
+        onChange={handleLocationChange}
         onSelect={handleLocationChange}
         locationInputRef={locationInputRef}
         open={locationOptionsOpen}

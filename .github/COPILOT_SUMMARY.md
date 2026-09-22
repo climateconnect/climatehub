@@ -10,7 +10,7 @@
 
 Comprehensive instructions covering:
 - Project overview and mission
-- Complete tech stack (Django 4.2, Next.js 14, MUI v5, etc.)
+- Complete tech stack (Django 5.2, Next.js 14, MUI v5, etc.)
 - Architecture patterns and folder structure
 - Code style guidelines for backend and frontend
 - Development workflow and common commands
@@ -225,7 +225,7 @@ Optimized IDE configuration:
 ## Resources
 
 - [GitHub Copilot Docs](https://docs.github.com/en/copilot)
-- [Django Best Practices](https://docs.djangoproject.com/en/3.2/)
+- [Django Best Practices](https://docs.djangoproject.com/en/5.2/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [MUI Documentation](https://mui.com/material-ui/)
 - [Climate Connect Architecture Doc](doc/architecture.md)

@@ -29,6 +29,28 @@ services:
       - ./backend:/app
       - backend-venv:/app/.venv
 
+  # Dedicated worker for LocationIQ autocomplete lookups (location.tasks.fetch_autocomplete),
+  # isolated on its own queue so it never competes with the rest of the app's Celery
+  # workload for concurrency slots.
+  #
+  # This is ONE container / ONE `celery worker` process — no `replicas:`/`scale:` here,
+  # and it must stay that way (see the multi-process bug this design replaced in
+  # doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md).
+  celery-lookup:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    command: pdm run celery -A climateconnect_main worker -Q lookup -c 4 -l INFO
+    env_file:
+      - ./backend/.backend_env
+    depends_on:
+      - db
+      - redis
+      - backend
+    volumes:
+      - ./backend:/app
+      - backend-venv:/app/.venv
+
   frontend:
     build:
       context: .

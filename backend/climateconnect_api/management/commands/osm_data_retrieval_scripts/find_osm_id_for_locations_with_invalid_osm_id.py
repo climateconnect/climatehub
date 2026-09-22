@@ -53,7 +53,6 @@ def discover_osm_id(loc: dict) -> dict | None:
 
 
 def create_csv_lookup_table(locs: list[dict], outfile: str) -> None:
-
     fieldnames = ["loc_id", "place_id", "name", "display_name", "osm_type", "osm_id"]
     outpath = Path(outfile)
     outpath.parent.mkdir(parents=True, exist_ok=True)
@@ -65,7 +64,6 @@ def create_csv_lookup_table(locs: list[dict], outfile: str) -> None:
             rows_written = 0
 
             for i in tqdm(range(len(locs))):
-
                 entry = discover_osm_id(locs[i])
                 # the limit of nominatim search is 1 per request and 1 request per second
 
@@ -99,7 +97,6 @@ def open_csv(file_path: str):
 
 
 def getLocations(osm_path: str, full_db_path: str) -> list[dict]:
-
     osm_id_rows = open_csv(osm_path)
     full_db_rows = open_csv(full_db_path)
     locations = []

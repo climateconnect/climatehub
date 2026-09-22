@@ -393,8 +393,8 @@ export default function getOrganizationTexts({ organization, locale }) {
       de: "Bitte verwenden Sie die Schaltfläche 'Übersetzungen überprüfen'",
     },
     editing_org_in_wrong_language: {
-      en: `Because you shared your organisation in ${org_lang_name}, you can only edit the text in ${org_lang_name} here. If you want to change the text in other languages click on "Check Translations" below.`,
-      de: `Weil du deine Organisation auf ${org_lang_name} geteilt hast, kannst du hier den Text nur auf ${org_lang_name} bearbeiten. Wenn Du die anderen Sprachen bearbeiten möchtest, klicke auf "Übersetzungen überprüfen" weiter unten.`,
+      en: `This organisation was originally shared in ${org_lang_name}. The edit form uses that source language automatically. If you want to update text in other languages, click on "Check Translations" below.`,
+      de: `Diese Organisation wurde ursprünglich auf ${org_lang_name} geteilt. Das Bearbeitungsformular verwendet diese Ausgangssprache automatisch. Wenn du Texte in anderen Sprachen anpassen möchtest, klicke unten auf "Übersetzungen überprüfen".`,
     },
     delete_organization: {
       en: "Delete organisation",

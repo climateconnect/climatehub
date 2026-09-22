@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import EventRegistrationModal from "./EventRegistrationModal";
@@ -108,14 +109,16 @@ function renderModal({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={makeContextValue(user) as any}>
-        <EventRegistrationModal
-          open={open}
-          onClose={onClose}
-          project={project}
-          onRegistrationSuccess={onRegistrationSuccess}
-        />
-      </UserContext.Provider>
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={makeContextValue(user) as any}>
+          <EventRegistrationModal
+            open={open}
+            onClose={onClose}
+            project={project}
+            onRegistrationSuccess={onRegistrationSuccess}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
@@ -490,15 +493,17 @@ describe("EventRegistrationModal – close behaviour", () => {
     // Reopen – should start fresh
     rerender(
       <ThemeProvider theme={theme}>
-        <UserContext.Provider value={makeContextValue(AUTHENTICATED_USER) as any}>
-          <EventRegistrationModal
-            key="reset-test"
-            open={true}
-            onClose={onClose}
-            project={makeProject()}
-            onRegistrationSuccess={jest.fn()}
-          />
-        </UserContext.Provider>
+        <StylesThemeProvider theme={theme}>
+          <UserContext.Provider value={makeContextValue(AUTHENTICATED_USER) as any}>
+            <EventRegistrationModal
+              key="reset-test"
+              open={true}
+              onClose={onClose}
+              project={makeProject()}
+              onRegistrationSuccess={jest.fn()}
+            />
+          </UserContext.Provider>
+        </StylesThemeProvider>
       </ThemeProvider>
     );
 
@@ -527,14 +532,16 @@ describe("EventRegistrationModal – close behaviour", () => {
     // Reopen – email step should be shown again with empty field
     rerender(
       <ThemeProvider theme={theme}>
-        <UserContext.Provider value={makeContextValue(null) as any}>
-          <EventRegistrationModal
-            open={true}
-            onClose={onClose}
-            project={makeProject()}
-            onRegistrationSuccess={jest.fn()}
-          />
-        </UserContext.Provider>
+        <StylesThemeProvider theme={theme}>
+          <UserContext.Provider value={makeContextValue(null) as any}>
+            <EventRegistrationModal
+              open={true}
+              onClose={onClose}
+              project={makeProject()}
+              onRegistrationSuccess={jest.fn()}
+            />
+          </UserContext.Provider>
+        </StylesThemeProvider>
       </ThemeProvider>
     );
 
@@ -788,10 +795,10 @@ describe("EventRegistrationModal – custom fields", () => {
       }),
     });
 
-    // MUI Dialog renders into a portal, so query the full document
-    const selectEl = document.querySelector("select") as HTMLSelectElement;
-    expect(selectEl).toBeInTheDocument();
-    fireEvent.change(selectEl, { target: { value: "20" } });
+    // Single-option inventory fields show the option as fixed text and let the
+    // guest enter the quantity without any dropdown interaction.
+    expect(document.querySelector("select")).not.toBeInTheDocument();
+    expect(screen.getByText("Vegetarian (48 available)")).toBeInTheDocument();
     // Enter quantity
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "2" } });
     // Submit

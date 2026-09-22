@@ -1,6 +1,6 @@
 from organization.models.members import ProjectMember
 from climateconnect_api.models.language import Language
-from organization.models.tags import ProjectTagging, ProjectTags, OrganizationTags
+from organization.models.tags import OrganizationTags
 from organization.models.project import ProjectParents
 from django.core.management.base import BaseCommand
 import random
@@ -14,7 +14,7 @@ from climateconnect_api.models import (
     UserProfile,
     Skill,
 )
-from organization.models import ProjectStatus, Project, Organization
+from organization.models import Project, Organization, ProjectSectorMapping, Sector
 
 
 def create_language_test_data():
@@ -96,26 +96,6 @@ def create_roles_test_data():
         print("Administrator role already exists.")
 
 
-def create_project_status_test_data():
-    # Creating 2 project status
-    print("Creating project status...")
-    if not ProjectStatus.objects.filter(name="In Progress").exists():
-        ProjectStatus.objects.create(
-            name="In Progress", status_type=1, has_end_date=True, has_start_date=True
-        )
-        print("In Progress status created.")
-    else:
-        print("In Progress project status already exists.")
-
-    if not ProjectStatus.objects.filter(name="Recurring").exists():
-        ProjectStatus.objects.create(
-            name="Recurring", status_type=4, has_end_date=False, has_start_date=True
-        )
-        print("Recurring project status created.")
-    else:
-        print("Recurring project status already exists.")
-
-
 def create_organization_test_data(number_of_rows: int):
     print("Creating orgranization data...")
     english_language = Language.objects.filter(language_code="en")[0]
@@ -136,27 +116,35 @@ def create_organization_test_data(number_of_rows: int):
             print("{} orgranization already exists.".format(name))
 
 
-def create_project_tags_test_data():
-    print("Creating project tags test data...")
-    if not ProjectTags.objects.filter(name="Food").exists():
-        food_tag = ProjectTags.objects.create(name="Food", key="food")
-        if not ProjectTags.objects.filter(name="Lowering Food waste").exists():
-            ProjectTags.objects.create(
-                name="Lowering food waste", key="loweringfoodwaste", parent_tag=food_tag
-            )
-        if not ProjectTags.objects.filter(
-            name="Encouraging a plant-based lifestyle"
-        ).exists():
-            ProjectTags.objects.create(
-                name="Encouraging a plant-based lifestyle",
-                key="encouragingaplantbasedlifestyle",
-                parent_tag=food_tag,
-            )
-    if not ProjectTags.objects.filter(name="Transportation").exists():
-        ProjectTags.objects.create(name="Transportation", key="transportation")
-    if not ProjectTags.objects.filter(name="Energy").exists():
-        ProjectTags.objects.create(name="Energy", key="energy")
-    print("finished creating project tags test data!")
+# Mirrors the real sector taxonomy (name/key/translation as they exist in
+# production) so that seeded projects line up with the sector filters and the
+# sector hubs instead of inventing a parallel set of test-only sectors.
+TEST_SECTOR_DEFINITIONS = [
+    {
+        "key": "food",
+        "name": "Food & Agriculture",
+        "name_de_translation": "Ernährung & Landwirtschaft",
+    },
+    {"key": "energy", "name": "Energy", "name_de_translation": "Energie"},
+    {"key": "mobility", "name": "Mobility", "name_de_translation": "Mobilität"},
+    {"key": "education", "name": "Education", "name_de_translation": "Bildung"},
+    {
+        "key": "nature",
+        "name": "Nature & Biodiversity",
+        "name_de_translation": "Natur und Biodiversität",
+    },
+]
+
+
+def create_sectors_test_data():
+    print("Creating sector test data...")
+    for definition in TEST_SECTOR_DEFINITIONS:
+        if not Sector.objects.filter(key=definition["key"]).exists():
+            Sector.objects.create(**definition)
+            print("{} sector created.".format(definition["name"]))
+        else:
+            print("{} sector already exists.".format(definition["name"]))
+    print("finished creating sector test data!")
 
 
 def create_organization_tags_test_data():
@@ -165,14 +153,12 @@ def create_organization_tags_test_data():
         OrganizationTags.objects.create(
             name="Volunteer group",
             name_de_translation="Ehrenamtliche Gruppe",
-            show_in_climatematch=True,
             key="volunteergroup",
         )
     if not OrganizationTags.objects.filter(name="Non-profit company").exists():
         OrganizationTags.objects.create(
             name="Non-profit company",
             name_de_translation="non-profitcompany",
-            show_in_climatematch=True,
             key="encouragingaplantbasedlifestyle",
         )
     print("finished creating organization tags test data!")
@@ -181,6 +167,13 @@ def create_organization_tags_test_data():
 def create_project_test_data(number_of_rows: int):
     print("Creating project data...")
     english_language = Language.objects.filter(language_code="en")[0]
+    sectors = list(
+        Sector.objects.filter(
+            key__in=[definition["key"] for definition in TEST_SECTOR_DEFINITIONS]
+        )
+    )
+    if not sectors:
+        print("No test sectors found - run create_sectors_test_data() first.")
 
     for i in range(number_of_rows):
         name = "Test project {}".format(i)
@@ -202,7 +195,6 @@ def create_project_test_data(number_of_rows: int):
                 country="Germany",
                 short_description="This is a test project.",
                 start_date=one_year_and_one_day_ago,
-                status=ProjectStatus.objects.get(name="In Progress"),
                 url_slug=url_slug,
                 language=english_language,
             )
@@ -221,13 +213,27 @@ def create_project_test_data(number_of_rows: int):
                 role_in_project="Project manager",
             )
 
-            number_of_test_project_tags = 5
-            ProjectTagging.objects.create(
-                project=project,
-                project_tag=ProjectTags.objects.all()[
-                    int((i / number_of_rows) * number_of_test_project_tags)
-                ],
-            )
+            # Spread the seeded sectors over the projects so that sector filters
+            # and the "total_sectors" ranking factor have something to work with.
+            # Every third project gets a second sector so that the ordering of
+            # multiple sectors is exercised too.
+            if sectors:
+                project_sectors = [sectors[i % len(sectors)]]
+                if i % 3 == 0 and len(sectors) > 1:
+                    project_sectors.append(sectors[(i + 1) % len(sectors)])
+                ProjectSectorMapping.objects.bulk_create(
+                    [
+                        # the bigger the order, the further to the top a sector
+                        # is displayed - so the first one gets the highest value
+                        ProjectSectorMapping(
+                            project=project,
+                            sector=sector,
+                            order=len(project_sectors) - index,
+                        )
+                        for index, sector in enumerate(project_sectors)
+                    ]
+                )
+
             print("{} project created.".format(name))
         else:
             print("{} project already exists.".format(name))
@@ -417,9 +423,8 @@ class Command(BaseCommand):
         create_test_user_data(number_of_rows=number_of_rows)
         create_availability_test_data(number_of_rows=number_of_rows)
         create_roles_test_data()
-        create_project_status_test_data()
         create_organization_test_data(number_of_rows=number_of_rows)
-        create_project_tags_test_data()
+        create_sectors_test_data()
         create_organization_tags_test_data()
         create_project_test_data(number_of_rows=number_of_rows)
         create_skills()

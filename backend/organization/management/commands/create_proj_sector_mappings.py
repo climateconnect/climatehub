@@ -113,10 +113,11 @@ class Command(BaseCommand):
                             continue
                         else:
                             sector = Sector.objects.get(key=sector.key)
-                            mapping, created = (
-                                ProjectSectorMapping.objects.get_or_create(
-                                    project=project, sector=sector
-                                )
+                            (
+                                mapping,
+                                created,
+                            ) = ProjectSectorMapping.objects.get_or_create(
+                                project=project, sector=sector
                             )
                         if created:
                             print(

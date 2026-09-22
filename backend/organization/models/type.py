@@ -55,6 +55,9 @@ project_type = ProjectType(
     type_id_short="PR",
 )
 
+# These types are mirrored in the frontend at
+# frontend/public/data/projectTypes.ts — if you add, remove, or rename a type
+# here, update the frontend file as well.
 PROJECT_TYPES = {
     "idea_type": idea_type,
     "event_type": event_type,

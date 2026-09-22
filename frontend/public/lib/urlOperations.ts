@@ -49,22 +49,10 @@ export const withQuery = (href: string, params: Record<string, string>): string 
   return serializeUrl(href, url);
 };
 
-const encodeObjectToQueryParams = (obj) => {
-  if (!obj) {
-    return "";
-  }
-  return Object.keys(obj).reduce((str, curKey) => {
-    str += `${curKey}=${encodeURIComponent(obj[curKey])}&`;
-    return str;
-  }, "");
-};
 /**
- * For example when filtering by location="San Francisco", the url should
- * automatically change to active filters. This enables filtered searches
- * to persist, so that they can be easily shareable to other users.
+ * Builds a URL with the active filters applied.
  *
- * Builds a URL with the new filters, e.g. something like:
- * http://localhost:3000/browse?&country=Austria&city=vienna&
+ * Uses the platform URLSearchParams API so the result is always well-formed.
  */
 const getFilterUrl = ({
   activeFilters,
@@ -74,28 +62,33 @@ const getFilterUrl = ({
   idea,
   nonFilterParams,
 }: any) => {
-  const filteredParams = encodeQueryParamsFromFilters({
+  const params = new URLSearchParams();
+
+  const filteredParamsStr = encodeQueryParamsFromFilters({
     filters: activeFilters,
     infoMetadata: infoMetadata,
     filterChoices: filterChoices,
     locale: locale,
   });
+  if (filteredParamsStr) {
+    new URLSearchParams(filteredParamsStr).forEach((value, key) => params.append(key, value));
+  }
 
-  const encodedNonFilterParams = encodeObjectToQueryParams(nonFilterParams);
-  // Only include "?" if query params aren't nullish
+  if (nonFilterParams) {
+    Object.keys(nonFilterParams).forEach((key) => {
+      params.append(key, nonFilterParams[key]);
+    });
+  }
 
-  const filteredQueryParams =
-    filteredParams || encodedNonFilterParams
-      ? `?${filteredParams ? filteredParams : ""}${
-          encodedNonFilterParams ? encodedNonFilterParams : ""
-        }${idea ? `idea=${idea.url_slug}` : ""}`
-      : "";
+  if (idea) {
+    params.append("idea", idea.url_slug);
+  }
 
-  // Build a URL with properties. E.g., /browse?...
   const origin = window?.location?.origin;
   const pathname = window?.location?.pathname;
   const hashFragment = window?.location?.hash;
-  const newUrl = `${origin}${pathname}${filteredQueryParams}${hashFragment}`;
+  const queryString = params.toString();
+  const newUrl = `${origin}${pathname}${queryString ? `?${queryString}` : ""}${hashFragment}`;
   return newUrl;
 };
 
@@ -131,27 +124,22 @@ const getFilterName = (filter, key, filterChoices) => {
 };
 
 /**
- * Used to build query params to the end of a URL.
- * Originally used in places like applying filters from
- * search categories.
+ * Encodes active filters into a URLSearchParams query string.
+ *
+ * Returns a clean query string (e.g. "sectors=Energy&search=climate") without
+ * leading "?" or "&". Uses the platform URLSearchParams API for proper encoding.
  */
 const encodeQueryParamsFromFilters = ({ filters, infoMetadata, filterChoices, locale }) => {
   if (!filters || Object.entries(filters).length === 0) {
     return "";
   }
-  // TODO: should make this more robust, and if the filters
-  // object includes properties that are empty, shouldn't add the &
-  let queryParamFragment = "&";
+  const params = new URLSearchParams();
   const allPossibleFilters = possibleFilters({
     key: "all",
     filterChoices: filterChoices,
     locale: locale,
   });
-  //iterate through all possible filter keys and encode them. Don't encode unrelated query params
 
-  // this allowence of "radius" aint pretty but it works (, at least, has worked).
-  // at the time of writing, possibleFilters was used to define all used Filters, but the location filter
-  // would implement
   const usedFilterKeys = allPossibleFilters.map((f) => f.key);
   if (usedFilterKeys.includes("location")) {
     usedFilterKeys.push("radius");
@@ -159,32 +147,25 @@ const encodeQueryParamsFromFilters = ({ filters, infoMetadata, filterChoices, lo
 
   Object.keys(filters)
     .filter((filterKey) => usedFilterKeys.includes(filterKey))
-    .map((filterKey) => {
+    .forEach((filterKey) => {
       const type = infoMetadata && infoMetadata[filterKey]?.type;
       const locationFilterkeys = getLocationFilterKeys();
-      //Submitted location filters should always be in the form of an object
-      //Simplified example: {place_id: 12323423, display_name: "Test"}
-      //When a location is just a string, the filter is not submitted yet (e.g. "New Y")
 
       if (type === "location") {
         if (typeof filters[filterKey] === "object") {
           const locationFilter = filters[filterKey];
-          const placeValue = locationFilter.place_id ?? "";
-          const osmValue = locationFilter.osm_id ?? "";
-          const osmTypeValue = locationFilter.osm_type ?? "";
-          const osmClassValue = locationFilter.osm_class ?? "";
-          const encodedFragment = `place_id=${placeValue}&osm_id=${osmValue}&osm_type=${osmTypeValue}&osm_class=${osmClassValue}&`;
-          queryParamFragment += encodedFragment;
+          params.append("place_id", locationFilter.place_id ?? "");
+          params.append("osm_id", locationFilter.osm_id ?? "");
+          params.append("osm_type", locationFilter.osm_type ?? "");
+          params.append("osm_class", locationFilter.osm_class ?? "");
         }
       } else if (
-        //search and radius are supposed to be saved as just strings
         !["search", "radius"].includes(filterKey) &&
         filterKey !== "idea" &&
         filters[filterKey] &&
         filters[filterKey].length > 0 &&
         !locationFilterkeys.includes(filterKey)
       ) {
-        // Stringify array values
         let filterValues;
         const possibleFiltersForFilterKey = possibleFilters({
           key: "all",
@@ -203,32 +184,22 @@ const encodeQueryParamsFromFilters = ({ filters, infoMetadata, filterChoices, lo
             filterChoices: options,
             propertyToFilterBy: "name",
             valueToFilterBy: filters[filterKey],
-          })?.original_name; //options.find((o) => o.name === filters[filterKey]).original_name;
+          })?.original_name;
         }
-        // We also need to handle reserved characters, which
-        // are not escaped by encodeURI as they're necessary
-        // to form a complete URI (notably, ";,/?:@&=+$#";).
-        // We can't guarantee what the input will be, so
-        // we use encodeURIComponent to handle these characters. We
-        // still only encode the filter values though.
-        const encodedKey = encodeURIComponent(filterKey);
-        const encodedValue = encodeURIComponent(filterValues);
-        const encodedFragment = `${encodedKey}=${encodedValue}&`;
-        queryParamFragment += encodedFragment;
+        if (filterValues) {
+          params.append(filterKey, filterValues);
+        }
       } else if (
         ["search", "radius"].includes(filterKey) &&
         filters[filterKey] &&
         filters[filterKey].length > 0
       ) {
-        const encodedKey = encodeURIComponent(filterKey);
-        const encodedValue = encodeURIComponent(
-          filterKey === "radius" ? filters[filterKey].replace("km", "") : filters[filterKey]
-        );
-        const encodedFragment = `${encodedKey}=${encodedValue}&`;
-        queryParamFragment += encodedFragment;
+        const value =
+          filterKey === "radius" ? filters[filterKey].replace("km", "") : filters[filterKey];
+        params.append(filterKey, value);
       }
     });
-  return queryParamFragment;
+  return params.toString();
 };
 
 const getSearchParams = (searchString) => {
@@ -240,4 +211,40 @@ const getSearchParams = (searchString) => {
   return params;
 };
 
-export { getFilterUrl, encodeQueryParamsFromFilters, getSearchParams, findOptionByNameDeep };
+/**
+ * Maps a browse tab type to its URL path segment.
+ *
+ * `projects` maps to `browse` (not `projects`) because the projects page also
+ * includes ideas and events, and `browse` is the more intuitive name for users.
+ * Use this everywhere instead of hardcoding `tab === "projects" ? "/browse" : ...`.
+ */
+const BROWSE_TYPE_TO_PATH: Record<string, string> = {
+  projects: "browse",
+  organizations: "organizations",
+  members: "members",
+};
+
+/**
+ * Returns the global browse path for a given tab type
+ * (e.g. "projects" → "/browse", "organizations" → "/organizations").
+ */
+const getBrowsePathForType = (type: string): string => `/${BROWSE_TYPE_TO_PATH[type] ?? type}`;
+
+/**
+ * Returns the hub-scoped browse path for a given tab type and hub context.
+ * e.g. ("projects", "kassel") → "/hubs/kassel/browse",
+ *      ("projects", "kassel", "zerowaste") → "/hubs/kassel/zerowaste/browse"
+ */
+const getHubBrowsePathForType = (type: string, hubUrl: string, subHubSegment?: string): string => {
+  const browsePath = subHubSegment ? `/hubs/${hubUrl}/${subHubSegment}` : `/hubs/${hubUrl}`;
+  return `${browsePath}/${BROWSE_TYPE_TO_PATH[type] ?? type}`;
+};
+
+export {
+  getFilterUrl,
+  encodeQueryParamsFromFilters,
+  getSearchParams,
+  findOptionByNameDeep,
+  getBrowsePathForType,
+  getHubBrowsePathForType,
+};

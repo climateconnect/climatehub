@@ -16,7 +16,7 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import Cookies from "universal-cookie";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import getTexts from "../../../public/texts/texts";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
@@ -247,9 +247,9 @@ export default function Dashboard({
 
   const welcomeMessage = getWelcomeMessage();
 
-  const getFullLink = (url: any, hash = "") => {
-    const hubAddition = hubUrl ? "?hub=" + hubUrl : "";
-    return `${getLocalePrefix(locale)}${url}${hubAddition}${hash ? "#" + hash : ""}`;
+  const dashboardLink = (path: string, hash?: string) => {
+    const href = hash ? `${path}#${hash}` : path;
+    return appHref(href, { hubUrl, locale });
   };
 
   return (
@@ -280,11 +280,11 @@ export default function Dashboard({
                 items={[
                   {
                     name: texts.share_project,
-                    url_slug: getFullLink("/share"),
+                    url_slug: dashboardLink("/share"),
                   },
                   {
                     name: texts.my_projects,
-                    url_slug: getFullLink(`/profiles/${user.url_slug}`, "projects"),
+                    url_slug: dashboardLink(`/profiles/${user.url_slug}`, "projects"),
                   },
                 ]}
               />
@@ -294,11 +294,11 @@ export default function Dashboard({
                 items={[
                   {
                     name: texts.create_organization,
-                    url_slug: getFullLink("/createorganization"),
+                    url_slug: dashboardLink("/createorganization"),
                   },
                   {
                     name: texts.my_organizations,
-                    url_slug: getFullLink(`/profiles/${user.url_slug}`, "organizations"),
+                    url_slug: dashboardLink(`/profiles/${user.url_slug}`, "organizations"),
                   },
                 ]}
               />
@@ -308,22 +308,20 @@ export default function Dashboard({
                 items={[
                   {
                     name: texts.my_profile,
-                    url_slug: getFullLink(`/profiles/${user.url_slug}`),
+                    url_slug: dashboardLink(`/profiles/${user.url_slug}`),
                   },
                   {
                     name: texts.edit_profile,
-                    url_slug: getFullLink("/editprofile"),
+                    url_slug: dashboardLink("/editprofile"),
                   },
                 ]}
               />
-              {/* TODO: restore Climate Match icon and link once CM is live  */}
-              {/* <Button type="submit">Climate Match</Button> */}
             </>
           ) : (
             <>
               <Button
                 color="primary"
-                href={getLocalePrefix(locale) + "/signup"}
+                href={appHref("/signup", { hubUrl, locale })}
                 variant="contained"
               >
                 {texts.join_now}

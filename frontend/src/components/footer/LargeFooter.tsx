@@ -5,12 +5,11 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
-import TwitterIcon from "@mui/icons-material/Twitter";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import React, { useContext } from "react";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
+import AppLink from "../general/AppLink";
 import FeedbackButton from "../feedback/FeedbackButton";
 
 const useStyles = makeStyles((theme) => ({
@@ -136,15 +135,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const FooterLink = ({ children, href }) => {
-  const classes = useStyles();
-  return (
-    <Link underline="none" href={href} className={classes.footerLink}>
-      <Typography className={classes.li}>{children}</Typography>
-    </Link>
-  );
-};
-
 export default function LargeFooter({ className }) {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
@@ -174,22 +164,11 @@ const SocialLinks = () => {
   const classes = useStyles();
   return (
     <div className={classes.socialIconsContainer}>
-      <Link
-        target="_blank"
-        href="https://www.instagram.com/climate_connect.earth/"
-        underline="hover"
-      >
+      <Link target="_blank" href="https://www.instagram.com/climatehub_netzwerk/" underline="hover">
         <InstagramIcon color="primary" className={classes.socialIcon} titleAccess="Instagram" />
       </Link>
-      <Link
-        target="_blank"
-        href="https://github.com/climateconnect/climateconnect"
-        underline="hover"
-      >
+      <Link target="_blank" href="https://github.com/climateconnect/climatehub" underline="hover">
         <GitHubIcon className={classes.socialIcon} titleAccess="GitHub" />
-      </Link>
-      <Link target="_blank" href="https://twitter.com/ConnectClimate" underline="hover">
-        <TwitterIcon color="primary" className={classes.socialIcon} titleAccess="Twitter" />
       </Link>
       <Link
         target="_blank"
@@ -221,21 +200,23 @@ const SiteLinks = ({ texts, locale }) => {
           {texts.general}
         </Typography>
         <div className={classes.links}>
-          <FooterLink href={getLocalePrefix(locale) + "/faq"}>{texts.faq}</FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/donate"}>{texts.donate}</FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/about"}>{texts.about}</FooterLink>
+          <AppLink href="/faq" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.faq}</Typography>
+          </AppLink>
+          <AppLink href="/donate" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.donate}</Typography>
+          </AppLink>
+          <AppLink href="/about" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.about}</Typography>
+          </AppLink>
           {locale === "de" && (
-            <FooterLink href={getLocalePrefix(locale) + "/verein"}>{texts.association}</FooterLink>
+            <AppLink href="/verein" leaveHub underline="none" className={classes.footerLink}>
+              <Typography className={classes.li}>{texts.association}</Typography>
+            </AppLink>
           )}
-          <FooterLink
-            href={
-              locale === "de"
-                ? "https://climate-connect.workwise.io/jobsuche"
-                : getLocalePrefix(locale) + "/join"
-            }
-          >
-            {texts.jobs}
-          </FooterLink>
+          <AppLink href={"/jobs"} leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.jobs}</Typography>
+          </AppLink>
         </div>
       </div>
 
@@ -244,8 +225,16 @@ const SiteLinks = ({ texts, locale }) => {
           {texts.contact}
         </Typography>
         <div className={classes.links}>
-          <FooterLink href="mailto:contact@climatehub.org">contact@climatehub.org</FooterLink>
-          <FooterLink href="tel:+4915730101056">+4915730101056</FooterLink>
+          <Link
+            underline="none"
+            href="mailto:contact@climatehub.org"
+            className={classes.footerLink}
+          >
+            <Typography className={classes.li}>contact@climatehub.org</Typography>
+          </Link>
+          <Link underline="none" href="tel:+4915730101056" className={classes.footerLink}>
+            <Typography className={classes.li}>+4915730101056</Typography>
+          </Link>
           <FeedbackButton justLink>
             <Typography className={classes.li}>{texts.leave_feedback}</Typography>
           </FeedbackButton>
@@ -257,14 +246,15 @@ const SiteLinks = ({ texts, locale }) => {
           {texts.browse}
         </Typography>
         <div className={classes.links}>
-          <FooterLink href={getLocalePrefix(locale) + "/browse"}>{texts.projects}</FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/browse#organizations"}>
-            {texts.organizations}
-          </FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/browse#members"}>
-            {texts.members}
-          </FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/hubs"}>{texts.hubs}</FooterLink>
+          <AppLink href="/browse" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.projects}</Typography>
+          </AppLink>
+          <AppLink href="/organizations" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.organizations}</Typography>
+          </AppLink>
+          <AppLink href="/members" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.members}</Typography>
+          </AppLink>
         </div>
       </div>
 
@@ -273,9 +263,15 @@ const SiteLinks = ({ texts, locale }) => {
           {texts.legal}
         </Typography>
         <div className={classes.links}>
-          <FooterLink href={getLocalePrefix(locale) + "/imprint"}>{texts.imprint}</FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/privacy"}>{texts.privacy}</FooterLink>
-          <FooterLink href={getLocalePrefix(locale) + "/terms"}>{texts.terms}</FooterLink>
+          <AppLink href="/imprint" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.imprint}</Typography>
+          </AppLink>
+          <AppLink href="/privacy" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.privacy}</Typography>
+          </AppLink>
+          <AppLink href="/terms" leaveHub underline="none" className={classes.footerLink}>
+            <Typography className={classes.li}>{texts.terms}</Typography>
+          </AppLink>
         </div>
       </div>
 

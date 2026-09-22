@@ -199,6 +199,74 @@ def _has_non_empty_value(value):
     return value is not None and value != ""
 
 
+def _geometry_was_stripped(location_object):
+    """
+    True if this payload carries a geometry *type* but no coordinates.
+
+    That is the marker left by location.providers.strip_geometry(), which drops
+    bulky polygons from autocomplete responses so they don't get cached in
+    Redis. It means "the real geometry has to be fetched before saving", and
+    is deliberately distinct from geojson being absent entirely — an absent
+    geojson has always meant "treat as a point at lat/lon".
+    """
+    geojson = location_object.get("geojson")
+    return isinstance(geojson, dict) and geojson.get("coordinates") is None
+
+
+def _fetch_geometry_from_provider(osm_id, osm_type):
+    """
+    Fetch the full geometry for one OSM object, so Location.multi_polygon is
+    stored at full fidelity even though autocomplete no longer ships polygons.
+
+    Returns a geojson dict, or None if it can't be resolved (callers fall
+    back to treating the location as a point).
+    """
+    osm_type_char = _osm_type_char(osm_type)
+    if not _has_non_empty_value(osm_id) or not osm_type_char:
+        return None
+
+    base_url = settings.LOCATION_SERVICE_BASE_URL
+    if not base_url:
+        logger.warning("LOCATION_SERVICE_BASE_URL is not configured, skipping lookup")
+        return None
+
+    url = base_url + "/lookup"
+    params = {
+        "osm_ids": f"{osm_type_char}{osm_id}",
+        "format": "json",
+        "polygon_geojson": 1,
+        "polygon_threshold": 0.001,
+    }
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers={"User-Agent": settings.CUSTOM_USER_AGENT},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "Geometry lookup returned status %s for osm_ids=%s%s",
+                response.status_code,
+                osm_type_char,
+                osm_id,
+            )
+            return None
+        data = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "Geometry lookup failed for osm_ids=%s%s: %s", osm_type_char, osm_id, exc
+        )
+        return None
+
+    if not isinstance(data, list) or not data:
+        return None
+    geojson = data[0].get("geojson")
+    if not isinstance(geojson, dict) or geojson.get("coordinates") is None:
+        return None
+    return geojson
+
+
 def _has_osm_composite_key(location_object):
     return (
         _has_non_empty_value(location_object.get("osm_id"))
@@ -292,6 +360,35 @@ def get_location(location_object):
 
     for attr in optional_attribute_names:
         location_object[attr] = location_object.get(attr, "")
+
+    # Autocomplete responses ship geometry types without coordinates (see
+    # location.providers.strip_geometry) — this is the one place that needs the
+    # real thing, and only when creating a Location we've never seen before.
+    if _geometry_was_stripped(location_object):
+        geojson = _fetch_geometry_from_provider(
+            location_object.get("osm_id"), location_object.get("osm_type")
+        )
+        if geojson:
+            location_object["geojson"] = geojson
+            location_object["type"] = geojson["type"]
+            location_object["coordinates"] = geojson["coordinates"]
+        else:
+            # Couldn't resolve the polygon; degrade to a point at lat/lon
+            # rather than failing the user's save.
+            logger.warning(
+                "Falling back to point geometry for osm_id=%s (%s) — polygon "
+                "lookup failed",
+                location_object.get("osm_id"),
+                location_object.get("name"),
+            )
+            location_object["type"] = "Point"
+            location_object["geojson"] = {
+                "type": "Point",
+                "coordinates": [
+                    float(location_object["lon"]),
+                    float(location_object["lat"]),
+                ],
+            }
 
     centre_point = None
     multipolygon = None
@@ -587,7 +684,6 @@ def get_location_with_range(query_params):
     normalized_osm_type = _osm_type_char(filter_osm_type)
 
     if not location:
-        url_root = settings.LOCATION_SERVICE_BASE_URL + "/lookup?osm_ids="
         if not _has_non_empty_value(filter_osm_id) or not _has_non_empty_value(
             normalized_osm_type
         ):
@@ -600,6 +696,15 @@ def get_location_with_range(query_params):
             raise ValidationError(
                 "Missing required location lookup parameters: osm_id and osm_type are required."
             )
+
+        if not settings.LOCATION_SERVICE_BASE_URL:
+            logger.error(
+                "LOCATION_SERVICE_BASE_URL is not configured, cannot look up osm_id=%s",
+                filter_osm_id,
+            )
+            raise ValidationError("Upstream location service is unavailable.")
+
+        url_root = settings.LOCATION_SERVICE_BASE_URL + "/lookup?osm_ids="
 
         # Append osm_id to first letter of osm_type as uppercase letter
         osm_id_param = normalized_osm_type + str(filter_osm_id)

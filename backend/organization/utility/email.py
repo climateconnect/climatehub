@@ -71,12 +71,8 @@ def send_project_comment_email(
 ):
     lang_code = get_user_lang_code(user)
     subjects_by_language = {
-        "en": "Somebody left a comment on your project {}".format(
-            project.name
-        ),
-        "de": "Jemand hat dein Projekt {} kommentiert".format(
-            project.name
-        ),
+        "en": "Somebody left a comment on your project {}".format(project.name),
+        "de": "Jemand hat dein Projekt {} kommentiert".format(project.name),
     }
     base_url = settings.FRONTEND_URL
     hub_query = ("?hub=" + hub_url) if hub_url else ""
@@ -102,9 +98,7 @@ def send_project_comment_email(
 def send_idea_comment_email(user, idea, comment, sender, notification, hub_url=None):
     lang_code = get_user_lang_code(user)
     subjects_by_language = {
-        "en": "Somebody left a comment on your idea '{}'".format(
-            idea.name
-        ),
+        "en": "Somebody left a comment on your idea '{}'".format(idea.name),
         "de": "Jemand hat einen Kommentar zu deiner Idee '{}' auf hinterlassen.".format(
             idea.name
         ),
@@ -257,12 +251,8 @@ def send_organization_follower_email(
     )
 
     subjects_by_language = {
-        "en": "{} now follows {}".format(
-            following_user_full_name, organization_name
-        ),
-        "de": "{} folgt jetzt {}".format(
-            following_user_full_name, organization_name
-        ),
+        "en": "{} now follows {}".format(following_user_full_name, organization_name),
+        "de": "{} folgt jetzt {}".format(following_user_full_name, organization_name),
     }
 
     base_url = settings.FRONTEND_URL
@@ -364,12 +354,8 @@ def send_join_project_request_email(user, request, requester, notification, hub_
     lang_code = get_user_lang_code(user)
     requester_name = requester.first_name + " " + requester.last_name
     subjects_by_language = {
-        "en": "{} requested to join your project".format(
-            requester_name
-        ),
-        "de": "{} möchte bei deinem Project mitmachen".format(
-            requester_name
-        ),
+        "en": "{} requested to join your project".format(requester_name),
+        "de": "{} möchte bei deinem Project mitmachen".format(requester_name),
     }
 
     base_url = settings.FRONTEND_URL
@@ -854,46 +840,18 @@ def generate_event_ics_attachment(project, lang_code, registration=None, tz=None
     if not project.start_date or not project.end_date:
         return None
 
+    from organization.utility.ical_feed import PRODID, build_vevent
+
+    extra_desc = ""
+    if registration and tz:
+        extra_desc = _build_field_answers_text(registration, lang_code, tz) or ""
+
     cal = Calendar()
-    cal.add("prodid", "-//Climate Connect//EN")
+    cal.add("prodid", PRODID)
     cal.add("version", "2.0")
     cal.add("method", "PUBLISH")
 
-    event = IcalEvent()
-    event.add("uid", f"{project.id}@climatehub.org")
-    event.add("summary", get_project_name(project, lang_code))
-    event.add("dtstart", project.start_date)
-    event.add("dtend", project.end_date)
-
-    location = get_location_name(project, lang_code)
-    if location:
-        event.add("location", location)
-
-    event_url = (
-        settings.FRONTEND_URL
-        + get_user_lang_url(lang_code)
-        + "/projects/"
-        + project.url_slug
-    )
-
-    description_parts = []
-    if project.short_description:
-        description_parts.append(project.short_description.strip())
-    if registration and tz:
-        field_answers_text = _build_field_answers_text(registration, lang_code, tz)
-        if field_answers_text:
-            description_parts.append(field_answers_text)
-    url_cta = (
-        "Visit the following link to see event details or change your registration:"
-        if lang_code == "en"
-        else "Besuche folgenden Link, um die Details der Veranstaltung zu sehen"
-        " oder deine Anmeldung zu ändern:"
-    )
-    description_parts.append(f"{url_cta}\n{event_url}")
-    event.add("description", "\n\n".join(description_parts))
-
-    ical_url = project.website if (project.is_online and project.website) else event_url
-    event.add("url", ical_url)
+    event = build_vevent(project, lang_code, extra_description=extra_desc)
 
     cal.add_component(event)
 
@@ -956,15 +914,15 @@ def generate_timeslot_ics_attachments(project, lang_code, registration):
 
         timeslot_seq += 1
 
+        from organization.utility.ical_feed import PRODID
+
         cal = Calendar()
-        cal.add("prodid", "-//Climate Connect//EN")
+        cal.add("prodid", PRODID)
         cal.add("version", "2.0")
         cal.add("method", "PUBLISH")
 
         ical_event = IcalEvent()
-        ical_event.add(
-            "uid", f"{registration.id}_{answer.field.id}@climatehub.org"
-        )
+        ical_event.add("uid", f"{registration.id}_{answer.field.id}@climatehub.org")
         ical_event.add("summary", f"{summary_prefix} {event_name}")
         ical_event.add("dtstart", option.start_time)
         ical_event.add("dtend", option.end_time)

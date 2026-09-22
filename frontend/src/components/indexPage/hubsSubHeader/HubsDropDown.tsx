@@ -1,11 +1,13 @@
 import { Button, ButtonProps } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { useRouter } from "next/router";
 import React, { useContext, useRef } from "react";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import DropDownList from "../../header/DropDownList";
+import { useIsEventsPage } from "../../../hooks/usePageNavEntries";
+import { getHubBrowsePathForType } from "../../../../public/lib/urlOperations";
+import { BrowseEntity } from "../../../types";
 
 type MakeStylesProps = {
   height: number;
@@ -22,8 +24,24 @@ const useStyles = makeStyles((theme) => ({
   }),
 }));
 
-//Generic component to show a list of hubs in the HubsSubHeader
+/**
+ * Generic dropdown that lists the available hubs. Each entry is rewritten to
+ * land on the same *page type* (entity-browser entry or events calendar) as
+ * the page the user is currently on, so a click on a hub preserves the
+ * active browse view.
+ *
+ * - `activeEntry` is the entity-browser entry currently active on the page
+ *   (one of "projects" / "organizations" / "members"), or `null` for pages
+ *   that don't have one (e.g. the hub landing page).
+ * - The events-page check is derived from the URL via `useIsEventsPage`.
+ *
+ * When neither an `activeEntry` nor an events page applies (i.e. on the hub
+ * landing page), the dropdown offers a hub's landing page to logged-out
+ * users (if the hub has one) and its browse/projects page otherwise. The
+ * "all locations" trailing link follows the same rule.
+ */
 export default function HubsDropDown({
+  activeEntry,
   open,
   hubs,
   label,
@@ -33,14 +51,24 @@ export default function HubsDropDown({
   onClose,
   addLocationHubExplainerLink,
   height,
-}: any) {
-  const classes = useStyles({ height: height });
+}: {
+  activeEntry?: BrowseEntity | null;
+  open: boolean;
+  hubs: { name: string; url_slug: string; landing_page_component?: string | null }[];
+  label: string;
+  isNarrowScreen: boolean;
+  onToggleOpen: (_e: React.MouseEvent) => void;
+  onOpen: (_e: React.MouseEvent) => void;
+  onClose: (_e?: React.MouseEvent) => void;
+  addLocationHubExplainerLink?: boolean;
+  height?: number;
+}) {
+  const classes = useStyles({ height: height ?? 54 });
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popperRef = useRef<HTMLAnchorElement | null>(null);
   const { locale, user } = useContext(UserContext);
   const texts = getTexts({ page: "hub", locale: locale });
-  const router = useRouter();
-  const isEventsPage = router.pathname.includes("events");
+  const isEventsPage = useIsEventsPage();
 
   const toggleButtonProps: ButtonProps = {};
   if (!isNarrowScreen) {
@@ -48,21 +76,39 @@ export default function HubsDropDown({
     toggleButtonProps.onMouseLeave = onClose;
   }
 
-  const handleBlur = (e) => {
-    if (isNarrowScreen && !popperRef?.current?.contains(e.relatedTarget)) {
+  const handleBlur = (e: React.FocusEvent) => {
+    if (isNarrowScreen && !popperRef?.current?.contains(e.relatedTarget as Node | null)) {
       onClose();
     }
   };
 
-  const currentHash = typeof window !== "undefined" ? window.location.hash : "";
+  const hubHref = (urlSlug: string): string => {
+    if (isEventsPage) {
+      return `/hubs/${urlSlug}/events`;
+    }
+    // Logged-out users on hubs that have a curated landing page should be
+    // routed there. This takes priority over the active-entry preservation:
+    // a logged-out user on `/browse` who clicks a hub link should see the
+    // hub's landing page (curated content), not the project list.
+    if (!user && hubs.find((h) => h.url_slug === urlSlug)?.landing_page_component) {
+      return `/hubs/${urlSlug}`;
+    }
+    if (activeEntry) {
+      return getHubBrowsePathForType(activeEntry, urlSlug);
+    }
+    return `/hubs/${urlSlug}/browse`;
+  };
+
   const dropDownHubItems = hubs.map((h) => ({
-    href: isEventsPage
-      ? `/hubs/${h.url_slug}/events`
-      : (!user && h.landing_page_component ? `/hubs/${h.url_slug}` : `/hubs/${h.url_slug}/browse`) +
-        currentHash,
+    href: hubHref(h.url_slug),
     text: h.name,
   }));
-  const allLocationsHref = isEventsPage ? "/events" : `/browse${currentHash}`;
+
+  const allLocationsHref = isEventsPage
+    ? "/events"
+    : activeEntry
+    ? `/${activeEntry === "projects" ? "browse" : activeEntry}`
+    : "/browse";
 
   const dropDownItems = addLocationHubExplainerLink
     ? [

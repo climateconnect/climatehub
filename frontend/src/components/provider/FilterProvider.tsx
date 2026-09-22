@@ -39,7 +39,6 @@ export function FilterProvider({
       initialLocationFilter,
     })
   );
-  const [tabsWhereFiltersWereApplied, setTabsWhereFiltersWereApplied] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
 
   // Handlers
@@ -55,10 +54,6 @@ export function FilterProvider({
     setFilters({ ...filters, ...valuesToUpdate });
   };
 
-  const handleSetTabsWhereFiltersWereApplied = (tabs) => {
-    setTabsWhereFiltersWereApplied(tabs);
-  };
-
   const handleApplyNewFilters = async ({ type, newFilters, closeFilters }) => {
     return await applyNewFilters({
       type,
@@ -70,8 +65,6 @@ export function FilterProvider({
       token,
       handleAddFilters,
       handleSetErrorMessage,
-      tabsWhereFiltersWereApplied,
-      handleSetTabsWhereFiltersWereApplied,
       hubUrl: hubUrl ?? undefined,
     });
   };
@@ -80,11 +73,9 @@ export function FilterProvider({
     <FilterContext.Provider
       value={{
         filters,
-        tabsWhereFiltersWereApplied,
         errorMessage,
         handleSetErrorMessage,
         handleAddFilters,
-        handleSetTabsWhereFiltersWereApplied,
         handleApplyNewFilters,
         handleUpdateFilterValues,
       }}

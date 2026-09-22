@@ -1,0 +1,46 @@
+/**
+ * CSS patches for the Webflow devlink V2 export migration.
+ *
+ * 1. .w-layout-blockcontainer — scoped rules for a Webflow layout class
+ *    that the V2 export omits but components still depend on.
+ *
+ * 2. img display — the old V1 global.css applied `display: inline-block`
+ *    to all img tags on the page. The app's header (and likely other
+ *    places) relied on this to avoid baseline descender gaps. The V2
+ *    export correctly scopes its CSS, so this no longer leaks out.
+ *    Restoring it globally to avoid visual regressions.
+ *
+ * If Webflow fixes (1) upstream, the scoped block can be removed.
+ * If the app is updated to not rely on (2), the img rule can be removed.
+ */
+
+/* 1. Missing w-layout-blockcontainer (scoped) */
+@scope (.wf-devlink-a48d6d37b4950a21d6458e42fa364bf3) {
+  .w-layout-blockcontainer {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 940px;
+  }
+}
+
+@media screen and (max-width: 991px) {
+  @scope (.wf-devlink-a48d6d37b4950a21d6458e42fa364bf3) {
+    .w-layout-blockcontainer {
+      max-width: 728px;
+    }
+  }
+}
+
+@media screen and (max-width: 767px) {
+  @scope (.wf-devlink-a48d6d37b4950a21d6458e42fa364bf3) {
+    .w-layout-blockcontainer {
+      max-width: none;
+    }
+  }
+}
+
+/* 2. img display — was applied globally by the old V1 global.css */
+img {
+  display: inline-block;
+  vertical-align: middle;
+}

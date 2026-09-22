@@ -53,48 +53,6 @@ export default function getHubTexts({ hubName, hubAmbassador }) {
       en: "Loading Chart",
       de: "Lade Diagramm",
     },
-    climate_action_hubs: {
-      en: "Climate Action Hubs",
-      de: "Klimaschutz Hubs",
-    },
-    hubs_overview_image_alt: {
-      en: "Beautiful flat landscape with many hot air balloons taking off",
-      de: "Schöne flache Landschaft mit vielen abhebenden Heißluftballons",
-    },
-    find_climate_solutions_in_each_hub: {
-      en: "Find climate solutions in each hub",
-      de: "Finde Klima-Lösungen in jedem Hub",
-    },
-    find_the_best_ways_to_tackle_climate_change_in_each_sector: {
-      en: "Find the best ways to tackle climate change in each sector",
-      de: "Finde die besten Wege, den Klimawandel in jedem Bereich zu bekämpfen",
-    },
-    hubs_overview_mobile_explainer_text: {
-      en:
-        "Find information and concrete solutions on how to effectively fight climate change in each sector.",
-      de:
-        "Finde Informationen und konkrete Lösungen wie Klimawandel in jedem Bereich effektiv bekämpft werden kann.",
-    },
-    hubs_overview_largescreen_explainer_text_first_part: {
-      en: `On the hub pages you can find information on how to effectively fight climate change in each
-        sector. You can find concrete and impactful solutions created by ClimateHub Network users. Get
-        inspired and see possible actions how to fight climate change and get involved in a project
-        you like. Who knows, maybe you will even find a really cool project that is already working
-        great somewhere else and can reproduce it in your home town! Contact the solutions'
-        creators directly on the solutions' pages to start a conversation!`,
-      de: `In den Hubs findest du Informationen, wie der Klimawandel in jedem Bereich bekämpft werden kann.
-        Dort findest du konkrete und wirkungsvolle Lösungen, die von ClimateHub Netzwerk Nutzern erstellt wurden.
-        Lass dich inspirieren, finde Aktionen, die zeigen, wie du den Klimawandel bekämpfen kannst und
-        engagiere dich in einem Projekt, das dir gefällt. Wer weiß, vielleicht findest du ja auch ein richtig cooles
-        Projekt, das woanders schon erfolgreich ist und du kannst es in deiner Stadt reproduzieren! Kontaktiere
-        die Projektersteller direkt über die Projektseite und tausche dich mit Ihnen aus!`,
-    },
-    hubs_overview_largescreen_explainer_text_last_part: {
-      en: `Have fun exploring what is possible to save our planet! Remember: The clock is ticking and
-      every tenth of a degree matters.`,
-      de: `Viel Spaß beim Entdecken der Möglichkeiten wie wir unseren Planeten schützen können! Denk dran: Die Uhr tickt
-      und jedes Zehntel-Grad zählt.`,
-    },
     find_climate_projects_in_each_sector_in_our_hubs: {
       en: "Find climate projects in each sector in our hubs",
       de: "Finde Klimaprojekte in jedem Sektor in unseren Hubs",
@@ -159,6 +117,10 @@ export default function getHubTexts({ hubName, hubAmbassador }) {
       en: `You are seeing people interested in the topic "${hubName}"`,
       de: `Du siehst Menschen, die sich für das Thema "${hubName}" interessieren`,
     },
+    you_are_seeing_events_related_to: {
+      en: `You are seeing events related to the topic "${hubName}"`,
+      de: `Du siehst Events zum Thema "${hubName}"`,
+    },
     upcoming_events: {
       en: "Upcoming events",
       de: "Kommende Events",
@@ -174,6 +136,38 @@ export default function getHubTexts({ hubName, hubAmbassador }) {
     search_events: {
       en: "Search events",
       de: "Events suchen",
+    },
+    subscribe_to_calendar_button: {
+      en: "Subscribe",
+      de: "Abonnieren",
+    },
+    subscribe_dialog_title: {
+      en: "Subscribe to event calendar",
+      de: "Event-Kalender abonnieren",
+    },
+    subscribe_dialog_instructions: {
+      en:
+        "Copy the URL below and add it to your calendar app using 'Subscribe to calendar' or 'Add calendar by URL'.",
+      de:
+        "Kopiere die URL unten und füge sie in deiner Kalender-App über 'Kalender abonnieren' oder 'Kalender per URL hinzufügen' hinzu.",
+    },
+    subscribe_open_in_google: {
+      en: "Open in Google Calendar",
+      de: "In Google Kalender öffnen",
+    },
+    subscribe_copy_url: {
+      en: "Copy URL",
+      de: "URL kopieren",
+    },
+    subscribe_copied: {
+      en: "Copied!",
+      de: "Kopiert!",
+    },
+    subscribe_google_lag_note: {
+      en:
+        "Note: Google Calendar refreshes subscribed feeds every 12\u201324 hours, so new events may take up to a day to appear.",
+      de:
+        "Hinweis: Google Kalender aktualisiert abonnierte Kalender alle 12\u201324 Stunden, daher können neue Events bis zu einem Tag dauern.",
     },
   };
 

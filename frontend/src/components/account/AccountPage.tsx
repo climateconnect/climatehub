@@ -255,6 +255,7 @@ export default function AccountPage({
   };
 
   const handleReadNotifications = async (notificationType) => {
+    if (!notifications || notifications.length === 0) return;
     const notification_to_set_read = notifications.filter(
       (n) =>
         n.notification_type === notificationType && n.organization.url_slug === account.url_slug

@@ -81,7 +81,6 @@ class EventRegistrationsView(APIView):
 
     @transaction.atomic
     def post(self, request, url_slug):
-
         # ── 1. Look up project ──────────────────────────────────────────────
         try:
             project = Project.objects.get(url_slug=url_slug)
@@ -332,7 +331,6 @@ class EventRegistrationsView(APIView):
         return max(0, rc.max_participants - count)
 
     def get(self, request, url_slug):
-
         # ── 1. Look up project ──────────────────────────────────────────────
         try:
             project = Project.objects.get(url_slug=url_slug)
@@ -705,7 +703,6 @@ class EditRegistrationConfigView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def patch(self, request, url_slug):
-
         # ── 1. Look up project ──────────────────────────────────────────────
         try:
             project = Project.objects.get(url_slug=url_slug)
@@ -801,7 +798,6 @@ class SendOrganizerEmailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, url_slug):
-
         # ── 1. Validate input ────────────────────────────────────────────
         serializer = SendOrganizerEmailSerializer(data=request.data)
         if not serializer.is_valid():
@@ -988,7 +984,6 @@ class AdminCancelRegistrationView(APIView):
 
     @transaction.atomic
     def patch(self, request, url_slug, registration_id):
-
         # ── 1. Look up project ──────────────────────────────────────────────
         try:
             project = (

@@ -55,9 +55,9 @@ export default function OrganizationPreviewHeader({ organization }) {
       />
       {organization.types?.length > 0 && (
         <Box className={classes.chipGroup}>
-          {organization.types.map((type, id) => (
+          {organization.types.map((type) => (
             <Chip
-              key={type.key + id}
+              key={type.key}
               className={classes.chip}
               label={type.name}
               size="small"

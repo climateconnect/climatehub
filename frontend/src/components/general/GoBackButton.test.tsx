@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import GoBackButton from "./GoBackButton";
 
@@ -25,6 +26,10 @@ function setReferrer(referrer: string) {
   jest.spyOn(document, "referrer", "get").mockReturnValue(referrer);
 }
 
+function setHistoryLength(length: number) {
+  jest.spyOn(window.history, "length", "get").mockReturnValue(length);
+}
+
 function renderButton(props: any = {}) {
   const merged = {
     texts: baseTexts,
@@ -33,7 +38,9 @@ function renderButton(props: any = {}) {
   };
   return render(
     <ThemeProvider theme={theme}>
-      <GoBackButton {...merged} />
+      <StylesThemeProvider theme={theme}>
+        <GoBackButton {...merged} />
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }
@@ -58,10 +65,24 @@ describe("GoBackButton", () => {
 
   it("navigates back in history when the referrer is internal", () => {
     setReferrer("http://localhost/en/browse");
+    setHistoryLength(2);
     renderButton();
     fireEvent.click(screen.getByText("Go back"));
     expect(mockBack).toHaveBeenCalledTimes(1);
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the browse page when arrived via redirect (referrer is redirect source, history.length is 1)", () => {
+    // Server-side redirects (e.g. /klimakuechen-erlangen → /de/projects/klimakuechen)
+    // cause the browser to set document.referrer to the redirect source URL (same
+    // host). With history.length === 1 (the 301 source was not added to history),
+    // router.back() would do nothing, so we must fall back to the default URL.
+    setReferrer("http://localhost/klimakuechen-erlangen");
+    setHistoryLength(1);
+    renderButton({ locale: "en" });
+    fireEvent.click(screen.getByText("Go back"));
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith("/en/browse");
   });
 
   it("falls back to the browse page when there is no referrer", () => {
@@ -107,6 +128,7 @@ describe("GoBackButton", () => {
 
   it("navigates back from the tiny screen button", () => {
     setReferrer("http://localhost/en/browse");
+    setHistoryLength(2);
     renderButton({ tinyScreen: true });
     fireEvent.click(screen.getByRole("button"));
     expect(mockBack).toHaveBeenCalledTimes(1);

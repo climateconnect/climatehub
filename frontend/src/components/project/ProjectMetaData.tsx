@@ -13,7 +13,7 @@ import ProjectSectorsDisplay from "./ProjectSectorsDisplay";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ModeCommentIcon from "@mui/icons-material/ModeComment";
 import { Project } from "../../types";
-import BrowseContext from "../context/BrowseContext";
+import { getProjectTypes } from "../../../public/data/projectTypes";
 import ProjectTypeDisplay from "./ProjectTypeDisplay";
 import {
   shouldShowRegisterButton,
@@ -54,6 +54,7 @@ const useStyles = makeStyles<Theme, { hovering?: boolean }>((theme) => ({
     display: "inline",
     fontSize: 14,
     marginLeft: theme.spacing(0.25),
+    color: theme.palette.text.primary,
   },
   shortDescription: {
     fontSize: 13,
@@ -311,15 +312,18 @@ export const CreatorAndCollaboratorPreviews = ({ collaborating_organization, pro
 
 const AdditionalPreviewInfo = ({ project, isUserRegistered, analyticsSurface }) => {
   const classes = useStyles({});
-  const { projectTypes } = useContext(BrowseContext);
   const { locale, user, ReactGA } = useContext(UserContext);
+  const projectTypes = getProjectTypes(locale);
   const texts = getTexts({ page: "project", locale });
   const router = useRouter();
 
-  const projectType =
-    projectTypes && projectTypes.length > 0
-      ? projectTypes.find((t) => t.type_id === project.project_type)
-      : { name: project.project_type, type_id: project.project_type };
+  const projectType = projectTypes.find((t) => t.type_id === project.project_type) ?? {
+    name: project.project_type,
+    type_id: project.project_type,
+    original_name: project.project_type,
+    help_text: "",
+    icon: "",
+  };
 
   const showRegisterButton = shouldShowRegisterButton(project);
 

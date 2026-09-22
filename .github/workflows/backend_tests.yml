@@ -119,7 +119,7 @@
            ALLOWED_HOSTS: "localhost,127.0.0.1"
            MEDIA_ROOT: "${{ github.workspace }}/backend/media"
          run: |
-           pdm run python manage.py test --keepdb
+           pdm run python manage.py test --keepdb --parallel 4
 
 #       - name: Upload coverage reports
 #         if: always()

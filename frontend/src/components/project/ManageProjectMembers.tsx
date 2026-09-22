@@ -2,7 +2,9 @@ import { Button, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useState } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
-import { apiRequest, getLocalePrefix, redirect } from "../../../public/lib/apiOperations";
+import { apiRequest, redirect } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
+import { HubContext } from "../context/HubContext";
 import { hasGreaterRole } from "../../../public/lib/manageMembers";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -44,10 +46,10 @@ export default function ManageProjectMembers({
   project,
   token,
   availabilityOptions,
-  hubUrl,
 }) {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
+  const { hubUrl } = useContext(HubContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
   const [user_role, setUserRole] = useState(members.find((m) => m.id === user.id).role);
   if (!user_role) setUserRole(members.find((m) => m.id === user.id).role);
@@ -207,12 +209,7 @@ export default function ManageProjectMembers({
           <div className={classes.buttons}>
             <Button
               className={`${classes.button} ${classes.cancelleButton}`}
-              href={
-                getLocalePrefix(locale) +
-                "/projects/" +
-                project.url_slug +
-                (hubUrl ? "?hub=" + hubUrl : "")
-              }
+              href={appHref("/projects/" + project.url_slug, { hubUrl, locale })}
               variant="contained"
             >
               {texts.cancel}

@@ -8,8 +8,9 @@ import IconWrapper from "../staticpages/donate/IconWrapper";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import { useRouter } from "next/router";
+import { HubContext } from "../context/HubContext";
 
 type MakeStylesProps = {
   isLocationHub: boolean;
@@ -122,8 +123,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function LoggedOutLocationHubBox({ headline, isLocationHub, location, hubUrl }) {
+export default function LoggedOutLocationHubBox({ headline, isLocationHub, location }) {
   const { locale } = useContext(UserContext);
+  const { hubUrl } = useContext(HubContext);
   const texts = getTexts({
     page: "dashboard",
     locale: locale,
@@ -196,7 +198,7 @@ export default function LoggedOutLocationHubBox({ headline, isLocationHub, locat
         <div className={classes.buttonContainer}>
           <Button
             variant="contained"
-            href={`${getLocalePrefix(locale)}/signup${hubUrl ? `?hub=${hubUrl}` : ""}`}
+            href={appHref("/signup", { hubUrl, locale })}
             className={classes.signUpButton}
           >
             {isNarrowScreen ? texts.sign_up_now : texts.sign_up_now_to_make_a_difference}

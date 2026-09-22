@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import ProjectDescriptionEditor from "./ProjectDescriptionEditor";
@@ -22,14 +23,22 @@ function renderEditor({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <UserContext.Provider value={defaultContext as any}>
-        <ProjectDescriptionEditor
-          descriptionHtml={descriptionHtml}
-          onChange={onChange}
-          disabled={disabled}
-          error={error}
-        />
-      </UserContext.Provider>
+      {/*
+       * `@mui/styles` (used by `makeStyles` in components under test) bundles its own
+       * `@mui/private-theming` instance, separate from `@mui/material` v7's, so it can't see
+       * the theme via the `ThemeProvider` above. Nest `@mui/styles`' own `ThemeProvider` with
+       * the same theme so `makeStyles` consumers get a real theme instead of the empty default.
+       */}
+      <StylesThemeProvider theme={theme}>
+        <UserContext.Provider value={defaultContext as any}>
+          <ProjectDescriptionEditor
+            descriptionHtml={descriptionHtml}
+            onChange={onChange}
+            disabled={disabled}
+            error={error}
+          />
+        </UserContext.Provider>
+      </StylesThemeProvider>
     </ThemeProvider>
   );
 }

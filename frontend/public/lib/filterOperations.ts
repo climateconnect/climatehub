@@ -6,32 +6,6 @@ import { membersWithAdditionalInfo } from "./getOptions";
 import { getInfoMetadataByType, getReducedPossibleFilters } from "./parsingOperations";
 import { encodeQueryParamsFromFilters } from "./urlOperations";
 
-const getLocationFilterUrl = (location) => {
-  /*Pass osm_id, osm_type and osm_class. If they are found in our db we can use their polygon,
-  otherwise make a request to the location API with the backend */
-  const osmType = location.osm_type;
-  const osmClass = location.osm_class;
-  return `place_id=${location.place_id}&osm_id=${location.osm_id}&osm_type=${osmType}&osm_class=${osmClass}&`;
-};
-
-export function buildUrlEndingFromFilters(filters) {
-  let url = "&";
-  Object.keys(filters).map((filterKey) => {
-    if (
-      filters[filterKey] &&
-      (filters[filterKey].length > 0 || Object.keys(filters[filterKey]).length > 0)
-    ) {
-      //only use location filter if we have selected a location
-      if (filterKey === "location" && typeof filters[filterKey] === "object") {
-        url += getLocationFilterUrl(filters[filterKey]);
-      } else if (Array.isArray(filters[filterKey]))
-        url += encodeURI(filterKey + "=" + filters[filterKey].join()) + "&";
-      else url += encodeURI(filterKey + "=" + filters[filterKey] + "&");
-    }
-  });
-  return url;
-}
-
 export function getKeysOfDifferingValues({ obj, newObj, type, filterChoices, locale }) {
   const possibleFilterKeys = possibleFilters({
     key: type,
@@ -87,29 +61,6 @@ export function hasDifferingValues({ obj, newObj, type, filterChoices, locale })
   );
 }
 
-export function getUnaffectedTabs({ tabs, filterChoices, locale, filters, newFilters, type }) {
-  return tabs.filter((tab) => {
-    const possibleFiltersInTab = possibleFilters({
-      key: tab,
-      filterChoices: filterChoices,
-      locale: locale,
-    });
-    const keysOfDifferingValues = getKeysOfDifferingValues({
-      obj: filters,
-      newObj: newFilters,
-      type: type,
-      filterChoices: filterChoices,
-      locale: locale,
-    });
-    for (const filter of possibleFiltersInTab) {
-      if (keysOfDifferingValues.includes(filter.key)) {
-        return false;
-      }
-    }
-    return true;
-  });
-}
-
 export function getInitialFilters({ filterChoices, locale, initialLocationFilter }) {
   return {
     ...getReducedPossibleFilters(
@@ -153,8 +104,6 @@ export function splitFiltersFromQueryObject(queryObject, possibleFilters): any {
  * @param {string} token the user's login token to authenticate with the backend
  * @param {function} handleAddFilters a function that allows adding additional filters to the current ones
  * @param {function} handleSetErrorMessage function to display an error message
- * @param {Array} tabsWhereFiltersWereApplied is an array of the tabs where filters were already applied and therefore data doesn't need to be retrieved from the server again
- * @param {function} handleSetTabsWhereFiltersWereApplied function to change tabsWhereFiltersWereApplied
  * @param {string} hubUrl is set if only results from a certain hub should be displayed
  */
 export async function applyNewFilters({
@@ -167,24 +116,8 @@ export async function applyNewFilters({
   token,
   handleAddFilters,
   handleSetErrorMessage,
-  tabsWhereFiltersWereApplied,
-  handleSetTabsWhereFiltersWereApplied,
   hubUrl,
 }: any) {
-  // Don't fetch data again if the exact same filters were already applied in this tab
-  if (
-    !hasDifferingValues({
-      obj: filters,
-      newObj: newFilters,
-      type: type,
-      filterChoices: filterChoices,
-      locale: locale,
-    }) &&
-    tabsWhereFiltersWereApplied.includes(type)
-  ) {
-    return null;
-  }
-  //Record the tabs in which the filters were applied already
   if (
     !hasDifferingValues({
       obj: filters,
@@ -194,20 +127,7 @@ export async function applyNewFilters({
       locale: locale,
     })
   ) {
-    handleSetTabsWhereFiltersWereApplied([...tabsWhereFiltersWereApplied, type]);
-  } else {
-    //If there was a change to the filters, we'll only remove the affected tabs from the tabs that were affected by the change
-    //e.g. your cannot browse organizations by project category at the moment, so if you change this filter and then switch to the organizations tab
-    //this should not trigger a reload of the organzations
-    const unaffectedTabs = getUnaffectedTabs({
-      tabs: tabsWhereFiltersWereApplied,
-      filterChoices: filterChoices,
-      locale: locale,
-      filters: filters,
-      newFilters: newFilters,
-      type: type,
-    });
-    handleSetTabsWhereFiltersWereApplied([...unaffectedTabs, type]);
+    return null;
   }
   handleAddFilters(newFilters);
   const newUrlEnding = encodeQueryParamsFromFilters({

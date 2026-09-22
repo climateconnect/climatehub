@@ -111,7 +111,6 @@ export default function EditProfilePage({
           handleSetLocationOptionsOpen={handleSetLocationOptionsOpen}
           setErrorMessage={setErrorMessage}
           availabilityOptions={availabilityOptions}
-          hubUrl={hubUrl}
           allSectors={allSectors}
         />
       </WideLayout>

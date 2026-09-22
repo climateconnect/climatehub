@@ -31,7 +31,6 @@ Climate Connect is a full-stack online climate action platform that connects act
 - **Organization Management**: Register and manage climate organizations with membership and permissions
 - **Community Hubs**: Geographic and sector-based communities with custom branding
 - **Real-Time Messaging**: Chat for user-to-user and group communication
-- **Climate Matching**: Intelligent questionnaire-based matching of users to projects and organizations
 - **Social Features**: Follow, like, comment, and share functionality
 - **Gamification**: Badge system for recognizing contributions and achievements
 - **Donations**: Fundraising campaigns and contribution tracking
@@ -165,10 +164,6 @@ backend/
 │   ├── serializers/               # Idea serializers
 │   └── views/                     # Idea API
 │
-├── climate_match/                 # Matching questionnaire
-│   ├── models/                    # Question, Answer, UserQuestionAnswer
-│   └── views/                     # Questionnaire API
-│
 ├── locale/                        # Backend translations
 │   ├── en/                        # English
 │   └── de/                        # German
@@ -187,7 +182,6 @@ backend/
 | **hubs** | Geographic and sector-based communities | Hub, HubTheme, HubAmbassador |
 | **location** | Geographic data with spatial queries | Location (PostGIS) |
 | **ideas** | Idea proposals and collaboration | Idea, IdeaComment, IdeaSupporter |
-| **climate_match** | Intelligent user-project matching | Question, Answer, UserQuestionAnswer |
 
 ### API Design Patterns
 
@@ -218,8 +212,6 @@ backend/
 
 /api/ideas/                           # Idea listing/creation
 /api/chat/messages/                   # Message history
-
-/api/climate-match/questions/         # Questionnaire
 ```
 
 ### Key Backend Components
@@ -313,7 +305,6 @@ frontend/
 │   │   ├── hub/                   # Hub pages
 │   │   ├── communication/         # Chat, notifications
 │   │   ├── ideas/                 # Idea pages
-│   │   ├── climateMatch/          # Questionnaire
 │   │   └── indexPage/             # Homepage components
 │   │
 │   ├── context/                   # React Context providers
@@ -833,6 +824,34 @@ Django App                Redis                Celery Workers
 - **Result Backend**: Redis (task results)
 - **Config**: `climateconnect_main/celery.py`
 
+**Queues**:
+
+Most tasks use the default queue. One task is routed to a dedicated queue via
+`CELERY_TASK_ROUTES` in `settings.py`:
+
+| Queue | Task | Why |
+|-------|------|-----|
+| default | everything else | — |
+| `lookup` | `location.tasks.fetch_autocomplete` | LocationIQ allows 2 req/s account-wide. The task carries `rate_limit=LOCATIONIQ_MAX_RATE`, and isolating it means a backlog of emails can't delay a user-facing autocomplete lookup (or vice versa). |
+
+> ⚠️ **A worker must consume the `lookup` queue, or location autocomplete silently returns nothing.**
+> `apply_async()` succeeding only means the broker accepted the message — not that anything will run
+> it. With no consumer, every autocomplete request returns `202 pending` and the frontend gives up
+> empty-handed. The backend recovers on its own after `LOCATION_PROXY_STALE_PENDING_S` by fetching
+> inline (degraded but working), so watch for `"Reclaiming abandoned LocationIQ lookup"` warnings —
+> a stream of those means the `lookup` worker isn't running.
+>
+> Locally, `docker-compose.yml` defines a `celery-lookup` service, and `make celery` starts a
+> `lookup` worker next to the default one, so a developer running the standard commands gets a
+> working platform. `make celery_lookup` starts only the `lookup` worker, for when you are working
+> on autocomplete itself. On staging and production `start_backend.sh` starts the `lookup` worker as
+> a second background process alongside gunicorn and the default worker in the same App Service
+> container.
+>
+> **`fetch_autocomplete`'s rate limit is per worker process.** Two workers consuming `lookup` means
+> 2×2 req/s to LocationIQ, so exactly one `lookup` worker per deployment. Do not scale that service
+> (or the App Service instance count) without replacing `rate_limit` with a distributed limiter.
+
 **Use Cases**:
 
 1. **Email Notifications**
@@ -1002,6 +1021,35 @@ def send_notification_email(user_id, notification_id):
 ### OpenStreetMap
 - **Purpose**: Alternative location data source
 - **Usage**: Location enrichment, OSM IDs
+
+### Location autocomplete (LocationIQ / Nominatim)
+- **Purpose**: Type-ahead location search
+- **Routing**: Gated by the `LOCATIONIQ_AUTOCOMPLETE` feature toggle. On, the frontend calls
+  `/api/location_autocomplete/`, which serves from a Redis result cache or queues a rate-limited
+  LocationIQ lookup on the `lookup` Celery queue (Nominatim fallback). Off, the browser calls
+  Nominatim directly, as it did before the migration — that off-state keeps request volume
+  distributed across user IPs rather than concentrated on one server address, which is what OSM's
+  usage policy requires.
+- **Caching**: 24h sliding TTL capped at 48h absolute, LRU-bounded to
+  `LOCATION_PROXY_CACHE_MAX_ENTRIES` (default 1000). Polygon coordinates are stripped before caching —
+  they are 85–99% of a payload and autocomplete only renders names; full geometry is re-fetched
+  server-side when a `Location` is first saved.
+- **Modules** (in `backend/location/`, one concern each):
+  | Module | Owns |
+  |--------|------|
+  | `queue.py` | The Redis rendezvous key contract shared by the view, the Celery task and the cache — key names and `get_redis_conn()`, nothing else |
+  | `providers.py` | Which upstream is called and how its response is read: `fetch_results()`, the LocationIQ/Nominatim calls, the toggle and daily-budget guards, `strip_geometry()` |
+  | `cache.py` | Everything about a *stored* result: cache key, sliding TTL and age ceiling, LRU index, delivery marker, hit/miss counters |
+  | `location_views.py` | HTTP contract: 200/202 polling, per-IP limits, backpressure, sentinel reclaim |
+  | `tasks.py` | The rate-limited `fetch_autocomplete` job and the stats aggregation beat task |
+
+  Dependencies run one way — `cache` → `providers` → `queue` — so there are no cycles and the view
+  and the task can each import exactly what they use.
+- **Usage tracking**: `AutocompleteRequestLog` (one row per real upstream call) is rolled up every
+  10 minutes by `aggregate_autocomplete_stats` into `AutocompletePeriodStats`, one row per
+  (period, provider); both are exposed at `GET /api/autocomplete_stats/`.
+- **Specs**: `doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md` (queue),
+  `doc/spec/20260804_1202_locationiq_feature_toggle_and_result_caching.md` (toggle + cache)
 
 ### Email Service
 - **Purpose**: Transactional emails (notifications, password reset)

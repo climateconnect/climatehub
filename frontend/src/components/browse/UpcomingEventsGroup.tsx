@@ -44,14 +44,14 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "baseline",
     justifyContent: "space-between",
-    gap: theme.spacing(2),
+    gap: theme.spacing(1.5),
     marginBottom: theme.spacing(1.5),
     flexWrap: "wrap",
   },
   title: {
     fontWeight: 700,
     fontSize: 20,
-    color: theme.palette.primary.main,
+    color: theme.palette.secondary.main,
     display: "flex",
     alignItems: "center",
     gap: theme.spacing(1),
@@ -75,8 +75,8 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "nowrap",
     textTransform: "none",
     alignSelf: "center",
-    paddingLeft: theme.spacing(1),
-    paddingRight: theme.spacing(1),
+    paddingLeft: theme.spacing(0.5),
+    paddingRight: theme.spacing(0.5),
     "& .MuiButton-startIcon": {
       marginRight: theme.spacing(0.5),
     },
@@ -94,15 +94,19 @@ const useStyles = makeStyles((theme) => ({
 export default function UpcomingEventsGroup({
   events,
   hubUrl,
+  subHubSegment,
 }: {
   events: any[];
   hubUrl?: string;
+  subHubSegment?: string;
 }) {
   const { locale } = useContext(UserContext);
   const classes = useStyles();
   const texts = getTexts({ page: "hub", locale: locale });
 
-  const calendarHref = `${getLocalePrefix(locale)}${hubUrl ? `/hubs/${hubUrl}/events` : "/events"}`;
+  const calendarHref = `${getLocalePrefix(locale)}${
+    hubUrl ? `/hubs/${hubUrl}${subHubSegment ? `/${subHubSegment}` : ""}/events` : "/events"
+  }`;
 
   return (
     <section className={classes.group} aria-label={texts.upcoming_events}>

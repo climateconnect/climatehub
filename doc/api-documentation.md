@@ -389,6 +389,33 @@ curl -X POST http://localhost:8000/api/auth/verify-token \
 | `/api/projects/{slug}/registrations/email/` | POST | Yes | Send email to all active guests (organiser/admin only) |
 | `/api/event-registration-origin/{registration_id}/` | GET | Yes | Resolve event context for an event-registration-origin chat message (issue #2102) |
 
+#### Deprecated and removed: project tag surface
+
+As of **v2.5** the project tag taxonomy (`ProjectTags` / `ProjectTagging`) has been retired
+from the API and replaced by [sectors](./domain-entities.md#sector). The models and their tables still exist —
+see the deprecation note in
+[domain-entities.md](./domain-entities.md#deprecation-project-tags-are-being-replaced-by-sector)
+for why — but **nothing in the API reads or writes them any more**.
+
+| Removed | Where | Behaviour now | Replacement |
+|---|---|---|---|
+| `GET /api/projecttags/` | endpoint | `404 Not Found` | `GET /api/sectors/` |
+| `tags` | response field on `GET /api/projects/{slug}/` | absent from the payload | `sectors` |
+| `tags` | response field on `GET /api/projects/` (and every other project-card response) | absent from the payload | `sectors` |
+| `project_tags` | request field on `POST /api/create_project/` | **silently ignored** — still returns `201` | `sectors` |
+| `project_tags` | request field on `PATCH /api/projects/{slug}/` | **silently ignored** — still returns `200` | `sectors` |
+| `?category=` | query param on `GET /api/projects/` | **silently ignored** — returns the *unfiltered* list | `?sectors=` |
+
+> ⚠️ **These removals fail open, not loud.** A client that still sends `project_tags` gets a
+> success response with the tags silently discarded, and a bookmarked or search-indexed
+> `GET /api/projects/?category=Energy` URL now returns *all* projects rather than an error.
+> If you are debugging "my categories disappeared", this is the cause — it is not data loss.
+
+**Note on `sectors` casing**: the read and write paths key off different `Sector` columns —
+`?sectors=` filters on the sector **`name`** (e.g. `?sectors=Energy`), while the
+`POST /api/create_project/` and `PATCH /api/projects/{slug}/` bodies expect the sector
+**`key`** (e.g. `"sectors": ["energy"]`). `GET /api/sectors/` returns both.
+
 #### Project description (`description_html`)
 
 The project description uses rich-text HTML stored in `description_html`. The legacy `description` field (plain text) is kept for backwards compatibility but is no longer written to by new code.
@@ -919,6 +946,133 @@ When `is_test=true`, the subject is prefixed with `[TEST] ` so the organiser can
 | `/api/ideas/` | GET | No | List all ideas |
 | `/api/ideas/` | POST | Yes | Create a new idea |
 | `/api/ideas/{url_slug}/` | GET | No | Get idea details |
+
+### Location
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/location_autocomplete/` | GET | No | Autocomplete search (LocationIQ, Nominatim fallback) — **polling endpoint, see below** |
+| `/api/get_location/` | POST | No | Resolve a saved location by OSM identifiers, creating it if unknown |
+| `/api/autocomplete_request_count/` | POST | No | Fire-and-forget counter for browser-side Nominatim calls |
+| `/api/autocomplete_stats/` | GET | Yes (staff) | Per-provider request statistics |
+
+> The last two were called `/api/nominatim_request_count/` and `/api/nominatim_stats/` until both
+> started covering LocationIQ as well. The old paths still resolve to the same views so that a
+> browser holding a pre-rename JS bundle keeps reporting its Nominatim calls; they are deprecated
+> and can be dropped once those bundles have aged out.
+
+#### `GET /api/location_autocomplete/` — asynchronous, must be polled
+
+Unlike every other endpoint here, this one **does not always return results on the first call.**
+Upstream lookups are rate-limited (LocationIQ allows 2 req/s account-wide), so a cache miss is
+queued to a Celery worker and answered later. Clients must handle `202` by re-requesting the same
+URL until it returns `200`.
+
+**Gated by the `LOCATIONIQ_AUTOCOMPLETE` feature toggle.** When it is off, the reference client
+does not call this endpoint at all — it calls `nominatim.openstreetmap.org` directly from the
+browser and reports the request to `/api/autocomplete_request_count/`, exactly as it did before the
+LocationIQ migration. The endpoint itself keeps working while the toggle is off (clients running a
+cached JS bundle still reach it) but never calls LocationIQ; it serves the Nominatim fallback
+instead. See `doc/spec/20260804_1202_locationiq_feature_toggle_and_result_caching.md`.
+
+**Caching.** Successful results are cached in Redis for 24 hours on a sliding TTL — every hit
+resets the 24 hours, capped at 48 hours from the first fetch, after which the entry is re-fetched.
+The cache holds at most `LOCATION_PROXY_CACHE_MAX_ENTRIES` queries (default 1000), evicting the least
+recently read. Failed lookups are cached for seconds only, so a provider outage self-corrects
+rather than being served as an empty result all day.
+
+**Query parameters**
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `q` | yes | Search text. Outside 3–200 characters the endpoint returns `[]` without doing any work. |
+| `countrycodes` | no | ISO 3166-1 alpha-2 code(s), comma-separated, to restrict results |
+
+The `Accept-Language` header selects the language of the returned names and is part of the cache
+key, so `en` and `de` results never mix.
+
+**Responses**
+
+| Status | Body | Meaning |
+|--------|------|---------|
+| `200` | array of results (possibly empty) | Ready — either cached or fetched inline |
+| `202` | `{"status": "pending"}` | Queued; poll the same URL again |
+| `429` | `{"detail": "..."}` | Rate limited (per IP). Transient — back off and retry |
+| `503` | `{"detail": "Service busy, please retry."}` | Too many lookups in flight. Transient |
+
+`429` and `503` are **not errors to surface to users** — they mean "try again shortly". The
+reference client (`frontend/src/components/search/LocationSearchBar.tsx`) polls on `202` with a
+fast-first, backing-off schedule (250ms, 500ms, then 1s intervals) and gives up after ~6.75s.
+
+**Results carry geometry types, not geometry.** Each result's `geojson.coordinates` is `null` for
+anything that isn't a `Point` — polygons can be megabytes and autocomplete only ever displays
+names. The geometry *type* is preserved. Full geometry is restored server-side when a location is
+first saved, so the database is unaffected; clients must not rely on autocomplete for coordinates.
+
+Example:
+
+```bash
+curl "http://localhost:8000/api/location_autocomplete/?q=berlin" -H "Accept-Language: de"
+# -> 202 {"status": "pending"}
+# ...poll the same URL...
+# -> 200 [{"display_name": "Berlin, Deutschland", "geojson": {"type": "MultiPolygon", "coordinates": null}, ...}]
+```
+
+#### `GET /api/autocomplete_stats/` — per-provider usage
+
+Requires Django staff access. Statistics are stored per (period, provider), so every period reports
+combined totals plus a `providers` breakdown. `total_requests` and `avg_req_per_second` are summed
+across providers; **`peak_req_per_second` is the maximum, not the sum** — it means "most requests
+seen within one second", provider specific. This per-provider `locationiq` peak is the number to watch against LocationIQ's 2 req/s
+limit.
+
+Counts track **upstream provider calls**, not incoming HTTP requests: cached and de-duplicated
+queries cost no quota and are deliberately not counted.
+
+Because of that, the no-parameter response also carries a `cache` array with the last 7 days of
+autocomplete cache hits and misses. Without it a working result cache and a drop in traffic look
+identical here, since only upstream calls reach `AutocompletePeriodStats`.
+
+- **`misses`** — lookups that had to go upstream. Counted once per lookup that actually spends an
+  upstream call, never once per poll: at enqueue time for the normal queued path, or inside the
+  inline fetch used when the broker is down or an abandoned lookup is reclaimed. A reclaimed lookup
+  legitimately counts a second miss, because it really is a second upstream call for that query.
+- **`hits`** — answers served from cache with no upstream call. The `202`-poll that *collects* a
+  freshly computed result is **not** counted: it is the tail of the lookup that produced it, not a
+  saved call. (Without that exclusion every cold query would add one artificial hit and `hit_rate`
+  could never fall below ~0.5.)
+- Negative-cached failures count as neither.
+
+`hit_rate` is `null` on a day with no autocomplete traffic at all. The array is `null` if Redis
+can't be reached — the rest of the response comes from Postgres and is still served.
+
+| Param | Default | Description |
+|-------|---------|-------------|
+| `period_type` | — | `day`, `week`, or `month`. Omit to get the newest of each. |
+| `limit` | `1` | Number of **periods** to return (max 365). Only with `period_type`. |
+
+```jsonc
+// GET /api/autocomplete_stats/
+{
+  "cache": [
+    { "day": "2026-08-04", "hits": 812, "misses": 96, "hit_rate": 0.8943 },
+    { "day": "2026-08-03", "hits": 640, "misses": 88, "hit_rate": 0.8791 }
+    // ...7 days total, newest first
+  ],
+  "day": {
+    "period_key": "2026-08-03",
+    "total_requests": 140,
+    "avg_req_per_second": 0.0016,
+    "peak_req_per_second": 5,
+    "providers": {
+      "nominatim": { "total_requests": 100, "avg_req_per_second": 0.0011, "peak_req_per_second": 5 },
+      "locationiq": { "total_requests": 40, "avg_req_per_second": 0.0005, "peak_req_per_second": 2 }
+    }
+  },
+  "week": { "...": "..." },
+  "month": { "...": "..." }
+}
+```
 
 ---
 

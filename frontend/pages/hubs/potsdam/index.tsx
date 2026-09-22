@@ -1,6 +1,6 @@
 import React from "react";
-import { EnChPotsdamLandingpage } from "../../../devlink/EnChPotsdamLandingpage";
-import { DeChPotsdamLandingpage } from "../../../devlink/DeChPotsdamLandingpage";
+import { EnChPotsdamLandingpage } from "../../../devlink/pageComponent/EnChPotsdamLandingpage";
+import { DeChPotsdamLandingpage } from "../../../devlink/pageComponent/DeChPotsdamLandingpage";
 import HubLandingPage from "../../../src/components/hub/HubLandingPage";
 import { createHubLandingPageServerSideProps } from "../../../public/lib/hubOperations";
 import { HubData } from "../../../src/types";

@@ -21,21 +21,20 @@ export async function getDataFromServer({
     url += `&idea=${idea}`;
   }
 
-  // Handle query params as well
+  // Handle query params as well. Invariant: `urlEnding` is a `URLSearchParams.toString()`
+  // result (no leading `?`, no leading `&`, params already encoded). If a caller
+  // passes a hand-built string, strip any leading `&` / `?` here to keep the URL valid.
   if (urlEnding) {
-    // &category=Lowering%20food%20waste&
-    url += urlEnding;
+    const cleanEnding = urlEnding.replace(/^[?&]+/, "");
+    if (cleanEnding) url += `&${cleanEnding}`;
   }
 
   try {
-    console.log(`Getting data for ${type} at ${url}`);
-
     const resp = location
       ? await apiRequest({ method: "post", url, payload: location, token, locale })
       : await apiRequest({ method: "get", url, token, locale });
 
     if (resp.data.length === 0) {
-      console.log(`No data of type ${type} found...`);
       return null;
     } else {
       return {

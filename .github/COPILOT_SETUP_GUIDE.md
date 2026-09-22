@@ -22,7 +22,7 @@ GitHub Copilot may support additional configuration files in future versions. Mo
 context:
   - patterns: ["backend/**/*.py"]
     rules:
-      - "Always use Django 4.2 patterns"
+       - "Always use Django 5.2 patterns"
       - "Include proper error handling"
   - patterns: ["frontend/**/*.js", "frontend/**/*.tsx"]
     rules:
@@ -267,7 +267,6 @@ Add `GLOSSARY.md` at root:
 - **Project**: Climate action initiative with members, skills, and status tracking
 - **Organization**: Registered climate organization with membership management
 - **Idea**: Early-stage climate action proposal before becoming a project
-- **Climate Match**: Questionnaire-based matching system for users to projects/orgs
 - **Badge**: Achievement recognition in gamification system
 - **Availability**: Time commitment level for user participation
 
@@ -477,7 +476,7 @@ Track Copilot effectiveness:
 
 - [GitHub Copilot Documentation](https://docs.github.com/en/copilot)
 - [Copilot Best Practices](https://github.blog/2023-06-20-how-to-write-better-prompts-for-github-copilot/)
-- [Django Best Practices](https://docs.djangoproject.com/en/3.2/misc/design-philosophies/)
+- [Django Best Practices](https://docs.djangoproject.com/en/5.2/misc/design-philosophies/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [React Best Practices](https://react.dev/learn)
 

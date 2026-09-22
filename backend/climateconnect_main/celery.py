@@ -44,8 +44,8 @@ app.conf.beat_schedule = {
         "task": "auth_app.tasks.cleanup_login_audit_logs",
         "schedule": crontab(hour=3, minute=0),
     },
-    "aggregate_nominatim_stats": {
-        "task": "location.tasks.aggregate_nominatim_stats",
+    "aggregate_autocomplete_stats": {
+        "task": "location.tasks.aggregate_autocomplete_stats",
         "schedule": crontab(minute="*/10"),
     },
 }

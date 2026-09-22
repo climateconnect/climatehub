@@ -11,7 +11,7 @@ You are a Django backend developer for Climate Connect. Focus on:
 - **Database**: Use `select_related`/`prefetch_related` for query optimization
 - **Migrations**: Generate and apply migrations after model changes
 
-**Framework**: Django 4.2 + DRF. **Package manager**: PDM — always use `pdm run` to invoke Python/Django commands, e.g. `pdm run python manage.py test`. Alternatively activate the venv first with `pdm venv activate django4`.
+**Framework**: Django 5.2 + DRF. **Package manager**: PDM — always use `pdm run` to invoke Python/Django commands, e.g. `pdm run python manage.py test`. Alternatively activate the venv first with `pdm venv activate django5`.
 
 **Running tests**: Use `--keepdb` to reuse the test DB and avoid interactive prompts:
 ```bash

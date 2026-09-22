@@ -46,7 +46,7 @@ jobs:
         run: echo '{"sha":"${{ github.sha }}","ref":"${{ github.ref_name }}","built_at":"${{ github.event.head_commit.timestamp }}"}' > backend/build_info.json
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip -r release.zip backend/
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v7

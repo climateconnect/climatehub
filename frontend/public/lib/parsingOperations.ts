@@ -76,7 +76,10 @@ const parseIdeas = (ideas) => {
 const parseOrganizations = (organizations) => {
   return organizations.map((organization) => ({
     ...organization,
-    types: organization.types.map((type) => type.organization_tag),
+    types: organization.types.map((type) => ({
+      ...type.organization_tag,
+      key: type.organization_tag.id,
+    })),
     info: {
       location: organization.location,
     },

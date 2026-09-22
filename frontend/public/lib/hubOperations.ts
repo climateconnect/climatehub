@@ -38,7 +38,10 @@ export function extractHubUrlsFromContext(ctx: GetServerSidePropsContext) {
 }
 
 export function getHubslugFromUrl(query) {
-  return query.hubUrl || query.hub;
+  const hubUrl = query.hubUrl || query.hub;
+  if (!hubUrl || !query.subHub) return hubUrl;
+  const sub = Array.isArray(query.subHub) ? query.subHub[0] : query.subHub;
+  return hubUrl + "_" + sub;
 }
 
 export async function getAllHubs(locale: any, just_sector_hubs?: boolean) {

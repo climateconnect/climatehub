@@ -1,4 +1,4 @@
-import { Box, Container, Theme, useMediaQuery } from "@mui/material";
+import { Box, Container, Theme, Typography, useMediaQuery } from "@mui/material";
 import { GetServerSideProps } from "next";
 import WideLayout from "../../../src/components/layouts/WideLayout";
 import { apiRequest } from "../../../public/lib/apiOperations";
@@ -198,6 +198,35 @@ export default function WasseraktionswochenPage({
     >
       <div className={classes.content}>
         <WasseraktionswochenHero />
+        <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+          <Typography variant="body1" paragraph>
+            Das Klimanetzwerk Riegel und ClimateConnect e.V. haben im September 2025 zum ersten
+            überregionalen Wassertreffen eingeladen.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Bei diesem Treffen haben sich zahlreiche ehrenamtliche Initiativen, Verbände,
+            Verwaltungsmitarbeiter*innen und interessierte Bürger*innen zusammengefunden, um sich
+            rund um das Thema Wasser zu vernetzen und auszutauschen. Um sichtbarer zu werden und die
+            Verbundenheit miteinander zu zeigen hat sich aus diesem losen Zusammenschluß das
+            Wasserbündnis gegründet.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Unser erstes gemeinsames Ziel war es, im Rahmen des Weltwassertags am 22. März 2026 ein
+            vielfältiges und informatives Programm für alle Altersgruppen zusammenzustellen.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Dies ist uns mit mehr als 40 Veranstaltungen im gesamten Landkreis und darüber hinaus
+            eindrücklich geglückt.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Aber auch nach den Weltwasserwochen ist das Thema sehr präsent und nach wie vor setzen
+            sich Initiativen und Verbände lokal vor Ort für das Thema Wasser in all seinen Facetten
+            ein, aber auch als Bündnis bleiben wir gemeinsam aktiv.
+          </Typography>
+          <Typography variant="body1">
+            Ab dem Herbst 26 werden wir in die Planung für die Wasserwochen 2027 gehen.
+          </Typography>
+        </Container>
         <Container>
           <WasseraktionswochenEvents projects={projects} isGerman={isGerman} />
           <HubSupportersSection

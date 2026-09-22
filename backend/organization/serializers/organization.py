@@ -199,10 +199,13 @@ class EditOrganizationSerializer(OrganizationSerializer):
             return {}
 
     def get_short_description(self, obj):
-        return get_organization_short_description(obj, get_language())
+        return obj.short_description
 
     def get_about(self, obj):
-        return get_organization_about_section(obj, get_language())
+        return obj.about
+
+    def get_get_involved(self, obj):
+        return obj.get_involved
 
     def get_organ(self, obj):
         return obj.organ
@@ -211,7 +214,7 @@ class EditOrganizationSerializer(OrganizationSerializer):
         return obj.school
 
     def get_name(self, obj):
-        return get_organization_name(obj, get_language())
+        return obj.name
 
     # Override the get_sectors method to use the hub-specific sectors
     def get_sectors(self, obj):

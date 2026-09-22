@@ -36,7 +36,6 @@ def _is_valid_session_key(sk):
 
 @override_settings(RATELIMIT_ENABLE=False)
 class RequestTokenViewTest(TestCase):
-
     @patch("auth_app.views.send_login_code_email")
     def test_valid_email_user_exists_no_previous_token(self, mock_task):
         user = _make_user("valid@example.com")

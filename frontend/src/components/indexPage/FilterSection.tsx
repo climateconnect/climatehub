@@ -6,7 +6,7 @@ import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import FilterSearchBar from "../filter/FilterSearchBar";
-import { BrowseTab } from "../../types";
+import { BrowseEntity } from "../../types";
 import { FilterContext } from "../context/FilterContext";
 
 type MakeStylesProps = {
@@ -55,8 +55,8 @@ type Props = {
   filtersExpanded: boolean;
   onSubmit: Function;
   setFiltersExpanded: Function;
-  type: BrowseTab;
-  customSearchBarLabels?: Record<BrowseTab, string>;
+  type: BrowseEntity;
+  customSearchBarLabels?: Record<BrowseEntity, string>;
   applyBackgroundColor?: boolean;
   activeFilterCount?: number;
 };

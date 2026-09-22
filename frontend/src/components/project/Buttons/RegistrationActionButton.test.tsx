@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../../themes/theme";
 import RegistrationActionButton from "./RegistrationActionButton";
 import { Project } from "../../../types";
@@ -64,16 +65,18 @@ function renderButton({
   return render(
     <UserContext.Provider value={MOCK_USER_CONTEXT}>
       <ThemeProvider theme={theme}>
-        <RegistrationActionButton
-          registrationState={registrationState}
-          project={project}
-          texts={TEXTS}
-          isUserRegistered={isUserRegistered}
-          handleRegisterClick={handleRegisterClick}
-          onModifyRegistrationClick={onModifyRegistrationClick}
-          fallback={fallback}
-          showSeatsCount={showSeatsCount}
-        />
+        <StylesThemeProvider theme={theme}>
+          <RegistrationActionButton
+            registrationState={registrationState}
+            project={project}
+            texts={TEXTS}
+            isUserRegistered={isUserRegistered}
+            handleRegisterClick={handleRegisterClick}
+            onModifyRegistrationClick={onModifyRegistrationClick}
+            fallback={fallback}
+            showSeatsCount={showSeatsCount}
+          />
+        </StylesThemeProvider>
       </ThemeProvider>
     </UserContext.Provider>
   );

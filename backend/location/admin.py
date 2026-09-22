@@ -4,8 +4,8 @@ from django.utils.html import format_html
 from location.models import (
     Location,
     LocationTranslation,
-    NominatimRequestLog,
-    NominatimPeriodStats,
+    AutocompletePeriodStats,
+    AutocompleteRequestLog,
 )
 
 # IMPORTANT: Coordinate Storage Format
@@ -25,7 +25,6 @@ from location.models import (
 
 
 class LocationAdmin(admin.ModelAdmin):
-
     search_fields = (
         "name",
         "osm_id",
@@ -164,12 +163,12 @@ class LocationTranslationAdmin(admin.ModelAdmin):
 admin.site.register(LocationTranslation, LocationTranslationAdmin)
 
 
-class NominatimRequestLogAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "processed", "requests_this_minute")
-    list_filter = ("processed",)
+class AutocompleteRequestLogAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "provider", "processed", "requests_this_minute")
+    list_filter = ("provider", "processed")
     list_per_page = 50
     ordering = ("-created_at",)
-    readonly_fields = ("created_at", "processed", "minute_key")
+    readonly_fields = ("created_at", "provider", "processed", "minute_key")
 
     def get_queryset(self, request):
         from django.db.models import Count, OuterRef, Subquery
@@ -179,7 +178,7 @@ class NominatimRequestLogAdmin(admin.ModelAdmin):
             .get_queryset(request)
             .annotate(
                 _requests_this_minute=Subquery(
-                    NominatimRequestLog.objects.filter(
+                    AutocompleteRequestLog.objects.filter(
                         minute_key=OuterRef("minute_key"),
                     )
                     .order_by()
@@ -203,22 +202,24 @@ class NominatimRequestLogAdmin(admin.ModelAdmin):
         return False
 
 
-admin.site.register(NominatimRequestLog, NominatimRequestLogAdmin)
+admin.site.register(AutocompleteRequestLog, AutocompleteRequestLogAdmin)
 
 
-class NominatimPeriodStatsAdmin(admin.ModelAdmin):
+class AutocompletePeriodStatsAdmin(admin.ModelAdmin):
     list_display = (
         "period_type",
         "period_key",
+        "provider",
         "total_requests",
         "avg_req_per_second",
         "peak_req_per_second",
     )
-    list_filter = ("period_type",)
+    list_filter = ("period_type", "provider")
     search_fields = ("period_key",)
     readonly_fields = (
         "period_type",
         "period_key",
+        "provider",
         "total_requests",
         "avg_req_per_second",
         "peak_req_per_second",
@@ -234,4 +235,4 @@ class NominatimPeriodStatsAdmin(admin.ModelAdmin):
         return False
 
 
-admin.site.register(NominatimPeriodStats, NominatimPeriodStatsAdmin)
+admin.site.register(AutocompletePeriodStats, AutocompletePeriodStatsAdmin)

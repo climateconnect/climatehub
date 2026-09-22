@@ -198,21 +198,7 @@ This document defines the core system entities for Climate Connect, serving as t
   - Target `User`.
   - Triggered by `Event` (Comment, Like, Follow).
 
-## 6. Intelligence & Matching
-
-### Question
-- **Definition**: A survey item for the Climate Match algorithm.
-- **Properties**: `text`, `answer_type` (Scale, Text, Choice).
-
-### UserQuestionAnswer
-- **Definition**: A user's response to a matching question.
-- **Properties**: `value`.
-- **Relationships**:
-  - Links `User` to `Question`.
-  - Scoped by `Hub`.
-  - Uses `AnswerMetaData` for weighting.
-
-## 7. Geography
+## 6. Geography
 
 ### Location
 - **Definition**: Spatial reference point using PostGIS.
@@ -223,7 +209,7 @@ This document defines the core system entities for Climate Connect, serving as t
   - `city`, `country`: String
 - **Relationships**: Referenced by almost all core entities (`Project`, `User`, `Hub`).
 
-## 8. Platform Configuration
+## 7. Platform Configuration
 
 ### FeatureToggle
 - **Definition**: A feature flag system for enabling/disabling features across environments.

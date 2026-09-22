@@ -1,4 +1,9 @@
-import { appendQueryParam, withQuery } from "./urlOperations";
+import {
+  appendQueryParam,
+  withQuery,
+  getBrowsePathForType,
+  getHubBrowsePathForType,
+} from "./urlOperations";
 
 describe("appendQueryParam", () => {
   it("appends a query param to a href with no existing query", () => {
@@ -40,6 +45,43 @@ describe("withQuery", () => {
   it("preserves an anchor across multiple params", () => {
     expect(withQuery("/chat/abc#comments", { hub: "erlangen" })).toBe(
       "/chat/abc?hub=erlangen#comments"
+    );
+  });
+});
+
+describe("getBrowsePathForType", () => {
+  it("maps projects to /browse", () => {
+    expect(getBrowsePathForType("projects")).toBe("/browse");
+  });
+
+  it("maps organizations to /organizations (US spelling)", () => {
+    expect(getBrowsePathForType("organizations")).toBe("/organizations");
+  });
+
+  it("maps members to /members", () => {
+    expect(getBrowsePathForType("members")).toBe("/members");
+  });
+});
+
+describe("getHubBrowsePathForType", () => {
+  it("builds a parent-hub path for projects", () => {
+    expect(getHubBrowsePathForType("projects", "kassel")).toBe("/hubs/kassel/browse");
+  });
+
+  it("builds a parent-hub path for organizations", () => {
+    expect(getHubBrowsePathForType("organizations", "kassel")).toBe("/hubs/kassel/organizations");
+  });
+
+  it("builds a parent-hub path for members", () => {
+    expect(getHubBrowsePathForType("members", "kassel")).toBe("/hubs/kassel/members");
+  });
+
+  it("builds a sub-hub path when subHubSegment is provided", () => {
+    expect(getHubBrowsePathForType("projects", "erlangen", "zerowaste")).toBe(
+      "/hubs/erlangen/zerowaste/browse"
+    );
+    expect(getHubBrowsePathForType("organizations", "erlangen", "zerowaste")).toBe(
+      "/hubs/erlangen/zerowaste/organizations"
     );
   });
 });

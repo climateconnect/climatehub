@@ -8,9 +8,17 @@ import { AssignmentSharp, GroupSharp } from "@mui/icons-material";
 
 const useStyles = makeStyles((theme) => {
   return {
+    wrapper: {
+      display: "block",
+      height: "100%",
+      textDecoration: "inherit",
+      "&:hover": {
+        textDecoration: "inherit",
+      },
+    },
     root: {
-      display: "grid",
-      gridTemplateRows: "min-content",
+      display: "flex",
+      flexDirection: "column",
       "&:hover": {
         cursor: "pointer",
         backgroundColor: "#f1f1f1",
@@ -25,7 +33,7 @@ const useStyles = makeStyles((theme) => {
       backgroundSize: "calc(100% - 1px) 100%",
       borderRadius: "5px",
       textAlign: "center",
-      height: "350px",
+      height: "100%",
       boxShadow: "rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;",
       padding: "0 14px",
     },
@@ -41,16 +49,10 @@ const useStyles = makeStyles((theme) => {
       marginTop: theme.spacing(3),
       margin: "0 auto",
     },
-    noUnderline: {
-      textDecoration: "inherit",
-      "&:hover": {
-        textDecoration: "inherit",
-      },
-    },
     footer: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      alignSelf: "end",
+      marginTop: "auto",
       marginBottom: "10px",
     },
     members: {
@@ -80,7 +82,7 @@ export default function OrganizationPreview({ organization }: { organization: an
     <AppLink
       href={`/organizations/${organization.url_slug}`}
       underline="hover"
-      className={classes.noUnderline}
+      className={classes.wrapper}
     >
       <Card className={classes.root} variant="outlined">
         <OrganizationPreviewHeader organization={organization} />

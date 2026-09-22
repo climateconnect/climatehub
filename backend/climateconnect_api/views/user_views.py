@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.contrib.auth import authenticate, login
@@ -471,7 +471,12 @@ class ListMemberProjectsView(ListAPIView):
     serializer_class = ProjectFromProjectMemberSerializer
 
     def get_queryset(self):
-        searched_user = UserProfile.objects.get(url_slug=self.kwargs["url_slug"]).user
+        try:
+            searched_user = UserProfile.objects.get(
+                url_slug=self.kwargs["url_slug"]
+            ).user
+        except UserProfile.DoesNotExist:
+            return ProjectMember.objects.none()
         if self.request.user == searched_user:
             return ProjectMember.objects.filter(
                 user=searched_user, is_active=True
@@ -490,7 +495,12 @@ class ListMemberIdeasView(ListAPIView):
     serializer_class = IdeaFromIdeaSupporterSerializer
 
     def get_queryset(self):
-        searched_user = UserProfile.objects.get(url_slug=self.kwargs["url_slug"]).user
+        try:
+            searched_user = UserProfile.objects.get(
+                url_slug=self.kwargs["url_slug"]
+            ).user
+        except UserProfile.DoesNotExist:
+            return IdeaSupporter.objects.none()
         return IdeaSupporter.objects.filter(user=searched_user).order_by("-id")
 
 
@@ -507,8 +517,12 @@ class ListMemberOrganizationsView(ListAPIView):
         return context
 
     def get_queryset(self):
+        try:
+            user = UserProfile.objects.get(url_slug=self.kwargs["url_slug"]).user
+        except UserProfile.DoesNotExist:
+            return OrganizationMember.objects.none()
         return OrganizationMember.objects.filter(
-            user=UserProfile.objects.get(url_slug=self.kwargs["url_slug"]).user,
+            user=user,
         ).order_by("id")
 
 
@@ -538,7 +552,6 @@ class ListMemberRegisteredEventsView(ListAPIView):
             .select_related("loc", "language", "status", "registration_config")
             .prefetch_related(
                 "loc__translate_location__language",
-                "tag_project",
                 "project_liked",
                 "project_comment",
                 "project_collaborator",
@@ -781,7 +794,7 @@ class SendResetPasswordEmail(APIView):
             )
         hub_url = get_user_profile_hub_slug(user_profile)
         user_profile.password_reset_key = uuid.uuid4()
-        timeout = datetime.now(timezone.utc) + timedelta(minutes=15)
+        timeout = datetime.now(dt_timezone.utc) + timedelta(minutes=15)
         user_profile.password_reset_timeout = timeout
         send_password_link(user_profile.user, user_profile.password_reset_key, hub_url)
         user_profile.save()
@@ -856,9 +869,9 @@ class SetNewPassword(APIView):
                 {"message": "Profile not found.", "type": "not_found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if user_profile.password_reset_timeout > datetime.now(timezone.utc):
+        if user_profile.password_reset_timeout > datetime.now(dt_timezone.utc):
             user_profile.user.set_password(request.data["new_password"])
-            user_profile.password_reset_timeout = datetime.now(timezone.utc)
+            user_profile.password_reset_timeout = datetime.now(dt_timezone.utc)
             user_profile.user.save()
             user_profile.save()
             logger.error("reset password for user " + user_profile.url_slug)

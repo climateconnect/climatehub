@@ -5,6 +5,8 @@ import React, { useContext, useState } from "react";
 import Cookies from "universal-cookie";
 
 import { apiRequest } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
+import { HubContext } from "../context/HubContext";
 import { blobFromObjectUrl, getImageUrl } from "../../../public/lib/imageOperations";
 import { indicateWrongLocation, isLocationValid } from "../../../public/lib/locationOperations";
 import {
@@ -34,10 +36,10 @@ export default function EditAccountRoot({
   handleSetLocationOptionsOpen,
   setErrorMessage,
   availabilityOptions,
-  hubUrl,
   allSectors,
 }) {
   const { locale, locales } = useContext(UserContext);
+  const { hubUrl } = useContext(HubContext);
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
   const classes = useStyles();
@@ -56,7 +58,7 @@ export default function EditAccountRoot({
   };
 
   const handleCancel = () => {
-    router.push(`/profiles/${profile.url_slug}${hubUrl ? `?hub=${hubUrl}` : ""}`);
+    router.push(appHref(`/profiles/${profile.url_slug}`, { hubUrl, locale }));
   };
 
   const handleGoToPreviousStep = () => {

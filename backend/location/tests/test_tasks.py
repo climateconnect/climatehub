@@ -47,7 +47,6 @@ MOCK_NOMINATIM_NOT_FOUND_RESPONSE = []
     CELERY_TASK_EAGER_PROPAGATES=True,
 )
 class LocationTaskTest(TestCase):
-
     def setUp(self):
         post_save.disconnect(find_location_translations, sender=Location)
 

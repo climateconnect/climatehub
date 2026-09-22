@@ -1,7 +1,8 @@
 from typing import Dict
 
-from climateconnect_api.models.language import Language
+from django.utils.translation import gettext as _
 
+from climateconnect_api.models.language import Language
 from organization.models import (
     Organization,
     ProjectParents,
@@ -9,7 +10,6 @@ from organization.models import (
     OrganizationMember,
 )
 from organization.models.tags import OrganizationTags
-from django.utils.translation import gettext as _
 
 
 def check_organization(organization_id: str) -> Organization:
@@ -120,6 +120,8 @@ def create_organization_translation(
         org_translation.short_description_translation = texts["short_description"]
     if "about" in texts:
         org_translation.about_translation = texts["about"]
+    if "get_involved" in texts:
+        org_translation.get_involved_translation = texts["get_involved"]
 
     org_translation.save()
 

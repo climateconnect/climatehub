@@ -1,6 +1,6 @@
 import React from "react";
-import { EnChWuerzburgLandingpage } from "../../../devlink/EnChWuerzburgLandingpage";
-import { ChWuerzburgDeLandingpage } from "../../../devlink/ChWuerzburgDeLandingpage";
+import { EnChWuerzburgLandingpage } from "../../../devlink/pageComponent/EnChWuerzburgLandingpage";
+import { ChWuerzburgDeLandingpage } from "../../../devlink/pageComponent/ChWuerzburgDeLandingpage";
 import HubLandingPage from "../../../src/components/hub/HubLandingPage";
 import { createHubLandingPageServerSideProps } from "../../../public/lib/hubOperations";
 import { HubData } from "../../../src/types";

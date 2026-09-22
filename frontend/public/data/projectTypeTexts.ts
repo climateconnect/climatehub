@@ -105,5 +105,35 @@ export default function getProjectTypeTexts(texts) {
       idea: texts.you_can_view_your_idea_here,
       event: texts.you_can_view_your_event_here,
     },
+    yourPageTitle: {
+      project: texts.your_page_title_project,
+      idea: texts.your_page_title_idea,
+      event: texts.your_page_title_event,
+    },
+    contentIsLiveHeadline: {
+      project: texts.content_is_live_headline_project,
+      idea: texts.content_is_live_headline_idea,
+      event: texts.content_is_live_headline_event,
+    },
+    contentPreviewCaption: {
+      project: texts.content_preview_caption_project,
+      idea: texts.content_preview_caption_idea,
+      event: texts.content_preview_caption_event,
+    },
+    shareCtaHeadline: {
+      project: texts.share_cta_headline_project,
+      idea: texts.share_cta_headline_idea,
+      event: texts.share_cta_headline_event,
+    },
+    shareCtaSubtitle: {
+      project: texts.share_cta_subtitle_project,
+      idea: texts.share_cta_subtitle_idea,
+      event: texts.share_cta_subtitle_event,
+    },
+    shareMessageTitle: {
+      project: texts.share_own_content_message_title_project,
+      idea: texts.share_own_content_message_title_idea,
+      event: texts.share_own_content_message_title_event,
+    },
   };
 }

@@ -12,7 +12,8 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Link from "next/link";
 import React, { useContext, useState } from "react";
 import Cookies from "universal-cookie";
-import { apiRequest, getLocalePrefix, redirect } from "../../../public/lib/apiOperations";
+import { apiRequest, redirect } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { removeUnnecesaryCookies } from "./../../../public/lib/cookieOperations";
@@ -461,7 +462,7 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
           </Button>
           {settings.has_password && (
             <Link
-              href={getLocalePrefix(locale) + "/resetpassword"}
+              href={appHref("/resetpassword", { locale })}
               className={`${classes.forgotPasswordLink} ${classes.textColor}`}
             >
               {texts.i_forgot_my_password}
@@ -589,7 +590,7 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
       </Typography>
       <Divider />
       <Button
-        href={getLocalePrefix(locale) + "/editprofile"}
+        href={appHref("/editprofile", { locale })}
         className={`${classes.editProfilePageButton}`}
         variant="contained"
         color="primary"

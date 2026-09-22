@@ -1,4 +1,4 @@
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
@@ -22,7 +22,6 @@ export default function ProfilePreviews({
   parentHandlesGridItems,
   profiles,
   showAdditionalInfo,
-  hubUrl,
   isLoading = false,
 }: any) {
   const classes = useStyles();
@@ -30,12 +29,7 @@ export default function ProfilePreviews({
   const texts = getTexts({ page: "profile", locale: locale });
   const toProfilePreviews = (profiles) =>
     profiles.map((p) => (
-      <GridItem
-        key={p.url_slug}
-        profile={p}
-        showAdditionalInfo={showAdditionalInfo}
-        hubUrl={hubUrl}
-      />
+      <GridItem key={p.url_slug} profile={p} showAdditionalInfo={showAdditionalInfo} />
     ));
 
   const [gridItems, setGridItems] = useState(toProfilePreviews(profiles));
@@ -76,11 +70,7 @@ export default function ProfilePreviews({
               {profile.props ? (
                 profile
               ) : (
-                <ProfilePreview
-                  profile={profile}
-                  showAdditionalInfo={showAdditionalInfo}
-                  hubUrl={hubUrl}
-                />
+                <ProfilePreview profile={profile} showAdditionalInfo={showAdditionalInfo} />
               )}
             </Grid>
           );
@@ -91,8 +81,6 @@ export default function ProfilePreviews({
   );
 }
 
-function GridItem({ profile, showAdditionalInfo, hubUrl }) {
-  return (
-    <ProfilePreview profile={profile} showAdditionalInfo={showAdditionalInfo} hubUrl={hubUrl} />
-  );
+function GridItem({ profile, showAdditionalInfo }) {
+  return <ProfilePreview profile={profile} showAdditionalInfo={showAdditionalInfo} />;
 }

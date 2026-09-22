@@ -101,7 +101,7 @@ export async function getServerSideProps(ctx) {
     getMembersByOrganization(organizationUrl, auth_token, ctx.locale),
     getOrganizationTypes(),
     getRolesOptions(auth_token, ctx.locale),
-    auth_token ? getIsUserFollowing(organizationUrl, auth_token, ctx.locale) : null,
+    getIsUserFollowing(organizationUrl, auth_token, ctx.locale),
     getHubTheme(hubUrl),
     getAllHubs(ctx.locale),
   ]);

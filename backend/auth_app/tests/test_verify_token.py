@@ -58,7 +58,6 @@ def _post(client, session_key, code):
 
 @override_settings(RATELIMIT_ENABLE=False)
 class VerifyTokenViewTest(TestCase):
-
     def test_success_returns_token_and_user(self):
         user = _make_user("ok@example.com")
         token = _make_token(user, "ok@example.com")

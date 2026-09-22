@@ -200,7 +200,6 @@ export default function HubContent({
                     headline={headline}
                     isLocationHub={isLocationHub}
                     location={hubData.name}
-                    hubUrl={hubUrl}
                   />
                 )}
                 {!isNarrowScreen &&
@@ -226,11 +225,7 @@ export default function HubContent({
                   ) : (
                     <>
                       {hubAmbassador && (
-                        <ContactAmbassadorButton
-                          hubAmbassador={hubAmbassador}
-                          mobile={false}
-                          hubUrl={hubUrl}
-                        />
+                        <ContactAmbassadorButton hubAmbassador={hubAmbassador} mobile={false} />
                       )}
                       {hubSupporters?.length > 0 && (
                         <HubSupporters
@@ -255,7 +250,6 @@ export default function HubContent({
               headline={headline}
               headlineClassName={classes.h1}
               isLocationHub={isLocationHub}
-              hubUrl={hubUrl}
             />
             <BottomContent
               detailledInfo={detailledInfo}
@@ -265,7 +259,6 @@ export default function HubContent({
               isLocationHub={isLocationHub}
               hubAmbassador={hubAmbassador}
               isNarrowScreen={isNarrowScreen}
-              hubUrl={hubUrl}
             />
           </Container>
         )}
@@ -301,7 +294,6 @@ const BottomContent = ({
   hubAmbassador,
   isLocationHub,
   isNarrowScreen,
-  hubUrl,
 }) => {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
@@ -340,9 +332,7 @@ const BottomContent = ({
           </Button>
         </div>
       )}
-      {!isNarrowScreen && (
-        <ContactAmbassadorButton hubAmbassador={hubAmbassador} mobile={false} hubUrl={hubUrl} />
-      )}
+      {!isNarrowScreen && <ContactAmbassadorButton hubAmbassador={hubAmbassador} mobile={false} />}
     </>
   );
 };

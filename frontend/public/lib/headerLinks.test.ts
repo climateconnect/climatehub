@@ -20,6 +20,7 @@ const buildTexts = () => ({
   log_in: "Log in",
   auth_log_in: "Log in",
   sign_up: "Sign up",
+  emmerdingen_buergerenergie: "Bürgerenergie Emmendingen",
 });
 
 describe("getLinks", () => {
@@ -30,7 +31,7 @@ describe("getLinks", () => {
   it("returns landing-page variants for location hubs on their root path", () => {
     const texts = buildTexts();
     const hubSlug = "erlangen";
-    const links = getLinks(`/hubs/${hubSlug}`, texts, true, false, true, hubSlug);
+    const links = getLinks(`/hubs/${hubSlug}`, texts, true, false, true, hubSlug, true);
 
     expect(links[0]).toMatchObject({
       href: "/browse",
@@ -58,9 +59,35 @@ describe("getLinks", () => {
     });
   });
 
+  it("includes Bürgerenergie link after About link for em hub", () => {
+    const texts = buildTexts();
+    const links = getLinks("/hubs/em/browse", texts, true, false, true, "em");
+
+    expect(links[1]).toMatchObject({
+      href: "/hubs/em/",
+      text: texts.about_climatehub,
+    });
+    expect(links[2]).toMatchObject({
+      href: "https://climatehub.earth/burgerenergie-em",
+      text: texts.emmerdingen_buergerenergie,
+      isExternalLink: true,
+    });
+    expect(links[3]).toMatchObject({ text: texts.donate });
+  });
+
+  it("does not include Bürgerenergie link for other hubs", () => {
+    const texts = buildTexts();
+    const links = getLinks("/hubs/erlangen/browse", texts, true, false, true, "erlangen");
+
+    const buergerenergieLinks = links.filter(
+      (l) => l.href === "https://climatehub.earth/burgerenergie-em"
+    );
+    expect(buergerenergieLinks).toHaveLength(0);
+  });
+
   it("uses global About/Browse labels for non-hub pages", () => {
     const texts = buildTexts();
-    const links = getLinks("/projects", texts, false, false, false, undefined);
+    const links = getLinks("/browse", texts, false, false, false, undefined);
 
     expect(links[0]).toMatchObject({ text: texts.browse, showStaticLinksInDropdown: false });
     expect(links[1]).toMatchObject({ text: texts.about, showStaticLinksInDropdown: true });
@@ -93,12 +120,12 @@ describe("getLinks", () => {
 
   it("returns only login link in auth links", () => {
     const texts = buildTexts();
-    const links = getLinks("/projects", texts, false, false, false, undefined);
+    const links = getLinks("/browse", texts, false, false, false, undefined);
 
     const authLinks = links.filter((link) => link.onlyShowLoggedOut);
     expect(authLinks).toHaveLength(1);
     expect(authLinks[0]).toMatchObject({
-      href: "/login?redirect=%2Fprojects",
+      href: "/login?redirect=%2Fbrowse",
       text: texts.auth_log_in,
     });
   });

@@ -1,6 +1,6 @@
 import { Link } from "@mui/material";
 import React from "react";
-import { getLocalePrefix } from "../lib/apiOperations";
+import { appHref } from "../lib/appLink";
 
 export default function getProjectTexts({ project, user, url_slug, locale, creator, hubName }) {
   // Helper function to generate draft text for different project types
@@ -27,9 +27,7 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     };
 
     const config = typeConfig[type];
-    const profileUrl = `${getLocalePrefix(locale)}/profiles/${user?.url_slug}${
-      hubName ? `?hub=${hubName}` : ""
-    }#projects`;
+    const profileUrl = appHref(`/profiles/${user?.url_slug}#projects`, { hubUrl: hubName, locale });
 
     return {
       en: (
@@ -66,8 +64,7 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     };
 
     const config = typeConfig[type];
-    const viewUrl =
-      getLocalePrefix(locale) + "/projects/" + url_slug + (hubName ? "?hub=" + hubName : "");
+    const viewUrl = appHref("/projects/" + url_slug, { hubUrl: hubName, locale });
 
     return {
       en: (
@@ -178,7 +175,7 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: (
         <>
           Go to{" "}
-          <Link href={getLocalePrefix(locale) + "/projects/" + project?.url_slug} underline="hover">
+          <Link href={appHref("/projects/" + project?.url_slug, { locale })} underline="hover">
             the project page
           </Link>{" "}
           and click join to join it.
@@ -187,7 +184,7 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       de: (
         <>
           Gehe auf{" "}
-          <Link href={getLocalePrefix(locale) + "/projects/" + project?.url_slug} underline="hover">
+          <Link href={appHref("/projects/" + project?.url_slug, { locale })} underline="hover">
             die Projektseite
           </Link>{" "}
           und klicke auf {"Mitmachen"}.
@@ -309,6 +306,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     contact: {
       en: "Contact",
       de: "Kontaktieren",
+    },
+    contact_short: {
+      en: "Contact",
+      de: "Kontakt",
     },
     followers: {
       en: "Followers",
@@ -576,6 +577,14 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     created_by: {
       en: "Created by",
       de: "Erstellt von",
+    },
+    please_select_an_organization: {
+      en: "Please select an organisation.",
+      de: "Bitte wähle eine Organisation aus.",
+    },
+    you_are_not_a_member_of_any_organization_yet: {
+      en: "You're not a member of any organisation yet.",
+      de: "Du bist noch kein Mitglied einer Organisation.",
     },
     describe_your_project_in_detail_please_only_use_language: {
       en: "Describe your project in detail. Please only use English!",
@@ -1003,9 +1012,7 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
         <>
           If your organisation does not exist yet{" "}
           <Link
-            href={`${getLocalePrefix(locale)}/createorganization${
-              hubName ? `?hub=${hubName}` : ""
-            }`}
+            href={appHref("/createorganization", { hubUrl: hubName, locale })}
             underline="always"
           >
             click here
@@ -1017,9 +1024,7 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
         <>
           Wenn das Profil deiner Organisation noch nicht existiert,{" "}
           <Link
-            href={`${getLocalePrefix(locale)}/createorganization${
-              hubName ? `?hub=${hubName}` : ""
-            }`}
+            href={appHref("/createorganization", { hubUrl: hubName, locale })}
             underline="always"
           >
             klicke hier
@@ -1134,6 +1139,122 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
         `, erstellt von ${project.creator?.name ? project.creator?.name : creator?.name}`
       }.
       Schau's dir doch mal an: `,
+    },
+    your_page_title_project: {
+      en: "Your project page",
+      de: "Deine Projektseite",
+    },
+    your_page_title_idea: {
+      en: "Your idea page",
+      de: "Deine Ideenseite",
+    },
+    your_page_title_event: {
+      en: "Your event page",
+      de: "Deine Eventseite",
+    },
+    content_is_live_headline_project: {
+      en: "Your project is live!",
+      de: "Dein Projekt ist live!",
+    },
+    content_is_live_headline_idea: {
+      en: "Your idea is live!",
+      de: "Deine Idee ist live!",
+    },
+    content_is_live_headline_event: {
+      en: "Your event is live!",
+      de: "Dein Event ist live!",
+    },
+    content_preview_caption_project: {
+      en: "This is how your project appears in the overview – click the card to view your page.",
+      de:
+        "So erscheint dein Projekt in der Übersicht – klicke auf die Karte, um zu deiner Seite zu gelangen.",
+    },
+    content_preview_caption_idea: {
+      en: "This is how your idea appears in the overview – click the card to view your page.",
+      de:
+        "So erscheint deine Idee in der Übersicht – klicke auf die Karte, um zu deiner Seite zu gelangen.",
+    },
+    content_preview_caption_event: {
+      en: "This is how your event appears in the overview – click the card to view your page.",
+      de:
+        "So erscheint dein Event in der Übersicht – klicke auf die Karte, um zu deiner Seite zu gelangen.",
+    },
+    share_cta_headline_project: {
+      en: "Spread the word about your project!",
+      de: "Erzähle der Welt von deinem Projekt!",
+    },
+    share_cta_headline_idea: {
+      en: "Spread the word about your idea!",
+      de: "Erzähle der Welt von deiner Idee!",
+    },
+    share_cta_headline_event: {
+      en: "Spread the word about your event!",
+      de: "Erzähle der Welt von deinem Event!",
+    },
+    share_cta_subtitle_project: {
+      en:
+        "Now it's time to make it known. Share it with your network and inspire others to join in!",
+      de: "Jetzt mach es bekannt! Teile es mit deinem Netzwerk und inspiriere andere mitzumachen!",
+    },
+    share_cta_subtitle_idea: {
+      en: "Share it with your network and inspire others to join in!",
+      de: "Teile sie mit deinem Netzwerk und inspiriere andere mitzumachen!",
+    },
+    share_cta_subtitle_event: {
+      en: "Share the link so more people hear about it and join you.",
+      de: "Teile den Link, damit mehr Menschen davon erfahren und dabei sind.",
+    },
+    share_cta_subtitle_event_with_registration: {
+      en: "Share the link so people can register and join you.",
+      de: "Teile den Link, damit sich Menschen anmelden und dabei sein können.",
+    },
+    share_own_content_message_title_project: {
+      en: `I just published my climate project "${project?.name}" – check it out!`,
+      de: `Ich habe gerade mein Klimaschutzprojekt "${project?.name}" veröffentlicht – schau es dir an!`,
+    },
+    share_own_content_message_title_idea: {
+      en: `I just shared my climate idea "${project?.name}" – have a look and get involved!`,
+      de: `Ich habe gerade meine Klimaidee "${project?.name}" – schau sie dir an und mach mit!`,
+    },
+    share_own_content_message_title_event: {
+      en: `I'm organizing the climate event "${project?.name}" – check it out!`,
+      de: `Ich organisiere das Klima-Event "${project?.name}" – schau es dir an!`,
+    },
+    share_own_content_message_title_event_with_registration: {
+      en: `I'm organizing the climate event "${project?.name}" – check it out and register to join!`,
+      de: `Ich organisiere das Klima-Event "${project?.name}" – schau es dir an und melde dich an!`,
+    },
+    share_own_content_email_body: {
+      en: `Hey,
+      I just published "${project?.name}" and would love your support.
+      Check it out and feel free to share it with others: `,
+      de: `Hey,
+      ich habe gerade "${project?.name}" veröffentlicht und würde mich über deine Unterstützung freuen.
+      Schau es dir gerne an und teile es mit anderen: `,
+    },
+    share_online_title: {
+      en: "Share it online",
+      de: "Online teilen",
+    },
+    share_online_description: {
+      en: "Post it where your community is – or copy the link.",
+      de: "Poste es, wo deine Community ist – oder kopiere den Link.",
+    },
+    qr_code_for_print_title: {
+      en: "Put it on paper",
+      de: "Auf Papier bringen",
+    },
+    qr_code_for_print_description: {
+      en: "Print this QR code on flyers or posters – it links directly to your page.",
+      de: "Drucke diesen QR-Code auf Flyer oder Poster – er verlinkt direkt zu deiner Seite.",
+    },
+    download_qr_code: {
+      en: "Download QR code",
+      de: "QR-Code herunterladen",
+    },
+    qr_code_alt_text: {
+      en: "QR code linking to your page",
+      de: "QR-Code, der zu deiner Seite verlinkt",
     },
     contact_creator_to_know_more_about_project: {
       en: `Contact ${creator?.first_name} if you want to chat about this project.`,
@@ -1962,6 +2083,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     quantity_exceeds_max: {
       en: "Quantity cannot exceed the maximum per guest.",
       de: "Die Menge darf das Maximum pro Gast nicht überschreiten.",
+    },
+    inventory_sold_out: {
+      en: "Sold out",
+      de: "Ausverkauft",
     },
     please_select_time_slot: {
       en: "Please select a time slot.",

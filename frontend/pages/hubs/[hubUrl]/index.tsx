@@ -8,14 +8,13 @@ import isLocationHubLikeHub from "../../../public/lib/isLocationHubLikeHub";
 import theme from "../../../src/themes/theme";
 import { HubData } from "../../../src/types";
 import { getHubData } from "../../../public/lib/getHubData";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 
 interface TextsType {
   [key: string]: string;
 }
 
 interface NotFoundPageProps {
-  texts: TextsType;
   link: string;
   showHeader?: boolean;
 }
@@ -25,19 +24,15 @@ interface LandingPageProps {
   hubUrl?: string;
 }
 
-const NotFoundPage: FC<NotFoundPageProps> = ({ texts, link, showHeader }) => {
+const NotFoundPage: FC<NotFoundPageProps> = ({ link, showHeader }) => {
   return (
     <>
       {showHeader ? (
         <WideLayout>
-          <PageNotFound
-            itemName="landing page"
-            returnText={texts.return_to_hubs}
-            returnLink={link}
-          />
+          <PageNotFound itemName="landing page" returnLink={link} />
         </WideLayout>
       ) : (
-        <PageNotFound itemName="landing page" returnText={texts.return_to_hubs} returnLink={link} />
+        <PageNotFound itemName="landing page" returnLink={link} />
       )}
     </>
   );
@@ -58,10 +53,9 @@ export async function getServerSideProps(ctx: any) {
 
   const hubData = await getHubData(hubUrl, locale);
   if (!hubData?.landing_page_component) {
-    const localePrefix = getLocalePrefix(locale);
     return {
       redirect: {
-        destination: `${localePrefix}/hubs/${hubUrl}/browse`,
+        destination: appHref(`/hubs/${hubUrl}/browse`, { locale }),
         // redirect is based on current hub data, and that might change in the future so permanent: false,
         permanent: false,
       },
@@ -80,7 +74,7 @@ const LandingPage: FC<LandingPageProps> = ({ hubData, hubUrl }) => {
   const texts = getTexts({ page: "landing_page", locale: locale }) as TextsType;
   // Handle missing data
   if (!hubUrl || !hubData) {
-    return <NotFoundPage texts={texts} link={"/hubs/"} showHeader />;
+    return <NotFoundPage link={"/browse"} showHeader />;
   }
 
   const title = `${texts.climateHub} ${hubData?.name} | ${texts.citizen_climate_action} ${hubData?.name}`;
@@ -97,7 +91,7 @@ const LandingPage: FC<LandingPageProps> = ({ hubData, hubUrl }) => {
       headerBackground={theme.palette.primary.main}
       showDonationGoal={true}
     >
-      <NotFoundPage texts={texts} link={`/hubs/${hubUrl}/browse`} />
+      <NotFoundPage link={`/hubs/${hubUrl}/browse`} />
     </DevlinkPage>
   );
 };

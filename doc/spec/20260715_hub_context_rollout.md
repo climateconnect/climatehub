@@ -112,8 +112,8 @@ Companion to `doc/spec/20260701_1205_refactor_frontend_hub_context.md`.
 
 Each batch follows the same shape: migrate the area's links to `<AppLink>`/`appHref`, remove the bare `?hub=` / `getLocalePrefix` concatenation at those call sites, then run the manual checklist focused on that area.
 
-- **Phase 4 — Batch A: hub landing / browse pages.** Highest value: these are where the path-based hub (`/hubs/<slug>`) lives, so the "skip `?hub=` when hub already in path" rule is exercised. Manual: navigate within `/hubs/<slug>` and `/hubs/<slug>/<subHub>/browse`; confirm no redundant `?hub=` and correct cross-entity behavior.
-- **Phase 5 — Batch B: project / organization / profile cross-entity links (Category A).** The bulk of "preserve hub" links.
+- **Phase 4 — Batch A: hub landing / browse pages.** ✅ DONE (2026-08-12) Highest value: these are where the path-based hub (`/hubs/<slug>`) lives, so the "skip `?hub=` when hub already in path" rule is exercised. Manual: navigate within `/hubs/<slug>` and `/hubs/<slug>/<subHub>/browse`; confirm no redundant `?hub=` and correct cross-entity behavior.
+- **Phase 5 — Batch B: project / organization / profile cross-entity links (Category A).** ✅ DONE (2026-08-12) The bulk of "preserve hub" links.
 - **Phase 6 — Batch C: global nav / footer / settings / dashboard (`leaveHub`).** Audit these for "leave hub" decisions; they must be greppable (`leaveHub`).
 - **Phase 7 — Batch D: hub switcher / `HubsDropDown` (Category C).** Construct target paths directly from the hubs list; confirm no current-hub `?hub=` leaks. No `AppLink` used here.
 

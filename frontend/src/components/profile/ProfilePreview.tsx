@@ -1,10 +1,10 @@
-import { Avatar, Button, Link, Tooltip, Typography } from "@mui/material";
+import { Avatar, Button, Tooltip, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import { getImageUrl } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
+import AppLink from "../general/AppLink";
 import ProfileBadge from "./ProfileBadge";
 
 const useStyles = makeStyles((theme) => {
@@ -69,7 +69,7 @@ const useStyles = makeStyles((theme) => {
   };
 });
 
-export default function ProfilePreview({ profile, allowMessage, showAdditionalInfo, hubUrl }: any) {
+export default function ProfilePreview({ profile, allowMessage, showAdditionalInfo }: any) {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale: locale });
@@ -79,12 +79,10 @@ export default function ProfilePreview({ profile, allowMessage, showAdditionalIn
     src: getImageUrl(profile.thumbnail_image),
     className: classes.avatar,
   };
-  const queryString = hubUrl ? "?hub=" + hubUrl : "";
-
   return (
     <div className={classes.avatarWithInfo}>
-      <Link
-        href={getLocalePrefix(locale) + `/profiles/${profile.url_slug}${queryString}`}
+      <AppLink
+        href={`/profiles/${profile.url_slug}`}
         className={classes.disableHover}
         underline="hover"
       >
@@ -126,7 +124,7 @@ export default function ProfilePreview({ profile, allowMessage, showAdditionalIn
             })}
           </div>
         )}
-      </Link>
+      </AppLink>
       {allowMessage && (
         <div>
           <Button

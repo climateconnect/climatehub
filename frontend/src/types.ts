@@ -173,7 +173,10 @@ export type MyEventRegistration = {
   field_answers: RegistrationFieldAnswer[];
 };
 
-export type BrowseTab = "projects" | "organizations" | "members" | "events";
+// The three entity types that can be browsed on the main pages (projects,
+// organisations, members). The events calendar is a different view and is
+// not part of this union.
+export type BrowseEntity = "projects" | "organizations" | "members";
 export type ProjectType = "project" | "idea" | "event";
 
 export type Organization = {
@@ -185,7 +188,7 @@ export type Organization = {
 
 export type CcLocale = "en" | "de";
 
-declare module "@mui/material/styles/createPalette" {
+declare module "@mui/material/styles" {
   // augment theme type with climateconnect custom properties
   // eslint-disable-next-line no-unused-vars
   interface Palette {

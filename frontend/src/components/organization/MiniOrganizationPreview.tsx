@@ -46,11 +46,19 @@ const useStyles = makeStyles<Theme, { showBorder: boolean }>((theme) => ({
     wordBreak: "break-word",
   },
   inlineWrapper: {
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    verticalAlign: "middle",
   },
   boldOrgName: {
     fontSize: 18,
     fontWeight: 600,
+    display: "inline-block",
+  },
+  inlineBoldOrgName: {
+    fontSize: "inherit",
+    fontWeight: 600,
+    lineHeight: "inherit",
     display: "inline-block",
   },
 }));
@@ -64,6 +72,7 @@ export default function MiniOrganizationPreview({
   doNotShowName,
   inline,
 }: any) {
+  if (!organization) return null;
   if (!nolink)
     return (
       <AppLink
@@ -125,7 +134,11 @@ function Content({ organization, size, onDelete, doNotShowName, inline }) {
               <Tooltip title={organization.name} placement="bottom">
                 <Typography
                   variant="body2"
-                  className={`${classes.boldOrgName} ${classes.tinyOrgName}`}
+                  className={
+                    inline
+                      ? `${classes.inlineBoldOrgName} ${classes.tinyOrgName}`
+                      : `${classes.boldOrgName} ${classes.tinyOrgName}`
+                  }
                 >
                   {organization.name}
                 </Typography>

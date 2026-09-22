@@ -127,7 +127,6 @@ export default function ManageOrganizationMembersPage({
             organization={organization}
             token={token}
             availabilityOptions={availabilityOptions}
-            hubUrl={hubUrl}
           />
         </Container>
       </WideLayout>

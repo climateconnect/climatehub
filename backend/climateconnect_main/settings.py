@@ -13,10 +13,12 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 import ssl
 import sys
+import warnings
 from datetime import timedelta
 
 import django.conf
 import sentry_sdk
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import find_dotenv, load_dotenv
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -29,6 +31,34 @@ load_dotenv(find_dotenv(".backend_env"))
 
 
 env = os.environ.get
+
+
+def int_env(name, default):
+    """
+    Read an integer setting from the environment.
+
+    Unlike `int(env(name, default))`, this tolerates a *declared but empty*
+    variable (`FOO=` in a deploy config or .backend_env, which is a routine way
+    to leave a key unset). `int("")` raises, and at import time that takes the
+    whole process down rather than falling back to the default.
+
+    A *non-empty* non-numeric value is still fatal — silently falling back to
+    the default would hide a typo'd deploy config behind behaviour that looks
+    correct. But it fails with the variable's name in the message instead of a
+    bare `ValueError: invalid literal for int() with base 10: 'abc'`, which
+    says nothing about which of the several int settings is wrong.
+    """
+    raw = env(name, "")
+    if not str(raw).strip():
+        return default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise ImproperlyConfigured(
+            f"{name}={raw!r} is not a valid integer. Set it to a whole number, "
+            f"or leave it unset/empty to use the default ({default})."
+        )
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,7 +93,6 @@ CUSTOM_APPS = [
     "hubs",
     "location",
     "ideas",
-    "climate_match",
     "feature_toggles",
     "auth_app",
 ]
@@ -133,6 +162,8 @@ CORS_ORIGIN_WHITELIST = [
     "https://climateconnect-frontend-slot2.azurewebsites.net",
     "https://climateconnect-frontend-slot2-b4ege4evbjeeabeb.germanywestcentral-01.azurewebsites.net",
     "https://climate-backend-appserv-slot2-bydthgcjexgab2fx.germanywestcentral-01.azurewebsites.net",
+    "https://climateconnect-frontend-container.azurewebsites.net",
+    "https://climateconnect-frontend-container-slot2.azurewebsites.net",
 ]
 
 # Django 4.x requires CSRF_TRUSTED_ORIGINS for cross-origin POST requests.
@@ -154,6 +185,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://climateconnect-frontend-slot2.azurewebsites.net",
     "https://climateconnect-frontend-slot2-b4ege4evbjeeabeb.germanywestcentral-01.azurewebsites.net",
     "https://climate-backend-appserv-slot2-bydthgcjexgab2fx.germanywestcentral-01.azurewebsites.net",
+    "https://climateconnect-frontend-container.azurewebsites.net",
+    "https://climateconnect-frontend-container-slot2.azurewebsites.net",
 ]
 
 APPEND_SLASH = False
@@ -218,14 +251,19 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 if env("ENVIRONMENT") not in ("development", "test"):
-    DEFAULT_FILE_STORAGE = "storages.backends.azure_storage.AzureStorage"
-    STATICFILES_STORAGE = "storages.backends.azure_storage.AzureStorage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        },
+    }
     AZURE_ACCOUNT_NAME = env("AZURE_ACCOUNT_NAME")
     AZURE_ACCOUNT_KEY = env("AZURE_ACCOUNT_KEY")
     AZURE_CONTAINER = env("AZURE_CONTAINER")
@@ -244,6 +282,8 @@ STATIC_ROOT = (
 )
 MEDIA_ROOT = env("MEDIA_ROOT", os.path.join(BASE_DIR, "media"))
 MEDIA_URL = "/media/"
+# Images are sent as base64 JSON; 10 MB gives headroom above the ~33% base64 overhead
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 REST_KNOX = {"TOKEN_TTL": timedelta(days=120)}
 REST_FRAMEWORK = {
@@ -254,6 +294,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 200,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "event_feed": "20/hour",
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -332,7 +375,38 @@ ADMIN_REGISTRATION_NOTIFICATION_TEMPLATE_ID_DE = env(
 )
 
 FRONTEND_URL = env("FRONTEND_URL", "")
+ICAL_FEED_SIGNING_KEY = env("ICAL_FEED_SIGNING_KEY", "")
 LOCATION_SERVICE_BASE_URL = env("LOCATION_SERVICE_BASE_URL")
+
+# Which column of the FeatureToggle table backend code reads (see
+# feature_toggles.utility.is_feature_enabled_for_current_environment).
+#
+# Deliberately separate from ENVIRONMENT, for two reasons:
+#   - ENVIRONMENT is "development" | "test" | "production", while toggles are
+#     stored per "development" | "staging" | "production";
+#   - the staging slot runs the same artifact (and the same ENVIRONMENT value)
+#     as production, so without an explicit override a backend toggle read on
+#     staging would resolve to the production column. Set
+#     FEATURE_TOGGLE_ENVIRONMENT=staging on the staging slot.
+_raw_toggle_environment = env("FEATURE_TOGGLE_ENVIRONMENT") or env(
+    "ENVIRONMENT", "development"
+)
+FEATURE_TOGGLE_ENVIRONMENT = (
+    "development" if _raw_toggle_environment == "test" else _raw_toggle_environment
+)
+if FEATURE_TOGGLE_ENVIRONMENT not in ("development", "staging", "production"):
+    # is_feature_enabled() rejects an unknown environment by returning the
+    # caller's default — and it does so *before* its cache, so a typo costs a
+    # log line on every single toggle read and never memoizes. Worse, the
+    # symptom (every toggle reads as its default) is indistinguishable from
+    # "the toggle is simply off", which is a legitimate state, so nobody goes
+    # looking for a misspelled env var. One loud line at boot instead.
+    warnings.warn(
+        f"FEATURE_TOGGLE_ENVIRONMENT={FEATURE_TOGGLE_ENVIRONMENT!r} is not one of "
+        "'development' | 'staging' | 'production'. Every backend feature-toggle "
+        "read will fall back to its default value.",
+        RuntimeWarning,
+    )
 DEEPL_API_KEY = env("DEEPL_API_KEY")
 
 ASGI_APPLICATION = "climateconnect_main.routing.application"
@@ -361,8 +435,111 @@ CELERY_TIMEZONE = "UTC"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+# Route the LocationIQ autocomplete task to its own queue/worker so it never
+# competes with the rest of the app's Celery workload for concurrency slots.
+CELERY_TASK_ROUTES = {
+    "location.tasks.fetch_autocomplete": {"queue": "lookup"},
+}
+# Fail fast if the broker is unreachable when enqueuing a LocationIQ lookup,
+# so LocationAutocompleteView's direct-fetch fallback kicks in within ~2s
+# instead of the request hanging. See Gap #4 in
+# doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md.
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "socket_connect_timeout": 2,
+    "socket_timeout": 2,
+}
 NOMINATIM_LOOKUP_URL = "https://nominatim.openstreetmap.org/lookup"
 CUSTOM_USER_AGENT = "ClimateConnect/1.0 (contact@climateconnect.earth)"
+
+# --- Geocoding provider: LocationIQ ------------------------------------------
+# Only settings that would change if we swapped LocationIQ for another provider
+# belong here. Everything about the proxy itself (queueing, cache, per-IP
+# limits) is prefixed LOCATION_PROXY_ further below.
+LOCATIONIQ_API_KEY = env("LOCATIONIQ_API_KEY", "")
+# LocationIQ's /v1/search is its Nominatim-compatible geocoding endpoint: it
+# returns the same response shape master relied on (importance scores + typed
+# address keys like village/town/county, single admin-focused results rather
+# than a POI flood). The /v1/autocomplete typeahead endpoint omits importance
+# and returns POIs, which breaks the frontend's importance-based filtering and
+# name-building logic — so we use /search to preserve master's behavior exactly.
+LOCATIONIQ_AUTOCOMPLETE_URL = "https://us1.locationiq.com/v1/search"
+LOCATIONIQ_TIMEOUT = 3  # seconds
+NOMINATIM_TIMEOUT = 5  # seconds
+# Celery rate_limit for the fetch_autocomplete task. This bounds *all* upstream
+# autocomplete traffic leaving this server, including the Nominatim fallback —
+# and the fallback is what runs whenever LocationIQ is skipped, which includes
+# the case where the LOCATIONIQ_AUTOCOMPLETE toggle can't be read at all (a DB
+# blip degrades to default=False). OSM's usage policy allows 1 req/s per
+# application from one IP, so while the toggle is off in production this should
+# be "1/s" — see the risk table in
+# doc/spec/20260804_1202_locationiq_feature_toggle_and_result_caching.md.
+# Lowering it is NOT a one-line change: LOCATION_PROXY_SENTINEL_TTL_S and
+# LOCATION_PROXY_STALE_PENDING_S below are both derived from this rate and have
+# to be re-derived with it.
+LOCATIONIQ_MAX_RATE = "2/s"
+_locationiq_daily_budget_raw = env("LOCATIONIQ_DAILY_BUDGET", "")
+LOCATIONIQ_DAILY_BUDGET = (
+    int(_locationiq_daily_budget_raw) if _locationiq_daily_budget_raw else None
+)
+
+# --- Autocomplete proxy infrastructure ---------------------------------------
+# The rendezvous queue, the pending-sentinel lifecycle, the result cache and the
+# per-IP limits are properties of *our* proxy layer, not of LocationIQ: they
+# would be unchanged if the upstream geocoder were swapped out, and several of
+# them are what the Nominatim fallback path runs on. Hence LOCATION_PROXY_, not
+# LOCATIONIQ_. (LOCATIONIQ_MAX_RATE and LOCATIONIQ_TIMEOUT are still referenced
+# below, because some of these values are derived from them.)
+LOCATION_PROXY_PENDING_CAP = (
+    16  # max distinct in-flight lookups before 503 (backpressure)
+)
+# Pending-sentinel lifetime. Keep >= (LOCATION_PROXY_PENDING_CAP / rate implied
+# by LOCATIONIQ_MAX_RATE) + worst-case fetch time (LOCATIONIQ_TIMEOUT +
+# NOMINATIM_TIMEOUT), or a queued job can outlive its own sentinel — see Gap #1
+# in the design doc.
+LOCATION_PROXY_SENTINEL_TTL_S = 20
+# How old a pending sentinel must get before a request assumes no task is
+# coming and fetches inline instead (a lost message, or no worker consuming
+# the `lookup` queue). Default is the worst case a healthy queue can produce:
+# LOCATION_PROXY_PENDING_CAP / 2 per second of queue wait + LOCATIONIQ_TIMEOUT
+# + NOMINATIM_TIMEOUT. Lowering it makes a stalled lookup recover sooner but
+# risks a duplicate upstream call whenever the queue is legitimately backed
+# up; it must stay below LOCATION_PROXY_SENTINEL_TTL_S to have any effect.
+LOCATION_PROXY_STALE_PENDING_S = 16
+LOCATION_PROXY_RECLAIM_LOCK_S = 10  # one reclaimer at a time per query
+LOCATION_PROXY_NEGATIVE_TTL_S = (
+    8  # cache lifetime for a failed lookup (avoid negative-caching an outage)
+)
+LOCATION_PROXY_IP_RATE_STRICT = "1/s"  # per-IP limit for creating a new lookup
+LOCATION_PROXY_IP_RATE_LOOSE = (
+    "10/s"  # per-IP limit for all autocomplete traffic, incl. polling
+)
+# --- Result cache (see doc/spec/20260804_1202_locationiq_feature_toggle_and_result_caching.md)
+# Sliding TTL: a cache hit resets the key back to RESULT_TTL_S, but never past
+# first_fetched_at + MAX_CACHE_AGE_S. Hot query prefixes ("ber", "berl", ...)
+# therefore stay cached and cost nothing, while no answer is ever served more
+# than MAX_CACHE_AGE_S after it was fetched, so renamed places self-heal
+# without anyone clearing the cache by hand.
+LOCATION_PROXY_RESULT_TTL_S = int_env("LOCATION_PROXY_RESULT_TTL_S", 24 * 3600)
+LOCATION_PROXY_MAX_CACHE_AGE_S = int_env("LOCATION_PROXY_MAX_CACHE_AGE_S", 48 * 3600)
+if LOCATION_PROXY_MAX_CACHE_AGE_S < LOCATION_PROXY_RESULT_TTL_S:
+    # Not fatal, but it silently makes RESULT_TTL_S dead: every hit's TTL is
+    # capped by the remaining age budget, so entries would live MAX_CACHE_AGE_S
+    # and the configured sliding TTL would never be reached. Easy to do by
+    # setting only one of the two in a deploy config.
+    warnings.warn(
+        f"LOCATION_PROXY_MAX_CACHE_AGE_S ({LOCATION_PROXY_MAX_CACHE_AGE_S}s) is below "
+        f"LOCATION_PROXY_RESULT_TTL_S ({LOCATION_PROXY_RESULT_TTL_S}s). The sliding "
+        "result TTL is capped by the absolute age ceiling, so it will never "
+        "take effect — raise the ceiling or lower the TTL.",
+        RuntimeWarning,
+    )
+# Hard cap on cached queries, enforced by an explicit LRU index (see
+# location.cache._index_and_trim) rather than redis maxmemory-policy, which is
+# instance-global and would happily evict Celery messages and chat channel data
+# from the same Redis. ~7 KB per stripped entry, so 1000 entries is ~7 MB.
+LOCATION_PROXY_CACHE_MAX_ENTRIES = int_env("LOCATION_PROXY_CACHE_MAX_ENTRIES", 1000)
+# Retention for the per-day cache hit/miss counters.
+LOCATION_PROXY_STATS_TTL_S = 7 * 24 * 3600
 
 LOCALE_PATHS = [
     BASE_DIR + "/translations",
@@ -507,5 +684,9 @@ if "test" in sys.argv or env("ENVIRONMENT") == "test":
     }
     # Never call the real Nominatim API from tests.
     NOMINATIM_LOOKUP_URL = "http://testserver/nominatim/lookup"
+    # Pin the toggle column tests read, so a developer whose .backend_env says
+    # ENVIRONMENT=production doesn't get a different toggle state than CI.
+    FEATURE_TOGGLE_ENVIRONMENT = "development"
+    ICAL_FEED_SIGNING_KEY = "test-signing-key-for-unit-tests"
 
 # --- END GLOBAL TEST SETTINGS ---

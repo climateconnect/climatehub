@@ -2,12 +2,10 @@ import { createContext } from "react";
 
 interface FilterContextType {
   filters: any;
-  tabsWhereFiltersWereApplied: any[];
   errorMessage: string;
   /* eslint-disable no-unused-vars */
   handleSetErrorMessage: (newMessage: any) => void;
   handleAddFilters: (newFilters: any) => void;
-  handleSetTabsWhereFiltersWereApplied: (tabs: any) => void;
   /* eslint-disable no-unused-vars */
   handleApplyNewFilters: ({
     type,

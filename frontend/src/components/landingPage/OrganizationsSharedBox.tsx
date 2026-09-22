@@ -77,7 +77,7 @@ export default function OrganizationsSharedBox({ organizations, isLoading }) {
       </Typography>
       <OrganizationPreviewsFixed organizations={organizations} isLoading={isLoading} />
       <div className={classes.showProjectsButtonContainer}>
-        <Button color="inherit" href={getLocalePrefix(locale) + "/browse#organizations"}>
+        <Button color="inherit" href={getLocalePrefix(locale) + "/organizations"}>
           <span className={classes.showProjectsText}>{texts.explore_all_organizations}</span>
           <KeyboardArrowRightIcon className={classes.showProjectsArrow} />
         </Button>

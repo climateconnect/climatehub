@@ -1,5 +1,6 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { Theme, StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import { useRouter } from "next/router";
 import React, { useEffect, useContext, useState } from "react";
 import App from "next/app";
@@ -17,8 +18,15 @@ import { FeatureToggleProvider } from "../src/components/featureToggle";
 import { FeatureToggles } from "../src/hooks/types/featureToggle";
 import type { CcEnvironment } from "../public/lib/environmentOperations";
 import theme from "../src/themes/theme";
+import * as Sentry from "@sentry/nextjs";
 import { CcLocale, DonationGoal, HubListItem } from "../src/types";
-import "../devlink/css/global.css";
+import "../devlink/css/fonts.css";
+import "../devlink/css/normalize.css";
+import "../devlink/css/defaults.css";
+import "../devlink/css/variables.css";
+import "../devlink/css/tags.css";
+import "../devlink/css/classes.css";
+import "../devlink-patches.css";
 
 declare module "@mui/styles/defaultTheme" {
   // eslint-disable-next-line no-unused-vars
@@ -124,7 +132,7 @@ function AppContent({
   };
 
   const hideNotification = (notificationId) => {
-    const notifications = state.notifications;
+    const notifications = state.notifications ?? [];
     setState({
       ...state,
       notifications: notifications.filter((n) => n.id !== notificationId),
@@ -206,7 +214,9 @@ function AppContent({
       setState({
         ...state,
         user: state.user,
-        notifications: state.notifications?.filter((n) => !notificationsToSetRead.includes(n)),
+        notifications: (state.notifications ?? []).filter(
+          (n) => !notificationsToSetRead.includes(n)
+        ),
       });
 
       setWebSocketClient(client);
@@ -306,24 +316,35 @@ function AppContent({
     <>
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
-          {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-          <CssBaseline />
           {/*
-           * Feature toggles are opt-in per page via getServerSideProps.
-           * Pages that need SSR feature toggles should call getFeatureTogglesFromRequest
-           * from src/hooks/featureToggles.ts and return { featureToggles, environment }
-           * as props. FeatureToggleProvider picks them up here via pageProps.
-           * Pages without getServerSideProps will still work but toggles resolve
-           * client-side only (isEnabled returns the fallback value on first render).
+           * `@mui/styles` (still used by many components via `makeStyles`) bundles its own
+           * copy of `@mui/private-theming`, which is a different module instance/version than
+           * the one used internally by `@mui/material` v7. That means its `useTheme`/`makeStyles`
+           * can't see the theme provided by the `ThemeProvider` above via React context.
+           * Nesting `@mui/styles`' own `ThemeProvider` here with the same theme object makes the
+           * theme available to `@mui/styles` consumers again without having to migrate every
+           * `makeStyles` usage away from `@mui/styles`.
            */}
-          <FeatureToggleProvider
-            initialToggles={pageProps.featureToggles}
-            environment={pageProps.environment}
-          >
-            <UserContext.Provider value={contextValues}>
-              <Component {...pageProps} />
-            </UserContext.Provider>
-          </FeatureToggleProvider>
+          <StylesThemeProvider theme={theme}>
+            {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
+            <CssBaseline />
+            {/*
+             * Feature toggles are opt-in per page via getServerSideProps.
+             * Pages that need SSR feature toggles should call getFeatureTogglesFromRequest
+             * from src/hooks/featureToggles.ts and return { featureToggles, environment }
+             * as props. FeatureToggleProvider picks them up here via pageProps.
+             * Pages without getServerSideProps will still work but toggles resolve
+             * client-side only (isEnabled returns the fallback value on first render).
+             */}
+            <FeatureToggleProvider
+              initialToggles={pageProps.featureToggles}
+              environment={pageProps.environment}
+            >
+              <UserContext.Provider value={contextValues}>
+                <Component {...pageProps} />
+              </UserContext.Provider>
+            </FeatureToggleProvider>
+          </StylesThemeProvider>
         </ThemeProvider>
       </StyledEngineProvider>
     </>
@@ -361,6 +382,7 @@ MyApp.getInitialProps = async (appContext: any) => {
 };
 
 const getNotificationsToSetRead = (notifications, pageProps) => {
+  if (!notifications || notifications.length === 0) return [];
   let notifications_to_set_unread: any[] = [];
   if (pageProps.comments) {
     const comment_ids = pageProps.comments.map((p) => p.id);
@@ -453,7 +475,8 @@ async function getNotifications(token, locale) {
         console.log("Error in getNotifications: " + err.response.data.detail);
       if (err.response && err.response.data.detail === "Invalid token")
         console.log("invalid token! token:" + token);
-      return null;
+      Sentry.captureException(err, { tags: { feature: "notifications" } });
+      return [];
     }
   } else {
     return [];

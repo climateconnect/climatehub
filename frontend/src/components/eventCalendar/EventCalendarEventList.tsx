@@ -130,6 +130,7 @@ export default function EventCalendarEventList({
   sectors,
   selectedDay,
   hubUrl,
+  subHubName,
 }: {
   initialEvents?: any[];
   initialHasMore?: boolean;
@@ -137,14 +138,15 @@ export default function EventCalendarEventList({
   sectors: string[];
   selectedDay: Dayjs;
   hubUrl?: string;
+  subHubName?: string;
 }) {
   const { locale, CUSTOM_HUB_URLS } = useContext(UserContext);
-  const { hubData } = useContext(HubContext);
+  const { hubData, hubUrl: contextHubUrl } = useContext(HubContext);
   const hubName = hubData?.name;
   const classes = useStyles();
   const texts = getTexts({ page: "hub", locale: locale });
   const theme = useTheme();
-  const isCustomHub = CUSTOM_HUB_URLS?.includes(hubUrl);
+  const isCustomHub = CUSTOM_HUB_URLS?.includes(contextHubUrl || hubUrl);
   const startOfTodayMs = (() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -236,7 +238,7 @@ export default function EventCalendarEventList({
         </Typography>
       )}
       {!loading && !error && dayGroups.length === 0 && (
-        <NoItemsFound type="events" hubName={hubName} />
+        <NoItemsFound type="events" hubName={hubName} subHubName={subHubName} />
       )}
       {!error &&
         dayGroups.map((group, groupIdx) => {
@@ -282,11 +284,7 @@ export default function EventCalendarEventList({
               </div>
               <div className={classes.dayGroup}>
                 {group.occurrences.map((occurrence) => (
-                  <EventCardWide
-                    key={occurrence.project.url_slug}
-                    project={occurrence.project}
-                    hubUrl={hubUrl}
-                  />
+                  <EventCardWide key={occurrence.project.url_slug} project={occurrence.project} />
                 ))}
               </div>
             </Box>

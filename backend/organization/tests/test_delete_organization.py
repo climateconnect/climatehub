@@ -31,9 +31,7 @@ class TestDeleteOrganizationAPIView(APITestCase):
         UserProfile.objects.create(user=self.super_admin)
 
         # Editor user (READ_WRITE_TYPE)
-        self.editor = User.objects.create_user(
-            username="editor", password="password"
-        )
+        self.editor = User.objects.create_user(username="editor", password="password")
         UserProfile.objects.create(user=self.editor)
 
         # Unrelated user (no org membership)
@@ -42,9 +40,7 @@ class TestDeleteOrganizationAPIView(APITestCase):
         )
         UserProfile.objects.create(user=self.stranger)
 
-        self.admin_role = Role.objects.create(
-            name="Admin", role_type=Role.ALL_TYPE
-        )
+        self.admin_role = Role.objects.create(name="Admin", role_type=Role.ALL_TYPE)
         self.editor_role = Role.objects.create(
             name="Editor", role_type=Role.READ_WRITE_TYPE
         )
@@ -82,9 +78,7 @@ class TestDeleteOrganizationAPIView(APITestCase):
         response = self.client.delete(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(
-            Organization.objects.filter(url_slug=self.url_slug).exists()
-        )
+        self.assertFalse(Organization.objects.filter(url_slug=self.url_slug).exists())
 
     @tag("organization", "delete")
     def test_delete_response_contains_success_message(self):
@@ -114,9 +108,7 @@ class TestDeleteOrganizationAPIView(APITestCase):
         response = self.client.delete(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(
-            Organization.objects.filter(url_slug=self.url_slug).exists()
-        )
+        self.assertTrue(Organization.objects.filter(url_slug=self.url_slug).exists())
 
     @tag("organization", "delete")
     def test_super_admin_can_delete_org_with_only_inactive_projects(self):
@@ -135,9 +127,7 @@ class TestDeleteOrganizationAPIView(APITestCase):
         response = self.client.delete(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(
-            Organization.objects.filter(url_slug=self.url_slug).exists()
-        )
+        self.assertFalse(Organization.objects.filter(url_slug=self.url_slug).exists())
 
     @tag("organization", "delete")
     def test_delete_blocked_response_contains_project_count(self):
@@ -189,9 +179,7 @@ class TestDeleteOrganizationAPIView(APITestCase):
         response = self.client.delete(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertTrue(
-            Organization.objects.filter(url_slug=self.url_slug).exists()
-        )
+        self.assertTrue(Organization.objects.filter(url_slug=self.url_slug).exists())
 
     @tag("organization", "delete")
     def test_unrelated_user_cannot_delete_org(self):
@@ -200,18 +188,17 @@ class TestDeleteOrganizationAPIView(APITestCase):
         response = self.client.delete(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertTrue(
-            Organization.objects.filter(url_slug=self.url_slug).exists()
-        )
+        self.assertTrue(Organization.objects.filter(url_slug=self.url_slug).exists())
 
     @tag("organization", "delete")
     def test_unauthenticated_request_cannot_delete_org(self):
         response = self.client.delete(self.url)
 
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
-        self.assertTrue(
-            Organization.objects.filter(url_slug=self.url_slug).exists()
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
         )
+        self.assertTrue(Organization.objects.filter(url_slug=self.url_slug).exists())
 
     # ------------------------------------------------------------------
     # Not found
@@ -229,4 +216,6 @@ class TestDeleteOrganizationAPIView(APITestCase):
 
         # The permission class returns False for an unknown org (org not found
         # during permission check), so the response is 403 rather than 404.
-        self.assertIn(response.status_code, [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND])
+        self.assertIn(
+            response.status_code, [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]
+        )

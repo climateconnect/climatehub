@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import MultiPolygon, Point, Polygon
-from django.test import TestCase, TransactionTestCase, override_settings, tag
+from django.test import TestCase, override_settings, tag
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -127,13 +127,11 @@ class MemberProfileLocaleTest(TestCase):
 @override_settings(
     CACHES={"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 )
-class MemberLocationHubFilterTest(TransactionTestCase):
+class MemberLocationHubFilterTest(TestCase):
     """
     Test case for filtering members by location hubs.
     Tests the code in user_views.py that handles filtering member profiles
     by location hubs with aggregated geometry.
-
-    Uses TransactionTestCase to ensure complete database isolation and cleanup.
     """
 
     def setUp(self):
@@ -358,10 +356,6 @@ class MemberLocationHubFilterTest(TransactionTestCase):
 
     def tearDown(self):
         self._cache_patcher.stop()
-        UserProfile.objects.all().delete()
-        User.objects.all().delete()
-        Hub.objects.all().delete()
-        Location.objects.all().delete()
 
     def _get_url_slugs(self, response):
         return [m["url_slug"] for m in response.json().get("results", [])]
@@ -460,13 +454,26 @@ class MemberLocationHubFilterTest(TransactionTestCase):
     def test_filter_members_without_hub_parameter(self):
         """
         Test that without hub parameter, all verified members are returned.
-        Should return all 10 members.
+        Should return all 10 members created in setUp.
         """
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.json().get("results", [])
-        self.assertEqual(len(results), 10)
+        slugs = self._get_url_slugs(response)
+        expected = [
+            "member-erlangen-location",
+            "member-bubenreuth-location",
+            "member-spardorf-location",
+            "member-erlangen-address",
+            "member-bubenreuth-address",
+            "member-spardorf-address",
+            "member-nuremberg-location",
+            "member-nuremberg-address",
+            "member-paris-location",
+            "member-paris-address",
+        ]
+        for slug in expected:
+            self.assertIn(slug, slugs)
 
     @tag("location_hub", "members")
     def test_address_locations_within_hub_geometry(self):

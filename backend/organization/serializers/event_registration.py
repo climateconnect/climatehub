@@ -441,17 +441,17 @@ class EventRegistrationSubmissionSerializer(serializers.Serializer):
 
             if field.field_type == RegistrationFieldType.CHECKBOX:
                 if value_option_id is not None:
-                    answer_error["value_option"] = (
-                        "value_option is not allowed for checkbox fields."
-                    )
+                    answer_error[
+                        "value_option"
+                    ] = "value_option is not allowed for checkbox fields."
                 if value_boolean is None:
-                    answer_error["value_boolean"] = (
-                        "value_boolean is required for checkbox fields."
-                    )
+                    answer_error[
+                        "value_boolean"
+                    ] = "value_boolean is required for checkbox fields."
                 elif field.is_required and value_boolean is not True:
-                    answer_error["value_boolean"] = (
-                        "This required checkbox must be checked."
-                    )
+                    answer_error[
+                        "value_boolean"
+                    ] = "This required checkbox must be checked."
 
                 if answer_error:
                     errors.append(answer_error)
@@ -468,19 +468,19 @@ class EventRegistrationSubmissionSerializer(serializers.Serializer):
 
             if field.field_type == RegistrationFieldType.OPTION_SELECT:
                 if value_boolean is not None:
-                    answer_error["value_boolean"] = (
-                        "value_boolean is not allowed for option_select fields."
-                    )
+                    answer_error[
+                        "value_boolean"
+                    ] = "value_boolean is not allowed for option_select fields."
                 if value_option_id is None:
-                    answer_error["value_option"] = (
-                        "value_option is required for option_select fields."
-                    )
+                    answer_error[
+                        "value_option"
+                    ] = "value_option is required for option_select fields."
                 else:
                     option = options_by_field_id[field_id].get(value_option_id)
                     if option is None:
-                        answer_error["value_option"] = (
-                            "Selected option does not belong to this field."
-                        )
+                        answer_error[
+                            "value_option"
+                        ] = "Selected option does not belong to this field."
 
                 if answer_error:
                     errors.append(answer_error)
@@ -497,23 +497,23 @@ class EventRegistrationSubmissionSerializer(serializers.Serializer):
 
             if field.field_type == RegistrationFieldType.TIME_SLOT_SELECT:
                 if value_boolean is not None:
-                    answer_error["value_boolean"] = (
-                        "value_boolean is not allowed for time_slot_select fields."
-                    )
+                    answer_error[
+                        "value_boolean"
+                    ] = "value_boolean is not allowed for time_slot_select fields."
                 if value_number is not None:
-                    answer_error["value_number"] = (
-                        "value_number is not allowed for time_slot_select fields."
-                    )
+                    answer_error[
+                        "value_number"
+                    ] = "value_number is not allowed for time_slot_select fields."
                 if value_option_id is None:
-                    answer_error["value_option"] = (
-                        "value_option is required for time_slot_select fields."
-                    )
+                    answer_error[
+                        "value_option"
+                    ] = "value_option is required for time_slot_select fields."
                 else:
                     option = options_by_field_id[field_id].get(value_option_id)
                     if option is None:
-                        answer_error["value_option"] = (
-                            "Selected option does not belong to this field."
-                        )
+                        answer_error[
+                            "value_option"
+                        ] = "Selected option does not belong to this field."
 
                 if answer_error:
                     errors.append(answer_error)
@@ -530,23 +530,23 @@ class EventRegistrationSubmissionSerializer(serializers.Serializer):
 
             if field.field_type == RegistrationFieldType.INVENTORY:
                 if value_boolean is not None:
-                    answer_error["value_boolean"] = (
-                        "value_boolean is not allowed for inventory fields."
-                    )
+                    answer_error[
+                        "value_boolean"
+                    ] = "value_boolean is not allowed for inventory fields."
                 if value_option_id is None:
-                    answer_error["value_option"] = (
-                        "value_option is required for inventory fields."
-                    )
+                    answer_error[
+                        "value_option"
+                    ] = "value_option is required for inventory fields."
                 else:
                     option = options_by_field_id[field_id].get(value_option_id)
                     if option is None:
-                        answer_error["value_option"] = (
-                            "Selected option does not belong to this field."
-                        )
+                        answer_error[
+                            "value_option"
+                        ] = "Selected option does not belong to this field."
                 if value_number is None:
-                    answer_error["value_number"] = (
-                        "value_number is required for inventory fields."
-                    )
+                    answer_error[
+                        "value_number"
+                    ] = "value_number is required for inventory fields."
                 elif value_number < 1:
                     answer_error["value_number"] = "Quantity must be at least 1."
                 else:
@@ -575,22 +575,22 @@ class EventRegistrationSubmissionSerializer(serializers.Serializer):
             if field.field_type == RegistrationFieldType.TEXT:
                 value_text = item.get("value_text", None)
                 if value_boolean is not None:
-                    answer_error["value_boolean"] = (
-                        "value_boolean is not allowed for text fields."
-                    )
+                    answer_error[
+                        "value_boolean"
+                    ] = "value_boolean is not allowed for text fields."
                 if value_option_id is not None:
-                    answer_error["value_option"] = (
-                        "value_option is not allowed for text fields."
-                    )
+                    answer_error[
+                        "value_option"
+                    ] = "value_option is not allowed for text fields."
                 if value_number is not None:
-                    answer_error["value_number"] = (
-                        "value_number is not allowed for text fields."
-                    )
+                    answer_error[
+                        "value_number"
+                    ] = "value_number is not allowed for text fields."
                 if value_text is None or not value_text.strip():
                     if field.is_required:
-                        answer_error["value_text"] = (
-                            "This field requires a text answer."
-                        )
+                        answer_error[
+                            "value_text"
+                        ] = "This field requires a text answer."
                     else:
                         value_text = None
                 elif len(value_text) > 300:

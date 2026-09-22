@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import React, { useContext, useState, useEffect, useRef } from "react";
 import Cookies from "universal-cookie";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { apiRequest, getLocalePrefix } from "../../../public/lib/apiOperations";
+import { apiRequest } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import { arraysEqual } from "../../../public/lib/generalOperations";
 import { blobFromObjectUrl } from "../../../public/lib/imageOperations";
 import { indicateWrongLocation, isLocationValid } from "../../../public/lib/locationOperations";
@@ -278,7 +279,7 @@ export default function EditOrganizationRoot({
               account={organization}
               possibleAccountTypes={tagOptions}
               infoMetadata={infoMetadata}
-              accountHref={getLocalePrefix(locale) + "/organizations/" + organization.url_slug}
+              accountHref={appHref("/organizations/" + organization.url_slug, { hubUrl, locale })}
               maxAccountTypes={2}
               handleSubmit={saveChanges}
               handleCancel={handleCancel}

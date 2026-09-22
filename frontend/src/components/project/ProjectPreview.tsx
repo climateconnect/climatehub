@@ -4,7 +4,7 @@ import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
 import { getImageUrl } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
-import BrowseContext from "../context/BrowseContext";
+import { getProjectTypes } from "../../../public/data/projectTypes";
 import UserContext from "../context/UserContext";
 import ProjectMetaData from "./ProjectMetaData";
 import EventDateIndicator from "./EventDateIndicator";
@@ -120,11 +120,14 @@ export default function ProjectPreview({
   // const [hovering, setHovering] = useState(false);
   const hovering = false; // Hover effect disabled
   const { locale } = useContext(UserContext);
-  const { projectTypes } = useContext(BrowseContext);
-  const projectType =
-    projectTypes && projectTypes.length > 0
-      ? projectTypes.find((t) => t.type_id === project.project_type)
-      : { name: project.project_type, type_id: project.project_type };
+  const projectTypes = getProjectTypes(locale);
+  const projectType = projectTypes.find((t) => t.type_id === project.project_type) ?? {
+    name: project.project_type,
+    type_id: project.project_type,
+    original_name: project.project_type,
+    help_text: "",
+    icon: "",
+  };
   const texts = getTexts({ page: "project", locale: locale });
   const classes = useStyles({ hovering: hovering });
 

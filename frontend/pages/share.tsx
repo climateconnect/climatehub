@@ -3,6 +3,7 @@ import React, { useContext, useState } from "react";
 import Cookies from "universal-cookie";
 import { apiRequest, sendToLogin } from "../public/lib/apiOperations";
 import { getProjectTypeOptions, getSectorOptions } from "../public/lib/getOptions";
+import { getUserOrganizations } from "../public/lib/organizationOperations";
 import { nullifyUndefinedValues } from "../public/lib/profileOperations";
 import getTexts from "../public/texts/texts";
 import UserContext from "../src/components/context/UserContext";
@@ -140,25 +141,6 @@ const getRolesOptions = async (token, locale) => {
     if (resp.data.results.length === 0) return null;
     else {
       return resp.data.results;
-    }
-  } catch (err: any) {
-    console.log(err);
-    if (err.response && err.response.data) console.log("Error: " + err.response.data.detail);
-    return null;
-  }
-};
-
-const getUserOrganizations = async (token, locale) => {
-  try {
-    const resp = await apiRequest({
-      method: "get",
-      url: "/api/my_organizations/",
-      token: token,
-      locale: locale,
-    });
-    if (resp.data.length === 0) return null;
-    else {
-      return resp.data.map((o) => o.organization);
     }
   } catch (err: any) {
     console.log(err);

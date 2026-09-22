@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
@@ -127,5 +127,5 @@ class Command(BaseCommand):
         if parsed is None:
             raise CommandError(f"Invalid --deployed-at value: {value!r}")
         if parsed.tzinfo is None:
-            parsed = timezone.make_aware(parsed, timezone.utc)
+            parsed = timezone.make_aware(parsed, dt_timezone.utc)
         return parsed

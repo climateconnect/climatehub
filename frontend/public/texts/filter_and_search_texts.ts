@@ -1,6 +1,6 @@
 import general_texts from "./general_texts.json";
 
-export default function getFilterAndSearchTexts({ filterType, hubName, locale }) {
+export default function getFilterAndSearchTexts({ filterType, hubName, locale, subHubName }) {
   return {
     point_out_max_selections: {
       en: "You can only choose up to",
@@ -77,10 +77,10 @@ export default function getFilterAndSearchTexts({ filterType, hubName, locale })
     could_not_find_any_items_of_type: {
       en: `Could not find any ${filterType ? general_texts[filterType][locale] : ""} ${
         hubName ? `in the ${hubName} hub ` : ""
-      }that match your filters.`,
+      }${subHubName ? `for the topic "${subHubName}" ` : ""}that match your filters.`,
       de: `Wir konnten keine ${filterType ? general_texts[filterType][locale] : ""} ${
         hubName ? `im ${hubName} Hub ` : ""
-      }finden, die deinen Filtern entsprechen.`,
+      }${subHubName ? `zum Thema "${subHubName}" ` : ""}finden, die deinen Filtern entsprechen.`,
     },
     additional_infos_for_location: {
       en: "Additional info (e.g. room, meeting link, ...)",

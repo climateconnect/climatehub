@@ -32,14 +32,10 @@ from organization.serializers.event_registration import (
     EventRegistrationSerializer,
 )
 from organization.serializers.organization import OrganizationStubSerializer
+from organization.serializers.project_types import ProjectTypesSerializer
 from organization.serializers.sector import (
     ProjectSectorMappingSerializer,
 )
-from organization.serializers.status import (
-    ProjectStatusSerializer,
-    ProjectTypesSerializer,
-)
-from organization.serializers.tags import ProjectTaggingSerializer
 from organization.serializers.translation import ProjectTranslationSerializer
 from organization.utility.project import (
     get_project_description,
@@ -78,10 +74,6 @@ class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
     description_html = serializers.SerializerMethodField()
     project_parents = serializers.SerializerMethodField()
     sectors = serializers.SerializerMethodField()
-
-    # TODO (Karol): Remove this field once the frontend is updated to use the new tags serializer
-    tags = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
     collaborating_organizations = serializers.SerializerMethodField()
     number_of_followers = serializers.SerializerMethodField()
     number_of_likes = serializers.SerializerMethodField()
@@ -109,7 +101,6 @@ class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "name",
             "url_slug",
             "image",
-            "status",
             "start_date",
             "end_date",
             "short_description",
@@ -120,7 +111,6 @@ class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "collaborators_welcome",
             "project_parents",
             "sectors",
-            "tags",  # TODO (Karol): Remove this field once the frontend is updated to use the new tags serializer
             "created_at",
             "collaborating_organizations",
             "is_draft",
@@ -173,11 +163,6 @@ class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
         serializer = ProjectSectorMappingSerializer(sector_mappings, many=True)
         return serializer.data
 
-    # TODO (Karol): Remove this method once the frontend is updated to use the new tags serializer
-    def get_tags(self, obj):
-        serializer = ProjectTaggingSerializer(obj.tag_project, many=True)
-        return serializer.data
-
     def get_number_of_followers(self, obj):
         return obj.project_following.count()
 
@@ -193,10 +178,6 @@ class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
         if obj.loc is None:
             return None
         return self._get_location_name(obj.loc)
-
-    def get_status(self, obj):
-        serializer = ProjectStatusSerializer(obj.status, many=False)
-        return serializer.data["name"]
 
     def get_language(self, obj):
         return obj.language.language_code
@@ -377,7 +358,6 @@ class ProjectParentsSerializer(serializers.ModelSerializer):
 
 class ProjectMinimalSerializer(_LocationNameMixin, serializers.ModelSerializer):
     project_parents = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
 
@@ -387,7 +367,6 @@ class ProjectMinimalSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "name",
             "url_slug",
             "image",
-            "status",
             "location",
             "project_parents",
             "is_draft",
@@ -408,16 +387,10 @@ class ProjectMinimalSerializer(_LocationNameMixin, serializers.ModelSerializer):
             return None
         return self._get_location_name(obj.loc)
 
-    def get_status(self, obj):
-        serializer = ProjectStatusSerializer(obj.status, many=False)
-        return serializer.data["name"]
-
 
 class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
     project_parents = serializers.SerializerMethodField()
-    # TODO: remove tags
     sectors = serializers.SerializerMethodField()
-    tags = serializers.SerializerMethodField()
     project_type = SerializerMethodField()
     image = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -438,7 +411,6 @@ class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "location",
             "project_type",
             "project_parents",
-            "tags",
             "sectors",
             "is_draft",
             "short_description",
@@ -497,12 +469,6 @@ class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
         )
 
         serializer = ProjectSectorMappingSerializer(sector_mappings, many=True)
-        return serializer.data
-
-    # TODO: remove
-    def get_tags(self, obj):
-        # .all() so that it can use the prefetched data
-        serializer = ProjectTaggingSerializer(obj.tag_project.all(), many=True)
         return serializer.data
 
     def get_image(self, obj):
@@ -569,19 +535,6 @@ class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
                 return None
 
         return EventRegistrationConfigSerializer(rc).data
-
-
-class ProjectSuggestionSerializer(ProjectStubSerializer):
-    project_creator = serializers.SerializerMethodField()
-
-    class Meta(ProjectStubSerializer.Meta):
-        fields = ProjectStubSerializer.Meta.fields + ("project_creator",)
-
-    def get_project_creator(self, obj):
-        member = ProjectMember.objects.filter(
-            project=obj, role__role_type=Role.ALL_TYPE
-        ).first()
-        return (ProjectMemberSerializer(member)).data
 
 
 class ProjectMemberSerializer(serializers.ModelSerializer):

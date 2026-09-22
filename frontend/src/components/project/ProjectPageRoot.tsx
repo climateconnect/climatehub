@@ -8,6 +8,7 @@ import Cookies from "universal-cookie";
 import { useLongPress } from "use-long-press";
 import ROLE_TYPES from "../../../public/data/role_types";
 import { apiRequest, redirect, getRedirectUrl } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import { getParams } from "../../../public/lib/generalOperations";
 import { startPrivateChat } from "../../../public/lib/messagingOperations";
 import getTexts from "../../../public/texts/texts";
@@ -285,7 +286,6 @@ export default function ProjectPageRoot({
   const router = useRouter();
   const handleClickContact = async (event) => {
     event.preventDefault();
-    const queryString = hubPage ? `?hub=${encodeURIComponent(hubPage)}` : "";
 
     const creator = project.team.filter((m) => m.permission === ROLE_TYPES.all_type)[0];
     if (!user) {
@@ -296,14 +296,18 @@ export default function ProjectPageRoot({
       });
     }
     const chat = await startPrivateChat(creator, token, locale);
-    router.push("/chat/" + chat.chat_uuid + "/" + queryString);
+    router.push(appHref("/chat/" + chat.chat_uuid, { hubUrl: hubPage, locale }));
   };
   const { notifications, setNotificationsRead, refreshNotifications } = useContext(UserContext);
 
   useEffect(() => {
     if (window.location.hash) {
-      setHash(window.location.hash.replace("#", ""));
-      setTabValue(typesByTabValue.indexOf(window.location.hash.replace("#", "")));
+      const hashValue = window.location.hash.replace("#", "");
+      const tabIndex = typesByTabValue.indexOf(hashValue);
+      if (tabIndex !== -1) {
+        setHash(hashValue);
+        setTabValue(tabIndex);
+      }
     }
   });
 
@@ -537,6 +541,7 @@ export default function ProjectPageRoot({
   };
 
   const handleReadNotifications = async (notificationType) => {
+    if (!notifications || notifications.length === 0) return;
     const notification_to_set_read = notifications.filter(
       (n) => n.notification_type === notificationType && n.project.url_slug === project.url_slug
     );
@@ -739,14 +744,7 @@ export default function ProjectPageRoot({
           </TabContent>
         )}
         <TabContent value={tabValue} index={showRegistrationsTab ? 2 : 1}>
-          <ProjectTeamContent
-            project={project}
-            handleReadNotifications={handleReadNotifications}
-            // TODO: leaveProject props is not used in ProjectTeamContent
-            // should be removed
-            leaveProject={requestLeaveProject}
-            hubUrl={hubPage}
-          />
+          <ProjectTeamContent project={project} handleReadNotifications={handleReadNotifications} />
         </TabContent>
 
         <TabContent value={tabValue} index={showRegistrationsTab ? 3 : 2}>

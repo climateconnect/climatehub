@@ -188,7 +188,6 @@ class TestCreateEventWithCustomFields(APITestCase):
             "short_description": "A short description",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],
             "loc": self.location_data,
             "image": self.image,
@@ -2114,7 +2113,6 @@ class TestRegistrationFieldLabel(_CustomFieldsBase):
             "short_description": "A short description",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],
             "loc": {
                 "place_id": 9999,
@@ -2173,7 +2171,6 @@ class TestRegistrationFieldLabel(_CustomFieldsBase):
             "short_description": "A short description",
             "collaborators_welcome": False,
             "team_members": [],
-            "project_tags": [],
             "sectors": [],
             "loc": {
                 "place_id": 9999,

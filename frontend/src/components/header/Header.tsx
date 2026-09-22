@@ -25,9 +25,10 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import MenuIcon from "@mui/icons-material/Menu";
 import noop from "lodash/noop";
-import React, { Fragment, useContext, useRef, useState } from "react";
+import React, { Fragment, useEffect, useContext, useRef, useState } from "react";
 import { getStaticPageLinks } from "../../../public/data/getStaticPageLinks"; // Relative imports
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import { getImageUrl, getLogoSrc } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
 import Notification from "../communication/notifications/Notification";
@@ -300,12 +301,20 @@ export default function Header({
   const texts = getTexts({ page: "navigation", locale: locale });
   const [anchorEl, setAnchorEl] = useState<false | null | HTMLElement>(false);
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
-  const isMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
+  const isMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down(960));
   const customHubUrls = CUSTOM_HUB_URLS || ["prio1"];
   const isCustomHub = customHubUrls.includes(hubUrl);
   const isLocationHub = LOCATION_HUBS.includes(hubUrl);
 
-  const LINKS = getLinks(pathName, texts, isLocationHub, isCustomHub, hasHubLandingPage, hubUrl);
+  const LINKS = getLinks(
+    pathName,
+    texts,
+    isLocationHub,
+    isCustomHub,
+    hasHubLandingPage,
+    hubUrl,
+    isLandingPage
+  );
   const classes = useStyles({
     fixedHeader: fixedHeader,
     transparentHeader: transparentHeader,
@@ -325,6 +334,14 @@ export default function Header({
   const localePrefix = getLocalePrefix(locale);
 
   const onNotificationsClose = () => setAnchorEl(null);
+
+  useEffect(() => {
+    if (!anchorEl) return;
+    const handleScroll = () => setAnchorEl(null);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [anchorEl]);
+
   const getLogo = () => {
     const imageUrl = "/images";
     if (isCustomHub) {
@@ -615,7 +632,6 @@ const LoggedInNormalScreen = ({
     src: getImageUrl(loggedInUser.image),
     alt: loggedInUser.name,
   };
-  const queryString = hubUrl ? `?hub=${hubUrl}` : "";
   return (
     <ClickAwayListener onClickAway={handleCloseMenu}>
       <Box className={classes.loggedInRoot}>
@@ -644,7 +660,7 @@ const LoggedInNormalScreen = ({
         >
           <Paper>
             <MenuList>
-              {getLoggedInLinks({ loggedInUser: loggedInUser, texts: texts, queryString })
+              {getLoggedInLinks({ loggedInUser: loggedInUser, texts: texts, hubUrl })
                 .filter((link) => !link.showOnMobileOnly)
                 .map((link, index) => {
                   const menuItemProps: any = {
@@ -705,7 +721,6 @@ function NarrowScreenLinks({
       !(loggedInUser && link.onlyShowLoggedOut) &&
       !(!loggedInUser && link.onlyShowLoggedIn)
   );
-  const queryString = hubUrl ? `?hub=${hubUrl}` : "";
 
   return (
     <>
@@ -840,10 +855,11 @@ function NarrowScreenLinks({
                   } else {
                     return (
                       <Link
-                        href={localePrefix + link.href}
+                        href={link.isExternalLink ? link.href : localePrefix + link.href}
                         key={index}
                         underline="hover"
                         className={classes.linkUnderline}
+                        target={link.isExternalLink ? "_blank" : undefined}
                       >
                         <ListItemButton component="a" onClick={closeDrawer}>
                           <ListItemIcon>
@@ -858,7 +874,7 @@ function NarrowScreenLinks({
               })}
               {loggedInUser &&
                 loggedInUser.url_slug &&
-                getLoggedInLinks({ loggedInUser: loggedInUser, texts: texts, queryString }).map(
+                getLoggedInLinks({ loggedInUser: loggedInUser, texts: texts, hubUrl }).map(
                   (link, index) => {
                     const Icon: any = link.iconForDrawer;
                     const avatarProps = {
@@ -870,7 +886,7 @@ function NarrowScreenLinks({
                       return (
                         <div className={classes.mobileAvatarContainer} key={index}>
                           <Link
-                            href={localePrefix + "/profiles/" + loggedInUser.url_slug + queryString}
+                            href={appHref("/profiles/" + loggedInUser.url_slug, { hubUrl, locale })}
                             underline="hover"
                           >
                             {loggedInUser?.badges?.length > 0 ? (

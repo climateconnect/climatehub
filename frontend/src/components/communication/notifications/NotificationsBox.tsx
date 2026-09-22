@@ -11,6 +11,7 @@ const NotificationsBox: any = withStyles({
   <Menu
     elevation={0}
     getContentAnchorEl={null}
+    disableScrollLock
     anchorOrigin={{
       vertical: "bottom",
       horizontal: "center",

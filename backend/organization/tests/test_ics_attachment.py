@@ -87,7 +87,7 @@ class TestGenerateEventIcsAttachment(TestCase):
         """ICS contains VCALENDAR with required properties."""
         attachment = generate_event_ics_attachment(self.project, "en")
         cal = self._parse_ics(attachment)
-        self.assertEqual(cal.get("prodid"), "-//Climate Connect//EN")
+        self.assertEqual(cal.get("prodid"), "-//Climate Hub Network//EN")
         self.assertEqual(cal.get("version"), "2.0")
         self.assertEqual(cal.get("method"), "PUBLISH")
 
@@ -98,9 +98,7 @@ class TestGenerateEventIcsAttachment(TestCase):
         cal = self._parse_ics(attachment)
         events = cal.walk("VEVENT")
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            events[0].get("uid"), f"{self.project.id}@climatehub.org"
-        )
+        self.assertEqual(events[0].get("uid"), f"{self.project.id}@climatehub.org")
 
     @tag("ics_attachment")
     def test_vevent_summary_localised(self):

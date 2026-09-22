@@ -102,6 +102,7 @@ export default function EditProjectRoot({
   const [errors, setErrors] = useState({
     start_date: "",
     end_date: "",
+    parent_organization: "",
   });
   const contentRef = useRef(null);
 
@@ -110,10 +111,16 @@ export default function EditProjectRoot({
 
   //scroll to error if there is an error
   useEffect(() => {
-    if (errors?.start_date || errors?.end_date) {
+    if (errors?.start_date || errors?.end_date || errors?.parent_organization) {
       contentRef?.current.scrollIntoView();
     }
   }, [errors]);
+
+  useEffect(() => {
+    if (project.is_personal_project || project?.project_parents?.parent_organization) {
+      setErrors((prev) => (prev.parent_organization ? { ...prev, parent_organization: "" } : prev));
+    }
+  }, [project.is_personal_project, project?.project_parents?.parent_organization]);
 
   // TODO: Allow changing sourceLanguage, targetLanguage
 
@@ -123,6 +130,11 @@ export default function EditProjectRoot({
   const checkIfProjectValid = (isDraft) => {
     if (!isDraft && !project.image) {
       alert(texts.please_add_an_image);
+      return false;
+    }
+    if (!project.is_personal_project && !project?.project_parents?.parent_organization) {
+      setErrors({ ...errors, parent_organization: texts.please_select_an_organization });
+      contentRef?.current?.scrollIntoView();
       return false;
     }
     if (project?.loc && oldProject?.loc !== project.loc && !isLocationValid(project.loc)) {
@@ -479,13 +491,19 @@ const parseProjectForRequest = async (project, translationChanges) => {
     translations: translationChanges,
   };
 
+  delete ret.is_personal_project;
+  delete ret.project_parents;
+
   if (project.project_type) ret.project_type = project.project_type.type_id;
   if (project.image) ret.image = await blobFromObjectUrl(project.image);
   if (project.loc) ret.loc = parseLocation(project.loc, true);
   if (project.thumbnail_image)
     ret.thumbnail_image = await blobFromObjectUrl(project.thumbnail_image);
   if (project.sectors) ret.sectors = ret.sectors.map((s) => s.key);
-  if (project.project_parents && project.project_parents.parent_organization)
-    ret.parent_organization = project.project_parents.parent_organization.id;
+  if (project.project_parents) {
+    ret.parent_organization = project.project_parents.parent_organization
+      ? project.project_parents.parent_organization.id
+      : null;
+  }
   return ret;
 };

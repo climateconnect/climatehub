@@ -1,8 +1,11 @@
 {
-  "devlink": {
-    "host": "https://api.webflow.com",
+  "siteId": "615d9a37fbb2467a53e09161",
+  "devlink-export": {
     "rootDir": "./devlink",
-    "cssModules": true,
+    "cssScopes": true,
+    "ts": true,
+    "components": ".*",
+    "componentGroups": ".*",
     "relativeHrefRoot": "/"
   },
   "telemetry": {
@@ -11,6 +14,5 @@
       "lastPrompted": 1775634167164,
       "version": "1.13.0"
     }
-  },
-  "siteId": "615d9a37fbb2467a53e09161"
+  }
 }

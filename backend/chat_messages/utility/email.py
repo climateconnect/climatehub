@@ -19,12 +19,8 @@ def send_private_chat_message_notification_email(
     chat_url = settings.FRONTEND_URL + lang_url + "/chat/" + str(chat_uuid)
 
     subjects_by_language = {
-        "en": "You received a private message from {}".format(
-            sender_name
-        ),
-        "de": "Du hast eine Privatnachricht von {} bekommen".format(
-            sender_name
-        ),
+        "en": "You received a private message from {}".format(sender_name),
+        "de": "Du hast eine Privatnachricht von {} bekommen".format(sender_name),
     }
 
     message_preview = message_content
@@ -54,9 +50,7 @@ def send_group_chat_message_notification_email(
     chat_url = settings.FRONTEND_URL + lang_url + "/chat/" + str(chat_uuid)
 
     subjects_by_language = {
-        "en": "{} sent a message in the group '{}'".format(
-            sender_name, chat_title
-        ),
+        "en": "{} sent a message in the group '{}'".format(sender_name, chat_title),
         "de": "{} hat eine Nachricht in der Gruppe '{}' geschrieben".format(
             sender_name, chat_title
         ),

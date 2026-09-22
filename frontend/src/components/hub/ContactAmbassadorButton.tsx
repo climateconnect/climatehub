@@ -2,6 +2,8 @@ import { Avatar, Button } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
 import { redirect } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
+import { HubContext } from "../context/HubContext";
 import { startPrivateChat } from "../../../public/lib/messagingOperations";
 import { useRouter } from "next/router";
 import UserContext from "../context/UserContext";
@@ -38,16 +40,22 @@ const useStyles = makeStyles(() => ({
   },
 }));
 
-export default function ContactAmbassadorButton({ hubAmbassador, mobile, hubUrl = null }) {
+export default function ContactAmbassadorButton({
+  hubAmbassador,
+  mobile,
+}: {
+  hubAmbassador: any;
+  mobile: boolean;
+}) {
   const classes = useStyles();
   const { locale, user } = useContext(UserContext);
+  const { hubUrl } = useContext(HubContext);
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
   const texts = getTexts({ page: "hub", hubAmbassador: hubAmbassador, locale: locale });
   const router = useRouter();
   const handleClickContact = async (e) => {
     e.preventDefault();
-    const queryString = hubUrl ? `?hub=${hubUrl}` : "";
 
     if (!user) {
       const queryString: any = {
@@ -57,7 +65,7 @@ export default function ContactAmbassadorButton({ hubAmbassador, mobile, hubUrl 
     }
 
     const chat = await startPrivateChat(hubAmbassador?.user, token, locale);
-    router.push("/chat/" + chat.chat_uuid + "/" + queryString);
+    router.push(appHref("/chat/" + chat.chat_uuid, { hubUrl, locale }));
   };
   if (mobile) {
     return (

@@ -14,11 +14,10 @@ This document provides comprehensive documentation of the main domain entities i
 4. [Hub Entities](#4-hub-entities-hubs)
 5. [Idea Entities](#5-idea-entities-ideas)
 6. [Location Entities](#6-location-entities-location)
-7. [Climate Match Entities](#7-climate-match-entities-climate_match)
-8. [Auth Entities](#8-auth-entities-auth_app)
-9. [Cross-Cutting Patterns](#9-cross-cutting-patterns)
-10. [Entity Relationship Summary](#10-entity-relationship-summary)
-11. [Key Design Principles](#11-key-design-principles)
+7. [Auth Entities](#7-auth-entities-auth_app)
+8. [Cross-Cutting Patterns](#8-cross-cutting-patterns)
+9. [Entity Relationship Summary](#9-entity-relationship-summary)
+10. [Key Design Principles](#10-key-design-principles)
 
 ---
 
@@ -162,7 +161,7 @@ This document provides comprehensive documentation of the main domain entities i
 **Relationships**:
 - **ForeignKey**: `Self` (parent_organization - hierarchical structure), `Location`, `Language`
 - **ManyToMany**: `Hub` (hubs and related_hubs - primary and followed hubs)
-- **Referenced by**: `OrganizationTranslation`, `OrganizationMember`, `OrganizationTagging`, `OrganizationSectorMapping`, `OrganizationFieldTagging`, `OrganizationFollower`, `ProjectParents`, `ProjectCollaborators`, `HubSupporter`, `Idea`, `ContentShares`
+- **Referenced by**: `OrganizationTranslation`, `OrganizationMember`, `OrganizationTagging`, `OrganizationSectorMapping`, `OrganizationFollower`, `ProjectParents`, `ProjectCollaborators`, `HubSupporter`, `Idea`, `ContentShares`
 
 ---
 
@@ -186,7 +185,7 @@ This document provides comprehensive documentation of the main domain entities i
 **Relationships**:
 - **ForeignKey**: `ProjectStatus`, `Location`, `Language`
 - **ManyToMany**: `Hub` (related_hubs)
-- **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectTagging`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `EventRegistrationConfig`
+- **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `EventRegistrationConfig`, `ProjectTagging` (**deprecated** — see [ProjectTags & OrganizationTags](#projecttags--organizationtags))
 
 ---
 
@@ -287,17 +286,41 @@ This document provides comprehensive documentation of the main domain entities i
 
 ### ProjectTags & OrganizationTags
 
-**Summary**: Hierarchical categorization system for projects and organizations.
+**Summary**: Hierarchical categorization system for projects and organizations. **`ProjectTags` / `ProjectTagging` are deprecated** — see the deprecation note below. `OrganizationTags` (organization *types*) is current and unaffected.
 
 **Description**: Tag taxonomies for content categorization. Both support parent-child relationships for hierarchical organization (e.g., "Renewable Energy" → "Solar", "Wind"). `ProjectTagging` and `OrganizationTagging` create many-to-many relationships with uniqueness constraints.
 
 **Relationships**:
-- **ProjectTags**:
+- **ProjectTags** (deprecated):
   - **ForeignKey**: `Self` (parent_tag)
   - **ManyToMany with**: `Project` (via `ProjectTagging`), `Hub` (filter_parent_tags)
 - **OrganizationTags**:
   - **ForeignKey**: `Self` (parent_tag)
   - **ManyToMany with**: `Organization` (via `OrganizationTagging`)
+
+#### Deprecation: project tags are being replaced by Sector
+
+> ⚠️ Use [Sector](#sector) for anything new.
+
+As of v2.5 the project tag taxonomy is **retired at the code level but retained in the
+database**. `ProjectTags` and `ProjectTagging` are no longer read or written by any
+application code and are **not exposed through any API** — see
+[api-documentation.md](./api-documentation.md#deprecated-and-removed-project-tag-surface) for
+the endpoints and fields that were removed.
+
+The models and their tables are kept deliberately, because:
+
+1. `organization/management/commands/create_proj_sector_mappings.py` reads `ProjectTagging`
+   to derive the `ProjectSectorMapping` rows. The tables cannot be dropped until that
+   migration has been run everywhere.
+2. The Climate Match ranking SQL (`climate_match/utility/sort_resources.py`) still joins
+   `organization_projecttagging` and `hubs_hub_filter_parent_tags` to compute the hub
+   relevancy score. Because nothing writes `ProjectTagging` any more, projects created after
+   v2.5 score `0` on that axis — this must be repointed at `ProjectSectorMapping` /
+   `Hub.sectors` before the tables can go.
+
+Retirement order: **stop writing** (done, v2.5) → **stop reading** (blocked on Climate Match)
+→ **drop the tables**. `Hub.filter_parent_tags` and `ProjectTags.parent_tag` go with them.
 
 ---
 
@@ -599,7 +622,7 @@ Re-registered — cancelled_at reset to NULL, cancelled_by reset to NULL (row re
 
 **Relationships**:
 - **ForeignKey**: `Self` (parent_hub - hierarchy), `Language`
-- **ManyToMany**: `HubStat` (displayed statistics), `ProjectTags` (filter_parent_tags), `Sector`, `Location`
+- **ManyToMany**: `HubStat` (displayed statistics), `Sector`, `Location`, `ProjectTags` (filter_parent_tags — **deprecated**, retired with the project tag taxonomy)
 - **ManyToMany with**: `UserProfile` (related_hubs), `Organization` (hubs, related_hubs), `Project` (related_hubs)
 - **Referenced by**: `HubTranslation`, `HubTheme`, `HubAmbassador`, `HubSupporter`, `DonationGoal`, `Idea`, `UserQuestionAnswer`
 
@@ -711,60 +734,42 @@ Re-registered — cancelled_at reset to NULL, cancelled_by reset to NULL (row re
 **Relationships**:
 - **Referenced by**: `LocationTranslation`, `UserProfile`, `Organization`, `Project`, `Idea`, `Hub` (ManyToMany)
 
----
+### AutocompleteRequestLog
 
-## 7. Climate Match Entities (climate_match)
+**Summary**: One row per outgoing autocomplete request to a geocoding provider.
 
-### Question
+**Description**: Lightweight usage log for the location autocomplete proxy. A row is written every
+time the backend actually calls an upstream provider — cached and de-duplicated queries cost no
+quota and are deliberately not logged, so these counts track **provider consumption rather than
+user traffic**. A Celery Beat task (`aggregate_autocomplete_stats`, every 10 minutes) rolls unprocessed
+rows into `AutocompletePeriodStats`, marks them processed, and deletes rows older than 7 days.
 
-**Summary**: Questionnaire questions for climate matching algorithm.
+**Key fields**:
+- `provider` — `nominatim` or `locationiq`; which upstream served the request
+- `minute_key` — epoch minutes, for grouping
+- `processed` — whether the aggregation task has consumed this row
+- `created_at` — used for both aggregation bucketing and cleanup
 
-**Description**: Represents survey questions used to match users with relevant projects, organizations, and hubs. Questions have dynamic answer types defined via ContentType (multiple choice, text, scale, etc.) and support translations. Used in intelligent matching algorithms.
+### AutocompletePeriodStats
 
-**Relationships**:
-- **ForeignKey**: `Language`, `ContentType` (answer_type - polymorphic answer format)
-- **Referenced by**: `QuestionTranslation`, `Answer`, `UserQuestionAnswer`
+**Summary**: Aggregated autocomplete request metrics per period **and provider**.
 
----
+**Description**: One row per `(period_type, period_key, provider)` — so a single day has one row for
+LocationIQ and one for Nominatim. Written only by `aggregate_autocomplete_stats`, read by
+`GET /api/autocomplete_stats/` and by the `LOCATIONIQ_DAILY_BUDGET` guard, which uses today's
+LocationIQ total to stop calling LocationIQ once the daily allowance is spent.
 
-### Answer
-
-**Summary**: Predefined answer options for questions.
-
-**Description**: Possible answers for multiple-choice and scale-type questions. Linked to metadata that weights answers for matching algorithms. Supports translations for multilingual questionnaires.
-
-**Relationships**:
-- **ForeignKey**: `Question`, `Language`
-- **ManyToMany**: `AnswerMetaData` (weighting for matching)
-- **Referenced by**: `AnswerTranslation`, `UserQuestionAnswer`
-
----
-
-### AnswerMetaData
-
-**Summary**: Weighting data for intelligent matching.
-
-**Description**: Contains metadata that weights user answers for matching algorithms. Links answers to specific resources (projects, organizations, sectors, skills) via ContentType polymorphic relationships. Enables sophisticated matching logic.
-
-**Relationships**:
-- **ForeignKey**: `ContentType` (resource_type - polymorphic to match targets)
-- **ManyToMany with**: `Answer`, `UserQuestionAnswer`
+**Key fields**:
+- `period_type` / `period_key` — `day` (`2026-08-03`), `week` (`2026-W32`), or `month` (`2026-08`)
+- `provider` — part of the uniqueness constraint, not just a label
+- `total_requests`, `avg_req_per_second`
+- `peak_req_per_second` — the highest number of requests that arrived **within a single second**,
+  counted per provider. This is the figure to watch against LocationIQ's 2 req/s ceiling; it is
+  deliberately not a per-minute average, and Nominatim fallback traffic must not inflate it.
 
 ---
 
-### UserQuestionAnswer
-
-**Summary**: User responses to climate match questionnaire.
-
-**Description**: Records user answers to questionnaire questions. Can store predefined answers or free-text responses. Hub-scoped to enable different matching profiles for different communities. Links to metadata for matching algorithm processing.
-
-**Relationships**:
-- **ForeignKey**: `User`, `Question`, `Answer` (predefined_answer - nullable), `Hub`
-- **ManyToMany**: `AnswerMetaData` (answers - weighted metadata)
-
----
-
-## 8. Auth Entities (auth_app)
+## 7. Auth Entities (auth_app)
 
 > Added in US-2 (Auth Unification epic). Pure data layer — no API endpoints yet.
 
@@ -825,7 +830,7 @@ Re-registered — cancelled_at reset to NULL, cancelled_by reset to NULL (row re
 
 ---
 
-## 9. Cross-Cutting Patterns
+## 8. Cross-Cutting Patterns
 
 ### Translation Support
 
@@ -859,7 +864,6 @@ Hubs are a central organizing principle connecting:
 - Projects and Organizations (via `related_hubs` ManyToMany)
 - Ideas (via `main_hub` and `hub_shared_in`)
 - Donations (via `DonationGoal.hub`)
-- Climate Match (via `UserQuestionAnswer.hub`)
 - Geographic and sector filters
 
 ### Skill & Role-Based Access
@@ -916,7 +920,7 @@ Project
 ├── Skills Required (ManyToMany)
 ├── Hubs (ManyToMany - related_hubs)
 ├── Sectors (ManyToMany via ProjectSectorMapping)
-├── Tags (ManyToMany via ProjectTagging)
+├── Tags (ManyToMany via ProjectTagging) [DEPRECATED - not exposed via API]
 ├── Parent (Organization or User via ProjectParents)
 ├── Collaborators (Organizations via ProjectCollaborators)
 ├── Members (ProjectMember)
@@ -943,7 +947,7 @@ Hub
 ├── Locations (ManyToMany)
 ├── Sectors (ManyToMany)
 ├── Stats (ManyToMany HubStat)
-├── Filter Tags (ManyToMany ProjectTags)
+├── Filter Tags (ManyToMany ProjectTags) [DEPRECATED - retired with project tags]
 ├── Theme (OneToOne HubTheme)
 ├── Ambassadors (HubAmbassador)
 ├── Supporters (HubSupporter)
@@ -970,14 +974,6 @@ MessageParticipants (Chat)
 ├── Messages (Message)
 ├── Participants (Participant with Roles)
 └── Message Receivers (MessageReceiver)
-
-ClimateMatch
-├── Question
-│   ├── Answers (predefined options)
-│   │   └── AnswerMetaData (ManyToMany - matching weights)
-│   └── UserQuestionAnswer (user responses)
-│       ├── Hub (ForeignKey - scoped matching)
-│       └── AnswerMetaData (ManyToMany - selected weights)
 ```
 
 ---
@@ -993,18 +989,17 @@ ClimateMatch
 7. **Notification System**: Event-driven notifications for platform activity
 8. **Soft Deletion**: Preserve data integrity for comments and posts
 9. **Hierarchical Structures**: Parent-child relationships for organizations, hubs, tags, skills, sectors
-10. **Matching Intelligence**: ClimateMatch system with weighted metadata for user-project-organization matching
 
 ---
 
 ## Total Entity Count
 
 - **Core Domain Models**: 80+ entities
-- **Translation Support Tables**: 14 models
+- **Translation Support Tables**: 12 models
 - **Mapping/Junction Tables**: 15+ models for many-to-many relationships
 - **Total**: 100+ database tables
 
-This architecture supports a comprehensive climate action platform with social networking, project management, real-time messaging, gamification, multilingual support, and intelligent matching capabilities.
+This architecture supports a comprehensive climate action platform with social networking, project management, real-time messaging, gamification, and multilingual support.
 
 ## Version History
 
@@ -1023,3 +1018,4 @@ This architecture supports a comprehensive climate action platform with social n
 - **2026-05-26**: Added `label` field to `RegistrationField` (max 30 chars, unique per config) and `notify_admins` field to `EventRegistrationConfig` (default `True`). Labels are auto-generated on creation and organiser-editable for export display. `notify_admins` controls whether team admins receive notification emails on registration changes.
 - **2026-06-10**: Added `last_guest_email_sent_at` field to `EventRegistrationConfig` (DateTimeField, nullable, indexed). Records when the last non-test bulk email was sent to event guests; used to filter "new guests only" recipients. Frontend toggle allows organisers to send emails only to guests who registered after the last bulk send.
 - **2026-07-02**: Added `description_html` field to `Project` (TextField, nullable) and `description_html_translation` to `ProjectTranslation` (TextField, nullable). Project descriptions now use rich-text HTML produced by a Tiptap editor, supporting bold, italic, lists, links, blockquotes, and YouTube embeds. The legacy `description` field is kept (read-only) for backwards compatibility. ICS calendar attachments use `short_description` (plain text) instead of the HTML description. Updated `Project` entity documentation with key fields and rich-text feature.
+- **2026-09-07**: Removed section 7 (Climate Match Entities) and the `climate_match` app — `Question`, `Answer`, `AnswerMetaData`, `UserQuestionAnswer` and their translation models are deleted along with their 8 tables (`organization/0146_remove_climatematch`). Sections 8–11 renumbered to 7–10. `OrganizationTags.show_in_climatematch` removed. Hub relationship list and ER summary updated.

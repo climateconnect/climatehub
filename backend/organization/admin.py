@@ -6,7 +6,6 @@ from organization.models import (
     EventRegistration,
     EventRegistrationConfig,
     Organization,
-    OrganizationFieldTagging,
     OrganizationFollower,
     OrganizationMember,
     OrganizationSectorMapping,
@@ -25,9 +24,6 @@ from organization.models import (
     ProjectMember,
     ProjectParents,
     ProjectSectorMapping,
-    ProjectStatus,
-    ProjectTagging,
-    ProjectTags,
     ProjectTranslation,
     RegistrationField,
     RegistrationFieldAnswer,
@@ -40,20 +36,15 @@ from organization.models.members import MembershipRequests
 pass_through_models = (
     OrganizationTags,
     OrganizationTagging,
-    ProjectTags,
-    ProjectTagging,
     Post,
     Comment,
     PostComment,
     ProjectComment,
-    ProjectStatus,
     ProjectCollaborators,
     ProjectFollower,
-    OrganizationFieldTagging,
     PostTranslation,
     CommentTranslation,
     ProjectLike,
-    MembershipRequests,
     OrganizationFollower,
     OrgProjectPublished,
     Sector,
@@ -220,6 +211,35 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
 
 
 admin.site.register(OrganizationMember, OrganizationMemberAdmin)
+
+
+class MembershipRequestsAdmin(admin.ModelAdmin):
+    search_fields = (
+        "user__username",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+        "user__user_profile__name",
+        "user__id",
+        "target_project__name",
+        "target_project__url_slug",
+        "target_organization__name",
+        "target_organization__url_slug",
+    )
+    list_display = (
+        "user",
+        "target_project",
+        "target_organization",
+        "request_status",
+        "requested_at",
+    )
+    list_filter = ("target_membership_type", "request_status", "requested_at")
+    list_select_related = ("user", "target_project", "target_organization")
+    ordering = ("-requested_at",)
+    raw_id_fields = ("user", "target_project", "target_organization")
+
+
+admin.site.register(MembershipRequests, MembershipRequestsAdmin)
 
 
 class ProjectParentsAdmin(admin.ModelAdmin):

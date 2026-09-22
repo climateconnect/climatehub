@@ -95,8 +95,10 @@ def create_user_notification(user, notification):
             user=user, notification=notification
         )
     except Exception:
-        print(f"User notification filter and \
-        creation failed. [user={user}, notification={notification}")
+        print(
+            f"User notification filter and \
+        creation failed. [user={user}, notification={notification}"
+        )
         return
 
     if not old_notification_object.exists():

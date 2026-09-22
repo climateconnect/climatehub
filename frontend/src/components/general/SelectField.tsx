@@ -20,6 +20,8 @@ type Props = {
   controlledValue?: any;
   defaultValue?: any;
   disabled?;
+  error?: boolean;
+  helperText?: string;
   InputProps?;
   isInOverlay?;
   label;
@@ -38,6 +40,8 @@ export default function SelectField({
   controlledValue,
   defaultValue,
   disabled,
+  error,
+  helperText,
   InputProps,
   isInOverlay,
   label,
@@ -94,6 +98,8 @@ export default function SelectField({
     <TextField
       className={className}
       disabled={disabled}
+      error={error}
+      helperText={helperText}
       InputProps={InputProps}
       fullWidth
       label={label}
@@ -117,6 +123,7 @@ export default function SelectField({
         !multiple && <option value="" />}
 
       {options &&
+        Array.isArray(options) &&
         options.map((value, index) => {
           if (multiple) {
             return (

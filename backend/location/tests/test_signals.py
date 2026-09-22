@@ -7,7 +7,6 @@ from location.tasks import fetch_and_create_location_translations
 
 
 class LocationSignalsTest(TestCase):
-
     @patch.object(fetch_and_create_location_translations, "delay")
     def test_post_save_triggers_celery_task_on_create(self, mock_task_delay):
         self.assertEqual(mock_task_delay.call_count, 0)
@@ -19,7 +18,6 @@ class LocationSignalsTest(TestCase):
 
     @patch.object(fetch_and_create_location_translations, "delay")
     def test_post_save_does_not_trigger_task_on_update(self, mock_task_delay):
-
         location = Location.objects.create(name="Initial Name")
         self.assertEqual(mock_task_delay.call_count, 1)
 

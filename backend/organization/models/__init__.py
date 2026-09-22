@@ -5,9 +5,6 @@ from organization.models.organization import (
 from organization.models.tags import (
     OrganizationTags,
     OrganizationTagging,
-    ProjectTags,
-    ProjectTagging,
-    OrganizationFieldTagging,
 )
 from organization.models.project import Project, ProjectParents, ProjectCollaborators
 from organization.models.content import Post, Comment, PostComment, ProjectComment
@@ -19,6 +16,8 @@ from organization.models.members import (
 
 from organization.models.organization_project_published import OrgProjectPublished
 
+# Project status is no longer exposed through the API, but the model is kept so
+# the (nullable) Project.status FK stays resolvable and the table is preserved.
 from organization.models.status import ProjectStatus
 
 from organization.models.followers import ProjectFollower, OrganizationFollower

@@ -46,7 +46,6 @@ def discover_osm_class(osm_ids: list) -> tuple[dict, set] | None:
 
 
 def create_csv_lookup_table(osm_ids: list, outfile: str) -> None:
-
     fieldnames = ["osm_type", "osm_id", "osm_class", "osm_class_type", "display_name"]
     outpath = Path(outfile)
     outpath.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +57,6 @@ def create_csv_lookup_table(osm_ids: list, outfile: str) -> None:
             rows_written = 0
 
             for i in tqdm(range(0, len(osm_ids), 50)):
-
                 result = discover_osm_class(osm_ids[i : i + 50])
                 if not result:
                     continue
