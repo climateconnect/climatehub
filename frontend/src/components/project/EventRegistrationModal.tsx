@@ -522,6 +522,7 @@ export default function EventRegistrationModal({
               quantity_available: texts.quantity_available,
               max_per_guest: texts.max_per_guest,
               quantity_exceeds_max: texts.quantity_exceeds_max,
+              inventory_sold_out: texts.inventory_sold_out,
               please_select_time_slot: texts.please_select_time_slot,
               seats_available: texts.seats_available,
               registration_text_field_required_error: texts.registration_text_field_required_error,
