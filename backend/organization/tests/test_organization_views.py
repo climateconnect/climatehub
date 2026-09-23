@@ -1681,3 +1681,34 @@ class TestOrganizationPublishTransition(APITestCase):
         self.draft_org.refresh_from_db()
         self.assertIsNotNone(self.draft_org.language)
         self.assertTrue(self.draft_org.is_draft)
+
+
+class TestOrganizationChildOrganizationsExcludeDrafts(APITestCase):
+    def setUp(self):
+        self.parent = Organization.objects.create(
+            name="Parent Org", url_slug="parent-org", is_draft=False
+        )
+        Organization.objects.create(
+            name="Published Child",
+            url_slug="published-child",
+            is_draft=False,
+            parent_organization=self.parent,
+        )
+        Organization.objects.create(
+            name="Draft Child",
+            url_slug="draft-child",
+            is_draft=True,
+            parent_organization=self.parent,
+        )
+
+    @tag("organizations", "draft")
+    def test_parent_detail_excludes_draft_child_organizations(self):
+        url = reverse(
+            "organization:organization-api-view", kwargs={"url_slug": "parent-org"}
+        )
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        slugs = [o["url_slug"] for o in response.json()["child_organizations"]]
+        self.assertIn("published-child", slugs)
+        self.assertNotIn("draft-child", slugs)

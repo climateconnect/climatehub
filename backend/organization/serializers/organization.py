@@ -119,8 +119,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_child_organizations(self, obj):
-        """Get all child organizations (organizations that have this org as parent)"""
-        child_orgs = obj.organization_parent.all().order_by("name")
+        """Get all published child organizations (organizations that have this org as parent)"""
+        child_orgs = obj.organization_parent.filter(is_draft=False).order_by("name")
         serializer = OrganizationStubSerializer(
             child_orgs, many=True, context=self.context
         )
