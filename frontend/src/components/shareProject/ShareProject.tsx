@@ -1,6 +1,6 @@
 import { Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { Project, Organization } from "../../types";
 import ProjectTypeSelector from "./ProjectTypeSelector";
 import getTexts from "../../../public/texts/texts";
@@ -72,16 +72,19 @@ export default function Share({
   const texts = getTexts({ page: "project", locale: locale, hubName: hubName });
   const projectTypeTexts = getProjectTypeTexts(texts);
   const theme = useTheme();
+  const [organizationError, setOrganizationError] = useState("");
 
   const onChangeSwitch = () => {
+    setOrganizationError("");
     handleSetProjectData({
       is_organization_project: !project.is_organization_project,
       isPersonalProject: !project.isPersonalProject,
-      parent_organization: project.is_organization_project ? null : organizationOptions[0],
+      parent_organization: project.is_organization_project ? null : organizationOptions[0] ?? null,
     });
   };
   const onChangeParentOrganization = (e) => {
-    const selectedOrg = userOrganizations.find((o) => o.name === e.target.value);
+    const selectedOrg = (userOrganizations ?? []).find((o) => o.name === e.target.value);
+    setOrganizationError("");
     handleSetProjectData({
       parent_organization: selectedOrg,
     });
@@ -92,6 +95,10 @@ export default function Share({
   };
 
   const onClickNextStep = () => {
+    if (project.is_organization_project && !project.parent_organization) {
+      setOrganizationError(texts.please_select_an_organization);
+      return;
+    }
     goToNextStep();
   };
 
@@ -117,10 +124,17 @@ export default function Share({
       )}
       {project.is_organization_project && (
         <>
+          {organizationOptions.length === 0 && (
+            <Typography color="error" variant="body2" className={classes.field}>
+              {texts.you_are_not_a_member_of_any_organization_yet}
+            </Typography>
+          )}
           <SelectField
             controlled
             controlledValue={project.parent_organization}
             required
+            error={!!organizationError}
+            helperText={organizationError}
             options={organizationOptions}
             label={texts.organization}
             className={classes.field}

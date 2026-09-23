@@ -2,7 +2,7 @@ import React from "react";
 import { Box, FormHelperText, TextField, Typography } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import makeStyles from "@mui/styles/makeStyles";
-import { RegistrationField } from "../../types";
+import { RegistrationField, RegistrationFieldOption } from "../../types";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -22,6 +22,9 @@ const useStyles = makeStyles((theme: Theme) => ({
     color: theme.palette.text.secondary,
     marginBottom: theme.spacing(1),
     fontSize: "0.875rem",
+  },
+  fixedOption: {
+    color: theme.palette.text.primary,
   },
   quantityRow: {
     marginTop: theme.spacing(1),
@@ -48,6 +51,7 @@ type Props = {
     quantity_available: string;
     max_per_guest: string;
     quantity_exceeds_max: string;
+    inventory_sold_out: string;
   };
 };
 
@@ -64,6 +68,10 @@ export default function RegistrationInventoryField({
   const title = field.settings.title ?? "";
   const description = field.settings.description ?? "";
   const sortedOptions = [...(field.options ?? [])].sort((a, b) => a.order - b.order);
+  const usableOptions = sortedOptions.filter((opt) => opt.id != null);
+  const singleOption = usableOptions.length === 1 ? usableOptions[0] : undefined;
+  const isSingleOption = singleOption != null;
+  const isSoldOut = singleOption != null && singleOption.remaining_amount === 0;
   const selectedOption = sortedOptions.find((opt) => opt.id === optionId);
 
   const handleSelectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,14 +92,20 @@ export default function RegistrationInventoryField({
     }
   };
 
-  const maxQuantity = selectedOption
+  const activeOption = isSingleOption ? singleOption : selectedOption;
+  const maxQuantity = activeOption
     ? Math.min(
-        selectedOption.max_amount_per_guest ?? Infinity,
-        selectedOption.remaining_amount ?? Infinity
+        activeOption.max_amount_per_guest ?? Infinity,
+        activeOption.remaining_amount ?? Infinity
       )
     : undefined;
 
   const exceedsMax = maxQuantity != null && quantity != null && quantity > maxQuantity;
+
+  const formatOptionLabel = (opt: RegistrationFieldOption) =>
+    opt.remaining_amount != null
+      ? `${opt.title} (${opt.remaining_amount} ${texts.quantity_available})`
+      : opt.title;
 
   return (
     <Box className={classes.root}>
@@ -108,30 +122,34 @@ export default function RegistrationInventoryField({
           {description}
         </Typography>
       )}
-      <TextField
-        select
-        fullWidth
-        size="small"
-        value={optionId ?? ""}
-        onChange={handleSelectChange}
-        required={field.is_required}
-        SelectProps={{ native: true }}
-      >
-        <option value="">{texts.please_select_inventory_option}</option>
-        {sortedOptions.map((opt) => {
-          const isDisabled = opt.remaining_amount === 0;
-          const label =
-            opt.remaining_amount != null
-              ? `${opt.title} (${opt.remaining_amount} ${texts.quantity_available})`
-              : opt.title;
-          return (
-            <option key={opt.id} value={opt.id} disabled={isDisabled}>
-              {label}
-            </option>
-          );
-        })}
-      </TextField>
-      {selectedOption && (
+      {isSingleOption && singleOption ? (
+        <Typography component="div" variant="body1" className={classes.fixedOption}>
+          {singleOption.remaining_amount === 0
+            ? `${singleOption.title} (${texts.inventory_sold_out})`
+            : formatOptionLabel(singleOption)}
+        </Typography>
+      ) : (
+        <TextField
+          select
+          fullWidth
+          size="small"
+          value={optionId ?? ""}
+          onChange={handleSelectChange}
+          required={field.is_required}
+          SelectProps={{ native: true }}
+        >
+          <option value="">{texts.please_select_inventory_option}</option>
+          {sortedOptions.map((opt) => {
+            const isDisabled = opt.remaining_amount === 0;
+            return (
+              <option key={opt.id} value={opt.id} disabled={isDisabled}>
+                {formatOptionLabel(opt)}
+              </option>
+            );
+          })}
+        </TextField>
+      )}
+      {activeOption && !isSoldOut && (
         <Box className={classes.quantityRow}>
           <TextField
             type="number"

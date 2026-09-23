@@ -74,6 +74,7 @@ export default function ChatContent({
   showSendHelper,
   setShowSendHelper,
   relatedIdea,
+  emptyConversationLead,
 }) {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
@@ -123,6 +124,7 @@ export default function ChatContent({
           title={title}
           texts={texts}
           relatedIdea={relatedIdea}
+          emptyConversationLead={emptyConversationLead}
         />
       )}
       <div className={`${classes.bottomBar} ${classes.maxWidth}`}>

@@ -1,6 +1,17 @@
-import React, { useImperativeHandle, forwardRef, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Box } from "@mui/material";
-import { RegistrationField, RegistrationFieldAnswerValue } from "../../types";
+import {
+  RegistrationField,
+  RegistrationFieldAnswerValue,
+  RegistrationFieldOption,
+} from "../../types";
 import RegistrationCheckboxField from "./RegistrationCheckboxField";
 import RegistrationInventoryField from "./RegistrationInventoryField";
 import RegistrationOptionSelectField from "./RegistrationOptionSelectField";
@@ -26,6 +37,7 @@ type Props = {
     quantity_available: string;
     max_per_guest: string;
     quantity_exceeds_max: string;
+    inventory_sold_out: string;
     please_select_time_slot: string;
     seats_available: string;
     registration_text_field_required_error: string;
@@ -34,6 +46,17 @@ type Props = {
   /** Called once on the first interaction with any custom field (for analytics). */
   onFirstInteraction?: () => void;
 };
+
+/** The only option of an inventory field with exactly one usable option, else undefined. */
+function getSingleInventoryOption(
+  field: RegistrationField
+): (RegistrationFieldOption & { id: number }) | undefined {
+  if (field.field_type !== "inventory" || field.id == null) return undefined;
+  const usableOptions = (field.options ?? []).filter(
+    (opt): opt is RegistrationFieldOption & { id: number } => opt.id != null
+  );
+  return usableOptions.length === 1 ? usableOptions[0] : undefined;
+}
 
 const RegistrationFieldAnswersForm = forwardRef<RegistrationFieldAnswersFormHandle, Props>(
   function RegistrationFieldAnswersForm(
@@ -56,6 +79,35 @@ const RegistrationFieldAnswersForm = forwardRef<RegistrationFieldAnswersFormHand
         onFirstInteraction?.();
       }
     };
+
+    const singleInventoryOptionIds = useMemo(() => {
+      const map: Record<number, number> = {};
+      for (const field of fields) {
+        const option = getSingleInventoryOption(field);
+        if (field.id != null && option) {
+          map[field.id] = option.id;
+        }
+      }
+      return map;
+    }, [fields]);
+
+    // Seed the option id for single-option inventory fields without touching
+    // quantity or firing the first-interaction analytics event.
+    useEffect(() => {
+      setInventoryValues((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const fieldIdStr of Object.keys(singleInventoryOptionIds)) {
+          const fieldId = Number(fieldIdStr);
+          const optionId = singleInventoryOptionIds[fieldId];
+          if (next[fieldId]?.optionId !== optionId) {
+            next[fieldId] = { ...next[fieldId], optionId, quantity: undefined };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, [singleInventoryOptionIds]);
 
     const sortedFields = [...fields].sort((a, b) => a.order - b.order);
 
@@ -81,17 +133,24 @@ const RegistrationFieldAnswersForm = forwardRef<RegistrationFieldAnswersFormHand
             const max = opt
               ? Math.min(opt.max_amount_per_guest ?? Infinity, opt.remaining_amount ?? Infinity)
               : undefined;
+            const isSoldOut = opt != null && opt.remaining_amount === 0;
             if (field.is_required) {
               if (inv?.optionId == null) {
                 errors[id] = texts.please_select_inventory_option;
+              } else if (isSoldOut) {
+                errors[id] = texts.inventory_sold_out;
               } else if (inv?.quantity == null || inv.quantity < 1) {
                 errors[id] = texts.please_enter_quantity;
               } else if (max != null && inv.quantity > max) {
                 errors[id] = texts.quantity_exceeds_max;
               }
-            } else if (inv?.optionId != null) {
+            } else if (inv?.optionId != null && !isSoldOut) {
               if (inv.quantity == null || inv.quantity < 1) {
-                errors[id] = texts.please_enter_quantity;
+                // For single-option fields the option id is seeded automatically,
+                // so an empty quantity means "no answer" instead of an error.
+                if (getSingleInventoryOption(field) == null) {
+                  errors[id] = texts.please_enter_quantity;
+                }
               } else if (max != null && inv.quantity > max) {
                 errors[id] = texts.quantity_exceeds_max;
               }
@@ -129,7 +188,9 @@ const RegistrationFieldAnswersForm = forwardRef<RegistrationFieldAnswersFormHand
             }
           } else if (field.field_type === "inventory") {
             const inv = inventoryValues[id];
-            if (inv?.optionId != null && inv?.quantity != null && inv.quantity >= 1) {
+            const opt = field.options?.find((o) => o.id === inv?.optionId);
+            const isSoldOut = opt != null && opt.remaining_amount === 0;
+            if (inv?.optionId != null && !isSoldOut && inv?.quantity != null && inv.quantity >= 1) {
               answers.push({
                 fieldId: id,
                 valueOption: inv.optionId,
@@ -267,6 +328,7 @@ const RegistrationFieldAnswersForm = forwardRef<RegistrationFieldAnswersFormHand
                   quantity_available: texts.quantity_available,
                   max_per_guest: texts.max_per_guest,
                   quantity_exceeds_max: texts.quantity_exceeds_max,
+                  inventory_sold_out: texts.inventory_sold_out,
                 }}
               />
             );

@@ -43,6 +43,7 @@ const useStyles = makeStyles((theme) => {
     noHistoryText: {
       textAlign: "center",
       fontStyle: "italic",
+      padding: theme.spacing(2, 3),
     },
     scrollContainer: {
       overflowY: "auto",
@@ -71,6 +72,7 @@ const Messages = ({
   isPrivateChat,
   texts,
   relatedIdea,
+  emptyConversationLead,
 }) => {
   const classes = useStyles();
   const [isLoading, setIsLoading] = useState(false);
@@ -154,8 +156,11 @@ const Messages = ({
         ) : isPrivateChat ? (
           <div className={classes.noHistoryText}>
             <p>
-              {texts.this_is_the_very_beginning_of_your_conversation_with}{" "}
-              {chatting_partner.first_name + " " + chatting_partner.last_name}.
+              {emptyConversationLead
+                ? emptyConversationLead
+                : `${texts.this_is_the_very_beginning_of_your_conversation_with} ${
+                    chatting_partner.first_name + " " + chatting_partner.last_name
+                  }.`}
             </p>
             <p>{texts.write_a_message_to_get_the_conversation_started}</p>
           </div>
@@ -182,6 +187,7 @@ Messages.propTypes = {
   isPrivateChat: bool.isRequired,
   texts: object,
   relatedIdea: object,
+  emptyConversationLead: string,
 };
 
 export default Messages;

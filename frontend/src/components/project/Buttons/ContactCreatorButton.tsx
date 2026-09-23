@@ -102,13 +102,7 @@ export default function ContactCreatorButton({
 
   const creatorImageURL = getImageUrl(creator?.thumbnail_image);
   const creatorName = creator?.name;
-  const creatorsRoleInProject = creator?.role
-    ? creator?.role
-    : contentType === "idea"
-    ? texts.responsible_person_idea
-    : contentType === "organization"
-    ? texts.responsible_person_org
-    : texts.responsible_person_project;
+  const creatorsRoleInProject = texts.contact_person;
   const buttonText = texts.contact;
 
   return (

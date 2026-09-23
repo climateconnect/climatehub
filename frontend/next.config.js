@@ -104,6 +104,12 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/balkonien-mr",
+        destination:
+          "/de/projects/alles-muss-raus-ubrige-pv-module-von-balkonien-26-zu-verschenken?hub=marburg",
+        permanent: true,
+      },
+      {
         source: "/hitzefrei",
         destination: "/de/projects/wurzburg-entsiegeln?hub=wuerzburg",
         permanent: true,
@@ -111,6 +117,11 @@ module.exports = withBundleAnalyzer({
       {
         source: "/upcycling",
         destination: "https://climatehub.org/de/projects/aktionstag-upcycling?hub=kassel",
+        permanent: true,
+      },
+      {
+        source: "/gradjetzt",
+        destination: "https://climatehub.org/de/projects/gradjetzt-gegen-die-angst-marburg",
         permanent: true,
       },
       {

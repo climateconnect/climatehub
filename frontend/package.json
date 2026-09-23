@@ -128,6 +128,8 @@
   "packageManager": "yarn@4.13.0",
   "resolutions": {
     "axios": "^1.18.0",
+    "prosemirror-model": "^1.25.11",
+    "prosemirror-view": "^1.42.3",
     "undici": "^7.0.0"
   }
 }

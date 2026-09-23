@@ -299,6 +299,16 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       de:
         "Bitte erstelle ein Konto oder melde dich an, um die Verantwortlichen des Projektes zu kontaktieren.",
     },
+    contact_chat_context_term: {
+      en:
+        project?.project_type?.type_id === "event"
+          ? `the event “${project?.name}”`
+          : `the project “${project?.name}”`,
+      de:
+        project?.project_type?.type_id === "event"
+          ? `die Veranstaltung „${project?.name}“`
+          : `das Projekt „${project?.name}“`,
+    },
     contact_creator: {
       en: "Contact creator",
       de: "Verantwortliche Kontaktieren",
@@ -577,6 +587,14 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     created_by: {
       en: "Created by",
       de: "Erstellt von",
+    },
+    please_select_an_organization: {
+      en: "Please select an organisation.",
+      de: "Bitte wähle eine Organisation aus.",
+    },
+    you_are_not_a_member_of_any_organization_yet: {
+      en: "You're not a member of any organisation yet.",
+      de: "Du bist noch kein Mitglied einer Organisation.",
     },
     describe_your_project_in_detail_please_only_use_language: {
       en: "Describe your project in detail. Please only use English!",
@@ -926,6 +944,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     responsible_organization: {
       en: "Responsible Organisation",
       de: "Verantwortliche Organisation",
+    },
+    contact_person: {
+      en: "Contact person",
+      de: "Ansprechpartner:in",
     },
     responsible_person_project: {
       en: "Project Creator",
@@ -2075,6 +2097,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     quantity_exceeds_max: {
       en: "Quantity cannot exceed the maximum per guest.",
       de: "Die Menge darf das Maximum pro Gast nicht überschreiten.",
+    },
+    inventory_sold_out: {
+      en: "Sold out",
+      de: "Ausverkauft",
     },
     please_select_time_slot: {
       en: "Please select a time slot.",

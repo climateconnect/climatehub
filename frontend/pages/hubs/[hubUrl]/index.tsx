@@ -15,7 +15,6 @@ interface TextsType {
 }
 
 interface NotFoundPageProps {
-  texts: TextsType;
   link: string;
   showHeader?: boolean;
 }
@@ -25,19 +24,15 @@ interface LandingPageProps {
   hubUrl?: string;
 }
 
-const NotFoundPage: FC<NotFoundPageProps> = ({ texts, link, showHeader }) => {
+const NotFoundPage: FC<NotFoundPageProps> = ({ link, showHeader }) => {
   return (
     <>
       {showHeader ? (
         <WideLayout>
-          <PageNotFound
-            itemName="landing page"
-            returnText={texts.return_to_hubs}
-            returnLink={link}
-          />
+          <PageNotFound itemName="landing page" returnLink={link} />
         </WideLayout>
       ) : (
-        <PageNotFound itemName="landing page" returnText={texts.return_to_hubs} returnLink={link} />
+        <PageNotFound itemName="landing page" returnLink={link} />
       )}
     </>
   );
@@ -79,7 +74,7 @@ const LandingPage: FC<LandingPageProps> = ({ hubData, hubUrl }) => {
   const texts = getTexts({ page: "landing_page", locale: locale }) as TextsType;
   // Handle missing data
   if (!hubUrl || !hubData) {
-    return <NotFoundPage texts={texts} link={"/hubs/"} showHeader />;
+    return <NotFoundPage link={"/browse"} showHeader />;
   }
 
   const title = `${texts.climateHub} ${hubData?.name} | ${texts.citizen_climate_action} ${hubData?.name}`;
@@ -96,7 +91,7 @@ const LandingPage: FC<LandingPageProps> = ({ hubData, hubUrl }) => {
       headerBackground={theme.palette.primary.main}
       showDonationGoal={true}
     >
-      <NotFoundPage texts={texts} link={`/hubs/${hubUrl}/browse`} />
+      <NotFoundPage link={`/hubs/${hubUrl}/browse`} />
     </DevlinkPage>
   );
 };
