@@ -429,15 +429,17 @@ class CreateOrganizationView(APIView):
                     organization.language = get_fallback_language(request.LANGUAGE_CODE)
 
                 # Handle images
-                if "image" in request.data:
+                # Drafts may be saved before any image was chosen, in which case
+                # the client sends empty strings that cannot be decoded.
+                if request.data.get("image"):
                     organization.image = get_image_from_data_url(request.data["image"])[
                         0
                     ]
-                if "thumbnail_image" in request.data:
+                if request.data.get("thumbnail_image"):
                     organization.thumbnail_image = get_image_from_data_url(
                         request.data["thumbnail_image"]
                     )[0]
-                if "background_image" in request.data:
+                if request.data.get("background_image"):
                     organization.background_image = get_image_from_data_url(
                         request.data["background_image"]
                     )[0]

@@ -1532,6 +1532,27 @@ class TestCreateOrganizationViewDraft(APITestCase):
         self.assertIsNotNone(organization.language)
 
     @tag("organizations", "draft")
+    def test_post_draft_with_empty_images_succeeds(self):
+        # Regression: saving a draft from step 2 without an image sends empty
+        # strings for the image fields, which must not be decoded.
+        response = self.client.post(
+            self.url,
+            {
+                "name": "Imageless Draft",
+                "is_draft": True,
+                "image": "",
+                "thumbnail_image": "",
+                "background_image": "",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        organization = Organization.objects.get(name="Imageless Draft")
+        self.assertTrue(organization.is_draft)
+        self.assertFalse(organization.image)
+
+    @tag("organizations", "draft")
     def test_post_organization_without_is_draft_still_requires_full_params(self):
         # Regression: relaxing required params for drafts must not relax them
         # for normal (non-draft) organization creation.
