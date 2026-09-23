@@ -521,9 +521,12 @@ class ListMemberOrganizationsView(ListAPIView):
             user = UserProfile.objects.get(url_slug=self.kwargs["url_slug"]).user
         except UserProfile.DoesNotExist:
             return OrganizationMember.objects.none()
-        return OrganizationMember.objects.filter(
-            user=user,
-        ).order_by("id")
+        if self.request.user == user:
+            return OrganizationMember.objects.filter(user=user).order_by("id")
+        else:
+            return OrganizationMember.objects.filter(
+                user=user, organization__is_draft=False
+            ).order_by("id")
 
 
 class ListMemberRegisteredEventsView(ListAPIView):

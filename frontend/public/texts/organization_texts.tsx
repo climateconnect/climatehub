@@ -2,9 +2,14 @@ import { Link } from "@mui/material";
 import React from "react";
 import { getLocalePrefix } from "../lib/apiOperations";
 import getLanguageNames from "../data/languageNames";
+import { appHref } from "../lib/appLink";
 
-export default function getOrganizationTexts({ organization, locale }) {
+export default function getOrganizationTexts({ organization, locale, user, hubName }) {
   const org_lang_name = getLanguageNames(organization?.language, locale);
+  const profileOrganizationsUrl = appHref(`/profiles/${user?.url_slug}#organizations`, {
+    hubUrl: hubName,
+    locale,
+  });
   return {
     log_in_to_edit_organization: {
       en: "You have to log in to edit an organisation.",
@@ -422,6 +427,50 @@ export default function getOrganizationTexts({ organization, locale }) {
     server_error: {
       en: "Something went wrong. Please try again.",
       de: "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    },
+    save_as_draft: {
+      en: "Save as draft",
+      de: "Als Entwurf speichern",
+    },
+    save_changes_as_draft: {
+      en: "Save draft",
+      de: "Entwurf speichern",
+    },
+    publish: {
+      en: "Publish",
+      de: "Veröffentlichen",
+    },
+    delete_draft: {
+      en: "Delete Draft",
+      de: "Entwurf löschen",
+    },
+    your_organization_has_been_published_great_work: {
+      en: "Your organisation has been published. Great work!",
+      de: "Deine Organisation wurde veröffentlicht. Gute Arbeit!",
+    },
+    organization_name_required_to_save_as_draft: {
+      en: "Please enter an organisation name before saving it as a draft.",
+      de: "Bitte gib einen Organisationsnamen an, bevor du sie als Entwurf speicherst.",
+    },
+    your_organization_has_been_saved_as_a_draft: {
+      en: "Your organisation has been saved as a draft!",
+      de: "Deine Organisation wurde als Entwurf gespeichert!",
+    },
+    you_can_view_edit_and_publish_your_organization_drafts_in_the: {
+      en: (
+        <>
+          You can view, edit and publish your organisation drafts{" "}
+          <Link href={profileOrganizationsUrl}>in the your organisations section</Link> of your
+          profile
+        </>
+      ),
+      de: (
+        <>
+          Du kannst deine Organisationsentwürfe{" "}
+          <Link href={profileOrganizationsUrl}>im Bereich Deine Organisationen</Link> deines Profils
+          ansehen, bearbeiten und veröffentlichen
+        </>
+      ),
     },
   };
 }
