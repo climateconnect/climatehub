@@ -45,6 +45,43 @@ describe("useImageDrop", () => {
     expect(result.current.isDragOver).toBe(false);
   });
 
+  it("keeps isDragOver true when drag-leave moves onto a nested child of the drop zone", () => {
+    const zone = document.createElement("div");
+    const child = document.createElement("div");
+    zone.appendChild(child);
+
+    const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn() }));
+    act(() => result.current.onDragOver(makeDragEvent([])));
+    expect(result.current.isDragOver).toBe(true);
+
+    act(() =>
+      result.current.onDragLeave({
+        preventDefault: jest.fn(),
+        currentTarget: zone,
+        relatedTarget: child,
+      } as any)
+    );
+    expect(result.current.isDragOver).toBe(true);
+  });
+
+  it("sets isDragOver false when drag-leave moves outside the drop zone entirely", () => {
+    const zone = document.createElement("div");
+    const outside = document.createElement("div");
+
+    const { result } = renderHook(() => useImageDrop({ onFileSelected: jest.fn() }));
+    act(() => result.current.onDragOver(makeDragEvent([])));
+    expect(result.current.isDragOver).toBe(true);
+
+    act(() =>
+      result.current.onDragLeave({
+        preventDefault: jest.fn(),
+        currentTarget: zone,
+        relatedTarget: outside,
+      } as any)
+    );
+    expect(result.current.isDragOver).toBe(false);
+  });
+
   it("calls onFileSelected with the dropped file and resets isDragOver", () => {
     const onFileSelected = jest.fn();
     const { result } = renderHook(() => useImageDrop({ onFileSelected }));

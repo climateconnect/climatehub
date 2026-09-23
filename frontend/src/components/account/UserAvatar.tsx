@@ -1,6 +1,7 @@
 import { Avatar, Theme } from "@mui/material";
 import React, { ReactElement, useContext, useRef, useState } from "react";
 import makeStyles from "@mui/styles/makeStyles";
+import { alpha } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -9,6 +10,7 @@ import {
   whitenTransparentPixels,
 } from "../../../public/lib/imageOperations";
 import UploadImageDialog from "../dialogs/UploadImageDialog";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import getTexts from "../../../public/texts/texts";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -56,9 +58,18 @@ const useStyles = makeStyles<Theme, { avatarImage?: string; isDragOver?: boolean
     justifyContent: "center",
     cursor: (props) => (!props.avatarImage ? "pointer" : "default"),
     columnGap: theme.spacing(1),
-    outline: (props) => (props.isDragOver ? "3px solid #1976d2" : undefined),
-    outlineOffset: (props) => (props.isDragOver ? "-4px" : undefined),
-    backgroundColor: (props) => (props.isDragOver ? "rgba(25, 118, 210, 0.15)" : "transparent"),
+    // Round to match the avatar's round crop, per design feedback.
+    borderRadius: "50%",
+    // outlineOffset stays 0 (not negative) so the ring sits flush against the
+    // edge instead of drawing a few pixels inside it, over the image itself.
+    outline: (props) => (props.isDragOver ? `3px dashed ${theme.palette.primary.main}` : "none"),
+    backgroundColor: (props) =>
+      props.isDragOver ? alpha(theme.palette.primary.main, 0.15) : "transparent",
+    // Keyboard focus ring should match the project's brand color rather
+    // than the browser's default blue.
+    "&:focus-visible": {
+      outline: `3px solid ${theme.palette.primary.main}`,
+    },
   },
   editIcon: {
     fontSize: "40px",
@@ -68,6 +79,7 @@ const useStyles = makeStyles<Theme, { avatarImage?: string; isDragOver?: boolean
 
 export function UserAvatar(props: UserAvatarProps): ReactElement {
   const { locale } = useContext(UserContext);
+  const { showFeedbackMessage } = useContext(FeedbackContext);
   const texts = getTexts({ page: "account", locale: locale });
 
   const inputFileRef = useRef<HTMLInputElement | null>(null);
@@ -88,7 +100,10 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
 
   const handleImageFile = async (file: File) => {
     if (!file || !file.type || !ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      alert(texts.please_upload_either_a_png_or_a_jpg_file);
+      showFeedbackMessage({
+        message: texts.please_upload_either_a_png_or_a_jpg_file,
+        error: true,
+      });
       return;
     }
     try {

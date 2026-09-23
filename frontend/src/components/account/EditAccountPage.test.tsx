@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import EditAccountPage from "./EditAccountPage";
 
@@ -45,30 +46,33 @@ const baseAccount = {
 function renderEditAccountPage(overrides: Partial<typeof baseAccount> = {}) {
   const handleSubmit = jest.fn();
   const handleCancel = jest.fn();
+  const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
       <StylesThemeProvider theme={theme}>
         <UserContext.Provider value={defaultContext as any}>
-          <EditAccountPage
-            account={{ ...baseAccount, ...overrides }}
-            possibleAccountTypes={undefined}
-            maxAccountTypes={5}
-            infoMetadata={{}}
-            handleSubmit={handleSubmit}
-            handleCancel={handleCancel}
-            errorMessage=""
-            existingName=""
-            existingUrlSlug=""
-            skillsOptions={[]}
-            splitName={false}
-            type="profile"
-            allSectors={[]}
-          />
+          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+            <EditAccountPage
+              account={{ ...baseAccount, ...overrides }}
+              possibleAccountTypes={undefined}
+              maxAccountTypes={5}
+              infoMetadata={{}}
+              handleSubmit={handleSubmit}
+              handleCancel={handleCancel}
+              errorMessage=""
+              existingName=""
+              existingUrlSlug=""
+              skillsOptions={[]}
+              splitName={false}
+              type="profile"
+              allSectors={[]}
+            />
+          </FeedbackContext.Provider>
         </UserContext.Provider>
       </StylesThemeProvider>
     </ThemeProvider>
   );
-  return { ...utils, handleSubmit, handleCancel };
+  return { ...utils, handleSubmit, handleCancel, showFeedbackMessage };
 }
 
 function dropFile(zone: HTMLElement, file: File | null) {
@@ -134,12 +138,13 @@ describe("EditAccountPage background image", () => {
   // AC3: invalid drops are rejected gracefully
 
   it("dropping a non-image file shows an error and the dialog stays closed", () => {
-    window.alert = jest.fn();
-    renderEditAccountPage();
+    const { showFeedbackMessage } = renderEditAccountPage();
     const zone = screen.getByTestId("background-drop-zone");
     const file = new File(["data"], "notes.txt", { type: "text/plain" });
     dropFile(zone, file);
-    expect(window.alert).toHaveBeenCalled();
+    expect(showFeedbackMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ error: true, message: expect.any(String) })
+    );
     expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
   });
 

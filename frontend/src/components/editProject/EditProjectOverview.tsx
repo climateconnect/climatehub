@@ -8,7 +8,7 @@ import {
   TextField,
   Grid,
 } from "@mui/material";
-import { Theme } from "@mui/material/styles";
+import { alpha, Theme } from "@mui/material/styles";
 import makeStyles from "@mui/styles/makeStyles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import React, { RefObject, useContext, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import {
 } from "../../../public/lib/imageOperations";
 import projectOverviewStyles from "../../../public/styles/projectOverviewStyles";
 import getTexts from "../../../public/texts/texts";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import UploadImageDialog from "../dialogs/UploadImageDialog";
 import ProjectLocationSearchBar from "../shareProject/ProjectLocationSearchBar";
@@ -52,14 +53,20 @@ const useStyles = makeStyles<Theme, { image?: string; isDragOver?: boolean }>((t
   },
   imageZone: (props) => ({
     cursor: "pointer",
-    border: "1px dashed #000",
+    // Drag-over re-colors this existing dashed border instead of layering a
+    // second outline on top of it, which looked like a double border.
+    border: props.isDragOver ? `1px dashed ${theme.palette.primary.main}` : "1px dashed #000",
     width: "100%",
     paddingBottom: "56.25%",
     backgroundImage: `${props.image ? `url(${props.image})` : null}`,
     backgroundSize: "contain",
-    outline: props.isDragOver ? "2px solid #1976d2" : undefined,
-    outlineOffset: props.isDragOver ? "-4px" : undefined,
-    backgroundColor: props.isDragOver ? "rgba(25, 118, 210, 0.08)" : "transparent",
+    backgroundColor: props.isDragOver ? alpha(theme.palette.primary.main, 0.08) : "transparent",
+    // Keyboard focus ring should match the project's brand color rather
+    // than the browser's default blue.
+    "&:focus-visible": {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: 2,
+    },
   }),
   addPhotoContainer: {
     position: "absolute",
@@ -520,10 +527,14 @@ const InputImage = ({
   setIsImgLoading,
 }) => {
   const inputFileRef = useRef(null as HTMLInputElement | null);
+  const { showFeedbackMessage } = useContext(FeedbackContext);
 
   const handleImageFile = async (file: File) => {
     if (!file || !file.type || !ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      alert(texts.please_upload_either_a_png_or_a_jpg_file);
+      showFeedbackMessage({
+        message: texts.please_upload_either_a_png_or_a_jpg_file,
+        error: true,
+      });
       return;
     }
     try {

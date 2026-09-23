@@ -33,6 +33,14 @@ export default function useImageDrop({ onFileSelected, onActivate }: UseImageDro
 
   const onDragLeave = useCallback((event: DragEvent) => {
     event.preventDefault();
+    // dragleave bubbles from whichever nested element (e.g. an icon) the
+    // pointer was last over, even while still inside the drop zone. Only
+    // clear the highlight once the pointer has actually left the zone,
+    // i.e. relatedTarget is no longer a descendant of the zone itself.
+    const relatedTarget = event.relatedTarget as Node | null;
+    if (relatedTarget && event.currentTarget?.contains?.(relatedTarget)) {
+      return;
+    }
     setIsDragOver(false);
   }, []);
 

@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import EditProjectOverview from "./EditProjectOverview";
 
@@ -53,25 +54,28 @@ const baseProject = {
 
 function renderEditProjectOverview(overrides: Partial<typeof baseProject> = {}) {
   const handleSetProject = jest.fn();
+  const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
       <StylesThemeProvider theme={theme}>
         <UserContext.Provider value={defaultContext as any}>
-          <EditProjectOverview
-            project={{ ...baseProject, ...overrides } as any}
-            handleSetProject={handleSetProject}
-            smallScreen={true}
-            overviewInputsRef={{ current: null }}
-            locationOptionsOpen={false}
-            handleSetLocationOptionsOpen={jest.fn()}
-            locationInputRef={{ current: null }}
-            sectorOptions={[]}
-          />
+          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+            <EditProjectOverview
+              project={{ ...baseProject, ...overrides } as any}
+              handleSetProject={handleSetProject}
+              smallScreen={true}
+              overviewInputsRef={{ current: null }}
+              locationOptionsOpen={false}
+              handleSetLocationOptionsOpen={jest.fn()}
+              locationInputRef={{ current: null }}
+              sectorOptions={[]}
+            />
+          </FeedbackContext.Provider>
         </UserContext.Provider>
       </StylesThemeProvider>
     </ThemeProvider>
   );
-  return { ...utils, handleSetProject };
+  return { ...utils, handleSetProject, showFeedbackMessage };
 }
 
 function dropFile(zone: HTMLElement, file: File | null) {
@@ -141,12 +145,13 @@ describe("EditProjectOverview image upload", () => {
   // AC3: invalid drops are rejected gracefully
 
   it("dropping a non-image file shows an error and keeps the dialog closed", () => {
-    window.alert = jest.fn();
-    renderEditProjectOverview();
+    const { showFeedbackMessage } = renderEditProjectOverview();
     const zone = screen.getByTestId("edit-project-image-drop-zone");
     const file = new File(["data"], "notes.txt", { type: "text/plain" });
     dropFile(zone, file);
-    expect(window.alert).toHaveBeenCalled();
+    expect(showFeedbackMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ error: true, message: expect.any(String) })
+    );
     expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
   });
 

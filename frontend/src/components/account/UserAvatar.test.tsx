@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import { UserAvatar } from "./UserAvatar";
 
@@ -35,16 +36,19 @@ const defaultContext = {
 
 function renderUserAvatar(props: Partial<React.ComponentProps<typeof UserAvatar>> = {}) {
   const onAvatarChanged = jest.fn();
+  const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
       <StylesThemeProvider theme={theme}>
         <UserContext.Provider value={defaultContext as any}>
-          <UserAvatar mode="edit" onAvatarChanged={onAvatarChanged} {...props} />
+          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+            <UserAvatar mode="edit" onAvatarChanged={onAvatarChanged} {...props} />
+          </FeedbackContext.Provider>
         </UserContext.Provider>
       </StylesThemeProvider>
     </ThemeProvider>
   );
-  return { ...utils, onAvatarChanged };
+  return { ...utils, onAvatarChanged, showFeedbackMessage };
 }
 
 function dropFile(zone: HTMLElement, file: File | null) {
@@ -119,12 +123,13 @@ describe("UserAvatar", () => {
   // AC3: invalid drops are rejected gracefully
 
   it("dropping a non-image file shows an error", () => {
-    window.alert = jest.fn();
-    renderUserAvatar();
+    const { showFeedbackMessage } = renderUserAvatar();
     const zone = screen.getByTestId("avatar-drop-zone");
     const file = new File(["data"], "notes.txt", { type: "text/plain" });
     dropFile(zone, file);
-    expect(window.alert).toHaveBeenCalled();
+    expect(showFeedbackMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ error: true, message: expect.any(String) })
+    );
     expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
   });
 

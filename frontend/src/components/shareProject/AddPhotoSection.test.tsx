@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import AddPhotoSection from "./AddPhotoSection";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -62,16 +63,19 @@ function Wrapper({
 
 function renderAddPhotoSection({ image = undefined as string | undefined } = {}) {
   const handleSetProjectData = jest.fn();
+  const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
       <StylesThemeProvider theme={theme}>
         <UserContext.Provider value={defaultContext as any}>
-          <Wrapper image={image} handleSetProjectData={handleSetProjectData} />
+          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+            <Wrapper image={image} handleSetProjectData={handleSetProjectData} />
+          </FeedbackContext.Provider>
         </UserContext.Provider>
       </StylesThemeProvider>
     </ThemeProvider>
   );
-  return { ...utils, handleSetProjectData };
+  return { ...utils, handleSetProjectData, showFeedbackMessage };
 }
 
 beforeEach(() => {
@@ -141,12 +145,13 @@ describe("AddPhotoSection", () => {
   // AC3: invalid drops are rejected gracefully
 
   it("dropping a non-image file shows an error and keeps the dialog closed", () => {
-    window.alert = jest.fn();
-    renderAddPhotoSection();
+    const { showFeedbackMessage } = renderAddPhotoSection();
     const zone = screen.getByTestId("add-photo-drop-zone");
     const file = new File(["data"], "notes.txt", { type: "text/plain" });
     dropFile(zone, file);
-    expect(window.alert).toHaveBeenCalled();
+    expect(showFeedbackMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ error: true, message: expect.any(String) })
+    );
     expect(screen.queryByTestId("upload-image-dialog")).not.toBeInTheDocument();
   });
 
