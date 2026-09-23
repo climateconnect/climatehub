@@ -21,6 +21,7 @@ import TranslateTexts from "../src/components/general/TranslateTexts";
 import WideLayout from "./../src/components/layouts/WideLayout";
 import EnterBasicOrganizationInfo from "./../src/components/organization/EnterBasicOrganizationInfo";
 import EnterDetailledOrganizationInfo from "./../src/components/organization/EnterDetailledOrganizationInfo";
+import OrganizationDraftSavedPage from "./../src/components/organization/OrganizationDraftSavedPage";
 import Alert from "@mui/material/Alert";
 import getHubTheme from "../src/themes/fetchHubTheme";
 import { transformThemeData } from "../src/themes/transformThemeData";
@@ -82,8 +83,14 @@ export default function CreateOrganization({
     window.scrollTo(0, 0);
   };
   const { user, locale, locales } = useContext(UserContext);
-  const texts = getTexts({ page: "organization", locale: locale });
+  const texts = getTexts({
+    page: "organization",
+    locale: locale,
+    user: user ?? undefined,
+    hubName: hubUrl,
+  });
   const steps = ["basicorganizationinfo", "detailledorganizationinfo", "checktranslations"];
+  const DRAFT_SAVED_STEP = "draftsaved";
   const [curStep, setCurStep] = useState(steps[0]);
   const locationInputRef = useRef(null);
   const [locationOptionsOpen, setLocationOptionsOpen] = useState(false);
@@ -246,6 +253,7 @@ export default function CreateOrganization({
     const payload: any = {
       is_draft: true,
       name: values.organizationname,
+      source_language: sourceLanguage,
       team_members: [
         {
           user_id: user!.id,
@@ -386,13 +394,8 @@ export default function CreateOrganization({
         setLoadingSubmit(false);
         setLoadingSubmitDraft(false);
         if (isDraft) {
-          router.push({
-            pathname: `/editOrganization/${response.data.url_slug}`,
-            query: {
-              message: texts.you_have_successfully_saved_your_organization_as_a_draft,
-              hub: hubUrl ? hubUrl : "",
-            },
-          });
+          setCurStep(DRAFT_SAVED_STEP);
+          window.scrollTo(0, 0);
         } else {
           router.push({
             pathname: `/manageOrganizationMembers/${response.data.url_slug}`,
@@ -439,6 +442,12 @@ export default function CreateOrganization({
         title={texts.please_log_in + " " + texts.to_create_an_organization}
       >
         <LoginNudge fullPage whatToDo={texts.to_create_an_organization} />
+      </WideLayout>
+    );
+  else if (curStep === DRAFT_SAVED_STEP)
+    return (
+      <WideLayout {...layoutProps} title={texts.create_an_organization}>
+        <OrganizationDraftSavedPage texts={texts} />
       </WideLayout>
     );
   else if (curStep === "basicorganizationinfo")
