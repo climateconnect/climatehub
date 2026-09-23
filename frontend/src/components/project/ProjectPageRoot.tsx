@@ -289,9 +289,8 @@ export default function ProjectPageRoot({
   const handleClickContact = (event) => {
     event.preventDefault();
     if (!user) {
-      const redirectUrl = getRedirectUrl(locale);
       return redirect("/signin", {
-        redirect: redirectUrl,
+        redirect: getContactChatRedirectUrl(locale),
         errorMessage: texts.please_create_an_account_or_log_in_to_contact_a_projects_organizer,
       });
     }
@@ -881,11 +880,7 @@ export default function ProjectPageRoot({
           onClose={handleChatDrawerClose}
           contactPerson={creator}
           contextTerm={texts.contact_chat_context_term}
-          contactRole={
-            project.project_type?.type_id === "event"
-              ? texts.responsible_person_event
-              : texts.responsible_person_project
-          }
+          contactRole={texts.contact_person}
         />
       )}
     </div>
@@ -895,6 +890,17 @@ export default function ProjectPageRoot({
 function TabContent({ value, index, children }) {
   return <div hidden={value !== index}>{children}</div>;
 }
+
+// Carries the "open the contact chat after login" intent through the sign-in
+// round-trip. The query parameter must be inserted before any hash (the page
+// keeps its active tab in the URL hash).
+const getContactChatRedirectUrl = (locale: string) => {
+  const url = getRedirectUrl(locale);
+  const [pathAndQuery, hash] = url.split("#");
+  if (pathAndQuery.includes("openContactChat=")) return url;
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+  return `${pathAndQuery}${separator}openContactChat=true${hash ? "#" + hash : ""}`;
+};
 
 const getFollowers = async (project, token, locale) => {
   try {

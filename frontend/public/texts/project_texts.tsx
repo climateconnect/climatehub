@@ -945,13 +945,13 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "Responsible Organisation",
       de: "Verantwortliche Organisation",
     },
+    contact_person: {
+      en: "Contact person",
+      de: "Ansprechpartner:in",
+    },
     responsible_person_project: {
       en: "Project Creator",
       de: "Verantwortliche*r",
-    },
-    responsible_person_event: {
-      en: "Event Owner",
-      de: "Veranstalter:in",
     },
     responsible_person_idea: {
       en: "Idea Creator",

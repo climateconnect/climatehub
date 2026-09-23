@@ -81,6 +81,7 @@ export default function ChatDrawer({
     hasMore: false,
   });
   const [loading, setLoading] = useState(false);
+  const [loadingThread, setLoadingThread] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [curMessage, setCurMessage] = useState("");
   const [showSendHelper, setShowSendHelper] = useState(false);
@@ -108,25 +109,19 @@ export default function ChatDrawer({
       try {
         const chatResponse = await startPrivateChat(contactPerson, token, locale);
         if (!chatResponse?.chat_uuid) throw Error(texts.could_not_start_chat);
-        const [chatData, messagesObject, rolesOptions] = await Promise.all([
+        const [chatData, rolesOptions] = await Promise.all([
           getChat(chatResponse.chat_uuid, token, locale),
-          getChatMessagesByUUID(chatResponse.chat_uuid, token, 1, null, locale),
           getRolesOptions(locale),
         ]);
-        if (!chatData || !messagesObject) throw Error(texts.could_not_start_chat);
+        if (!chatData) throw Error(texts.could_not_start_chat);
         if (cancelled) return;
         startedForContactRef.current = contactPerson.url_slug;
+        setLoadingThread(true);
         setChat({
           chat_uuid: chatResponse.chat_uuid,
           id: chatData.id,
           title: chatData.title,
           participants: parseParticipantsWithRole(chatData.participants, rolesOptions ?? []),
-        });
-        setThread({
-          nextPage: 2,
-          messages: [...(messagesObject.messages ?? [])],
-          nextLink: messagesObject.nextLink,
-          hasMore: messagesObject.hasMore,
         });
       } catch (e: any) {
         if (!cancelled) setErrorMessage(e?.message || texts.could_not_start_chat);
@@ -140,23 +135,77 @@ export default function ChatDrawer({
   }, [open, contactPerson, token, locale]);
 
   useEffect(() => {
+    if (!open || !chat?.chat_uuid) return;
+    let cancelled = false;
+    const isFirstLoad = thread.messages.length === 0;
+    if (isFirstLoad) setLoadingThread(true);
+    (async () => {
+      const messagesObject = await getChatMessagesByUUID(chat.chat_uuid, token, 1, null, locale);
+      if (cancelled) return;
+      if (!messagesObject) {
+        if (isFirstLoad) setErrorMessage(texts.could_not_load_messages);
+        setLoadingThread(false);
+        return;
+      }
+      setThread({
+        nextPage: 2,
+        messages: [...(messagesObject.messages ?? [])],
+        nextLink: messagesObject.nextLink,
+        hasMore: messagesObject.hasMore,
+      });
+      setErrorMessage("");
+      setLoadingThread(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, chat?.chat_uuid, token, locale]);
+
+  useEffect(() => {
     if (!chatSocket || !chat?.chat_uuid) return;
+    const previousOnMessage = chatSocket.onmessage;
     chatSocket.onmessage = async (rawData) => {
-      if (!rawData) return;
-      const data = JSON.parse(rawData.data);
-      if (data.chat_uuid !== chat.chat_uuid) return;
-      const message = await getMessageFromServer(data.message_id, token, locale);
-      setThread((thread) => ({
-        ...thread,
-        messages: [
-          ...thread.messages.filter(
-            (m) => !((m.content === message.content && m.unconfirmed) || m.id === message.id)
-          ),
-          message,
-        ],
-      }));
+      try {
+        if (!rawData) return;
+        let data;
+        try {
+          data = JSON.parse(rawData.data);
+        } catch (e) {
+          console.error(e);
+          return;
+        }
+        if (data.chat_uuid !== chat.chat_uuid) return;
+        const message = await getMessageFromServer(data.message_id, token, locale);
+        if (!message) return;
+        setThread((thread) => ({
+          ...thread,
+          messages: [
+            ...thread.messages.filter(
+              (m) => !((m.content === message.content && m.unconfirmed) || m.id === message.id)
+            ),
+            message,
+          ],
+        }));
+      } finally {
+        if (previousOnMessage) previousOnMessage(rawData);
+      }
+    };
+    return () => {
+      chatSocket.onmessage = previousOnMessage;
     };
   }, [chatSocket, chat?.chat_uuid, token, locale]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleWindowClose = (e) => {
+      if (curMessage && curMessage.length > 0) {
+        e.preventDefault();
+        e.returnValue = texts.you_have_an_unsent_message_are_you_sure_you_want_to_leave;
+      }
+    };
+    window.addEventListener("beforeunload", handleWindowClose);
+    return () => window.removeEventListener("beforeunload", handleWindowClose);
+  }, [open, curMessage]);
 
   const loadMoreMessages = async () => {
     try {
@@ -244,7 +293,7 @@ export default function ChatDrawer({
     } catch (err: any) {
       if (err?.response?.data)
         console.log("Error in sendChatMessageThroughPostRequest: " + err.response.data?.detail);
-      setErrorMessage(err?.response?.data?.detail || texts.could_not_start_chat);
+      setErrorMessage(err?.response?.data?.detail || texts.could_not_send_message);
       return false;
     }
   };
@@ -269,6 +318,7 @@ export default function ChatDrawer({
 
   if (!contactPerson) return null;
 
+  const showLoading = loading || (loadingThread && thread.messages.length === 0);
   const chatting_partner = chat?.participants?.filter((p) => p.id !== user?.id)[0] ?? contactPerson;
   const userParticipant = chat?.participants?.find((p) => p.id === user?.id);
   const partnerFullName = [chatting_partner?.first_name, chatting_partner?.last_name]
@@ -319,7 +369,7 @@ export default function ChatDrawer({
             <CloseIcon />
           </IconButton>
         </div>
-        {loading && (
+        {showLoading && (
           <div className={classes.loadingContainer}>
             <CircularProgress size={28} />
           </div>
@@ -329,7 +379,7 @@ export default function ChatDrawer({
             {errorMessage}
           </Alert>
         )}
-        {chat && !loading && (
+        {chat && !showLoading && (
           <ChatContent
             showChatParticipants={false}
             participants={chat.participants}

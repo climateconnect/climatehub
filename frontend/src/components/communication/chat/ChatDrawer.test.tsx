@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
@@ -74,7 +74,7 @@ const defaultContextValue = {
   pathName: "/projects/test-project",
 };
 
-function mockChatApiResponses(messages: any[] = []) {
+function mockChatApiResponses(messages: any[] = [], opts: { messagesFail?: boolean } = {}) {
   mockApiRequest.mockImplementation(({ method, url }: any) => {
     if (method === "post" && url === "/api/start_private_chat/") {
       return Promise.resolve({ data: { chat_uuid: "chat-1", id: 5 } });
@@ -94,6 +94,7 @@ function mockChatApiResponses(messages: any[] = []) {
       });
     }
     if (method === "get" && url?.includes("/api/messages/")) {
+      if (opts.messagesFail) return Promise.reject(new Error("boom"));
       return Promise.resolve({
         data: { results: messages, next: null },
       });
@@ -106,25 +107,37 @@ function mockChatApiResponses(messages: any[] = []) {
     if (method === "post" && url === "/api/chat/chat-1/send_message/") {
       return Promise.resolve({ data: { detail: "Message successfully sent!" } });
     }
+    if (method === "get" && url?.startsWith("/api/message/")) {
+      return Promise.resolve({
+        data: {
+          id: 42,
+          content: "Incoming socket message",
+          sender: partner,
+          sent_at: new Date("2026-09-22T09:00:00Z"),
+        },
+      });
+    }
     return Promise.reject(new Error("Unexpected api call: " + method + " " + url));
   });
 }
 
-function renderDrawer({
+function drawerTree({
   open = true,
   onClose = jest.fn(),
   contextTerm = 'the project "Test Project"',
-  contactRole = "Project Creator",
+  contactRole = "Contact person",
+  chatSocket = null,
 }: {
   open?: boolean;
   onClose?: jest.Mock;
   contextTerm?: string;
   contactRole?: string;
+  chatSocket?: any;
 } = {}) {
-  return render(
+  return (
     <ThemeProvider theme={theme}>
       <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContextValue as any}>
+        <UserContext.Provider value={{ ...defaultContextValue, chatSocket } as any}>
           <ChatDrawer
             open={open}
             onClose={onClose}
@@ -136,6 +149,10 @@ function renderDrawer({
       </StylesThemeProvider>
     </ThemeProvider>
   );
+}
+
+function renderDrawer(options: Parameters<typeof drawerTree>[0] = {}) {
+  return render(drawerTree(options));
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +185,7 @@ describe("ChatDrawer", () => {
     it("renders the chatting partner with the caller-provided role and no header context line", async () => {
       renderDrawer();
       await waitFor(() => expect(screen.getByText("Jane Doe")).toBeInTheDocument());
-      expect(screen.getByText("Project Creator")).toBeInTheDocument();
+      expect(screen.getByText("Contact person")).toBeInTheDocument();
       expect(
         screen.queryByText('This chat is about the project "Test Project".')
       ).not.toBeInTheDocument();
@@ -176,7 +193,7 @@ describe("ChatDrawer", () => {
 
     it("does not show the generic chat membership role", async () => {
       renderDrawer();
-      await waitFor(() => expect(screen.getByText("Project Creator")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("Contact person")).toBeInTheDocument());
       expect(screen.queryByText("Member")).not.toBeInTheDocument();
     });
 
@@ -205,6 +222,62 @@ describe("ChatDrawer", () => {
     });
   });
 
+  // ── Reopen / refetch ──────────────────────────────────────────────────────
+
+  describe("refetch on reopen", () => {
+    it("refetches the latest messages each time the drawer is opened, without re-starting the chat", async () => {
+      mockChatApiResponses([
+        {
+          id: 1,
+          content: "Hello there!",
+          sender: partner,
+          sent_at: new Date("2026-09-01T10:00:00Z"),
+        },
+      ]);
+      const { rerender } = renderDrawer();
+      await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
+
+      mockChatApiResponses([
+        {
+          id: 1,
+          content: "Hello there!",
+          sender: partner,
+          sent_at: new Date("2026-09-01T10:00:00Z"),
+        },
+        {
+          id: 7,
+          content: "Fresh reply",
+          sender: partner,
+          sent_at: new Date("2026-09-22T11:00:00Z"),
+        },
+      ]);
+
+      rerender(drawerTree({ open: false }));
+      await waitFor(() => expect(screen.queryByText("Hello there!")).not.toBeInTheDocument());
+      rerender(drawerTree({ open: true }));
+
+      await waitFor(() => expect(screen.getByText("Fresh reply")).toBeInTheDocument());
+      const pageFetches = mockApiRequest.mock.calls.filter((call: any[]) =>
+        call[0].url?.includes("/api/messages/")
+      );
+      expect(pageFetches.length).toBe(2);
+      const startCalls = mockApiRequest.mock.calls.filter(
+        (call: any[]) => call[0].url === "/api/start_private_chat/"
+      );
+      expect(startCalls.length).toBe(1);
+    });
+
+    it("shows an inline error when the message history cannot be loaded", async () => {
+      mockChatApiResponses([], { messagesFail: true });
+      renderDrawer();
+      await waitFor(() =>
+        expect(
+          screen.getByText("The messages could not be loaded. Please try again later.")
+        ).toBeInTheDocument()
+      );
+    });
+  });
+
   // ── Sending messages ──────────────────────────────────────────────────────
 
   describe("sending messages", () => {
@@ -227,6 +300,55 @@ describe("ChatDrawer", () => {
         expect(sendCall![0].method).toBe("post");
       });
       await waitFor(() => expect(screen.getByText("Is the event accessible?")).toBeInTheDocument());
+    });
+
+    it("shows an inline error when sending fails", async () => {
+      renderDrawer();
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      mockApiRequest.mockImplementation(({ method, url }: any) => {
+        if (method === "post" && url === "/api/chat/chat-1/send_message/") {
+          return Promise.reject({ response: { status: 500, data: {} } });
+        }
+        return Promise.reject(new Error("Unexpected api call: " + method + " " + url));
+      });
+
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await waitFor(() =>
+        expect(
+          screen.getByText("The message could not be sent. Please try again later.")
+        ).toBeInTheDocument()
+      );
+    });
+  });
+
+  // ── Live incoming messages (socket) ───────────────────────────────────────
+
+  describe("live incoming messages", () => {
+    it("binds its own socket handler while keeping the app-wide handler chained, and restores it on unmount", async () => {
+      const previousOnMessage = jest.fn();
+      const chatSocket: any = { onmessage: previousOnMessage, send: jest.fn() };
+      const { unmount } = renderDrawer({ chatSocket });
+      await waitFor(() => expect(chatSocket.onmessage).not.toBe(previousOnMessage));
+      const boundHandler = chatSocket.onmessage;
+
+      const rawEvent = { data: JSON.stringify({ chat_uuid: "chat-1", message_id: 42 }) };
+      await act(async () => {
+        await boundHandler(rawEvent);
+      });
+      expect(previousOnMessage).toHaveBeenCalledWith(rawEvent);
+      expect(screen.getByText("Incoming socket message")).toBeInTheDocument();
+
+      unmount();
+      expect(chatSocket.onmessage).toBe(previousOnMessage);
+    });
+
+    it("does not touch the socket before a chat is resolved", async () => {
+      const previousOnMessage = jest.fn();
+      const chatSocket: any = { onmessage: previousOnMessage, send: jest.fn() };
+      renderDrawer({ open: false, chatSocket });
+      expect(chatSocket.onmessage).toBe(previousOnMessage);
     });
   });
 

@@ -182,5 +182,13 @@
   "could_not_start_chat": {
     "en": "The chat could not be started. Please try again later.",
     "de": "Der Chat konnte nicht gestartet werden. Bitte versuche es später erneut."
+  },
+  "could_not_send_message": {
+    "en": "The message could not be sent. Please try again later.",
+    "de": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es später erneut."
+  },
+  "could_not_load_messages": {
+    "en": "The messages could not be loaded. Please try again later.",
+    "de": "Die Nachrichten konnten nicht geladen werden. Bitte versuche es später erneut."
   }
 }

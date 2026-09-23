@@ -218,7 +218,7 @@ describe("ProjectPageRoot contact chat drawer", () => {
       fireEvent.click(screen.getByRole("button", { name: /contact creator/i }));
 
       await waitFor(() => expect(screen.getByText("Jane Doe")).toBeInTheDocument());
-      expect(screen.getByText("Project Creator")).toBeInTheDocument();
+      expect(screen.getByText("Contact person")).toBeInTheDocument();
       expect(mockRouterPush).not.toHaveBeenCalled();
     });
 
@@ -226,12 +226,14 @@ describe("ProjectPageRoot contact chat drawer", () => {
       renderProjectPage({ project: makeProject({ project_type: { type_id: "event" } }) });
       fireEvent.click(screen.getByRole("button", { name: /contact creator/i }));
 
-      await waitFor(() => expect(screen.getByText("Event Owner")).toBeInTheDocument());
-      expect(
-        screen.getByText(
-          "This is the very beginning of your conversation about the event “Test Project” with Jane Doe."
-        )
-      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText("Contact person")).toBeInTheDocument());
+      await waitFor(() =>
+        expect(
+          screen.getByText(
+            "This is the very beginning of your conversation about the event “Test Project” with Jane Doe."
+          )
+        ).toBeInTheDocument()
+      );
     });
   });
 
@@ -264,6 +266,36 @@ describe("ProjectPageRoot contact chat drawer", () => {
         expect.objectContaining({
           redirect: "projects/test-project?openContactChat=true",
           errorMessage: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe("logged-out contact click", () => {
+    it("redirects to sign-in with the auto-open flag so the drawer opens after login", async () => {
+      renderProjectPage({ user: null });
+      fireEvent.click(screen.getByRole("button", { name: /contact creator/i }));
+
+      await waitFor(() => expect(mockRedirect).toHaveBeenCalled());
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/signin",
+        expect.objectContaining({
+          redirect: "projects/test-project?openContactChat=true",
+          errorMessage: expect.any(String),
+        })
+      );
+    });
+
+    it("keeps the auto-open flag before the hash when a tab hash is present", async () => {
+      setWindowUrl("/projects/test-project#team");
+      renderProjectPage({ user: null });
+      fireEvent.click(screen.getByRole("button", { name: /contact creator/i }));
+
+      await waitFor(() => expect(mockRedirect).toHaveBeenCalled());
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/signin",
+        expect.objectContaining({
+          redirect: "projects/test-project?openContactChat=true#team",
         })
       );
     });
