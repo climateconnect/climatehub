@@ -133,17 +133,20 @@ export default function EditOrganizationRoot({
         texts
       );
     if (error) {
+      setLoadingSaveDraft(false);
       handleSetErrorMessage(error);
     } else {
-      editedOrg.language = sourceLanguage;
+      // Work on a copy: editedOrg is the caller's form state, and mutating it
+      // would leak is_draft=false into a later "save as draft" if this request fails.
+      const orgToSave = { ...editedOrg, language: sourceLanguage };
       const wasDraft = !!organization.is_draft;
       // One way transition: draft → published, never back. Only the main
       // submit (not the "save as draft" action) is allowed to publish.
       if (!isDraftSave && wasDraft) {
-        editedOrg.is_draft = false;
+        orgToSave.is_draft = false;
       }
       const oldOrg = await getOrganizationByUrlIfExists(organization.url_slug, token, locale);
-      const payload = await parseForRequest(getChanges(editedOrg, oldOrg));
+      const payload = await parseForRequest(getChanges(orgToSave, oldOrg));
       if (isTranslationsStep)
         payload.translations = getTranslationsWithoutRedundantKeys(
           getTranslationsFromObject(initialTranslations, "organization"),
@@ -243,6 +246,11 @@ export default function EditOrganizationRoot({
   const handleTranslationsSubmit = async (event) => {
     event.preventDefault();
     await saveChanges(editedOrganization, true);
+  };
+
+  const handleTranslationsSaveDraft = async () => {
+    setLoadingSaveDraft(true);
+    await saveChanges(editedOrganization, true, true);
   };
 
   const standardTextsToTranslate = [
@@ -377,7 +385,9 @@ export default function EditOrganizationRoot({
               organization={organization}
               pageName="organization"
               introTextKey="translate_organization_intro"
-              submitButtonText={texts.save}
+              submitButtonText={organization.is_draft ? texts.publish : texts.save}
+              saveAsDraft={organization.is_draft ? handleTranslationsSaveDraft : undefined}
+              loadingSubmitDraft={loadingSaveDraft}
               textsToTranslate={textsToTranslate}
             />
           </>

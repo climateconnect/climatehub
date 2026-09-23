@@ -318,7 +318,7 @@ export default function CreateOrganization({
         (Array.isArray(organizationToSubmit[prop]) && organizationToSubmit[prop].length <= 0)
       ) {
         handleSetErrorMessages({
-          errorMessages,
+          ...errorMessages,
           detailledOrganizationInfo: requiredPropErrors[prop],
         });
         return;
@@ -413,11 +413,16 @@ export default function CreateOrganization({
         setLoadingSubmit(false);
         setLoadingSubmitDraft(false);
         if (error) console.log(error?.response?.data);
-        if (error?.response?.data?.message)
-          handleSetErrorMessages({
-            errorMessages,
-            detailledOrganizationInfo: error?.response?.data?.message,
-          });
+        // Show the error on the step the request was sent from; step 1 only
+        // renders basicOrganizationInfo.
+        const errorKey =
+          curStep === "basicorganizationinfo"
+            ? "basicOrganizationInfo"
+            : "detailledOrganizationInfo";
+        handleSetErrorMessages({
+          ...errorMessages,
+          [errorKey]: error?.response?.data?.message || texts.server_error,
+        });
         if (error?.response?.data?.url_slug)
           handleSetExistingUrlSlug(error?.response?.data?.url_slug);
         if (error?.response?.data?.existing_name)

@@ -27,34 +27,48 @@ jest.mock("../../../public/lib/imageOperations", () => ({
 }));
 
 jest.mock("../account/EditAccountPage", () => {
+  const { useRef } = jest.requireActual("react");
   return function MockEditAccountPage(props: any) {
+    // Like the real EditAccountPage, hand the same form-state object to every
+    // callback so mutations by the parent would persist between clicks.
+    const editedAccount = useRef({ ...props.account }).current;
     if (props.checkTranslationsRef) {
       props.checkTranslationsRef.current = { scrollIntoView: jest.fn() };
     }
     return (
       <div data-testid="edit-account-page">
-        <button
-          data-testid="submit-button"
-          onClick={() => props.handleSubmit({ ...props.account })}
-        >
+        <button data-testid="submit-button" onClick={() => props.handleSubmit(editedAccount)}>
           {props.submitMessage}
         </button>
         {props.onSecondarySubmit && (
           <button
             data-testid="secondary-button"
-            onClick={() => props.onSecondarySubmit({ ...props.account })}
+            onClick={() => props.onSecondarySubmit(editedAccount)}
           >
             {props.secondarySubmitMessage}
           </button>
         )}
+        <button
+          data-testid="check-translations-button"
+          onClick={() => props.onClickCheckTranslations(editedAccount)}
+        />
       </div>
     );
   };
 });
 
 jest.mock("../general/TranslateTexts", () => {
-  return function MockTranslateTexts() {
-    return <div data-testid="translate-texts" />;
+  return function MockTranslateTexts(props: any) {
+    return (
+      <div data-testid="translate-texts">
+        <button data-testid="translations-submit-button" onClick={props.onSubmit}>
+          {props.submitButtonText}
+        </button>
+        {props.saveAsDraft && (
+          <button data-testid="translations-save-draft-button" onClick={props.saveAsDraft} />
+        )}
+      </div>
+    );
   };
 });
 
@@ -256,6 +270,81 @@ describe("EditOrganizationRoot draft publishing", () => {
         hub: undefined,
       },
     });
+  });
+
+  it("saving as draft after a failed publish does not publish the organization", async () => {
+    let patchCount = 0;
+    (apiRequest as jest.Mock).mockImplementation(({ method }) => {
+      if (method === "get") {
+        return Promise.resolve({ data: rawOrganizationFixture({ is_draft: true }) });
+      }
+      patchCount += 1;
+      return patchCount === 1
+        ? Promise.reject({ response: { data: { message: "Server error" } } })
+        : Promise.resolve({});
+    });
+    const { getByTestId } = renderComponent({
+      organization: publishableDraftOrganization,
+      user,
+    });
+
+    fireEvent.click(getByTestId("submit-button"));
+    await waitFor(() => expect(patchCount).toBe(1));
+
+    fireEvent.click(getByTestId("secondary-button"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalled());
+
+    const patchCalls = (apiRequest as jest.Mock).mock.calls.filter(
+      ([opts]) => opts.method === "patch"
+    );
+    expect(patchCalls[1][0].payload.is_draft).toBeUndefined();
+    expect(pushMock).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: "/profiles/test-user" })
+    );
+  });
+
+  it("labels the translations step submit as Publish for a draft and offers Save as draft", async () => {
+    const { getByTestId } = renderComponent({ organization: draftOrganization, user });
+
+    fireEvent.click(getByTestId("check-translations-button"));
+
+    await waitFor(() => {
+      expect(getByTestId("translations-submit-button")).toHaveTextContent("Publish");
+    });
+    expect(getByTestId("translations-save-draft-button")).toBeInTheDocument();
+  });
+
+  it("saving as draft from the translations step keeps the organization a draft", async () => {
+    const { getByTestId } = renderComponent({ organization: draftOrganization, user });
+
+    fireEvent.click(getByTestId("check-translations-button"));
+    await waitFor(() => getByTestId("translations-save-draft-button"));
+    fireEvent.click(getByTestId("translations-save-draft-button"));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalled());
+
+    const patchCall = (apiRequest as jest.Mock).mock.calls.find(
+      ([opts]) => opts.method === "patch"
+    );
+    expect(patchCall[0].payload.is_draft).toBeUndefined();
+    expect(patchCall[0].payload.translations).toBeDefined();
+    expect(pushMock).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: "/profiles/test-user" })
+    );
+  });
+
+  it("does not offer Save as draft on the translations step for a published organization", async () => {
+    const { getByTestId, queryByTestId } = renderComponent({
+      organization: baseOrganization,
+      user,
+    });
+
+    fireEvent.click(getByTestId("check-translations-button"));
+
+    await waitFor(() => {
+      expect(getByTestId("translations-submit-button")).toHaveTextContent("Save");
+    });
+    expect(queryByTestId("translations-save-draft-button")).not.toBeInTheDocument();
   });
 
   it("shows the Delete Draft label instead of Delete organisation for a draft admin", () => {
