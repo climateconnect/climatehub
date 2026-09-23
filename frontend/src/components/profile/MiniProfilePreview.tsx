@@ -15,7 +15,6 @@ const useStyles = makeStyles((theme) => {
     profileName: {
       display: "inline-block",
       verticalAlign: "middle",
-      marginLeft: theme.spacing(1),
     },
     smallProfileName: {
       fontSize: 14,
@@ -36,13 +35,27 @@ const useStyles = makeStyles((theme) => {
       alignItems: "center",
       verticalAlign: "middle",
     },
+    nameAndTitle: {
+      display: "inline-flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      marginLeft: theme.spacing(1),
+    },
+    nameAndTitleWithTitle: {
+      "& $profileName": {
+        lineHeight: 1.2,
+      },
+    },
+    profileTitle: {
+      lineHeight: 1.2,
+    },
     badge: {
       bottom: "20%",
     },
   };
 });
 
-type Props = { className?; profile?; avatarClassName?; size?; nolink?; onDelete? };
+type Props = { className?; profile?; avatarClassName?; size?; nolink?; onDelete?; title? };
 
 export default function MiniProfilePreview({
   className,
@@ -51,6 +64,7 @@ export default function MiniProfilePreview({
   size,
   nolink,
   onDelete,
+  title,
 }: Props) {
   if (!nolink)
     return (
@@ -61,7 +75,7 @@ export default function MiniProfilePreview({
           className={`${"" /*TODO(undefined) classes.avatarWithInfo*/} ${className}`}
           underline="hover"
         >
-          <Content profile={profile} avatarClassName={avatarClassName} size={size} />
+          <Content profile={profile} avatarClassName={avatarClassName} size={size} title={title} />
         </AppLink>
         {onDelete && (
           <IconButton onClick={() => onDelete(profile)} size="large">
@@ -73,12 +87,12 @@ export default function MiniProfilePreview({
   else
     return (
       <div className={`${"" /*TODO(undefined) classes.avatarWithInfo*/} ${className}`}>
-        <Content profile={profile} avatarClassName={avatarClassName} size={size} />
+        <Content profile={profile} avatarClassName={avatarClassName} size={size} title={title} />
       </div>
     );
 }
 
-function Content({ profile, avatarClassName, size }) {
+function Content({ profile, avatarClassName, size, title }) {
   const classes = useStyles();
 
   const avatarProps = {
@@ -102,15 +116,22 @@ function Content({ profile, avatarClassName, size }) {
           <Avatar {...avatarProps} />
         )}
       </div>
-      <Typography
-        color="inherit"
-        className={`${classes.profileName} ${size === "medium" && classes.mediumProfileName} ${
-          size === "small" && classes.smallProfileName
-        }`}
-        variant="h6"
-      >
-        {[profile.first_name, profile.last_name].filter(Boolean).join(" ")}
-      </Typography>
+      <span className={`${classes.nameAndTitle} ${title ? classes.nameAndTitleWithTitle : ""}`}>
+        <Typography
+          color="inherit"
+          className={`${classes.profileName} ${size === "medium" && classes.mediumProfileName} ${
+            size === "small" && classes.smallProfileName
+          }`}
+          variant="h6"
+        >
+          {[profile.first_name, profile.last_name].filter(Boolean).join(" ")}
+        </Typography>
+        {title && (
+          <Typography color="textSecondary" className={classes.profileTitle} variant="body2">
+            {title}
+          </Typography>
+        )}
+      </span>
     </span>
   );
 }

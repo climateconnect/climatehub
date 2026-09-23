@@ -2,15 +2,12 @@ import { Container, Tab, Tabs, Typography } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import makeStyles from "@mui/styles/makeStyles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { useRouter } from "next/router";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import Cookies from "universal-cookie";
 import { useLongPress } from "use-long-press";
 import ROLE_TYPES from "../../../public/data/role_types";
 import { apiRequest, redirect, getRedirectUrl } from "../../../public/lib/apiOperations";
-import { appHref } from "../../../public/lib/appLink";
 import { getParams } from "../../../public/lib/generalOperations";
-import { startPrivateChat } from "../../../public/lib/messagingOperations";
 import getTexts from "../../../public/texts/texts";
 import { NOTIFICATION_TYPES } from "../communication/notifications/Notification";
 import FeedbackContext from "../context/FeedbackContext";
@@ -25,6 +22,7 @@ import ProjectContent from "./ProjectContent";
 import ProjectOverview from "./ProjectOverview";
 import ProjectSideBar from "./ProjectSideBar";
 import ProjectTeamContent from "./ProjectTeamContent";
+import ChatDrawer from "../communication/chat/ChatDrawer";
 import { ProjectSocialMediaShareButton } from "../shareContent/ProjectSocialMediaShareButton";
 import ProjectAddToCalendarButton from "../calendar/ProjectAddToCalendarButton";
 import { trackGA4Event } from "../../utils/analytics";
@@ -283,21 +281,47 @@ export default function ProjectPageRoot({
   const projectTabsRef = useRef(null);
 
   const messageButtonIsVisible = ElementOnScreen({ el: contactProjectCreatorButtonRef.current });
-  const router = useRouter();
-  const handleClickContact = async (event) => {
-    event.preventDefault();
 
-    const creator = project.team.filter((m) => m.permission === ROLE_TYPES.all_type)[0];
+  const creator = project.team?.filter((m) => m.permission === ROLE_TYPES.all_type)[0];
+
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+
+  const handleClickContact = (event) => {
+    event.preventDefault();
     if (!user) {
-      const redirectUrl = getRedirectUrl(locale);
       return redirect("/signin", {
-        redirect: redirectUrl,
+        redirect: getContactChatRedirectUrl(locale),
         errorMessage: texts.please_create_an_account_or_log_in_to_contact_a_projects_organizer,
       });
     }
-    const chat = await startPrivateChat(creator, token, locale);
-    router.push(appHref("/chat/" + chat.chat_uuid, { hubUrl: hubPage, locale }));
+    setChatDrawerOpen(true);
   };
+
+  const handleChatDrawerClose = () => {
+    setChatDrawerOpen(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("openContactChat")) {
+      url.searchParams.delete("openContactChat");
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
+
+  const { isLoading } = useContext(UserContext);
+  const [autoOpenHandled, setAutoOpenHandled] = useState(false);
+  useEffect(() => {
+    if (isLoading || autoOpenHandled) return;
+    const params = getParams(window.location.href);
+    if (params.openContactChat !== "true") return;
+    setAutoOpenHandled(true);
+    if (user) {
+      setChatDrawerOpen(true);
+    } else {
+      redirect("/signin", {
+        redirect: getRedirectUrl(locale),
+        errorMessage: texts.please_create_an_account_or_log_in_to_contact_a_projects_organizer,
+      });
+    }
+  }, [isLoading, user, autoOpenHandled]);
   const { notifications, setNotificationsRead, refreshNotifications } = useContext(UserContext);
 
   useEffect(() => {
@@ -850,6 +874,15 @@ export default function ProjectPageRoot({
           onCancellationSuccess={handleCancelRegistrationSuccess}
         />
       )}
+      {creator && (
+        <ChatDrawer
+          open={chatDrawerOpen}
+          onClose={handleChatDrawerClose}
+          contactPerson={creator}
+          contextTerm={texts.contact_chat_context_term}
+          contactRole={texts.contact_person}
+        />
+      )}
     </div>
   );
 }
@@ -857,6 +890,17 @@ export default function ProjectPageRoot({
 function TabContent({ value, index, children }) {
   return <div hidden={value !== index}>{children}</div>;
 }
+
+// Carries the "open the contact chat after login" intent through the sign-in
+// round-trip. The query parameter must be inserted before any hash (the page
+// keeps its active tab in the URL hash).
+const getContactChatRedirectUrl = (locale: string) => {
+  const url = getRedirectUrl(locale);
+  const [pathAndQuery, hash] = url.split("#");
+  if (pathAndQuery.includes("openContactChat=")) return url;
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+  return `${pathAndQuery}${separator}openContactChat=true${hash ? "#" + hash : ""}`;
+};
 
 const getFollowers = async (project, token, locale) => {
   try {
