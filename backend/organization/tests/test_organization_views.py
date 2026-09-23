@@ -1520,6 +1520,18 @@ class TestCreateOrganizationViewDraft(APITestCase):
         self.assertTrue(organization.is_draft)
 
     @tag("organizations", "draft")
+    def test_post_draft_without_source_language_sets_fallback_language(self):
+        # Regression: a draft created without source_language had no language,
+        # which crashed edit_translations on the next PATCH.
+        response = self.client.post(
+            self.url, {"name": "Languageless Draft", "is_draft": True}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        organization = Organization.objects.get(name="Languageless Draft")
+        self.assertIsNotNone(organization.language)
+
+    @tag("organizations", "draft")
     def test_post_organization_without_is_draft_still_requires_full_params(self):
         # Regression: relaxing required params for drafts must not relax them
         # for normal (non-draft) organization creation.
@@ -1629,4 +1641,22 @@ class TestOrganizationPublishTransition(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.draft_org.refresh_from_db()
+        self.assertTrue(self.draft_org.is_draft)
+
+    @tag("organizations", "draft")
+    def test_patch_draft_without_language_does_not_crash(self):
+        # Regression: drafts created before a language was always set must
+        # still be editable.
+        self.draft_org.language = None
+        self.draft_org.save()
+
+        response = self.client.patch(
+            self._url(self.draft_org),
+            {"is_draft": True, "short_description": "Updated"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.draft_org.refresh_from_db()
+        self.assertIsNotNone(self.draft_org.language)
         self.assertTrue(self.draft_org.is_draft)

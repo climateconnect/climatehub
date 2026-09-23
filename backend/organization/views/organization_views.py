@@ -88,6 +88,13 @@ from organization.utility.sector import (
 logger = logging.getLogger(__name__)
 
 
+def get_fallback_language(language_code):
+    return (
+        Language.objects.filter(language_code=language_code).first()
+        or Language.objects.filter(language_code="en").first()
+    )
+
+
 class ListOrganizationFollowersView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationFollowerSerializer
@@ -415,6 +422,11 @@ class CreateOrganizationView(APIView):
                         language_code=request.data["source_language"]
                     )
                     organization.language = source_language
+                else:
+                    # Drafts may be created without a source_language (e.g. from
+                    # the first creation step). Fall back to the request language
+                    # so later edits can compute translations.
+                    organization.language = get_fallback_language(request.LANGUAGE_CODE)
 
                 # Handle images
                 if "image" in request.data:
@@ -766,6 +778,11 @@ class OrganizationAPIView(APIView):
             {"key": "organ", "translation_key": "organ_translation"},
             {"key": "get_involved", "translation_key": "get_involved_translation"},
         ]
+
+        # Drafts created before a source_language was required may have no
+        # language set, which edit_translations relies on.
+        if organization.language is None:
+            organization.language = get_fallback_language(request.LANGUAGE_CODE)
 
         edit_translations(
             items_to_translate, request.data, organization, "organization"
