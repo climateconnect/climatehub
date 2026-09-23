@@ -263,7 +263,7 @@ export default function PageNav({
             <div className={classes.linksAndTabsWrapper}>
               {isEmmendingenHub && (
                 <Link
-                  className={classes.climateMatchLink}
+                  className={classes.highlightedLink}
                   href="https://climatehub.earth/burgerenergie-em"
                   underline="hover"
                 >
