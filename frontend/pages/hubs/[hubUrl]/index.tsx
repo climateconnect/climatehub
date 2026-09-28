@@ -52,7 +52,16 @@ export async function getServerSideProps(ctx: any) {
   }
 
   const hubData = await getHubData(hubUrl, locale);
-  if (!hubData?.landing_page_component) {
+  if (!hubData) {
+    // Unknown hub: go straight to the global browse page instead of the hub browse page
+    return {
+      redirect: {
+        destination: appHref("/browse", { locale }),
+        permanent: false,
+      },
+    };
+  }
+  if (!hubData.landing_page_component) {
     return {
       redirect: {
         destination: appHref(`/hubs/${hubUrl}/browse`, { locale }),

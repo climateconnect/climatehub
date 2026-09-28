@@ -1,6 +1,6 @@
 # Hub browse pages redirect to the global browse page for invalid hub slugs
 
-**Status**: DRAFT
+**Status**: IMPLEMENTED - awaiting review
 **Type**: Frontend - bug fix
 **Date created**: 2026-09-28
 **GitHub Issue**: [climatehub#2196](https://github.com/climateconnect/climatehub/issues/2196) - Bug: Hub browse page accepts invalid hub slugs and renders a broken page
@@ -42,15 +42,15 @@ Opening a hub browse page with a hub slug that does not exist renders a broken b
 
 ## Acceptance Criteria
 
-- [ ] **AC-1**: `/hubs/<unknown>/browse` redirects to `/browse`. `/hubs/<unknown>/members` redirects to `/members`. `/hubs/<unknown>/organizations` redirects to `/organizations`.
-- [ ] **AC-2**: The redirect keeps the locale prefix, for example `/de/hubs/x/browse` redirects to `/de/browse`.
-- [ ] **AC-3**: A valid parent hub with an unknown sub-hub redirects to the same page type on the parent hub: `/hubs/erlangen/nope/browse` to `/hubs/erlangen/browse`, `/hubs/erlangen/nope/members` to `/hubs/erlangen/members`, `/hubs/erlangen/nope/organizations` to `/hubs/erlangen/organizations`. If the parent hub does not exist either (for example `/hubs/x/y/browse`), AC-1 applies and the visitor goes to the global page.
-- [ ] **AC-4**: The hub landing page `/hubs/<unknown>` redirects directly to the global `/browse`, not via `/hubs/<unknown>/browse` (one hop, no redirect chain).
-- [ ] **AC-5**: The redirect is temporary (HTTP 307, `permanent: false`), because a hub with that slug can be created later.
-- [ ] **AC-6**: The redirect destination does not carry `?hub=<invalid slug>`.
-- [ ] **AC-7**: Valid hubs and sub-hubs render exactly as today. A valid hub without `landing_page_component` still redirects from `/hubs/<slug>` to `/hubs/<slug>/browse`.
-- [ ] **AC-8**: No extra API round-trip on the happy path for valid hubs.
-- [ ] **AC-9**: New Jest unit tests pass, and `yarn lint` and `yarn format` are clean.
+- [x] **AC-1**: `/hubs/<unknown>/browse` redirects to `/browse`. `/hubs/<unknown>/members` redirects to `/members`. `/hubs/<unknown>/organizations` redirects to `/organizations`.
+- [x] **AC-2**: The redirect keeps the locale prefix, for example `/de/hubs/x/browse` redirects to `/de/browse`.
+- [x] **AC-3**: A valid parent hub with an unknown sub-hub redirects to the same page type on the parent hub: `/hubs/erlangen/nope/browse` to `/hubs/erlangen/browse`, `/hubs/erlangen/nope/members` to `/hubs/erlangen/members`, `/hubs/erlangen/nope/organizations` to `/hubs/erlangen/organizations`. If the parent hub does not exist either (for example `/hubs/x/y/browse`), AC-1 applies and the visitor goes to the global page.
+- [x] **AC-4**: The hub landing page `/hubs/<unknown>` redirects directly to the global `/browse`, not via `/hubs/<unknown>/browse` (one hop, no redirect chain).
+- [x] **AC-5**: The redirect is temporary (HTTP 307, `permanent: false`), because a hub with that slug can be created later.
+- [x] **AC-6**: The redirect destination does not carry `?hub=<invalid slug>`.
+- [x] **AC-7**: Valid hubs and sub-hubs render exactly as today. A valid hub without `landing_page_component` still redirects from `/hubs/<slug>` to `/hubs/<slug>/browse`.
+- [x] **AC-8**: No extra API round-trip on the happy path for valid hubs.
+- [x] **AC-9**: New Jest unit tests pass, and `yarn lint` and `yarn format` are clean.
 
 ### Edge cases
 
@@ -147,6 +147,7 @@ In `getServerSideProps`, when `hubData` is `null`, redirect to `appHref("/browse
 
 ## Log
 
+- 2026-09-28 - Implemented in `getHubBrowseTypeServerSideProps.ts` and `pages/hubs/[hubUrl]/index.tsx`, with 11 unit tests in `getHubBrowseTypeServerSideProps.test.ts`. Full frontend suite (859 tests), `tsc` and `yarn lint` pass. Manually verified against the local dev server: `/hubs/x/browse`, `/de/hubs/x/browse`, `/hubs/x/members`, `/hubs/x/y/browse` and `/hubs/x` return 307 to the global page; `/hubs/erlangen/nope/browse` and `/de/hubs/erlangen/nope/members` return 307 to the parent hub page; `/hubs/erlangen/browse` returns 200.
 - 2026-09-28 - User decision: an unknown sub-hub under an existing parent hub redirects to the parent hub's page (for example `/hubs/erlangen/nope/browse` to `/hubs/erlangen/browse`).
 - 2026-09-28 - User decision: redirect to the global browse page instead of returning 404.
 - 2026-09-28 - Spec drafted from GitHub issue climatehub#2196. Root cause confirmed by reading `getHubBrowseTypeServerSideProps`, the hub landing page and `HubAPIView`. Frontend-only scope. Awaiting user review before implementation.

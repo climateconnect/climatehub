@@ -6,6 +6,8 @@ import { getHubData, getLinkedHubsData } from "./getHubData";
 import getHubTheme from "../../src/themes/fetchHubTheme";
 import isLocationHubLikeHub from "./isLocationHubLikeHub";
 import { LocaleType } from "../../src/types";
+import { appHref } from "./appLink";
+import { getBrowsePathForType, getHubBrowsePathForType } from "./urlOperations";
 
 export async function getHubBrowseTypeServerSideProps(
   ctx: GetServerSidePropsContext,
@@ -39,6 +41,22 @@ export async function getHubBrowseTypeServerSideProps(
     getLinkedHubsData(hubUrl),
     getSectorOptions(locale, hubUrl),
   ]);
+
+  if (!hubData) {
+    // Unknown sub-hub under an existing parent hub: stay in the parent hub.
+    // Otherwise fall back to the global page of the same type.
+    const parentHubData = subHub ? await getHubData(parentHubUrl, locale) : null;
+    const destination = parentHubData
+      ? getHubBrowsePathForType(internalType, parentHubUrl)
+      : getBrowsePathForType(internalType);
+    return {
+      redirect: {
+        destination: appHref(destination, { locale }),
+        // a hub with this slug may be created later
+        permanent: false,
+      },
+    };
+  }
 
   const filterChoices: any = {};
   if (internalType === "projects" || internalType === "organizations") {
