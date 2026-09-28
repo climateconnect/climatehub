@@ -1,9 +1,9 @@
 import { GetServerSidePropsContext } from "next";
 import { getHubBrowseTypeServerSideProps } from "./getHubBrowseTypeServerSideProps";
-import { getHubData } from "./getHubData";
+import { getHubDataResult } from "./getHubData";
 
 jest.mock("./getHubData", () => ({
-  getHubData: jest.fn(),
+  getHubDataResult: jest.fn(),
   getLinkedHubsData: jest.fn().mockResolvedValue([]),
 }));
 jest.mock("./getOptions", () => ({
@@ -23,18 +23,21 @@ jest.mock("../../src/themes/fetchHubTheme", () => ({
   default: jest.fn().mockResolvedValue(null),
 }));
 
-const mockedGetHubData = getHubData as jest.MockedFunction<typeof getHubData>;
+const mockedGetHubData = getHubDataResult as jest.MockedFunction<typeof getHubDataResult>;
 
 const HUB = { url_slug: "erlangen", name: "Erlangen" } as any;
 
 const makeCtx = (query: Record<string, string>, locale = "en") =>
   (({ query, locale } as unknown) as GetServerSidePropsContext);
 
-// Resolve getHubData only for the given slugs, null for everything else.
-const knownHubs = (...slugs: string[]) =>
-  mockedGetHubData.mockImplementation(async (slug) =>
-    slugs.includes(slug) ? { ...HUB, url_slug: slug } : null
-  );
+// Known slugs resolve to a hub, failing slugs behave like a 5xx/timeout,
+// every other slug behaves like an API 404.
+const knownHubs = (slugs: string[] = [], failing: string[] = []) =>
+  mockedGetHubData.mockImplementation(async (slug) => {
+    if (slugs.includes(slug)) return { hubData: { ...HUB, url_slug: slug }, notFound: false };
+    if (failing.includes(slug)) return { hubData: null, notFound: false };
+    return { hubData: null, notFound: true };
+  });
 
 describe("getHubBrowseTypeServerSideProps", () => {
   beforeEach(() => {
@@ -42,7 +45,7 @@ describe("getHubBrowseTypeServerSideProps", () => {
   });
 
   it("returns props when the hub exists", async () => {
-    knownHubs("erlangen");
+    knownHubs(["erlangen"]);
 
     const result: any = await getHubBrowseTypeServerSideProps(
       makeCtx({ hubUrl: "erlangen" }),
@@ -55,7 +58,7 @@ describe("getHubBrowseTypeServerSideProps", () => {
   });
 
   it("looks up a sub-hub as parent_sub and does not look up the parent when it exists", async () => {
-    knownHubs("erlangen_zerowaste");
+    knownHubs(["erlangen_zerowaste"]);
 
     const result: any = await getHubBrowseTypeServerSideProps(
       makeCtx({ hubUrl: "erlangen", subHub: "zerowaste" }),
@@ -99,7 +102,7 @@ describe("getHubBrowseTypeServerSideProps", () => {
   ])(
     "redirects an unknown sub-hub under an existing parent on the %s page to %s",
     async (type, destination) => {
-      knownHubs("erlangen");
+      knownHubs(["erlangen"]);
 
       const result: any = await getHubBrowseTypeServerSideProps(
         makeCtx({ hubUrl: "erlangen", subHub: "nope" }),
@@ -112,7 +115,7 @@ describe("getHubBrowseTypeServerSideProps", () => {
   );
 
   it("keeps the locale prefix when redirecting to the parent hub", async () => {
-    knownHubs("erlangen");
+    knownHubs(["erlangen"]);
 
     const result: any = await getHubBrowseTypeServerSideProps(
       makeCtx({ hubUrl: "erlangen", subHub: "nope" }, "de"),
@@ -131,5 +134,42 @@ describe("getHubBrowseTypeServerSideProps", () => {
     );
 
     expect(result).toEqual({ redirect: { destination: "/browse", permanent: false } });
+  });
+
+  it("renders the page instead of redirecting when the hub request fails with a non-404 error", async () => {
+    knownHubs([], ["erlangen"]);
+
+    const result: any = await getHubBrowseTypeServerSideProps(
+      makeCtx({ hubUrl: "erlangen" }),
+      "projects"
+    );
+
+    expect(result.redirect).toBeUndefined();
+    expect(result.props.hubData).toBeNull();
+  });
+
+  it("renders the sub-hub page when the sub-hub request fails with a non-404 error", async () => {
+    knownHubs(["erlangen"], ["erlangen_zerowaste"]);
+
+    const result: any = await getHubBrowseTypeServerSideProps(
+      makeCtx({ hubUrl: "erlangen", subHub: "zerowaste" }),
+      "projects"
+    );
+
+    expect(result.redirect).toBeUndefined();
+    expect(mockedGetHubData).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays in the parent hub when the sub-hub is unknown and the parent request fails", async () => {
+    knownHubs([], ["erlangen"]);
+
+    const result: any = await getHubBrowseTypeServerSideProps(
+      makeCtx({ hubUrl: "erlangen", subHub: "nope" }),
+      "projects"
+    );
+
+    expect(result).toEqual({
+      redirect: { destination: "/hubs/erlangen/browse", permanent: false },
+    });
   });
 });

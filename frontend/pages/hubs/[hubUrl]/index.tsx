@@ -7,7 +7,7 @@ import getTexts from "../../../public/texts/texts";
 import isLocationHubLikeHub from "../../../public/lib/isLocationHubLikeHub";
 import theme from "../../../src/themes/theme";
 import { HubData } from "../../../src/types";
-import { getHubData } from "../../../public/lib/getHubData";
+import { getHubDataResult } from "../../../public/lib/getHubData";
 import { appHref } from "../../../public/lib/appLink";
 
 interface TextsType {
@@ -51,9 +51,9 @@ export async function getServerSideProps(ctx: any) {
     };
   }
 
-  const hubData = await getHubData(hubUrl, locale);
-  if (!hubData) {
-    // Unknown hub: go straight to the global browse page instead of the hub browse page
+  const { hubData, notFound } = await getHubDataResult(hubUrl, locale);
+  if (notFound) {
+    // Unknown hub (API 404): go straight to the global browse page instead of the hub browse page
     return {
       redirect: {
         destination: appHref("/browse", { locale }),
@@ -61,7 +61,7 @@ export async function getServerSideProps(ctx: any) {
       },
     };
   }
-  if (!hubData.landing_page_component) {
+  if (!hubData?.landing_page_component) {
     return {
       redirect: {
         destination: appHref(`/hubs/${hubUrl}/browse`, { locale }),

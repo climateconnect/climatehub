@@ -10,7 +10,7 @@
 - [frontend/pages/hubs/[hubUrl]/browse.tsx](../../frontend/pages/hubs/%5BhubUrl%5D/browse.tsx) - hub projects browse page (plus `members.tsx`, `organizations.tsx`)
 - [frontend/pages/hubs/[hubUrl]/[subHub]/browse.tsx](../../frontend/pages/hubs/%5BhubUrl%5D/%5BsubHub%5D/browse.tsx) - sub-hub variants, re-export the parent pages
 - [frontend/pages/hubs/[hubUrl]/index.tsx](../../frontend/pages/hubs/%5BhubUrl%5D/index.tsx) - hub landing page, redirects to `/browse` when there is no landing page component
-- [frontend/public/lib/getHubData.ts](../../frontend/public/lib/getHubData.ts) - `getHubData` returns `null` on API error
+- [frontend/public/lib/getHubData.ts](../../frontend/public/lib/getHubData.ts) - `getHubData` returns `null` on API error; new `getHubDataResult` tells a 404 apart from other failures
 - [frontend/public/lib/urlOperations.ts](../../frontend/public/lib/urlOperations.ts) - `getBrowsePathForType` maps `projects` / `members` / `organizations` to the global paths, `getHubBrowsePathForType` to the hub paths
 - [frontend/public/lib/appLink.ts](../../frontend/public/lib/appLink.ts) - `appHref` adds the locale prefix to the redirect destination
 - [backend/hubs/views/hub_views.py](../../backend/hubs/views/hub_views.py) - `HubAPIView` already returns 404, no change expected
@@ -68,7 +68,8 @@ Opening a hub browse page with a hub slug that does not exist renders a broken b
 | Hub without `landing_page_component` | Still redirects to `/hubs/<slug>/browse` |
 | `/hubs/x/browse?sectors=energy` | 307 to `/browse`. Query string is dropped (see Open questions) |
 | `/hubs/x/browse#members` | Browser keeps the hash, lands on `/browse#members`. The global page's existing hash redirect then sends the visitor to `/members` |
-| Hub API down or 5xx | `getHubData` returns `null`, so valid hubs also redirect to `/browse` during an outage (see Open questions) |
+| Hub API 5xx, timeout or network error | No redirect. The page renders as before without hub data. Only an API 404 counts as an unknown hub |
+| Unknown sub-hub, parent lookup fails with 5xx | 307 to the parent hub page. That page redirects again if the parent is also unknown |
 
 ---
 
@@ -141,12 +142,13 @@ In `getServerSideProps`, when `hubData` is `null`, redirect to `appHref("/browse
 
 - [ ] Should hub members and organizations pages redirect to their global equivalents (`/members`, `/organizations`, as specified), or should all of them go to `/browse`?
 - [ ] Should query params (filters) be kept on the redirect? Hub-specific sector filters may not exist globally, so this spec drops them.
-- [ ] During a hub API outage (5xx or timeout) valid hubs would also redirect to `/browse`. Should `getHubData` expose the status so that only a 404 triggers the redirect?
+- [x] During a hub API outage (5xx or timeout), should valid hubs redirect? Decided: no. A new `getHubDataResult` helper in `getHubData.ts` returns `{ hubData, notFound }`, and only an API 404 sets `notFound`. `getHubData` keeps its signature for other callers.
 
 ---
 
 ## Log
 
+- 2026-09-28 - Code review fix: redirect only on an API 404, not on any `getHubData` failure. Added `getHubDataResult` (no backend change, `HubAPIView` already returns 404). A 404 is no longer logged as an error by `getHubData`. Added tests for 5xx and network errors; full suite (867 tests), `tsc` and `yarn lint` pass, and the manual checks from the previous entry still hold.
 - 2026-09-28 - Implemented in `getHubBrowseTypeServerSideProps.ts` and `pages/hubs/[hubUrl]/index.tsx`, with 11 unit tests in `getHubBrowseTypeServerSideProps.test.ts`. Full frontend suite (859 tests), `tsc` and `yarn lint` pass. Manually verified against the local dev server: `/hubs/x/browse`, `/de/hubs/x/browse`, `/hubs/x/members`, `/hubs/x/y/browse` and `/hubs/x` return 307 to the global page; `/hubs/erlangen/nope/browse` and `/de/hubs/erlangen/nope/members` return 307 to the parent hub page; `/hubs/erlangen/browse` returns 200.
 - 2026-09-28 - User decision: an unknown sub-hub under an existing parent hub redirects to the parent hub's page (for example `/hubs/erlangen/nope/browse` to `/hubs/erlangen/browse`).
 - 2026-09-28 - User decision: redirect to the global browse page instead of returning 404.
