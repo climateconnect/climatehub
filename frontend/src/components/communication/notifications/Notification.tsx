@@ -1,6 +1,5 @@
 import { Link, ListItemText, MenuItem } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
 import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
 import GroupIcon from "@mui/icons-material/Group";
 import React, { useContext } from "react";
@@ -14,28 +13,13 @@ import {
 } from "./CommentNotifications";
 import GenericNotification from "./GenericNotification";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    messageSender: {
-      fontWeight: 600,
-      whiteSpace: "normal",
-    },
-    listItemText: {
-      whiteSpace: "normal",
-    },
-    goToInboxText: {
-      textAlign: "center",
-      display: "block",
-      marginTop: theme.spacing(1),
-      color: theme.palette.background.default_contrastText,
-    },
-    notificationText: {
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    },
-  };
-});
+const GoToInboxText = styled("span")(({ theme }) => ({
+  textAlign: "center",
+  display: "block",
+  marginTop: theme.spacing(1),
+  color: theme.palette.background.default_contrastText,
+}));
+
 export const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
   "&:focus": {
     "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
@@ -228,7 +212,6 @@ const GroupMessageNotification = ({ notification, hubUrl }) => {
 };
 
 const PlaceholderNotification = ({ hubUrl }) => {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "notification", locale: locale });
   const baseUrl = `${getLocalePrefix(locale)}/inbox`;
@@ -236,10 +219,10 @@ const PlaceholderNotification = ({ hubUrl }) => {
   return (
     <Link href={notifLink} underline="none" color="inherit">
       <StyledMenuItem>
-        <ListItemText className={classes.listItemText} disableTypography>
+        <ListItemText sx={{ whiteSpace: "normal" }} disableTypography>
           {texts.placeholderNotification}
           <div>
-            <span className={classes.goToInboxText}>{texts.go_to_inbox}</span>
+            <GoToInboxText>{texts.go_to_inbox}</GoToInboxText>
           </div>
         </ListItemText>
       </StyledMenuItem>

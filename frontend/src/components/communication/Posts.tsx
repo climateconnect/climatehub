@@ -1,25 +1,33 @@
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React from "react";
 
 import Post from "./Post";
 
-const useStyles = makeStyles((theme) => ({
-  post: {
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-  },
-  indent: {
-    marginLeft: theme.spacing(4),
-  },
-  noMargin: {
-    margin: 0,
-  },
-  progressPosts: {
-    marginLeft: theme.spacing(4),
-    paddingBottom: theme.spacing(6),
-    borderLeft: `2px solid ${theme.palette.primary.main}`,
-  },
-  progressPost: {
+const PostsWrapper = styled("div", {
+  shouldForwardProp: (prop) => !String(prop).startsWith("$"),
+})<{ $type?: string }>(({ theme, $type }) => {
+  if ($type === "reply") {
+    return { marginLeft: theme.spacing(4) };
+  }
+  if ($type === "openingpost") {
+    return { margin: 0 };
+  }
+  if ($type === "progresspost") {
+    return {
+      marginLeft: theme.spacing(4),
+      paddingBottom: theme.spacing(6),
+      borderLeft: `2px solid ${theme.palette.primary.main}`,
+    };
+  }
+  return {};
+});
+
+const StyledPost = styled(Post, {
+  shouldForwardProp: (prop) => !String(prop).startsWith("$"),
+})<{ $progressPost?: boolean; $firstPost?: boolean }>(({ theme, $progressPost, $firstPost }) => ({
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+  ...($progressPost && {
     paddingLeft: theme.spacing(10),
     position: "relative",
     paddingBottom: theme.spacing(10),
@@ -33,20 +41,18 @@ const useStyles = makeStyles((theme) => ({
       position: "absolute",
       top: 0,
       left: -10,
+      ...($firstPost && {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        left: -20,
+        //10.1 margin to prevent visual glitch with line showing over dot
+        top: -10.1,
+        border: `10px solid #D7E2E4`,
+        zIndex: -1,
+      }),
     },
-  },
-  firstPost: {
-    "&::before": {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      left: -20,
-      //10.1 margin to prevent visual glitch with line showing over dot
-      top: -10.1,
-      border: `10px solid #D7E2E4`,
-      zIndex: -1,
-    },
-  },
+  }),
 }));
 
 //@type: possible values are "openingpost", "reply", "progresspost", "preview"
@@ -62,22 +68,15 @@ export default function Posts({
   noLink,
   hubUrl,
 }: any) {
-  const classes = useStyles();
-  const classNames = {
-    reply: classes.indent,
-    openingpost: classes.noMargin,
-    progresspost: classes.progressPosts,
-  };
   return (
-    <div className={classNames[type]}>
+    <PostsWrapper $type={type}>
       {posts &&
         posts.map((post, index) => (
-          <Post
+          <StyledPost
             key={index}
             post={post}
-            className={`${classes.post} ${type === "progresspost" && classes.progressPost} ${
-              index === 0 && type === "progresspost" && classes.firstPost
-            }`}
+            $progressPost={type === "progresspost"}
+            $firstPost={index === 0 && type === "progresspost"}
             type={type}
             maxLines={maxLines}
             user={user}
@@ -89,6 +88,6 @@ export default function Posts({
             hubUrl={hubUrl}
           />
         ))}
-    </div>
+    </PostsWrapper>
   );
 }

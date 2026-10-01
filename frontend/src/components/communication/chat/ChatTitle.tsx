@@ -1,47 +1,38 @@
 import React from "react";
 import { Avatar, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import GroupIcon from "@mui/icons-material/Group";
-import makeStyles from "@mui/styles/makeStyles";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    avatarWrapper: {
-      display: "inline-block",
-      verticalAlign: "middle",
-    },
-    profileName: {
-      display: "inline-block",
-      verticalAlign: "middle",
-      marginLeft: theme.spacing(1),
-    },
-    mediumProfileName: {
-      fontSize: 16,
-    },
-
-    mediumAvatar: {
-      height: 30,
-      width: 30,
-    },
-  };
+const AvatarWrapper = styled("div")({
+  display: "inline-block",
+  verticalAlign: "middle",
 });
 
-export default function ChatTitle({ chat, className, size }) {
-  const classes = useStyles();
+const mediumAvatarSx = {
+  height: 30,
+  width: 30,
+};
 
+const ProfileName = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$medium",
+})<{ $medium?: boolean }>(({ theme, $medium }) => ({
+  display: "inline-block",
+  verticalAlign: "middle",
+  marginLeft: theme.spacing(1),
+  ...($medium && { fontSize: 16 }),
+}));
+
+export default function ChatTitle({ chat, className, size }) {
   return (
     <div className={className}>
-      <div className={classes.avatarWrapper}>
-        <Avatar className={`${size == "medium" && classes.mediumAvatar}`}>
+      <AvatarWrapper>
+        <Avatar sx={size == "medium" ? mediumAvatarSx : undefined}>
           <GroupIcon />
         </Avatar>
-      </div>
-      <Typography
-        color="inherit"
-        className={`${classes.profileName} ${size === "medium" && classes.mediumProfileName}`}
-        variant="h6"
-      >
+      </AvatarWrapper>
+      <ProfileName color="inherit" $medium={size === "medium"} variant="h6">
         {chat.name}
-      </Typography>
+      </ProfileName>
     </div>
   );
 }

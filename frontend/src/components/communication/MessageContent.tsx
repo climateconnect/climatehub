@@ -1,5 +1,5 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { string } from "prop-types";
 import React, { useContext } from "react";
 import Linkify from "react-linkify";
@@ -8,20 +8,22 @@ import youtubeRegex from "youtube-regex";
 import { getFragmentsWithMentions } from "../../utils/mentions_markdown";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles((theme) => ({
-  link: {
+const MessageLink = styled("a")({
+  color: "inherit",
+  "&:visited": {
     color: "inherit",
-    "&:visited": {
-      color: "inherit",
-    },
   },
-  youtubeWrapper: {
-    maxWidth: "640px",
-  },
-  messageContext: (received) => ({
-    alignSelf: "flex-start",
-    color: received ? "default" : theme?.palette?.primary?.contrastText,
-  }),
+});
+
+const YoutubeWrapper = styled("div")({
+  maxWidth: "640px",
+});
+
+const MessageText = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$received",
+})<{ $received?: boolean }>(({ theme, $received }) => ({
+  alignSelf: "flex-start",
+  color: $received ? "default" : theme?.palette?.primary?.contrastText,
 }));
 
 type Props = {
@@ -31,13 +33,12 @@ type Props = {
 };
 
 export default function MessageContent({ content, renderYoutubeVideos = false, received }: Props) {
-  const classes = useStyles(received);
   const { locale } = useContext(UserContext);
   //workaround to get target="_blank" because setting 'properties' on the Linkify component doesn't work
   const componentDecorator = (href, text, key) => (
-    <a href={href} className={classes.link} key={key} target="_blank" rel="noopener noreferrer">
+    <MessageLink href={href} key={key} target="_blank" rel="noopener noreferrer">
       {text}
-    </a>
+    </MessageLink>
   );
 
   const opts = {
@@ -62,9 +63,9 @@ export default function MessageContent({ content, renderYoutubeVideos = false, r
             const ampersandPosition = video_id.indexOf("&");
             if (ampersandPosition !== -1) video_id = video_id.substring(0, ampersandPosition);
             return (
-              <div key={uniqueKey} className={classes.youtubeWrapper}>
+              <YoutubeWrapper key={uniqueKey}>
                 <YouTube videoId={video_id} opts={opts as any} />
-              </div>
+              </YoutubeWrapper>
             );
           } else {
             return (
@@ -111,9 +112,9 @@ export default function MessageContent({ content, renderYoutubeVideos = false, r
             const fragments = getFragmentsWithMentions(content, true, locale);
             return (
               <div key={index}>
-                <Typography display="inline" className={classes.messageContext}>
+                <MessageText display="inline" $received={received}>
                   {fragments}
-                </Typography>
+                </MessageText>
               </div>
             );
           })

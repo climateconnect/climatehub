@@ -253,6 +253,21 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Organizations: browse organizations page and the profile "organizations" tab (card hover colour/shadow, `ul` grid reset, 14 px location text with the icon aligned at the bottom); landing page organizations box below `xl` and at `sm`+ (first card without left margin, scrollbar styling); `MiniOrganizationPreview` in the project page / project metadata (tiny, small, small-inline, medium: name clamp, weight, avatar border).
   - Organization creation step 1: selected-type chips (30 px high; second chip left margin; top margin below `md`; column centred below `sm`). Edit organization: delete button (centred, 224 px min-width), error alert, "Translate" headline. Delete dialog: left margin between the two buttons. Manage organization members: headline colour, right-aligned button row and Save margins.
 
+#### Phase 2.5b results (`communication/*`)
+
+- Migrated 19 component files: `communication/chat` (12: `ChatContent`, `ChatDrawer`, `ChatHeader`, `ChatMemberManagementOverlay`, `ChatPreviews`, `ChatSearchField`, `ChatTitle`, `Message`, `Messages`, `MessagingLayout`, `MobileChatPreview`, `UserSearchField`), `communication` root (5: `CommentInput`, `InputWithMentions`, `MessageContent`, `Post`, `Posts`) and `communication/notifications` (2: `GenericNotification`, `Notification`). `@mui/styles` importing files: 210 → 191. `chat/ChatDrawer.test.tsx` still wraps with `StylesThemeProvider` and stays on the allowlist until Phase 3.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of 15 communication components (titles, headers, messages sent/received, chat previews, `MessageContent`, `Post`/`Posts`, notifications) produced no new React console errors; `Post` logs an HTML-nesting warning (`<div>`/`<p>` inside a `<p>`) that comes from the unchanged structure of the original (`Typography` around `MessageContent`). The throwaway test files were deleted. Not checked in a real browser.
+- Review notes:
+  - Sub-tasks again rewrote a few files with Python scripts despite the instruction to use only Edit/Write; no stray files ended up in the repo (`git status` checked), and one empty scratch file outside the repo was removed.
+  - "Dead code" claims were re-verified against `HEAD`: unreferenced keys in `ChatPreviews` (`date`, `unread`), `MessagingLayout` (`showParticipantsButton`), `Post` (`message`, `content`, `toggleExpanded`, `commentBox`), `Notification` (`messageSender`, `notificationText`), `GenericNotification` (`listItemText`, `goToInboxText`); `ChatContent`'s `classes.manageMembersButton` was never defined. `ChatPreviews` `unreadBadge` / `listItem` were referenced and are carried over.
+  - Prop-surface change inside the folder: `Message` no longer takes a `classes` prop (its only consumer was `Messages`; the bubble styles now live in `Message`).
+  - `InputWithMentions`: react-mentions only accepts a plain class string on `<Mention className>`, so `{ zIndex: 100 }` is generated with `ClassNames` from `@emotion/react` (same approach as `HubSupportersDialog`).
+  - `GenericNotification`: the primary/secondary text styles are `sx` on `primaryTypographyProps` / `secondaryTypographyProps`; user `sx` overrides the `display` system prop that `ListItemText` passes, so `display: -webkit-box` still wins, as the old class did.
+- **Manual visual checklist for this batch**:
+  - `/inbox`, chat open, narrow and wide: sent vs received bubble colours, padding and 70 % max width, clock time, sender-name link, event-origin chip; send bar width and 35 px send icon, 960 px participants strip; chat header (back button left, leave/manage buttons right); inbox list (250 px title/avatar column, medium group-chat titles with 30 px avatar and 16 px name, green bold unread badge); new-chat search (cancel button right, group name field, member chips); member management overlay (Save floats right); chat drawer opened from a profile or project (header, loading spinner, error alert); mobile chat previews.
+  - Project discussion tab and idea comments, desktop and below `md`: reply indent, progress-post timeline dot and line (first post `::before`), comment input spacing and buttons, mention suggestions dropdown (z-index, hover/focus underline).
+  - Notifications bell menu: title and text clamp, close icon absolute position, "go to inbox"; links inside messages and embedded YouTube videos.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -326,14 +341,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status           | `@mui/styles` files remaining |
-| ------------------------------------------ | ---------------- | ----------------------------- |
-| 0 Prep                                     | ✅               | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.5a done | 210                           |
-| 3 Remove bridge + SSR                      | ☐                |                               |
-| 4 Remove dependency + lint guard           | ☐                | 0                             |
-| 5 Verify + docs                            | ☐                | 0                             |
+| Phase                                      | Status          | `@mui/styles` files remaining |
+| ------------------------------------------ | --------------- | ----------------------------- |
+| 0 Prep                                     | ✅              | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.5 done | 191                           |
+| 3 Remove bridge + SSR                      | ☐               |                               |
+| 4 Remove dependency + lint guard           | ☐               | 0                             |
+| 5 Verify + docs                            | ☐               | 0                             |
 
 ## 8. Open questions for the maintainers
 
