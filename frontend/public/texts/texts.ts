@@ -1,4 +1,3 @@
-import { ClassNameMap } from "@mui/styles";
 import { User, CcLocale, Project } from "../../src/types";
 import getAboutTexts from "./about_texts";
 import account_texts from "./account_texts.json";
@@ -44,7 +43,7 @@ type Page =
   | "project"
   | "settings";
 type Args<P extends Page> = {
-  classes?: ClassNameMap;
+  classes?: Record<string, string>;
   filterType?: string;
   goal?: string;
   hubName?: string;

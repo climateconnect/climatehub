@@ -5,7 +5,7 @@ import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import GenericDialog from "./GenericDialog";
-import { useTheme } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 
 const useStyles = makeStyles({

@@ -1,7 +1,14 @@
 import React from "react";
 import makeStyles from "@mui/styles/makeStyles";
-import withStyles from "@mui/styles/withStyles";
-import { Stepper, Step, StepLabel, StepConnector, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import {
+  Stepper,
+  Step,
+  StepLabel,
+  StepConnector,
+  Typography,
+  stepConnectorClasses,
+} from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 
 const ICON_OFFSET = 3; //offset required to center icons horizontally in px.
@@ -82,32 +89,24 @@ const useStyles = makeStyles((theme) => {
   };
 });
 
-const CustomConnector = withStyles((theme) => {
-  return {
-    root: {
-      left: "calc(-50%)",
-      right: "calc(50%)",
-    },
-    line: {
-      height: 3,
-      border: 0,
-      backgroundColor: theme.palette.background.default_contrastText,
-      borderRadius: 1,
-      margin: 0,
-      zIndex: 9,
-    },
-    completed: {
-      "& $line": {
-        backgroundColor: "#bbced2",
-      },
-    },
-    active: {
-      "& $line": {
-        backgroundColor: "#bbced2",
-      },
-    },
-  };
-})(StepConnector);
+const CustomConnector = styled(StepConnector)(({ theme }) => ({
+  left: "calc(-50%)",
+  right: "calc(50%)",
+  [`& .${stepConnectorClasses.line}`]: {
+    height: 3,
+    border: 0,
+    backgroundColor: theme.palette.background.default_contrastText,
+    borderRadius: 1,
+    margin: 0,
+    zIndex: 9,
+  },
+  [`&.${stepConnectorClasses.completed} .${stepConnectorClasses.line}`]: {
+    backgroundColor: "#bbced2",
+  },
+  [`&.${stepConnectorClasses.active} .${stepConnectorClasses.line}`]: {
+    backgroundColor: "#bbced2",
+  },
+}));
 
 const CustomStepIcon = (props) => {
   const classes = useStyles();

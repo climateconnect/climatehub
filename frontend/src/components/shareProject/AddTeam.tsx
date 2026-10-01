@@ -10,7 +10,7 @@ import AutoCompleteSearchBar from "../search/AutoCompleteSearchBar";
 import AddProjectMembersContainer from "./AddProjectMembersContainer";
 import OrganizersContainer from "./OrganizersContainer";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-import { useTheme } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 
 const useStyles = makeStyles((theme) => {
   return {

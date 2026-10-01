@@ -15,7 +15,7 @@ import ProjectDescriptionEditor from "../editProject/ProjectDescriptionEditor";
 import { checkProjectDatesValid } from "../../../public/lib/dateOperations";
 import { indicateWrongLocation, isLocationValid } from "../../../public/lib/locationOperations";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-import { useTheme } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 import dayjs from "dayjs";
 import EventRegistrationSection from "./EventRegistrationSection";
 import { validateRegistrationFields } from "../../utils/eventRegistrationHelpers";

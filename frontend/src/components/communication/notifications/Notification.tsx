@@ -1,5 +1,5 @@
 import { Link, ListItemText, MenuItem } from "@mui/material";
-import withStyles from "@mui/styles/withStyles";
+import { styled } from "@mui/material/styles";
 import makeStyles from "@mui/styles/makeStyles";
 import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
 import GroupIcon from "@mui/icons-material/Group";
@@ -36,16 +36,14 @@ const useStyles = makeStyles((theme) => {
     },
   };
 });
-export const StyledMenuItem = withStyles((theme) => ({
-  root: {
-    "&:focus": {
-      "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
-        color: theme.palette.common.white,
-      },
+export const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
+  "&:focus": {
+    "& .MuiListItemIcon-root, & .MuiListItemText-primary": {
+      color: theme.palette.common.white,
     },
-    maxWidth: 450,
   },
-}))(MenuItem);
+  maxWidth: 450,
+}));
 
 //When editing this: make sure all entries are still at the correct index afterwards
 //It has to match with Notification.NOTIFICATION_TYPES in the backend

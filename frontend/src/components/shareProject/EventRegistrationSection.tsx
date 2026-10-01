@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { Box, Divider, FormControlLabel, Switch, TextField, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
-import { useTheme } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 import dayjs, { Dayjs } from "dayjs";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";

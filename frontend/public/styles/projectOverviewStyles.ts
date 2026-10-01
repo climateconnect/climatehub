@@ -1,8 +1,7 @@
 import { Theme } from "@mui/material";
+import { CSSObject } from "@mui/material/styles";
 
-import { StyleRules } from "@mui/styles";
-
-const projectOverviewStyles = (theme: Theme): StyleRules => {
+const projectOverviewStyles = (theme: Theme): Record<string, CSSObject> => {
   //general styling
   return {
     projectOverview: {

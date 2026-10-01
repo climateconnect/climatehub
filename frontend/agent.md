@@ -42,7 +42,7 @@
 
 ### Material-UI v5
 - Use `@mui/material` imports
-- Use `styled()` from `@mui/styles` or `@emotion/styled` for styling
+- Style with `styled()` from `@mui/material/styles` or the `sx` prop. Do not use `makeStyles`/`withStyles` from `@mui/styles` (deprecated, being removed — see `doc/spec/MIGRATION_MUI_STYLE_PLAN.md`)
 - Use theme breakpoints for responsive design
 - Access theme with `useTheme()` hook
 

@@ -4,7 +4,8 @@ import getTexts from "../../../public/texts/texts";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import UserContext from "../context/UserContext";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import { makeStyles, useTheme } from "@mui/styles";
+import { makeStyles } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 
 const useStyles = makeStyles(() => ({
