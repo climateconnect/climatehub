@@ -1,24 +1,25 @@
 import { Button, Checkbox, TextField, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import GenericDialog from "./../dialogs/GenericDialog";
 
-const useStyles = makeStyles((theme) => ({
-  textField: {
-    width: "100%",
-  },
-  feedback: {
-    marginBottom: theme.spacing(2),
-  },
-  sendButton: {
-    marginTop: theme.spacing(2),
-    float: "right",
-  },
-  checkbox: {
-    marginLeft: theme.spacing(-1),
-  },
+const FeedbackText = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const FeedbackTextField = styled(TextField)({
+  width: "100%",
+});
+
+const FeedbackCheckbox = styled(Checkbox)(({ theme }) => ({
+  marginLeft: theme.spacing(-1),
+}));
+
+const SendButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  float: "right",
 }));
 
 export default function FeedbackDialog({
@@ -29,7 +30,6 @@ export default function FeedbackDialog({
   maxLength,
   className,
 }: FeedbackDialogProps) {
-  const classes = useStyles();
   const [element, setElement] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [email, setEmail] = useState("");
@@ -63,12 +63,9 @@ export default function FeedbackDialog({
     <GenericDialog onClose={handleClose} open={open} title={title}>
       <div className={className}>
         <form onSubmit={onSend}>
-          <Typography className={classes.feedback}>
-            {texts.send_us_your_feedback_about_climate_connect}
-          </Typography>
-          <TextField
+          <FeedbackText>{texts.send_us_your_feedback_about_climate_connect}</FeedbackText>
+          <FeedbackTextField
             multiline
-            className={classes.textField}
             label={inputLabel}
             autoFocus={true}
             variant="outlined"
@@ -79,9 +76,8 @@ export default function FeedbackDialog({
             maxRows={15}
             required
           />
-          <Checkbox
+          <FeedbackCheckbox
             id={"feedbackcheckbox"}
-            className={classes.checkbox}
             checked={checked}
             size="small"
             onChange={(e) => setChecked(e.target.checked)}
@@ -103,9 +99,9 @@ export default function FeedbackDialog({
               />
             </>
           )}
-          <Button variant="contained" color="primary" type="submit" className={classes.sendButton}>
+          <SendButton variant="contained" color="primary" type="submit">
             {texts.send}
-          </Button>
+          </SendButton>
         </form>
       </div>
     </GenericDialog>

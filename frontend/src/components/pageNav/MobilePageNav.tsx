@@ -1,6 +1,6 @@
 import React, { useContext, useMemo } from "react";
 import { Box } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ContactAmbassadorButton from "../hub/ContactAmbassadorButton";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -12,36 +12,37 @@ import AppLink from "../general/AppLink";
 import { usePageNavEntries } from "../../hooks/usePageNavEntries";
 import { BrowseEntity } from "../../types";
 
-const useStyles = makeStyles((theme) => ({
-  nav: {
-    display: "flex",
-    backgroundColor: "transparent",
-    paddingLeft: theme.spacing(0.5),
-    paddingRight: theme.spacing(0.5),
-  },
-  entry: {
-    flex: 1,
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "6px 4px 8px",
-    gap: 2,
-    textDecoration: "none !important",
+const Nav = styled("nav")(({ theme }) => ({
+  display: "flex",
+  backgroundColor: "transparent",
+  paddingLeft: theme.spacing(0.5),
+  paddingRight: theme.spacing(0.5),
+}));
+
+const Entry = styled(AppLink, {
+  shouldForwardProp: (p) => p !== "active",
+})<{ active?: boolean }>(({ theme, active }) => ({
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "6px 4px 8px",
+  gap: 2,
+  textDecoration: "none !important",
+  color: theme.palette.text.secondary,
+  "& .MuiSvgIcon-root": {
     color: theme.palette.text.secondary,
-    "& .MuiSvgIcon-root": {
-      color: theme.palette.text.secondary,
-      fontSize: "1.4rem",
-    },
-    "& .entryLabel": {
-      fontSize: "0.6rem",
-      lineHeight: 1.2,
-      marginTop: 1,
-      whiteSpace: "nowrap",
-    },
+    fontSize: "1.4rem",
   },
-  entryActive: {
+  "& .entryLabel": {
+    fontSize: "0.6rem",
+    lineHeight: 1.2,
+    marginTop: 1,
+    whiteSpace: "nowrap",
+  },
+  ...(active && {
     backgroundColor: theme.palette.background.default_contrastText || theme.palette.primary.main,
     borderRadius: 16,
     margin: "4px 6px",
@@ -58,7 +59,7 @@ const useStyles = makeStyles((theme) => ({
     "&:hover": {
       textDecoration: "none !important",
     },
-  },
+  }),
 }));
 
 const type_icons: Record<string, React.ElementType> = {
@@ -98,7 +99,6 @@ export default function MobilePageNav({
   hubAmbassador?: any;
 }) {
   const { locale } = useContext(UserContext);
-  const classes = useStyles();
   const texts = useMemo(() => getTexts({ page: "hub", locale: locale }), [locale]);
   const { browseEntries, getHref, isActive } = usePageNavEntries({
     hubUrl,
@@ -120,25 +120,25 @@ export default function MobilePageNav({
       })}
     >
       <ContactAmbassadorButton mobile hubAmbassador={hubAmbassador} />
-      <nav className={classes.nav}>
+      <Nav>
         {entries.map((entry) => {
           const Icon = type_icons[entry];
           const label = texts[TYPE_TEXT_KEYS[entry]] || entry;
           const active = isActive(entry, activeEntry);
           return (
-            <AppLink
+            <Entry
               key={entry}
               href={getHref(entry)}
-              className={`${classes.entry} ${active ? classes.entryActive : ""}`}
+              active={active}
               underline="none"
               aria-current={active ? "page" : undefined}
             >
               {Icon ? <Icon /> : null}
               <span className="entryLabel">{label}</span>
-            </AppLink>
+            </Entry>
           );
         })}
-      </nav>
+      </Nav>
     </Box>
   );
 }

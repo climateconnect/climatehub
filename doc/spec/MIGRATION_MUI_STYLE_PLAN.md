@@ -161,6 +161,25 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
 - Known pre-existing issue left alone (out of scope): `StyledMenu` and `NotificationsBox` pass the MUI v4 prop `getContentAnchorEl`, which React reports as an unknown DOM prop warning. Remove it in the batch that migrates those components' consumers.
 - `@mui/styles` importing files: 316 → 310 (allowlist regenerated).
 
+#### Phase 2.1 results (small directories)
+
+- Migrated 27 component files: `browse` (3), `communication/contactcreator`, `dashboard`, `faq` (3), `feedback` (2), `filter` (3), `indexPage/FilterSection`, `ideas` (2), `footer` (2), `pageNav` (2), `richText/OrganizerMessageEditor`, `shareContent` (3), `search/LocationSearchBar`, `manageMembers`, `snackbarActions`. `@mui/styles` importing files: 310 → 283.
+- Three test files in these directories (`BrowseContentBase.test.tsx`, `browse/__tests__/BrowsePage.remount.test.tsx`, `search/LocationSearchBar.test.tsx`) still wrap with `StylesThemeProvider`; they stay on the allowlist until Phase 3.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of ~17 converted components (footers, page navs, filters in desktop and overlay mode, feedback, idea icons, FAQ, log-in action) produced no new React console errors (no `$`-prop leakage); the throwaway test files were deleted. **Not checked in a real browser** (port 3000 was occupied by another dev server) — see the checklist below.
+- Decisions worth knowing about when reviewing:
+  - `Filters.tsx`: the `classes` object that was threaded through sub-components is gone; each element is its own `styled` component with `$`-prefixed props. `LocationSearchBar`'s `inputClassName` / `textFieldClassName` (which land on the `Autocomplete` root and `InputProps.className`, i.e. `.MuiOutlinedInput-root`) are replaced by descendant selectors in `LocationFieldWrapper`. The radius `SelectField` receives its `sx` twice now (once as CSS on its root via `styled`, once forwarded); harmless but a candidate for cleanup.
+  - `PageNav.tsx`: removed `linkClassName={classes.link}` passed to `HubLinks` (it was only read when `showAllProjectsButton` is set, which `PageNav` never sets) and unused rules (`path`, `flexContainer`, `rightSideContainer`, `allProjectsLink`, `wasseraktions*`).
+  - `MobilePageNav.tsx`: `textDecoration: "none !important"` kept as in the original.
+  - `LocationSearchBar.tsx`: removed the unused `hideHelperText` destructuring (still in `Props`).
+  - `FilteredFaqContent.tsx`: dropped the misspelled, ineffective `marginBottm`.
+- **Manual visual checklist for this batch** (run on `http://localhost:3000`, desktop and a narrow window):
+  - Browse page: filter bar — location field and radius select join seamlessly (square inner corners, no inner border); location 330 px wide on desktop and flexible in the mobile filter overlay; radius select 100 px on desktop and 33 % on mobile; a filled filter shows a 2 px primary outline; multi-select button keeps its grey border on hover; mobile search bar and "Filter" button (black borders/labels, white-ish background when `applyBackgroundColor`).
+  - Upcoming events band (above/below `lg`: negative-margin bleed; below 450 px the "Event calendar" label hides); event calendar "no items" text.
+  - Dashboard: hover dropdown menus; contact-creator card header alignment.
+  - Footers (small and large): with/without `textColor` / `showOnScrollUp`, the `md` column layout, newsletter box corner at `lg`+; pages that pass a `className` into `Footer` / `PageNav` (emotion vs remaining JSS order).
+  - Mobile bottom nav (`MobilePageNav`): active tab, no underline on hover/focus.
+  - FAQ: question text at `sm`; feedback tab on the right edge and the feedback dialog; idea rating heart fill; log-in snackbar button stays white; manage-members pages (search bar width 800, member card grid); share dialog / QR download; organizer message editor error border.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -234,14 +253,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status | `@mui/styles` files remaining |
-| ------------------------------------------ | ------ | ----------------------------- |
-| 0 Prep                                     | ✅     | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅     | 310                           |
-| 2.1–2.11 `makeStyles` batches              | ☐      |                               |
-| 3 Remove bridge + SSR                      | ☐      |                               |
-| 4 Remove dependency + lint guard           | ☐      | 0                             |
-| 5 Verify + docs                            | ☐      | 0                             |
+| Phase                                      | Status      | `@mui/styles` files remaining |
+| ------------------------------------------ | ----------- | ----------------------------- |
+| 0 Prep                                     | ✅          | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅          | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1 done | 283                           |
+| 3 Remove bridge + SSR                      | ☐           |                               |
+| 4 Remove dependency + lint guard           | ☐           | 0                             |
+| 5 Verify + docs                            | ☐           | 0                             |
 
 ## 8. Open questions for the maintainers
 

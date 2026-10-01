@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Box, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import type { Extensions } from "@tiptap/core";
 // eslint-disable-next-line import/no-named-as-default
 import StarterKit from "@tiptap/starter-kit";
@@ -74,21 +74,25 @@ const EXTENSIONS: Extensions = [
   CharacterCount.configure({ limit: CHARACTER_LIMIT }),
 ];
 
-const useStyles = makeStyles((theme) => ({
-  charCount: {
-    textAlign: "right",
-    padding: theme.spacing(0.5, 1.5),
-    borderTop: `1px solid ${theme.palette.divider}`,
-  },
-  errorText: {
-    color: theme.palette.error.main,
-    fontSize: "0.875rem",
-    marginTop: theme.spacing(0.5),
-  },
-  errorBorder: {
+const CharCount = styled(Box)(({ theme }) => ({
+  textAlign: "right",
+  padding: theme.spacing(0.5, 1.5),
+  borderTop: `1px solid ${theme.palette.divider}`,
+}));
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  fontSize: "0.875rem",
+  marginTop: theme.spacing(0.5),
+}));
+
+const EditorWrapper = styled("div", {
+  shouldForwardProp: (p) => p !== "hasError",
+})<{ hasError?: boolean }>(({ theme, hasError }) => ({
+  ...(hasError && {
     border: `1px solid ${theme.palette.error.main}`,
     borderRadius: theme.shape.borderRadius,
-  },
+  }),
 }));
 
 type TooltipLabels = {
@@ -128,14 +132,13 @@ export default function OrganizerMessageEditor({
   linkBubbleMenuLabels,
   tableMenuControlLabels,
 }: Props) {
-  const classes = useStyles();
   const rteRef = useRef<RichTextEditorRef>(null);
   const [charCount, setCharCount] = useState(0);
 
   const t = tooltipLabels;
 
   return (
-    <div className={error ? classes.errorBorder : undefined}>
+    <EditorWrapper hasError={!!error}>
       <RichTextEditor
         ref={rteRef}
         immediatelyRender={false}
@@ -172,21 +175,21 @@ export default function OrganizerMessageEditor({
         )}
         RichTextFieldProps={{
           footer: showCharCount ? (
-            <Box className={classes.charCount}>
+            <CharCount>
               <Typography
                 variant="caption"
                 color={charCount >= CHARACTER_LIMIT ? "error" : "textSecondary"}
               >
                 {charCount}/{CHARACTER_LIMIT}
               </Typography>
-            </Box>
+            </CharCount>
           ) : undefined,
         }}
       >
         {() => <LinkBubbleMenu labels={linkBubbleMenuLabels} />}
       </RichTextEditor>
-      {error && <Typography className={classes.errorText}>{error}</Typography>}
-    </div>
+      {error && <ErrorText>{error}</ErrorText>}
+    </EditorWrapper>
   );
 }
 
