@@ -1,30 +1,33 @@
 import { Switch, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React from "react";
-import { Theme } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  flexBlock: {
-    display: "flex",
-    justifyContent: "flex-start",
-    gap: theme.spacing(2),
-  },
-  switchTextContainer: {
-    display: "flex",
-    alignItems: "center",
-  },
-  switchText: {
-    textAlign: "center",
-    position: "relative",
-  },
-  switchedActive: {
-    fontWeight: "bold",
-    color: theme.palette.background.default_contrastText,
-  },
-  disabled: {
+const FlexBlock = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$disabled",
+})<{ $disabled?: boolean }>(({ theme, $disabled }) => ({
+  display: "flex",
+  justifyContent: "flex-start",
+  gap: theme.spacing(2),
+  ...($disabled && {
     opacity: 0.5,
     pointerEvents: "none",
-  },
+  }),
+}));
+
+const SwitchTextContainer = styled("span")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const SwitchText = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$active",
+})<{ $active?: boolean }>(({ theme, $active }) => ({
+  textAlign: "center",
+  position: "relative",
+  ...($active && {
+    fontWeight: "bold",
+    color: theme.palette.background.default_contrastText,
+  }),
 }));
 
 export default function Switcher({
@@ -36,18 +39,14 @@ export default function Switcher({
   color,
   disabled,
 }: any) {
-  const classes = useStyles({ value: value });
-
   const handleValueChange = (event) => {
     handleChangeValue(event.target.value);
   };
   return (
-    <div className={`${classes.flexBlock} ${disabled ? classes.disabled : ""}`}>
-      <span className={classes.switchTextContainer}>
-        <Typography className={`${classes.switchText} ${!value && classes.switchedActive}`}>
-          {falseLabel}
-        </Typography>
-      </span>
+    <FlexBlock $disabled={!!disabled}>
+      <SwitchTextContainer>
+        <SwitchText $active={!value}>{falseLabel}</SwitchText>
+      </SwitchTextContainer>
       <Switch
         checked={value}
         required={required}
@@ -57,11 +56,9 @@ export default function Switcher({
         onChange={handleValueChange}
         disabled={disabled}
       />
-      <span className={classes.switchTextContainer}>
-        <Typography className={`${classes.switchText} ${value && classes.switchedActive}`}>
-          {trueLabel}
-        </Typography>
-      </span>
-    </div>
+      <SwitchTextContainer>
+        <SwitchText $active={!!value}>{trueLabel}</SwitchText>
+      </SwitchTextContainer>
+    </FlexBlock>
   );
 }

@@ -180,6 +180,29 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Mobile bottom nav (`MobilePageNav`): active tab, no underline on hover/focus.
   - FAQ: question text at `sm`; feedback tab on the right edge and the feedback dialog; idea rating heart fill; log-in snackbar button stays white; manage-members pages (search bar width 800, member card grid); share dialog / QR download; organizer message editor error border.
 
+#### Phase 2.2 results (`src/components/general`)
+
+- Migrated 21 component files: `ButtonIcon`, `ButtonLoader`, `CookieBanner`, `CustomDot`, `FollowButton`, `Form`, `GoBackButton`, `LoadingContainer`, `LoadingSpinner`, `LoginNudge`, `MultiLevelSelector`, `NavigationButtons`, `PageNotFound`, `RadioButtons`, `RequiredFieldsNotice`, `SelectField`, `SocialMediaButton`, `StepsTracker`, `SubTitleWithContent`, `Switcher`, `TranslateTexts`. `@mui/styles` importing files: 283 → 262. `CookieBanner.test.tsx` and `GoBackButton.test.tsx` still wrap with `StylesThemeProvider` and stay on the allowlist until Phase 3.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of 27 of the converted components (including both `NavigationButtons` modes, `Form`, `SelectField`, `MultiLevelSelector` in popup and desktop mode, `FollowButton`, `StepsTracker`) produced no React console errors; the throwaway test files were deleted. Not checked in a real browser.
+- Review findings: the batch initially failed `check-types` (`MultiLevelSelector`'s internal `SelectedList` required a `narrow` prop that the desktop call omits); fixed with a default value of `false`. Claims of "dead code" in agents' reports were re-checked against the original files: removed rules `firstSelectedItem` (unreferenced), `percentage` (Form) and `cancelButtonTop` (NavigationButtons) were unreferenced; `listWrapper` was only referenced in a comment; `firstItem` on selected items had the identical `border-top` as `selectedItem`; `stickyCompact` / `stickyNextContainer` were not dead but merged into the wrapper / next-step container.
+- Decisions worth knowing about when reviewing:
+  - `NavigationButtons`: JSS rule order was preserved explicitly. In sticky mode below `sm` the next-step container keeps `justify-content: flex-end` (the later `stickyNextContainer` rule beat the earlier `nextStepButtonsContainer` `space-between`), and the sticky block overrides the plain `sm` media block.
+  - `MultiLevelSelector`: the unexported helpers `SelectedList` / `ListToChooseFrom` take boolean props instead of composed class strings; border rules keep the original stylesheet order; `selected: classes.expanded` became `&.Mui-selected`.
+  - `RadioButtons`: `"$root.Mui-focusVisible &"` became `".Mui-focusVisible &"` (matches any focus-visible ancestor, in practice only the Radio itself). The component is marked "TODO: dead code?" in the source.
+  - Literal `"false"` / `"undefined"` class names that the old template-literal class composition produced (`CustomDot`, `Switcher`, `LoginNudge`, `Form`, `NoItemsFound`) are gone.
+  - `LoadingSpinner` keeps the invalid `color: "default"` and `MultiLevelSelector` keeps the invalid `maxWidth: "650 - …"` declaration (ignored by browsers, as before).
+  - `LoadingContainer`'s spinner animation now uses `keyframes` from `@mui/material/styles`.
+- **Manual visual checklist for this batch**:
+  - Cookie banner: buttons stack below `md`; padding/margin changes at `md` and `lg`.
+  - Follow button (project and profile page): admin margins, 140 vs 180 px max-width on small screens, disabled colour, progress spinner centred and hidden while not pending. Like/follow icons (planet images, sizes, colours).
+  - Go-back button: 35 px square at `sm` and below; `prio1` hub text colour.
+  - Login nudge on full-page pages (`settings`, `share`) and on profile/organization pages (they pass a makeStyles `className`); `RequiredFieldsNotice` in forms with a consumer class (`requiredFieldsNotice`, `blockElement`); `LoadingSpinner` margins where a consumer passes a `className` (`OrganizationPreviewsFixed`, `UploadImageDialog`, `FixedPreviewCards`). Emotion vs remaining JSS order may matter wherever both set the same property.
+  - Forms (login, reset password, organization info): field spacing/height.
+  - Share-project / edit-project: sticky `NavigationButtons` at `sm` and below (Back, Draft, Next fit side by side, 180 px max width) and non-sticky below `md` with `fixedOnMobile` (background, z-index 10); `StepsTracker` with `grayBackground`.
+  - Multi-level selection dialogs (browse filters, hub skill/category pickers): borders, expanded sublists, selected-items column at desktop, below `lg` and below `md`, popup mode, last-item bottom border in nested lists (#312), orange colour on expanded rows.
+  - Translation steps (edit/share project and organization): top button row, fixed bottom action bar above the footer, bordered translation blocks on narrow screens, white loader spinners.
+  - Full-page loader (centred, logo spins); switcher (active label bold, disabled dimmed); footer social icons (size, margin, hover colour in footer and non-footer variants).
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -253,14 +276,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status      | `@mui/styles` files remaining |
-| ------------------------------------------ | ----------- | ----------------------------- |
-| 0 Prep                                     | ✅          | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅          | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1 done | 283                           |
-| 3 Remove bridge + SSR                      | ☐           |                               |
-| 4 Remove dependency + lint guard           | ☐           | 0                             |
-| 5 Verify + docs                            | ☐           | 0                             |
+| Phase                                      | Status           | `@mui/styles` files remaining |
+| ------------------------------------------ | ---------------- | ----------------------------- |
+| 0 Prep                                     | ✅               | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1, 2.2 done | 262                           |
+| 3 Remove bridge + SSR                      | ☐                |                               |
+| 4 Remove dependency + lint guard           | ☐                | 0                             |
+| 5 Verify + docs                            | ☐                | 0                             |
 
 ## 8. Open questions for the maintainers
 

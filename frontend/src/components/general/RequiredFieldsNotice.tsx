@@ -1,15 +1,13 @@
 import { Typography } from "@mui/material";
 import type { TypographyProps } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles(() => ({
-  root: {
-    display: "block",
-  },
-}));
+const Notice = styled(Typography)({
+  display: "block",
+});
 
 type Props = {
   className?: string;
@@ -28,17 +26,12 @@ export default function RequiredFieldsNotice({
   variant = "caption",
   color = "textSecondary",
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "general", locale: locale });
 
   return (
-    <Typography
-      variant={variant}
-      color={color}
-      className={className ? `${classes.root} ${className}` : classes.root}
-    >
+    <Notice variant={variant} color={color} className={className}>
       {texts.required_fields_general_notice}
-    </Typography>
+    </Notice>
   );
 }

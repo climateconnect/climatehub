@@ -1,38 +1,55 @@
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React from "react";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import PersonIcon from "@mui/icons-material/Person";
 
-type Props = {
-  color: string;
-  size: number;
+type StyleProps = {
+  $color: string;
+  $size: number;
 };
 
-const useStyles = makeStyles(() => ({
-  icon: (props: Props) => ({
-    height: props.color === "earth" ? props.size : "auto",
-    fontSize: props.color === "earth" ? "inherit" : `${props.size}px !important`,
-  }),
-  color: (props) => ({
-    color: props.color,
-  }),
+const shouldForwardProp = (prop: string) => !prop.startsWith("$");
+
+const iconStyles = ({ $color, $size }: StyleProps) => ({
+  height: $color === "earth" ? $size : "auto",
+  fontSize: $color === "earth" ? "inherit" : `${$size}px !important`,
+});
+
+const PlanetImage = styled("img", { shouldForwardProp })<StyleProps>(iconStyles);
+
+const StyledFavoriteIcon = styled(FavoriteIcon, { shouldForwardProp })<StyleProps>((props) => ({
+  ...iconStyles(props),
+  color: props.$color,
+}));
+
+const StyledPersonIcon = styled(PersonIcon, { shouldForwardProp })<StyleProps>((props) => ({
+  ...iconStyles(props),
+  color: props.$color,
 }));
 
 export default function ButtonIcon({ icon, color, size }) {
-  const classes = useStyles({ size, color });
-
   if (icon === "like") {
     return color === "earth" ? (
-      <img className={classes.icon} src={"/images/like-planet-earth.svg"} alt="like planet" />
+      <PlanetImage
+        $color={color}
+        $size={size}
+        src={"/images/like-planet-earth.svg"}
+        alt="like planet"
+      />
     ) : (
-      <FavoriteIcon className={`${classes.icon} ${classes.color}`} />
+      <StyledFavoriteIcon $color={color} $size={size} />
     );
   }
   if (icon === "follow") {
     return color === "earth" ? (
-      <img className={classes.icon} src={"/images/follow-planet-earth.svg"} alt="follow planet" />
+      <PlanetImage
+        $color={color}
+        $size={size}
+        src={"/images/follow-planet-earth.svg"}
+        alt="follow planet"
+      />
     ) : (
-      <PersonIcon className={`${classes.icon} ${classes.color}`} />
+      <StyledPersonIcon $color={color} $size={size} />
     );
   }
   return <></>;
