@@ -16,7 +16,7 @@ import UserContext from "../context/UserContext";
 import LocationSearchBar from "../search/LocationSearchBar";
 import { isLocationValid } from "../../../public/lib/locationOperations";
 import { trackAuthEvent } from "../../utils/analytics";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import RequiredFieldsNotice from "../general/RequiredFieldsNotice";
 
 interface SignupPersonalInfoStepProps {
@@ -34,21 +34,20 @@ interface SignupPersonalInfoStepProps {
   isEventSignup?: boolean;
 }
 
-const useStyles = makeStyles((theme) => ({
-  header: {
-    color: theme.palette.background.default_contrastText,
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-      fontSize: 35,
-      fontWeight: "bold",
-    },
+const Header = styled(Typography)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    textAlign: "center",
+    fontSize: 35,
+    fontWeight: "bold",
   },
-  requiredFieldsNotice: {
-    display: "block",
-    marginBottom: theme.spacing(3),
-  },
+}));
+
+const NoticeWrapper = styled(RequiredFieldsNotice)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(3),
 }));
 
 export default function SignupPersonalInfoStep({
@@ -62,7 +61,6 @@ export default function SignupPersonalInfoStep({
 }: SignupPersonalInfoStepProps) {
   const { locale, ReactGA } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale: locale, hubName: hubUrl });
-  const classes = useStyles();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [location, setLocation] = useState<any>(null);
@@ -184,16 +182,14 @@ export default function SignupPersonalInfoStep({
           <IconButton aria-label="go back" onClick={onBack} size="small" style={{ marginRight: 8 }}>
             <ArrowBack />
           </IconButton>
-          <Typography variant="h1" className={classes.header}>
-            {texts.create_your_account}
-          </Typography>
+          <Header variant="h1">{texts.create_your_account}</Header>
         </div>
       )}
 
       <Typography variant="body1" sx={{ mb: 2 }}>
         {headlineText}
       </Typography>
-      <RequiredFieldsNotice className={classes.requiredFieldsNotice} />
+      <NoticeWrapper />
 
       {/* Email field - read-only */}
       <TextField

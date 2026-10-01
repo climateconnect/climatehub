@@ -220,6 +220,22 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Layouts: snackbar colours (default, error, success) on a **hub page** — they must match the pre-migration look (app-level theme); bottom padding above the footer; `WideLayout` alert at `lg`+ once scrolled past the header (fixed, `left: 50%`, `margin-left: -640`); full-page loader.
   - Dialogs: `GenericDialog` with `fullScreen` + `topBarFixed` (e.g. the mobile filter dialog) and close button positions; hub supporters dialog (title 17 px centred bold, close icon top right, supporter cards, logo-only cards); likes/followers/requesters dialogs (avatar spacing, "since" text at 13 px below `sm`, login button when logged out); newsletter dialog field/button widths at `md`+ and below `sm`; upload-image dialog (spinner padding, slider centred); confirm dialog buttons; select dialog (additional-info field width and spacing, apply button position).
 
+#### Phase 2.4 results (`auth`, `account`)
+
+- Migrated 13 component files: `auth` (6: `AuthEmailStep`, `AuthForgotPassword`, `AuthOtp`, `AuthPasswordLogin`, `SignupInterestsStep`, `SignupPersonalInfoStep`) and `account` (7: `AccountPage`, `DetailledDescription`, `DetailledDescriptionInput`, `EditAccountPage`, `SelectWithText`, `SettingsPage`, `UserAvatar`). `@mui/styles` importing files: 242 → 229. The 7 `auth/*.test.tsx` files still wrap with `StylesThemeProvider` and stay on the allowlist until Phase 3.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests; the 7 auth suites with 132 tests show no React prop warnings). A throwaway jsdom render of all 7 account components (`UserAvatar` in read/edit modes, both `AccountPage` variants, `EditAccountPage`, `SettingsPage`, …) produced no React console errors; the throwaway test files were deleted. Not checked in a real browser.
+- Review notes:
+  - A stray untracked backup file (`SettingsPage.tsx-e`, left behind by a BSD `sed -i` call in a sub-task) was found and deleted before staging. Check `git status` for untracked files before committing batches.
+  - "Dead code" claims were re-verified against `HEAD` (e.g. `AccountPage`: `sizeContainer`, `getInvolvedContainer`, `selectContainer` unreferenced; `followInfo` was never defined; `EditAccountPage`: `checkbox`, `inlineBlockElement`, `block` were never defined, `cursorPointer` and `helpIcon` unreferenced; `SelectWithText.headline` unreferenced).
+  - `EditAccountPage` passes `className=""` to `StyledSelectDialog` because `SelectDialog` types `className` as required; emotion merges its class into it.
+  - Neither `auth` nor `account` components render a nested `ThemeProvider`, so there is no theme-source change (unlike `layouts/LayoutWrapper`).
+  - Tip for future throwaway render tests: pages that import `use-long-press` need `jest.mock("use-long-press", …)` because Jest's config does not transform that ESM-only package; `UserAvatar` is a named export.
+- **Manual visual checklist for this batch**:
+  - Login / signup dialog and pages (all six steps), at `sm` and below: h1 header (32 px padding, centred, 35 px bold) and the required-fields notice spacing under the email field (8 px) and in the personal-info step (24 px).
+  - Profile and organization pages (desktop and below `sm`): avatar overlapping the cover image (-88 px margin), centred 320 px column below `sm`, info row, follow text, parent/child organization rows, edit and share buttons in the cover's bottom-right corner, chip spacing, detailed-description margins; `SelectWithText` column layout below `md`.
+  - Edit profile / edit organization (desktop and below `md`): Save/Cancel button position and size (`top`, width and font size change at `md`), avatar column (centred below `md`), banner (pointer cursor and grey background with no image, cover image otherwise, camera and close icons), avatar edit overlay and icons, name fields, chips, parent-organization block, 250 px `SelectField`, 400 px add-type dialog.
+  - `/settings`: heading colour and 16 px top margin on lower headings, block spacing of password fields and hints, email field and "Change email" button, one checkbox label per line, "Forgot my password" link, the three profile/preferences buttons (incl. spinner), delete-account info row.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -297,7 +313,7 @@ Update this table in each PR.
 | ------------------------------------------ | --------------- | ----------------------------- |
 | 0 Prep                                     | ✅              | 316                           |
 | 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.3 done | 242                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.4 done | 229                           |
 | 3 Remove bridge + SSR                      | ☐               |                               |
 | 4 Remove dependency + lint guard           | ☐               | 0                             |
 | 5 Verify + docs                            | ☐               | 0                             |
