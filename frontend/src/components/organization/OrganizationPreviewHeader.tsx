@@ -1,76 +1,66 @@
 import React from "react";
 import { Avatar, Box, Chip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { getImageUrl } from "../../../public/lib/imageOperations";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    header: {
-      fontWeight: "bold",
-      margin: "5px",
-      overflow: "hidden",
-      wordBreak: "break-word",
-      lineHeight: 1.3,
-      color: theme.palette.text.primary,
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      // @ts-ignore - WebkitBoxOrient is deprecated but still required for line-clamp to work
-      WebkitBoxOrient: "vertical",
-    },
-    headerWrapper: {
-      justifyContent: "center",
-    },
-    media: {
-      height: 80,
-      width: 80,
-      backgroundSize: "contain",
-      marginTop: theme.spacing(3),
-      margin: "0 auto",
-    },
-    chip: {
-      height: 20,
-      position: "relative",
-      margin: "1px 1px",
-    },
-    chipGroup: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      marginTop: "-15px",
-    },
-  };
+const Media = styled(Avatar)(({ theme }) => ({
+  height: 80,
+  width: 80,
+  backgroundSize: "contain",
+  marginTop: theme.spacing(3),
+  margin: "0 auto",
+}));
+
+const ChipGroup = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  marginTop: "-15px",
 });
 
-export default function OrganizationPreviewHeader({ organization }) {
-  const classes = useStyles();
+const TypeChip = styled(Chip)({
+  height: 20,
+  position: "relative",
+  margin: "1px 1px",
+});
 
+const HeaderWrapper = styled(Box)({
+  justifyContent: "center",
+});
+
+const Header = styled(Typography)(({ theme }) => ({
+  fontWeight: "bold",
+  margin: "5px",
+  overflow: "hidden",
+  wordBreak: "break-word",
+  lineHeight: 1.3,
+  color: theme.palette.text.primary,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+})) as typeof Typography;
+
+export default function OrganizationPreviewHeader({ organization }) {
   return (
     <div>
-      <Avatar
+      <Media
         alt={organization.name}
         //TODO(unused) size="large"
         src={getImageUrl(organization.thumbnail_image)}
-        className={classes.media}
         component="div"
       />
       {organization.types?.length > 0 && (
-        <Box className={classes.chipGroup}>
+        <ChipGroup>
           {organization.types.map((type) => (
-            <Chip
-              key={type.key}
-              className={classes.chip}
-              label={type.name}
-              size="small"
-              color="primary"
-            />
+            <TypeChip key={type.key} label={type.name} size="small" color="primary" />
           ))}
-        </Box>
+        </ChipGroup>
       )}
-      <Box className={classes.headerWrapper}>
-        <Typography variant="h6" component="h2" className={classes.header}>
+      <HeaderWrapper>
+        <Header variant="h6" component="h2">
           {organization.name}
-        </Typography>
-      </Box>
+        </Header>
+      </HeaderWrapper>
     </div>
   );
 }

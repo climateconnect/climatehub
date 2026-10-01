@@ -236,6 +236,23 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Edit profile / edit organization (desktop and below `md`): Save/Cancel button position and size (`top`, width and font size change at `md`), avatar column (centred below `md`), banner (pointer cursor and grey background with no image, cover image otherwise, camera and close icons), avatar edit overlay and icons, name fields, chips, parent-organization block, 250 px `SelectField`, 400 px add-type dialog.
   - `/settings`: heading colour and 16 px top margin on lower headings, block spacing of password fields and hints, email field and "Change email" button, one checkbox label per line, "Forgot my password" link, the three profile/preferences buttons (incl. spinner), delete-account info row.
 
+#### Phase 2.5a results (`profile`, `organization`)
+
+- Migrated 19 component files: `profile` (7: `EditProfileRoot`, `MiniProfileInput`, `MiniProfilePreview`, `ProfileBadge`, `ProfilePreview`, `ProfilePreviews`, `ProfileRoot`) and `organization` (12: `DeleteOrganizationDialog`, `EditOrganizationRoot`, `EnterBasicOrganizationInfo`, `EnterDetailledOrganizationInfo`, `ManageOrganizationMembers`, `MiniOrganizationPreview`, `OrganizationAvatar`, `OrganizationPreview`, `OrganizationPreviewBody`, `OrganizationPreviewHeader`, `OrganizationPreviews`, `OrganizationPreviewsFixed`). `@mui/styles` importing files: 229 → 210. The 2 `organization/*.test.tsx` files still wrap with `StylesThemeProvider` and stay on the allowlist until Phase 3. The `communication/*` directories (chat, notifications) remain for batch 2.5b.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of 14 profile/organization components (badges in all sizes, previews, mini previews in several variants, fixed/infinite lists, delete dialog) produced no React console errors apart from test-fixture artefacts (missing `key` on organization `types` in my fixtures, which the original code also reads as `type.key`); the throwaway test files were deleted. Not checked in a real browser.
+- Review notes:
+  - No stray files this time (agents were told to edit only with Edit/Write, never `sed -i`); `git status` was checked for untracked files before staging.
+  - "Dead code" claims were re-verified against `HEAD`: in `ProfileRoot` `button` was never defined (rendered as `"undefined"`) and nine other rules were unreferenced; `OrganizationPreview` (`button`, `media`) and `OrganizationPreviewBody` (`locationName`, `infoLink`, `cardIconBox`, `textContent`, `locationNameBox`, `placeIcon`) likewise.
+  - `ProfileBadge`: size-dependent badge offsets moved to `slotProps.badge.sx` (applied last, so it still wins over MUI's own anchor-origin rules); the consumer `className` still goes through `classes.badge`; the badge image URL is an inline `backgroundImage` (the old `background: url(...)` shorthand also reset the colour, which was already transparent).
+  - `MiniProfilePreview`: the descendant rule `& $profileName { lineHeight: 1.2 }` became a direct `lineHeight` on the name element when a title is shown.
+  - `ManageOrganizationMembers`: the headline now uses an `sx` callback with the same `background.default_contrastText` colour as the old class; `sx` still wins over `color="contrast"`.
+  - `OrganizationPreviewBody` styles `LocationDisplay` via `styled(LocationDisplay)` with `& .MuiTypography-root` / `& .MuiSvgIcon-root` descendant selectors instead of its `textClassName` / `iconClassName` props (slightly higher specificity than before).
+  - `OrganizationPreviewsFixed`: the first card's `marginLeft: 0` is applied after the `down("xl")` media block to preserve the old rule order.
+- **Manual visual checklist for this batch**:
+  - Profile page (own and other users) and edit profile: headline spacing, section headers, share icon, org/project previews, `LoginNudge`; member preview cards (hover colour, low-importance info text, icon margins) in the project team grid; `ProfileBadge` offsets in the header avatar (small), chat previews (medium), profile page (default) and in a Post; mini profile previews with a title (line height) and in the chat list (badge at `bottom: 20%` for medium).
+  - Organizations: browse organizations page and the profile "organizations" tab (card hover colour/shadow, `ul` grid reset, 14 px location text with the icon aligned at the bottom); landing page organizations box below `xl` and at `sm`+ (first card without left margin, scrollbar styling); `MiniOrganizationPreview` in the project page / project metadata (tiny, small, small-inline, medium: name clamp, weight, avatar border).
+  - Organization creation step 1: selected-type chips (30 px high; second chip left margin; top margin below `md`; column centred below `sm`). Edit organization: delete button (centred, 224 px min-width), error alert, "Translate" headline. Delete dialog: left margin between the two buttons. Manage organization members: headline colour, right-aligned button row and Save margins.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -309,14 +326,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status          | `@mui/styles` files remaining |
-| ------------------------------------------ | --------------- | ----------------------------- |
-| 0 Prep                                     | ✅              | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.4 done | 229                           |
-| 3 Remove bridge + SSR                      | ☐               |                               |
-| 4 Remove dependency + lint guard           | ☐               | 0                             |
-| 5 Verify + docs                            | ☐               | 0                             |
+| Phase                                      | Status           | `@mui/styles` files remaining |
+| ------------------------------------------ | ---------------- | ----------------------------- |
+| 0 Prep                                     | ✅               | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.5a done | 210                           |
+| 3 Remove bridge + SSR                      | ☐                |                               |
+| 4 Remove dependency + lint guard           | ☐                | 0                             |
+| 5 Verify + docs                            | ☐                | 0                             |
 
 ## 8. Open questions for the maintainers
 

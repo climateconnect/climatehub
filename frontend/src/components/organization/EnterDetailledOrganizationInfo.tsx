@@ -1,5 +1,5 @@
-import makeStyles from "@mui/styles/makeStyles";
 import Alert from "@mui/material/Alert";
+import { styled } from "@mui/material/styles";
 import { useRouter } from "next/router";
 import React, { useContext } from "react";
 import { appHref } from "../../../public/lib/appLink";
@@ -8,14 +8,10 @@ import UserContext from "../context/UserContext";
 import getOrganizationInfoMetadata from "./../../../public/data/organization_info_metadata";
 import EditAccountPage from "./../account/EditAccountPage";
 
-const useStyles = makeStyles(() => {
-  return {
-    alert: {
-      textAlign: "center",
-      maxWidth: 1280,
-      margin: "0 auto",
-    },
-  };
+const StyledAlert = styled(Alert)({
+  textAlign: "center",
+  maxWidth: 1280,
+  margin: "0 auto",
 });
 
 const parseOrganizationInfo = (info, organization_info_metadata): any => {
@@ -53,7 +49,6 @@ export default function EnterDetailledOrganizationInfo({
       locationInputRef: locationInputRef,
     },
   };
-  const classes = useStyles();
   const router = useRouter();
   const handleCancel = () => {
     router.push("/organizations");
@@ -62,9 +57,9 @@ export default function EnterDetailledOrganizationInfo({
     <div>
       {!errorMessage && (
         <div>
-          <Alert severity="success" className={classes.alert}>
+          <StyledAlert severity="success">
             {texts.almost_done_here_you_can_customize_your_organization_page_and_add_details}
-          </Alert>
+          </StyledAlert>
         </div>
       )}
       <EditAccountPage
