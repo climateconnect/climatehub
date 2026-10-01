@@ -203,6 +203,23 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Translation steps (edit/share project and organization): top button row, fixed bottom action bar above the footer, bordered translation blocks on narrow screens, white loader spinners.
   - Full-page loader (centred, logo spins); switcher (active label bold, disabled dimmed); footer social icons (size, margin, hover colour in footer and non-footer variants).
 
+#### Phase 2.3 results (`dialogs`, `layouts`, `header`)
+
+- Migrated 20 component files: `dialogs` (11: `ConfirmDialog`, `DonationWigetDialog`, `EnterTextDialog`, `FollowersDialog`, `GenericDialog`, `HubSupportersDialog`, `ProjectLikesDialog`, `ProjectRequestersDialog`, `SelectDialog`, `SubscribeToNewsletterDialog`, `UploadImageDialog`), `layouts` (5: `ContentImageSplitLayout`, `FixedHeightLayout`, `layout`, `LayoutWrapper`, `WideLayout`) and `header` (5: `DropDownButton`, `DropDownList`, `Header`, `LanguageSelect`, `StaticPageLinks`). `@mui/styles` importing files: 262 → 242.
+- `layouts/LayoutWrapper.tsx` intentionally still imports `ThemeProvider as StylesThemeProvider` from `@mui/styles` and keeps the `declare module "@mui/styles/defaultTheme"` block; both are removed in Phase 3 together with the bridge in `_app.tsx`.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of 20 of the converted components (`GenericDialog` fullScreen/topBarFixed and plain, other dialogs, `Header` default and hub-landing/transparent, `LanguageSelect`, `StaticPageLinks`, `LayoutWrapper`, `WideLayout`, `FixedHeightLayout`, `ContentImageSplitLayout`) produced no React console errors (`UploadImageDialog` cannot render in jsdom: react-avatar-editor needs a canvas). The throwaway test files were deleted. Not checked in a real browser.
+- Review findings:
+  - `LayoutWrapper`: the old `useStyles()` hook was called at the top of the component, i.e. **outside** the hub `ThemeProvider` it renders, so the footer padding and snackbar colours came from the app-level theme, not the hub theme. A direct `styled()` conversion would have switched them to the hub theme (a behaviour change). The component now reads the outer theme with `useTheme()` before the nested providers and passes `paddingBottom` / snackbar background to the styled components as `$` props (success beats error beats primary, as in the old stylesheet order). Verified with a jsdom test using different outer/hub spacing.
+  - `Header`: `link.className` strings from `public/lib/headerLinks.ts` (`"btnColor buttonMarginLeft"`, `"shareProjectButton"`) are now resolved through `getLinkSx()` into `sx` arrays on the button props; the narrow-screen last-link `marginRight` override is kept. The unused `fixedHeader` argument of two internal helpers and the unused `donationCampaignRunning` style prop in `layouts/layout.tsx` were removed (both only fed style hooks, no rule used them).
+  - `HubSupportersDialog` still hands class strings to `GenericDialog`'s `titleTextClassName` / `closeButtonRightStyle`; they are generated with `ClassNames` from `@emotion/react` under a `&&` selector so they beat `GenericDialog`'s own title/close styles as before.
+  - `UploadImageDialog`: the `avatarEditor` rule was passed as `className` to `react-avatar-editor`, which ignores it (verified in its source), so it was dropped. `GenericDialog`: a `closeButtonRight` rule that was never applied (typo in the original template string) and `classes.applyButton` (undefined) were dropped.
+  - `LanguageSelect`: pointer-events handling moved to `sx` on `StyledMenu` (`pointerEvents: none` on the popover root, `auto` on `.MuiMenu-paper`).
+- **Manual visual checklist for this batch**:
+  - Header on every kind of page: default, custom hub (prio1), location hub, transparent header on landing pages, fixed header; logo height at `md` and below (35 px for hubs); the "powered by" block on custom hubs; share-project button colours on custom hubs; outlined login/donate buttons; notifications bell, menu headline and badge (desktop and mobile); logged-in avatar menu (popper z-index) and a user with a badge; mobile drawer (language row, link colours, static-links dropdown, 60 px avatar, imprint/privacy/terms links); static pages dropdown margins.
+  - Language select below `md`: hover opens the menu, popover root ignores pointer events while the paper accepts them.
+  - Layouts: snackbar colours (default, error, success) on a **hub page** — they must match the pre-migration look (app-level theme); bottom padding above the footer; `WideLayout` alert at `lg`+ once scrolled past the header (fixed, `left: 50%`, `margin-left: -640`); full-page loader.
+  - Dialogs: `GenericDialog` with `fullScreen` + `topBarFixed` (e.g. the mobile filter dialog) and close button positions; hub supporters dialog (title 17 px centred bold, close icon top right, supporter cards, logo-only cards); likes/followers/requesters dialogs (avatar spacing, "since" text at 13 px below `sm`, login button when logged out); newsletter dialog field/button widths at `md`+ and below `sm`; upload-image dialog (spinner padding, slider centred); confirm dialog buttons; select dialog (additional-info field width and spacing, apply button position).
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -276,14 +293,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status           | `@mui/styles` files remaining |
-| ------------------------------------------ | ---------------- | ----------------------------- |
-| 0 Prep                                     | ✅               | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1, 2.2 done | 262                           |
-| 3 Remove bridge + SSR                      | ☐                |                               |
-| 4 Remove dependency + lint guard           | ☐                | 0                             |
-| 5 Verify + docs                            | ☐                | 0                             |
+| Phase                                      | Status          | `@mui/styles` files remaining |
+| ------------------------------------------ | --------------- | ----------------------------- |
+| 0 Prep                                     | ✅              | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.3 done | 242                           |
+| 3 Remove bridge + SSR                      | ☐               |                               |
+| 4 Remove dependency + lint guard           | ☐               | 0                             |
+| 5 Verify + docs                            | ☐               | 0                             |
 
 ## 8. Open questions for the maintainers
 

@@ -1,5 +1,5 @@
-import { Container, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Container } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import Alert from "@mui/material/Alert";
 import React, { ReactElement, ReactNode, useEffect, useState } from "react";
 import { getParams } from "../../../public/lib/generalOperations";
@@ -13,20 +13,24 @@ import DonationCampaignInformation from "../staticpages/donate/DonationCampaignI
 import LayoutWrapper from "./LayoutWrapper";
 import { CustomBackground } from "../hub/CustomBackground";
 
-type ThemeProps = { noSpaceBottom?: boolean; isStaticPage?: boolean };
-const useStyles = makeStyles<Theme, ThemeProps>((theme) => ({
-  main: (props) => ({
+const Main = styled(Container, {
+  shouldForwardProp: (prop) => prop !== "$noSpaceBottom" && prop !== "$isStaticPage",
+})<{ $noSpaceBottom?: boolean; $isStaticPage?: boolean; component?: React.ElementType }>(
+  ({ theme, $noSpaceBottom, $isStaticPage }) => ({
     padding: 0,
-    marginTop: props.isStaticPage ? 0 : -16,
-    marginBottom: props.noSpaceBottom ? 0 : theme.spacing(6),
-  }),
-  alert: {
-    textAlign: "center",
-    margin: "0 auto",
-    zIndex: 100,
-    maxWidth: 1280,
-  },
-  alertFixed: {
+    marginTop: $isStaticPage ? 0 : -16,
+    marginBottom: $noSpaceBottom ? 0 : theme.spacing(6),
+  })
+);
+
+const StyledAlert = styled(Alert, {
+  shouldForwardProp: (prop) => prop !== "$fixed",
+})<{ $fixed?: boolean }>(({ theme, $fixed }) => ({
+  textAlign: "center",
+  margin: "0 auto",
+  zIndex: 100,
+  maxWidth: 1280,
+  ...($fixed && {
     top: 0,
     position: "fixed",
     width: "100%",
@@ -34,7 +38,7 @@ const useStyles = makeStyles<Theme, ThemeProps>((theme) => ({
       left: "50%",
       marginLeft: -640,
     },
-  },
+  }),
 }));
 
 type Props = {
@@ -103,7 +107,6 @@ export default function WideLayout({
   hasHubLandingPage,
   showDonationGoal,
 }: Props) {
-  const classes = useStyles({ noSpaceBottom: noSpaceBottom, isStaticPage: isStaticPage });
   const [alertOpen, setAlertOpen] = useState(hideAlert ? false : true);
   const [initialMessageType, setInitialMessageType] = useState(null as any);
   const [initialMessage, setInitialMessage] = useState("");
@@ -150,13 +153,16 @@ export default function WideLayout({
       {isLoading ? (
         <LoadingContainer headerHeight={113} footerHeight={80} />
       ) : (
-        <Container maxWidth={false} component="main" className={`${classes.main} ${rootClassName}`}>
+        <Main
+          maxWidth={false}
+          component="main"
+          className={rootClassName}
+          $noSpaceBottom={noSpaceBottom}
+          $isStaticPage={isStaticPage}
+        >
           {(message || initialMessage) && alertOpen && (
-            <Alert
-              className={`
-                ${classes.alert}
-                ${spaceToTop.screen! <= 0 && spaceToTop.page! >= 98 && classes.alertFixed}
-              `}
+            <StyledAlert
+              $fixed={spaceToTop.screen! <= 0 && spaceToTop.page! >= 98}
               severity={
                 (messageType
                   ? messageType
@@ -175,12 +181,12 @@ export default function WideLayout({
               }}
             >
               {getMessageFromUrl(message ? message : initialMessage)}
-            </Alert>
+            </StyledAlert>
           )}
           {subHeader && subHeader}
           {!fixedHeader && showDonationGoal && <DonationCampaignInformation hubUrl={hubUrl} />}
           {children}
-        </Container>
+        </Main>
       )}
       {!hideFooter && (
         <Footer

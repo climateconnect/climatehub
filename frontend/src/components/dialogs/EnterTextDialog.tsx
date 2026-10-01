@@ -1,17 +1,14 @@
 import { TextField } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import { func, string, bool, number } from "prop-types";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import GenericDialog from "./GenericDialog";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 
-const useStyles = makeStyles({
-  textField: {
-    width: "100%",
-  },
+const StyledTextField = styled(TextField)({
+  width: "100%",
 });
 
 type Props = {
@@ -35,7 +32,6 @@ export default function EnterTextDialog({
   maxLength,
   className,
 }: Props) {
-  const classes = useStyles();
   const [element, setElement] = useState(null);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "general", locale: locale });
@@ -71,9 +67,8 @@ export default function EnterTextDialog({
       applyText={applyText ? applyText : texts.apply}
     >
       <div className={className}>
-        <TextField
+        <StyledTextField
           color={backgroundContrastColor}
-          className={classes.textField}
           label={inputLabel}
           autoFocus={true}
           variant="outlined"

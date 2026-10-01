@@ -1,8 +1,7 @@
 import { Snackbar, SnackbarContent, Theme, useMediaQuery } from "@mui/material";
 
-import makeStyles from "@mui/styles/makeStyles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
-import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider, styled, useTheme } from "@mui/material/styles";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import React, { useContext, useEffect, useState } from "react";
@@ -21,41 +20,34 @@ declare module "@mui/styles/defaultTheme" {
   interface DefaultTheme extends Theme {}
 }
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  pageWrapper: {
-    // Always establish a positioned containing block that is at least the
-    // viewport height so absolutely-positioned page backgrounds (e.g. the
-    // hub `CustomBackground`) cover the whole visible area — even on
-    // scrollable tablet layouts where the content grows past 100vh.
-    position: "relative",
-    minHeight: "100vh",
-  },
-  leaveSpaceForFooter: {
-    //height of footer + spacing(1)
-    paddingBottom: theme.spacing(12),
-  },
-  spinnerContainer: {
-    display: "flex",
-    position: "relative",
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100vh",
-    flexDirection: "column",
-  },
-  spinner: {
-    width: 100,
-  },
-  snackBar: {
-    background: `${theme.palette.primary.main}`,
-  },
-  errorSnackBar: {
-    background: theme.palette.error.main,
-  },
-  successSnackBar: {
-    background: theme.palette.success.main,
-  },
-  snackBarMessage: {
+const SpinnerContainer = styled("div")({
+  display: "flex",
+  position: "relative",
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  height: "100vh",
+  flexDirection: "column",
+});
+
+const PageWrapper = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$footerPadding",
+})<{ $footerPadding?: string }>(({ $footerPadding }) => ({
+  // Always establish a positioned containing block that is at least the
+  // viewport height so absolutely-positioned page backgrounds (e.g. the
+  // hub `CustomBackground`) cover the whole visible area — even on
+  // scrollable tablet layouts where the content grows past 100vh.
+  position: "relative",
+  minHeight: "100vh",
+  //height of footer + spacing(1)
+  ...($footerPadding && { paddingBottom: $footerPadding }),
+}));
+
+const StyledSnackbarContent = styled(SnackbarContent, {
+  shouldForwardProp: (prop) => prop !== "$background",
+})<{ $background: string }>(({ $background }) => ({
+  background: $background,
+  "& .MuiSnackbarContent-message": {
     maxWidth: 300,
     fontSize: 16,
   },
@@ -71,6 +63,10 @@ export default function LayoutWrapper({
   description,
   image,
 }: any) {
+  // The theme provided *above* the (hub) ThemeProvider rendered below. The previous makeStyles hook
+  // was called here as well, so the page wrapper padding and snackbar colours came from this theme
+  // and not from the hub theme. Keep that behaviour.
+  const outerTheme = useTheme();
   const [snackbarProps, setSnackbarProps] = useState({
     open: false,
     message: "",
@@ -79,7 +75,6 @@ export default function LayoutWrapper({
     error: undefined as any,
     success: undefined as any,
   });
-  const classes = useStyles();
   const [initialized, setInitialized] = useState(false);
   const isSmallerThanMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("lg"));
   const [loading, setLoading] = useState(true);
@@ -194,15 +189,15 @@ export default function LayoutWrapper({
         <StylesThemeProvider theme={theme}>
           <DevLinkProvider>
             {loading || isLoading ? (
-              <div className={classes.spinnerContainer}>
+              <SpinnerContainer>
                 <LoadingContainer headerHeight={0} footerHeight={0} />
-              </div>
+              </SpinnerContainer>
             ) : (
               <FeedbackContext.Provider value={contextValues}>
-                <div
-                  className={`${classes.pageWrapper} ${
-                    !fixedHeight && !noSpaceForFooter ? classes.leaveSpaceForFooter : ""
-                  }`}
+                <PageWrapper
+                  $footerPadding={
+                    !fixedHeight && !noSpaceForFooter ? outerTheme.spacing(12) : undefined
+                  }
                 >
                   {children}
                   {shouldShowCookieBanner() && <CookieBanner closeBanner={closeBanner} />}
@@ -217,18 +212,19 @@ export default function LayoutWrapper({
                     autoHideDuration={10000}
                     onClose={handleSnackbarClose}
                   >
-                    <SnackbarContent
+                    <StyledSnackbarContent
                       message={snackbarProps.message}
                       action={snackbarProps.action}
-                      classes={{
-                        root: `${classes.snackBar} ${
-                          snackbarProps.error && classes.errorSnackBar
-                        } ${snackbarProps.success && classes.successSnackBar}`,
-                        message: classes.snackBarMessage,
-                      }}
+                      $background={
+                        snackbarProps.success
+                          ? outerTheme.palette.success.main
+                          : snackbarProps.error
+                          ? outerTheme.palette.error.main
+                          : outerTheme.palette.primary.main
+                      }
                     />
                   </Snackbar>
-                </div>
+                </PageWrapper>
               </FeedbackContext.Provider>
             )}
           </DevLinkProvider>
