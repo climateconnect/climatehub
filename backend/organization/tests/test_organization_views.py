@@ -1499,3 +1499,216 @@ class TestListOrganizationsAPIViewPost(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.json().get("results", [])
         self.assertEqual(len(results), NUMBER_OF_ORGANIZATIONS)
+
+
+class TestCreateOrganizationViewDraft(APITestCase):
+    def setUp(self):
+        self.url = reverse("organization:create-organization-api-view")
+        self.user = User.objects.create_user(
+            username="draft_creator", password="testpassword"
+        )
+        self.client.login(username="draft_creator", password="testpassword")
+
+    @tag("organizations", "draft")
+    def test_post_organization_as_draft_only_requires_name(self):
+        response = self.client.post(
+            self.url, {"name": "My Draft Org", "is_draft": True}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        organization = Organization.objects.get(name="My Draft Org")
+        self.assertTrue(organization.is_draft)
+
+    @tag("organizations", "draft")
+    def test_post_draft_without_source_language_sets_fallback_language(self):
+        # Regression: a draft created without source_language had no language,
+        # which crashed edit_translations on the next PATCH.
+        response = self.client.post(
+            self.url, {"name": "Languageless Draft", "is_draft": True}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        organization = Organization.objects.get(name="Languageless Draft")
+        self.assertIsNotNone(organization.language)
+
+    @tag("organizations", "draft")
+    def test_post_draft_with_empty_images_succeeds(self):
+        # Regression: saving a draft from step 2 without an image sends empty
+        # strings for the image fields, which must not be decoded.
+        response = self.client.post(
+            self.url,
+            {
+                "name": "Imageless Draft",
+                "is_draft": True,
+                "image": "",
+                "thumbnail_image": "",
+                "background_image": "",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        organization = Organization.objects.get(name="Imageless Draft")
+        self.assertTrue(organization.is_draft)
+        self.assertFalse(organization.image)
+
+    @tag("organizations", "draft")
+    def test_post_organization_without_is_draft_still_requires_full_params(self):
+        # Regression: relaxing required params for drafts must not relax them
+        # for normal (non-draft) organization creation.
+        response = self.client.post(self.url, {"name": "Incomplete Org"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Organization.objects.filter(name="Incomplete Org").exists())
+
+
+class TestOrganizationDraftListingFiltering(APITestCase):
+    def setUp(self):
+        self.draft_org = Organization.objects.create(
+            name="Draft Org",
+            url_slug="draft-org",
+            is_draft=True,
+            rating=1,
+        )
+        self.published_org = Organization.objects.create(
+            name="Published Org",
+            url_slug="published-org",
+            is_draft=False,
+            rating=1,
+        )
+
+    @tag("organizations", "draft")
+    def test_list_organizations_excludes_drafts(self):
+        url = reverse("organization:list-organizations-api-view")
+        response = self.client.get(url)
+        slugs = [o["url_slug"] for o in response.json()["results"]]
+
+        self.assertNotIn("draft-org", slugs)
+        self.assertIn("published-org", slugs)
+
+    @tag("organizations", "draft")
+    def test_featured_organizations_excludes_drafts(self):
+        url = reverse("organization:featured-organizations-api-view")
+        response = self.client.get(url)
+        slugs = [o["url_slug"] for o in response.json()["results"]]
+
+        self.assertNotIn("draft-org", slugs)
+        self.assertIn("published-org", slugs)
+
+    @tag("organizations", "draft")
+    def test_sitemap_organizations_excludes_drafts(self):
+        url = reverse("organization:list-organizations-for-sitemap")
+        response = self.client.get(url)
+        slugs = [o["url_slug"] for o in response.json()["results"]]
+
+        self.assertNotIn("draft-org", slugs)
+        self.assertIn("published-org", slugs)
+
+
+class TestOrganizationPublishTransition(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="org_admin", password="testpassword"
+        )
+        self.role = Role.objects.create(name="Admin", role_type=Role.ALL_TYPE)
+        language = Language.objects.get(language_code="de")
+        self.draft_org = Organization.objects.create(
+            name="Draft Org", url_slug="draft-org", is_draft=True, language=language
+        )
+        self.published_org = Organization.objects.create(
+            name="Published Org",
+            url_slug="published-org",
+            is_draft=False,
+            language=language,
+        )
+        OrganizationMember.objects.create(
+            user=self.user, organization=self.draft_org, role=self.role
+        )
+        OrganizationMember.objects.create(
+            user=self.user, organization=self.published_org, role=self.role
+        )
+        self.client.login(username="org_admin", password="testpassword")
+
+    def _url(self, org):
+        return reverse(
+            "organization:organization-api-view", kwargs={"url_slug": org.url_slug}
+        )
+
+    @tag("organizations", "draft")
+    def test_patch_publishes_draft_organization(self):
+        response = self.client.patch(
+            self._url(self.draft_org), {"is_draft": False}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.draft_org.refresh_from_db()
+        self.assertFalse(self.draft_org.is_draft)
+
+    @tag("organizations", "draft")
+    def test_patch_cannot_revert_published_organization_to_draft(self):
+        response = self.client.patch(
+            self._url(self.published_org), {"is_draft": True}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.published_org.refresh_from_db()
+        self.assertFalse(self.published_org.is_draft)
+
+    @tag("organizations", "draft")
+    def test_patch_is_draft_true_while_still_draft_is_a_noop(self):
+        response = self.client.patch(
+            self._url(self.draft_org), {"is_draft": True}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.draft_org.refresh_from_db()
+        self.assertTrue(self.draft_org.is_draft)
+
+    @tag("organizations", "draft")
+    def test_patch_draft_without_language_does_not_crash(self):
+        # Regression: drafts created before a language was always set must
+        # still be editable.
+        self.draft_org.language = None
+        self.draft_org.save()
+
+        response = self.client.patch(
+            self._url(self.draft_org),
+            {"is_draft": True, "short_description": "Updated"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.draft_org.refresh_from_db()
+        self.assertIsNotNone(self.draft_org.language)
+        self.assertTrue(self.draft_org.is_draft)
+
+
+class TestOrganizationChildOrganizationsExcludeDrafts(APITestCase):
+    def setUp(self):
+        self.parent = Organization.objects.create(
+            name="Parent Org", url_slug="parent-org", is_draft=False
+        )
+        Organization.objects.create(
+            name="Published Child",
+            url_slug="published-child",
+            is_draft=False,
+            parent_organization=self.parent,
+        )
+        Organization.objects.create(
+            name="Draft Child",
+            url_slug="draft-child",
+            is_draft=True,
+            parent_organization=self.parent,
+        )
+
+    @tag("organizations", "draft")
+    def test_parent_detail_excludes_draft_child_organizations(self):
+        url = reverse(
+            "organization:organization-api-view", kwargs={"url_slug": "parent-org"}
+        )
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        slugs = [o["url_slug"] for o in response.json()["child_organizations"]]
+        self.assertIn("published-child", slugs)
+        self.assertNotIn("draft-child", slugs)

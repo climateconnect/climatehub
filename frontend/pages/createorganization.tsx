@@ -21,6 +21,7 @@ import TranslateTexts from "../src/components/general/TranslateTexts";
 import WideLayout from "./../src/components/layouts/WideLayout";
 import EnterBasicOrganizationInfo from "./../src/components/organization/EnterBasicOrganizationInfo";
 import EnterDetailledOrganizationInfo from "./../src/components/organization/EnterDetailledOrganizationInfo";
+import OrganizationDraftSavedPage from "./../src/components/organization/OrganizationDraftSavedPage";
 import Alert from "@mui/material/Alert";
 import getHubTheme from "../src/themes/fetchHubTheme";
 import { transformThemeData } from "../src/themes/transformThemeData";
@@ -82,8 +83,14 @@ export default function CreateOrganization({
     window.scrollTo(0, 0);
   };
   const { user, locale, locales } = useContext(UserContext);
-  const texts = getTexts({ page: "organization", locale: locale });
+  const texts = getTexts({
+    page: "organization",
+    locale: locale,
+    user: user ?? undefined,
+    hubName: hubUrl,
+  });
   const steps = ["basicorganizationinfo", "detailledorganizationinfo", "checktranslations"];
+  const DRAFT_SAVED_STEP = "draftsaved";
   const [curStep, setCurStep] = useState(steps[0]);
   const locationInputRef = useRef(null);
   const [locationOptionsOpen, setLocationOptionsOpen] = useState(false);
@@ -91,6 +98,7 @@ export default function CreateOrganization({
   const [sourceLanguage] = useState(locale);
   const [targetLanguage] = useState(locales.find((l) => l !== locale));
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const [loadingSubmitDraft, setLoadingSubmitDraft] = useState(false);
   const [existingUrlSlug, setExistingUrlSlug] = useState("");
   const [existingName, setExistingName] = useState("");
 
@@ -231,6 +239,48 @@ export default function CreateOrganization({
     }
   };
 
+  // Draft creation only requires a name - it can be triggered from the very
+  // first step, before location/parent-organization/type validation (which
+  // block progressing to the next step) even runs.
+  const handleSaveAsDraftFromBasicInfo = async (values) => {
+    if (!values.organizationname?.trim()) {
+      handleSetErrorMessages({
+        ...errorMessages,
+        basicOrganizationInfo: texts.organization_name_required_to_save_as_draft,
+      });
+      return;
+    }
+    const payload: any = {
+      is_draft: true,
+      name: values.organizationname,
+      source_language: sourceLanguage,
+      team_members: [
+        {
+          user_id: user!.id,
+          permission_type_id: rolesOptions.find((r) => r.role_type === ROLE_TYPES.all_type).id,
+        },
+      ],
+    };
+    if (values.hasparentorganization && values.parentOrganization) {
+      payload.parent_organization = values.parentOrganization.id;
+    }
+    if (values.location && typeof values.location === "object") {
+      const parsedLocation = parseLocation(values.location);
+      if (hasResolvableLocation(parsedLocation)) {
+        payload.location = parsedLocation;
+      }
+    }
+    if (values.types?.length) {
+      payload.organization_tags = values.types;
+    }
+    if (hubUrl) {
+      payload.created_in_hub = hubUrl;
+    }
+
+    setLoadingSubmitDraft(true);
+    await makeCreateOrganizationRequest(payload, true);
+  };
+
   const requiredPropErrors = {
     image: texts.image_required_error,
     organization_tags: texts.type_required_errror,
@@ -268,7 +318,7 @@ export default function CreateOrganization({
         (Array.isArray(organizationToSubmit[prop]) && organizationToSubmit[prop].length <= 0)
       ) {
         handleSetErrorMessages({
-          errorMessages,
+          ...errorMessages,
           detailledOrganizationInfo: requiredPropErrors[prop],
         });
         return;
@@ -305,7 +355,34 @@ export default function CreateOrganization({
     await makeCreateOrganizationRequest(organizationToSubmit);
   };
 
-  const makeCreateOrganizationRequest = (organizationToSubmit) => {
+  // A location is only safe to send to the backend once it has been resolved
+  // to a real place (has a place_id or a full OSM composite key) - an empty
+  // or partially-typed location object would make the backend's location
+  // lookup throw. Drafts skip the stricter isLocationValid() check used for
+  // normal creation, so this stands in as the minimal safety check.
+  const hasResolvableLocation = (location) =>
+    !!location &&
+    typeof location !== "string" &&
+    (!!location.place_id || (!!location.osm_id && !!location.osm_type && !!location.osm_class));
+
+  const handleSaveAsDraft = async (account) => {
+    const organizationToSubmit: any = await parseOrganizationForRequest(
+      account,
+      user,
+      rolesOptions,
+      translations,
+      sourceLanguage,
+      hubUrl
+    );
+    organizationToSubmit.is_draft = true;
+    if (!hasResolvableLocation(organizationToSubmit.location)) {
+      delete organizationToSubmit.location;
+    }
+    setLoadingSubmitDraft(true);
+    await makeCreateOrganizationRequest(organizationToSubmit, true);
+  };
+
+  const makeCreateOrganizationRequest = (organizationToSubmit, isDraft = false) => {
     apiRequest({
       method: "post",
       url: "/api/create_organization/",
@@ -315,25 +392,37 @@ export default function CreateOrganization({
     })
       .then(function (response) {
         setLoadingSubmit(false);
-        router.push({
-          pathname: `/manageOrganizationMembers/${response.data.url_slug}`,
-          query: {
-            message: texts.you_have_successfully_created_an_organization_you_can_add_members,
-            isCreationStage: true,
-            hub: hubUrl ? hubUrl : "",
-          },
-        });
+        setLoadingSubmitDraft(false);
+        if (isDraft) {
+          setCurStep(DRAFT_SAVED_STEP);
+          window.scrollTo(0, 0);
+        } else {
+          router.push({
+            pathname: `/manageOrganizationMembers/${response.data.url_slug}`,
+            query: {
+              message: texts.you_have_successfully_created_an_organization_you_can_add_members,
+              isCreationStage: true,
+              hub: hubUrl ? hubUrl : "",
+            },
+          });
+        }
         return;
       })
       .catch(function (error) {
         console.log(error);
         setLoadingSubmit(false);
+        setLoadingSubmitDraft(false);
         if (error) console.log(error?.response?.data);
-        if (error?.response?.data?.message)
-          handleSetErrorMessages({
-            errorMessages,
-            detailledOrganizationInfo: error?.response?.data?.message,
-          });
+        // Show the error on the step the request was sent from; step 1 only
+        // renders basicOrganizationInfo.
+        const errorKey =
+          curStep === "basicorganizationinfo"
+            ? "basicOrganizationInfo"
+            : "detailledOrganizationInfo";
+        handleSetErrorMessages({
+          ...errorMessages,
+          [errorKey]: error?.response?.data?.message || texts.server_error,
+        });
         if (error?.response?.data?.url_slug)
           handleSetExistingUrlSlug(error?.response?.data?.url_slug);
         if (error?.response?.data?.existing_name)
@@ -360,6 +449,12 @@ export default function CreateOrganization({
         <LoginNudge fullPage whatToDo={texts.to_create_an_organization} />
       </WideLayout>
     );
+  else if (curStep === DRAFT_SAVED_STEP)
+    return (
+      <WideLayout {...layoutProps} title={texts.create_an_organization}>
+        <OrganizationDraftSavedPage texts={texts} />
+      </WideLayout>
+    );
   else if (curStep === "basicorganizationinfo")
     return (
       <WideLayout {...layoutProps} title={texts.create_an_organization}>
@@ -371,6 +466,8 @@ export default function CreateOrganization({
           locationOptionsOpen={locationOptionsOpen}
           handleSetLocationOptionsOpen={handleSetLocationOptionsOpen}
           tagOptions={tagOptions}
+          handleSaveAsDraft={handleSaveAsDraftFromBasicInfo}
+          loadingSubmitDraft={loadingSubmitDraft}
         />
       </WideLayout>
     );
@@ -389,6 +486,8 @@ export default function CreateOrganization({
           handleSetLocationOptionsOpen={handleSetLocationOptionsOpen}
           loadingSubmit={loadingSubmit}
           allSectors={allSectors}
+          handleSaveAsDraft={handleSaveAsDraft}
+          loadingSubmitDraft={loadingSubmitDraft}
         />
       </WideLayout>
     );
