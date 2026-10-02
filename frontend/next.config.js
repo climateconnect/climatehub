@@ -165,6 +165,13 @@ module.exports = withBundleAnalyzer({
         destination: `https://climatehub.org/de/projects/stadtgrun-fassadenbegrunung?hub=potsdam&utm_source=subdomain&utm_medium=redirect&utm_campaign=potsdam&utm_content=fassadenbegruenung`,
         permanent: true,
       },
+      // Kassel project shortcuts on kassel.climatehub.org
+      {
+        source: "/hitzefrei",
+        has: [{ type: "host", value: "kassel.climatehub.org" }],
+        destination: `https://climatehub.org/de/projects/kassel-hitzefrei-kickoff?hub=kassel`,
+        permanent: true,
+      },
       // 2. Cross-domain subdomain redirects (German first, then English fallback)
       // Must be permanent: false (302) — 301s are cached by browsers, breaking language switching.
       ...LOCATION_HUBS.map((hubSlug) => ({
