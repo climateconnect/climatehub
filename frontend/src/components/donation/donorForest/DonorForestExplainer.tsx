@@ -1,44 +1,51 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import DonorForestExplainerDialog from "./DonorForestExplainerDialog";
 
-const useStyles = makeStyles((theme) => ({
-  explainerContainer: {
-    background: theme.palette.primary.extraLight,
-    padding: theme.spacing(3),
-    paddingBottom: theme.spacing(2),
-    paddingTop: theme.spacing(2),
-    borderRadius: 15,
-    width: 360,
-    textAlign: "center",
-    zIndex: 1,
-  },
-  headline: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: theme.spacing(0.5),
-  },
-  text: {
-    fontWeight: 600,
-  },
-  donateButton: {
-    marginTop: theme.spacing(1.5),
-    width: 220,
-  },
-  link: {
-    textDecoration: "underline",
-    fontWeight: 600,
-    marginTop: theme.spacing(1.5),
-    cursor: "pointer",
-  },
+const ExplainerContainer = styled("div")(({ theme }) => ({
+  background: theme.palette.primary.extraLight,
+  padding: theme.spacing(3),
+  paddingBottom: theme.spacing(2),
+  paddingTop: theme.spacing(2),
+  borderRadius: 15,
+  width: 360,
+  textAlign: "center",
+  zIndex: 1,
 }));
 
-export default function DonorForestExplainer({ className, possibleBadges }) {
-  const classes = useStyles();
+const Headline = styled(Typography)(({ theme }) => ({
+  fontSize: 24,
+  fontWeight: 700,
+  marginBottom: theme.spacing(0.5),
+}));
+
+const ExplainerText = styled(Typography)({
+  fontWeight: 600,
+});
+
+const DonateButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(1.5),
+  width: 220,
+}));
+
+const HowItWorksLink = styled(Typography)(({ theme }) => ({
+  textDecoration: "underline",
+  fontWeight: 600,
+  marginTop: theme.spacing(1.5),
+  cursor: "pointer",
+}));
+
+export default function DonorForestExplainer({
+  className,
+  possibleBadges,
+}: {
+  className?: string;
+  possibleBadges: any;
+}) {
   const [open, setOpen] = useState(false);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "donate", locale: locale });
@@ -53,27 +60,18 @@ export default function DonorForestExplainer({ className, possibleBadges }) {
   };
 
   return (
-    <div className={`${className} ${classes.explainerContainer}`}>
-      <Typography className={classes.headline} color="primary">
-        {texts.forest_explainer_headline}
-      </Typography>
-      <Typography className={classes.text}>{texts.forest_explainer_text}</Typography>
-      <Button
-        variant="contained"
-        color="primary"
-        href={getLocalePrefix(locale) + "/donate"}
-        className={classes.donateButton}
-      >
+    <ExplainerContainer className={className}>
+      <Headline color="primary">{texts.forest_explainer_headline}</Headline>
+      <ExplainerText>{texts.forest_explainer_text}</ExplainerText>
+      <DonateButton variant="contained" color="primary" href={getLocalePrefix(locale) + "/donate"}>
         {texts.donate}
-      </Button>
-      <Typography onClick={handleOpenExplainerDialog} className={classes.link}>
-        {texts.how_it_works}
-      </Typography>
+      </DonateButton>
+      <HowItWorksLink onClick={handleOpenExplainerDialog}>{texts.how_it_works}</HowItWorksLink>
       <DonorForestExplainerDialog
         open={open}
         onClose={handleClose}
         possibleBadges={possibleBadges}
       />
-    </div>
+    </ExplainerContainer>
   );
 }

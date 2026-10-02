@@ -268,6 +268,21 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Project discussion tab and idea comments, desktop and below `md`: reply indent, progress-post timeline dot and line (first post `::before`), comment input spacing and buttons, mention suggestions dropdown (z-index, hover/focus underline).
   - Notifications bell menu: title and text clamp, close icon absolute position, "go to inbox"; links inside messages and embedded YouTube videos.
 
+#### Phase 2.6a results (`landingPage`, `indexPage/hubsSubHeader`, `donation/donorForest`, `staticpages/SmallCloud`)
+
+- Migrated 18 component files: `landingPage` (8: `DonationsBanner`, `FixedPreviewCards`, `HubsBox`, `JoinCommunityBox`, `OrganizationsSharedBox`, `OurTeamBox`, `PitchBox`, `ProjectsSharedBox`), `indexPage/hubsSubHeader` (3: `HubLinks`, `HubsDropDown`, `HubsSubHeader`), `donation/donorForest` (6: `DonorBadgeExplainerList`, `DonorForestEntries`, `DonorForestEntry`, `DonorForestExplainer`, `DonorForestExplainerDialog`, `DonorForestTransition`) and `staticpages/SmallCloud` (pulled forward from the `staticpages` batch, see below). `@mui/styles` importing files: 191 → 173. `HubsDropDown.test.tsx` still wraps with `StylesThemeProvider` and stays on the allowlist until Phase 3. `staticpages/*` (18 other files) remain for batch 2.6b.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of 18 landing/hub/donor-forest components produced no new React console errors, and it confirmed the `SmallCloud` size override works (see below). Two cases (`FixedPreviewCards`, `ProjectsSharedBox` with projects) threw inside `project/ProjectMetaData.tsx` (not part of this batch) because of my test fixture, not because of the migration. The throwaway test files were deleted. Not checked in a real browser. (One `yarn test` invocation stalled for over ten minutes and was killed; cause unknown; later runs completed normally, including a final full run with 59 passing suites.)
+- **Cross-batch dependency found in review (important for how batches are merged):** after migrating, several components wrap `SmallCloud` with `styled(SmallCloud)(…)` to override its size (`PitchBox`, `OurTeamBox`, `JoinCommunityBox`, `OrganizationsSharedBox`, `DonorForestTransition`). While `SmallCloud` was still a `makeStyles` component, its own JSS `width: 85; height: 50` is injected _after_ emotion and would silently beat those overrides (the agents worked around it with `&&` selectors in two places). `SmallCloud` was therefore migrated in this batch (it is a leaf: `styled("span")` with `$`-props, `className` still spread onto the root) and the `&&` workarounds were removed again. Verified in jsdom: the overriding cloud renders 120×80 while the default one stays 85×50. **General rule for the remaining batches: before migrating a component that is wrapped with `styled(X)`, check whether `X` is still on `makeStyles`; if so migrate `X` in the same PR (or earlier).** Conversely, `ExplainerBox` / `TopSection` (still JSS) pass JSS class names into `SmallCloud`, which still win over its emotion base styles because JSS is injected later.
+- Review notes:
+  - Dead-code claims were re-verified against `HEAD` (`HubsSubHeader`: `viewHubsButton`, `popover`, `popoverContent`; `DonorBadgeExplainerList.image`; `DonorForestExplainerDialog.avatar` were unreferenced; `DonationsBanner.donateButton` was never defined).
+  - The yellow highlight in the landing-page texts (`<span className={classes?.yellow}>`) is kept by passing a static class name through `getTexts({ classes: { yellow: … } })` and styling it with a descendant selector on the component root (`DonationsBanner`, `JoinCommunityBox`). The texts only read the keys `yellow`, `marked`, `topText` and `faqLink`; the other landing components never had a `yellow` rule, so they no longer pass `classes` at all (no behaviour change).
+  - `HubsSubHeader` builds `HubLinks`' `linkClassName` with `ClassNames` from `@emotion/react` so `HubLinks`' prop surface stays unchanged; `DonorForestExplainer` got an explicit props signature so that `styled(DonorForestExplainer)` keeps `className` optional.
+  - Two sub-tasks again wrote files with shell heredocs / a copy from a scratch file instead of the Edit tool; no stray files were left in the repo (`git status` checked).
+- **Manual visual checklist for this batch**:
+  - Landing pages (default and hub landing pages), desktop, `md`, `sm` and below 400 px: cloud sizes and positions (`JoinCommunityBox` cloud 1 is 120×80 and hidden at `sm`, `OrganizationsSharedBox` cloud 2 is 100×80, `PitchBox` has 13 clouds, `OurTeamBox` 2), the yellow headline words ("Be part" / "Sei Teil", donation banner), `FixedPreviewCards` (scrollbar at `sm`+, first/last card margins and widths at `xl` and `lg`), `ProjectsSharedBox` arrow and underlined link text, `PitchBox` alternating image/text rows and margins at `md`, team box images and info links.
+  - Hub sub header (hub pages): background on the `prio1` hub, hubs container centred at `sm` and below, `HubsDropDown` button height, "all projects" link style (currently unreachable because `showAllProjectsButton` is never set).
+  - `/donorforest`: transition section with four clouds (sizes, positions, `md` and `sm` breakpoints, cloud 2 moves at `md`), entries grid column spans at `md` (12n+7, 12n+11, 7n+5 to 7), per-entry tree image width by step, avatar placement, "how it works" dialog (badge list in one column at `sm`, Typography font sizes).
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -341,14 +356,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status          | `@mui/styles` files remaining |
-| ------------------------------------------ | --------------- | ----------------------------- |
-| 0 Prep                                     | ✅              | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.5 done | 191                           |
-| 3 Remove bridge + SSR                      | ☐               |                               |
-| 4 Remove dependency + lint guard           | ☐               | 0                             |
-| 5 Verify + docs                            | ☐               | 0                             |
+| Phase                                      | Status           | `@mui/styles` files remaining |
+| ------------------------------------------ | ---------------- | ----------------------------- |
+| 0 Prep                                     | ✅               | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.6a done | 173                           |
+| 3 Remove bridge + SSR                      | ☐                |                               |
+| 4 Remove dependency + lint guard           | ☐                | 0                             |
+| 5 Verify + docs                            | ☐                | 0                             |
 
 ## 8. Open questions for the maintainers
 
