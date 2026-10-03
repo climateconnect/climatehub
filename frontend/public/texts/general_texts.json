@@ -699,6 +699,14 @@
     "en": "ClimateHub's core team: A group of 9 people",
     "de": "ClimateHub's Kernteam: Eine Gruppe von 9 Personen"
   },
+  "no_project_yet": {
+    "en": "No Project Yet",
+    "de": "Kein Projekt bis jetzt"
+  },
+  "no_member_yet": {
+    "en": "No Member Yet",
+    "de": "Keine Mitglieder bis jetzt"
+  },
   "group_icon_alt": {
     "en": "Icon displaying 2 people",
     "de": "Symbol, das 2 Personen zeigt"
