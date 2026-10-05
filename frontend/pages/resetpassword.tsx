@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, useTheme } from "@mui/material/styles";
 import { apiRequest, redirect } from "../public/lib/apiOperations";
 import getTexts from "../public/texts/texts";
 import UserContext from "../src/components/context/UserContext";
@@ -10,14 +10,17 @@ import { transformThemeData } from "../src/themes/transformThemeData";
 import { Typography } from "@mui/material";
 import theme from "../src/themes/theme";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    marginTop: theme.spacing(8),
-    marginBottom: theme.spacing(4),
+const Headline = styled(Typography, {
+  shouldForwardProp: (prop) =>
+    prop !== "$marginTop" && prop !== "$marginBottom" && prop !== "$color",
+})<{ $marginTop: string; $marginBottom: string; $color: string }>(
+  ({ $marginTop, $marginBottom, $color }) => ({
+    marginTop: $marginTop,
+    marginBottom: $marginBottom,
     textAlign: "center",
-    color: theme.palette.text.primary,
-  },
-}));
+    color: $color,
+  })
+);
 
 export async function getServerSideProps(ctx) {
   const hubUrl = ctx.query.hub;
@@ -36,7 +39,8 @@ export default function ResetPassword({ hubUrl, hubThemeData }) {
   const [errorMessage, setErrorMessage] = useState(null as string | null);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "settings", locale: locale });
-  const classes = useStyles();
+  // The old makeStyles hook ran above WideLayout's (hub) ThemeProvider, so keep the outer theme
+  const outerTheme = useTheme();
 
   const messages = {
     submitMessage: texts.send_password_reset_email,
@@ -90,9 +94,14 @@ export default function ResetPassword({ hubUrl, hubThemeData }) {
         customTheme ? customTheme.palette.header.background : theme.palette.background.default
       }
     >
-      <Typography className={classes.headline} variant="h3">
+      <Headline
+        variant="h3"
+        $marginTop={outerTheme.spacing(8)}
+        $marginBottom={outerTheme.spacing(4)}
+        $color={outerTheme.palette.text.primary}
+      >
         {texts.reset_password}
-      </Typography>
+      </Headline>
       <Form
         fields={fields}
         messages={messages}

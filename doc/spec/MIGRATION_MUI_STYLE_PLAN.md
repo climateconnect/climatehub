@@ -371,6 +371,14 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
 - Notes: `ProjectMetaData` passes static class names (`ProjectMetaData-cardIcon`, `-metadataText`, `-typeIcon`) into `ProjectSectorsDisplay` / `LocationDisplay` / `ProjectTypeDisplay` and styles them with descendant selectors, because those children need a truthy `iconClassName` (default-size flag / `sx`); `ProjectContent`'s clamp is a discrete `$clamped` prop with `label: "descriptionClamped"` (the test selects by that name); `ProjectOverview` takes helper rules via `projectOverviewStyles(theme)[key]`, and its local `smallScreenHeader` / `largeScreenHeader` / `infoBottomBar` replace the helper's same-named rules entirely, as in the old spread.
 - **Visual checklist**: project page (event and normal project; large and small screens): tab widths (145 px, 125 px below `sm`), selected-tab colour and indicator (also on a hub theme), tab and content container padding, confirm-dialog text centring; creator and collaborating-organization rows (name colour, `h6` weight, padding); 6-line description clamp with show more/less icons and the tiptap description styles; overview header, info bar, register button; project preview card metadata (icon and text sizes, hover).
 
+#### Phase 2.11 results (`pages/*`) — Phase 2 complete
+
+- Migrated 15 pages: `createorganization`, `donorforest`, `editProject/[projectUrl]`, `faq`, `hubs/em/wasseraktionswochen`, `inbox`, `index`, `manageOrganizationMembers/[organizationUrl]`, `manageProjectMembers/[projectUrl]`, `organizations/[organizationUrl]`, `post/[postUrl]`, `projects/[projectId]/index`, `resend_verification_email`, `reset_password/[uuid]`, `resetpassword`. `@mui/styles` importing files: 59 → 44 = 41 test files (wrapper removed in Phase 3) + `pages/_app.tsx`, `pages/_document.tsx`, `src/components/layouts/LayoutWrapper.tsx`.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). Not checked in a real browser.
+- Theme source for pages: a page's old `useStyles()` usually ran in the page body, i.e. **above** the hub `ThemeProvider` that `WideLayout` renders, so it used the app theme. The three password pages (`resend_verification_email`, `reset_password/[uuid]`, `resetpassword`) read `useTheme()` above the layout and pass spacing/`text.primary` as `$` props. The other pages only use `spacing` / breakpoints in their styles (identical across the themes we ship); `organizations/[organizationUrl]` called its hook inside `OrganizationLayout`, i.e. below the layout provider, which matches the new behaviour.
+- Notes: `projects/[projectId]/index` moved the `down("lg")` media block to the end of `SecondaryContent` (JSS emitted media queries after the base rules, emotion keeps source order); `post/[postUrl]` uses `styled(WebflowPage)` (forwards `className` to `WideLayout`'s `rootClassName`); `faq` wraps `HeaderImage` and `FilterSearchBar` with `styled()`. Dead rules re-verified (`editProject` `Layout className={classes.root}` was ignored by `Layout`; org page `cardHeadline`, `subtitle`, and an invalid `marginLeft: -theme.spacing(1)` that evaluated to `NaN`).
+- **Visual checklist**: password/verify pages with `?hub=<slug>` (headline margin and colour); `/faq` header image (`lg` and `sm`) and header margin; org page on a hub theme (icon button colour, share and manage-members buttons at `sm` and below); create-organization translate step (alert, headline); edit-project error pages (error title margin); project page `SecondaryContent` margins and width below `lg`; inbox container padding (must stay 0) and button row; manage-members headlines; `/hubs/em/wasseraktionswochen` content, ambassador, supporters and bottom menu; `/donorforest` forest background.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -444,14 +452,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status           | `@mui/styles` files remaining |
-| ------------------------------------------ | ---------------- | ----------------------------- |
-| 0 Prep                                     | ✅               | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.10 done | 59                            |
-| 3 Remove bridge + SSR                      | ☐                |                               |
-| 4 Remove dependency + lint guard           | ☐                | 0                             |
-| 5 Verify + docs                            | ☐                | 0                             |
+| Phase                                      | Status | `@mui/styles` files remaining  |
+| ------------------------------------------ | ------ | ------------------------------ |
+| 0 Prep                                     | ✅     | 316                            |
+| 1 Mechanical (useTheme, types, withStyles) | ✅     | 310                            |
+| 2.1–2.11 `makeStyles` batches              | ✅     | 44 (41 tests + 3 bridge files) |
+| 3 Remove bridge + SSR                      | ☐      |                                |
+| 4 Remove dependency + lint guard           | ☐      | 0                              |
+| 5 Verify + docs                            | ☐      | 0                              |
 
 ## 8. Open questions for the maintainers
 

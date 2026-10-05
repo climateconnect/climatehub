@@ -5,7 +5,7 @@ import { apiRequest } from "../../../public/lib/apiOperations";
 import WasseraktionswochenEvents from "../../../src/components/hub/WasseraktionswochenEvents";
 import theme from "../../../src/themes/theme";
 import { Wasseraktionswochen as WasseraktionswochenHero } from "../../../devlink/Wasseraktionswochen";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import LocalAmbassadorInfoBox from "../../../src/components/hub/LocalAmbassadorInfoBox";
 import {
   getHubAmbassadorData,
@@ -89,34 +89,35 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   };
 };
 
-const useStyles = makeStyles(() => ({
-  content: {
-    position: "relative",
-  },
-  ambassadorBox: {
-    position: "fixed",
-    bottom: 16,
-    right: 16,
-    zIndex: 1000,
-  },
-  supporters: {
-    marginLeft: "8px",
-    marginTop: "60px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  bottomMenu: {
-    position: "fixed",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    background: "#f0f2f5",
-  },
-}));
+const Content = styled("div")({
+  position: "relative",
+});
 
-const HubSupportersSection = ({ isNarrowScreen, classes, supporters, hubName, hubUrl }) => {
+const AmbassadorBox = styled("div")({
+  position: "fixed",
+  bottom: 16,
+  right: 16,
+  zIndex: 1000,
+});
+
+const Supporters = styled("div")({
+  marginLeft: "8px",
+  marginTop: "60px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+});
+
+const BottomMenu = styled("div")({
+  position: "fixed",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  zIndex: 20,
+  background: "#f0f2f5",
+});
+
+const HubSupportersSection = ({ isNarrowScreen, supporters, hubName, hubUrl }) => {
   if (!supporters || supporters.length === 0) {
     return null;
   }
@@ -130,33 +131,33 @@ const HubSupportersSection = ({ isNarrowScreen, classes, supporters, hubName, hu
   }
 
   return (
-    <div className={classes.supporters}>
+    <Supporters>
       <Box sx={{ alignSelf: "center" }}>{supportersComponent}</Box>
-    </div>
+    </Supporters>
   );
 };
 
-const HubAmbassadorSection = ({ isNarrowScreen, classes, hubAmbassador, hubData, hubUrl }) => {
+const HubAmbassadorSection = ({ isNarrowScreen, hubAmbassador, hubData, hubUrl }) => {
   if (!hubAmbassador || !hubData) {
     return null;
   }
 
   if (isNarrowScreen) {
     return (
-      <div className={classes.bottomMenu}>
+      <BottomMenu>
         <ContactAmbassadorButton mobile hubAmbassador={hubAmbassador} hubUrl={hubUrl} />
-      </div>
+      </BottomMenu>
     );
   }
 
   return (
-    <div className={classes.ambassadorBox}>
+    <AmbassadorBox>
       <LocalAmbassadorInfoBox
         hubAmbassador={hubAmbassador}
         hubData={hubData}
         hubSupportersExists={false}
       />
-    </div>
+    </AmbassadorBox>
   );
 };
 
@@ -171,7 +172,6 @@ export default function WasseraktionswochenPage({
   const hubUrl = "em";
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   const isGerman = locale === "de";
-  const classes = useStyles();
 
   // Get SEO metadata from parent project
   const pageTitle =
@@ -196,7 +196,7 @@ export default function WasseraktionswochenPage({
       noSpaceBottom={isNarrowScreen}
       headerBackground={theme.palette.background.default}
     >
-      <div className={classes.content}>
+      <Content>
         <WasseraktionswochenHero />
         <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
           <Typography variant="body1" paragraph>
@@ -231,7 +231,6 @@ export default function WasseraktionswochenPage({
           <WasseraktionswochenEvents projects={projects} isGerman={isGerman} />
           <HubSupportersSection
             isNarrowScreen={isNarrowScreen}
-            classes={classes}
             supporters={hubSupporters}
             hubName={hubData?.name}
             hubUrl={hubUrl}
@@ -239,12 +238,11 @@ export default function WasseraktionswochenPage({
         </Container>
         <HubAmbassadorSection
           isNarrowScreen={isNarrowScreen}
-          classes={classes}
           hubAmbassador={hubAmbassador}
           hubData={hubData}
           hubUrl={hubUrl}
         />
-      </div>
+      </Content>
     </WideLayout>
   );
 }
