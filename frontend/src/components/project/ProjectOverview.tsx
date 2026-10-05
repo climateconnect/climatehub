@@ -1,6 +1,5 @@
 import { Container, Link, Tooltip, Typography, Button } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import Linkify from "react-linkify";
 import React, { MouseEventHandler, RefObject, useContext, useEffect, useState } from "react";
 
@@ -32,107 +31,109 @@ import WasseraktionswochenLink from "../hub/WasseraktionswochenLink";
 import { isWasseraktionswochenSubEvent } from "../../../public/data/wasseraktionswochen_config.js";
 import { getRegistrationUIState } from "../../utils/eventRegistrationHelpers";
 
-type StyleProps = { hasAdminPermissions?: boolean };
+const OverviewContainer = styled(Container)(
+  ({ theme }) => projectOverviewStyles(theme).projectOverview
+);
 
-const useStyles = makeStyles<Theme, StyleProps>((theme) => {
-  return {
-    ...projectOverviewStyles(theme),
-    infoBottomBar: (props) => ({
-      display: "flex",
-      marginTop: theme.spacing(3),
-      justifyContent: props.hasAdminPermissions ? "flex-start" : "space-between",
-    }),
-    largeScreenButtonContainer: {
-      display: "inline-flex",
-      flexDirection: "column",
-      alignItems: "center",
-    },
-    smallScreenHeader: {
-      fontSize: "calc(1.6rem + 6 * ((100vw - 320px) / 680))",
-      paddingBottom: theme.spacing(2),
-      wordBreak: "break-word",
-      color: "inherit",
-    },
-    rootLinksContainer: {
-      display: "flex",
-      justifyContent: "space-around",
-      paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(1),
-    },
-    linkContainer: {
-      display: "flex",
-      marginTop: theme.spacing(3),
-      justifyContent: "flex-start",
-      cursor: "pointer",
-      marginRight: theme.spacing(1),
-    },
-    linkIcon: {
-      marginRight: theme.spacing(1),
-      color: theme.palette.primary.main,
-    },
-    largeScreenHeader: {
-      paddingTop: theme.spacing(4),
-      paddingBottom: theme.spacing(4),
-      textAlign: "center",
-      wordBreak: "break-word",
-      color: "inherit",
-    },
-    headerButton: {
-      right: 0,
-      position: "absolute",
-    },
+const ProjectInfoEl = styled("div")(({ theme }) => projectOverviewStyles(theme).projectInfoEl);
 
-    headerContainer: {
-      display: "flex",
-      justifyContent: "center",
-    },
-    shareButtonContainer: {},
-    calendarButtonContainer: {},
-    actionButtonsGroup: {
-      position: "absolute",
-      right: 0,
-      bottom: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      marginRight: theme.spacing(1),
-      marginBottom: theme.spacing(1.6),
-      gap: theme.spacing(0.5),
-    },
-    imageContainer: {
-      position: "relative",
-    },
-    contactProjectButtonLarge: {
-      height: 40,
-      minWidth: 120,
-    },
-    registerButton: {
-      height: 40,
-      marginLeft: theme.spacing(1),
-      marginRight: theme.spacing(1),
-      whiteSpace: "nowrap",
-    },
-    registerButtonMobile: {
-      marginTop: theme.spacing(2),
-      whiteSpace: "nowrap",
-    },
-    shortDescription: {
-      wordBreak: "break-word",
-    },
-    summaryHeadline: {
-      color: "inherit",
-    },
-    projectTypeContainer: {
-      display: "flex",
-      alignItems: "center",
-    },
-    attendedEventText: {
-      marginLeft: theme.spacing(1),
-    },
-    availableSeatsText: {
-      marginLeft: theme.spacing(0.5),
-    },
-  };
+// The same `icon` rule from the shared helper is applied to four different icons.
+const StyledPlaceIcon = styled(PlaceIcon)(({ theme }) => projectOverviewStyles(theme).icon);
+const StyledCalendarTodayIcon = styled(CalendarTodayIcon)(
+  ({ theme }) => projectOverviewStyles(theme).icon
+);
+const StyledLanguageIcon = styled(LanguageIcon)(({ theme }) => projectOverviewStyles(theme).icon);
+const StyledExploreIcon = styled(ExploreIcon)(({ theme }) => projectOverviewStyles(theme).icon);
+
+const ShortDescription = styled(Typography)({
+  wordBreak: "break-word",
+});
+
+const ProjectTypeContainer = styled("div")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const AttendedEventText = styled(Typography)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+}));
+
+const ImageContainer = styled("div")({
+  position: "relative",
+});
+
+const ActionButtonsGroup = styled("div")(({ theme }) => ({
+  position: "absolute",
+  right: 0,
+  bottom: 0,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  marginRight: theme.spacing(1),
+  marginBottom: theme.spacing(1.6),
+  gap: theme.spacing(0.5),
+}));
+
+const FullWidthImage = styled("img")(({ theme }) => projectOverviewStyles(theme).fullWidthImage);
+
+const BlockProjectInfo = styled("div")(
+  ({ theme }) => projectOverviewStyles(theme).blockProjectInfo
+);
+
+// `smallScreenHeader` / `largeScreenHeader` of the local styles replaced the helper's rules
+// of the same name entirely (they were not merged), so only the local values apply.
+const SmallScreenHeader = styled(Typography)(({ theme }) => ({
+  fontSize: "calc(1.6rem + 6 * ((100vw - 320px) / 680))",
+  paddingBottom: theme.spacing(2),
+  wordBreak: "break-word",
+  color: "inherit",
+}));
+
+const HeaderContainer = styled("div")({
+  display: "flex",
+  justifyContent: "center",
+});
+
+const LargeScreenHeader = styled(Typography)(({ theme }) => ({
+  paddingTop: theme.spacing(4),
+  paddingBottom: theme.spacing(4),
+  textAlign: "center",
+  wordBreak: "break-word",
+  color: "inherit",
+}));
+
+const FlexContainer = styled("div")(({ theme }) => projectOverviewStyles(theme).flexContainer);
+
+const InlineImage = styled("img")(({ theme }) => projectOverviewStyles(theme).inlineImage);
+
+const InlineProjectInfo = styled("div")(
+  ({ theme }) => projectOverviewStyles(theme).inlineProjectInfo
+);
+
+// summaryHeadline (color) + subHeader (from the helper): distinct properties, merged
+const SummaryHeadline = styled(Typography)(({ theme }) => ({
+  ...projectOverviewStyles(theme).subHeader,
+  color: "inherit",
+}));
+
+const InfoBottomBar = styled("div", {
+  shouldForwardProp: (prop) => !(prop as string).startsWith("$"),
+})<{ $hasAdminPermissions?: boolean }>(({ theme, $hasAdminPermissions }) => ({
+  display: "flex",
+  marginTop: theme.spacing(3),
+  justifyContent: $hasAdminPermissions ? "flex-start" : "space-between",
+}));
+
+const StyledRegistrationActionButton = styled(RegistrationActionButton)(({ theme }) => ({
+  height: 40,
+  marginLeft: theme.spacing(1),
+  marginRight: theme.spacing(1),
+  whiteSpace: "nowrap",
+}));
+
+const ContactProjectButtonLarge = styled(Button)({
+  height: 40,
+  minWidth: 120,
 });
 
 const componentDecorator = (href, text, key) => (
@@ -215,7 +216,6 @@ export default function ProjectOverview({
   onModifyRegistrationClick,
   eventRegistration,
 }: Props) {
-  const classes = useStyles({});
   const { locale, user } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
   const [gotParams, setGotParams] = useState(false);
@@ -247,7 +247,7 @@ export default function ProjectOverview({
   };
 
   return (
-    <Container className={classes.projectOverview}>
+    <OverviewContainer>
       {screenSize?.belowSmall ? (
         <SmallScreenOverview {...passThroughProps} />
       ) : (
@@ -302,74 +302,73 @@ export default function ProjectOverview({
         user={user}
         url={"projects/" + project.url_slug + "?show_likes=true"}
       />
-    </Container>
+    </OverviewContainer>
   );
 }
 
 function ShortProjectInfo({ project, isWasseraktionswochenEnabled, showAttendedInPast = false }) {
-  const classes = useStyles({});
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
 
   return (
     <>
-      <Typography component="div" className={classes.shortDescription}>
+      <ShortDescription component="div">
         <MessageContent content={project.short_description} />
-      </Typography>
+      </ShortDescription>
       {isWasseraktionswochenEnabled && isWasseraktionswochenSubEvent(project) && (
         <div style={{ marginTop: "16px", marginBottom: "8px" }}>
           <WasseraktionswochenLink />
         </div>
       )}
-      <div className={classes.projectInfoEl}>
+      <ProjectInfoEl>
         <Typography>
           <Tooltip title={texts.location}>
-            <PlaceIcon className={classes.icon} />
+            <StyledPlaceIcon />
           </Tooltip>{" "}
           {project.is_online && <>{texts.online} · </>}
           {project.location}
           {project.additional_loc_info && <> - {project.additional_loc_info}</>}
         </Typography>
-      </div>
+      </ProjectInfoEl>
       {project.project_type?.type_id === "event" && (
-        <div className={classes.projectInfoEl}>
+        <ProjectInfoEl>
           <Typography>
             <Tooltip title={texts.event_start_date}>
-              <CalendarTodayIcon color="primary" className={classes.icon} />
+              <StyledCalendarTodayIcon color="primary" />
             </Tooltip>{" "}
             {getDateTimeRange(project.start_date, project.end_date, locale)}
           </Typography>
-        </div>
+        </ProjectInfoEl>
       )}
       {project?.website && (
-        <div className={classes.projectInfoEl}>
+        <ProjectInfoEl>
           <Typography>
             <Tooltip title={texts.website}>
-              <LanguageIcon className={classes.icon} />
+              <StyledLanguageIcon />
             </Tooltip>{" "}
             <Linkify componentDecorator={componentDecorator}>{project.website}</Linkify>
           </Typography>
-        </div>
+        </ProjectInfoEl>
       )}
-      <div className={classes.projectInfoEl}>
+      <ProjectInfoEl>
         <Typography>
           <Tooltip title={texts.categories}>
-            <ExploreIcon className={classes.icon} />
+            <StyledExploreIcon />
           </Tooltip>{" "}
           {project?.sectors?.length > 0 && project.sectors.map((s) => s.name).join(", ")}
         </Typography>
-      </div>
-      <div className={classes.projectInfoEl}>
-        <div className={classes.projectTypeContainer}>
+      </ProjectInfoEl>
+      <ProjectInfoEl>
+        <ProjectTypeContainer>
           <ProjectTypeDisplay projectType={project.project_type} />
           {showAttendedInPast && project.project_type?.type_id === "event" && (
-            <Typography component="span" className={classes.attendedEventText}>
-              {"\u2022 "}
+            <AttendedEventText component="span">
+              {"• "}
               {texts.you_attended_this_event}
-            </Typography>
+            </AttendedEventText>
           )}
-        </div>
-      </div>
+        </ProjectTypeContainer>
+      </ProjectInfoEl>
     </>
   );
 }
@@ -382,42 +381,36 @@ function SmallScreenOverview({
   showAttendedInPast,
   isUserRegistered,
 }) {
-  const classes = useStyles({});
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
 
   return (
     <>
-      <div className={classes.imageContainer}>
-        <div className={classes.actionButtonsGroup}>
-          <ProjectAddToCalendarButton
-            className={classes.calendarButtonContainer}
-            project={project}
-            isUserRegistered={isUserRegistered}
-          />
+      <ImageContainer>
+        <ActionButtonsGroup>
+          <ProjectAddToCalendarButton project={project} isUserRegistered={isUserRegistered} />
           <ProjectSocialMediaShareButton
-            className={classes.shareButtonContainer}
+            className={undefined}
             project={project}
             projectAdmin={projectAdmin}
             hubUrl={hubUrl}
           />
-        </div>
-        <img
-          className={classes.fullWidthImage}
+        </ActionButtonsGroup>
+        <FullWidthImage
           src={getImageUrl(project.image)}
           alt={texts.project_image_of_project + " " + project.name}
         />
-      </div>
-      <div className={classes.blockProjectInfo}>
-        <Typography component="h1" variant="h3" className={classes.smallScreenHeader}>
+      </ImageContainer>
+      <BlockProjectInfo>
+        <SmallScreenHeader component="h1" variant="h3">
           {project.name}
-        </Typography>
+        </SmallScreenHeader>
         <ShortProjectInfo
           project={project}
           isWasseraktionswochenEnabled={isWasseraktionswochenEnabled}
           showAttendedInPast={showAttendedInPast}
         />
-      </div>
+      </BlockProjectInfo>
     </>
   );
 }
@@ -446,37 +439,31 @@ function LargeScreenOverview({
   onModifyRegistrationClick,
   eventRegistration,
 }) {
-  const classes = useStyles({ hasAdminPermissions: hasAdminPermissions });
   const { locale, user } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
 
   return (
     <>
-      <div className={classes.headerContainer}>
-        <Typography component="h1" variant="h4" className={classes.largeScreenHeader}>
+      <HeaderContainer>
+        <LargeScreenHeader component="h1" variant="h4">
           {project.name}
-        </Typography>
-      </div>
-      <div className={classes.flexContainer}>
-        <img
-          className={classes.inlineImage}
+        </LargeScreenHeader>
+      </HeaderContainer>
+      <FlexContainer>
+        <InlineImage
           src={getImageUrl(project.image)}
           alt={texts.project_image_of_project + " " + project.name}
         />
-        <div className={classes.inlineProjectInfo}>
-          <Typography
-            component="h2"
-            variant="h5"
-            className={`${classes.summaryHeadline} ${classes.subHeader}`}
-          >
+        <InlineProjectInfo>
+          <SummaryHeadline component="h2" variant="h5">
             {texts.summary}
-          </Typography>
+          </SummaryHeadline>
           <ShortProjectInfo
             project={project}
             isWasseraktionswochenEnabled={isWasseraktionswochenEnabled}
             showAttendedInPast={registrationState === "attended"}
           />
-          <div className={classes.infoBottomBar}>
+          <InfoBottomBar $hasAdminPermissions={hasAdminPermissions}>
             <LikeButton
               texts={texts}
               isUserLiking={isUserLiking}
@@ -487,14 +474,13 @@ function LargeScreenOverview({
               hasAdminPermissions={hasAdminPermissions}
               numberOfLikes={numberOfLikes}
             />
-            <RegistrationActionButton
+            <StyledRegistrationActionButton
               registrationState={registrationState}
               project={project}
               texts={texts}
               isUserRegistered={isUserRegistered}
               handleRegisterClick={handleRegisterClick}
               onModifyRegistrationClick={onModifyRegistrationClick}
-              className={classes.registerButton}
               showSeatsCount={true}
               eventRegistration={eventRegistration}
               analyticsSurface="event_page"
@@ -526,19 +512,18 @@ function LargeScreenOverview({
                   collapsable={true}
                 />
               ) : (
-                <Button
-                  className={classes.contactProjectButtonLarge}
+                <ContactProjectButtonLarge
                   variant="contained"
                   color="primary"
                   onClick={handleClickContact}
                   ref={contactProjectCreatorButtonRef}
                 >
                   {texts.contact}
-                </Button>
+                </ContactProjectButtonLarge>
               ))}
-          </div>
-        </div>
-      </div>
+          </InfoBottomBar>
+        </InlineProjectInfo>
+      </FlexContainer>
     </>
   );
 }

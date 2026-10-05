@@ -364,6 +364,13 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
 - Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). Not checked in a real browser. No nested `ThemeProvider`, no `styled()` wrapper around a still-JSS component, no consumer passes class props. Dead rules re-verified against `HEAD`: `EventRegistrationModal` (`infoField`, `actionRow`, `authMessage`, `authButtons`, `confirmationActions`, `authFieldsContainer`, `loadingContainer`, `stickyActionRow`) and `ViewRegistrationAnswersModal.checkboxIconUnchecked` were never referenced.
 - **Visual checklist**: event registration dialog (title and close-button spacing, `DialogContent dividers` padding override, 64 px status icons); edit registration modal (three-field top row width, error/hint text, custom-fields spacing); registrations tab (settings summary spacing and uppercase labels, edit button); view-answers modal (checkbox description link colour, `<p>` margins, last block without bottom margin); cancel modals (message field top margin); send-email modal (`DialogContent` padding, `DialogActions` layout); registration checkbox field (link colour, checkbox left offset).
 
+#### Phase 2.10c results (`ProjectContent`, `ProjectMetaData`, `ProjectOverview`, `ProjectPageRoot`)
+
+- Migrated the last four non-test files in `project/`. `@mui/styles` importing files: 63 → 59 (all remaining non-test component files are now in `pages/` plus the Phase 3 bridge files). No nested `ThemeProvider`, no wrapper over a still-JSS component.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests incl. `ProjectPageRoot`, `ProjectContent`). Not checked in a real browser. Dead rules re-verified against `HEAD`.
+- Notes: `ProjectMetaData` passes static class names (`ProjectMetaData-cardIcon`, `-metadataText`, `-typeIcon`) into `ProjectSectorsDisplay` / `LocationDisplay` / `ProjectTypeDisplay` and styles them with descendant selectors, because those children need a truthy `iconClassName` (default-size flag / `sx`); `ProjectContent`'s clamp is a discrete `$clamped` prop with `label: "descriptionClamped"` (the test selects by that name); `ProjectOverview` takes helper rules via `projectOverviewStyles(theme)[key]`, and its local `smallScreenHeader` / `largeScreenHeader` / `infoBottomBar` replace the helper's same-named rules entirely, as in the old spread.
+- **Visual checklist**: project page (event and normal project; large and small screens): tab widths (145 px, 125 px below `sm`), selected-tab colour and indicator (also on a hub theme), tab and content container padding, confirm-dialog text centring; creator and collaborating-organization rows (name colour, `h6` weight, padding); 6-line description clamp with show more/less icons and the tiptap description styles; overview header, info bar, register button; project preview card metadata (icon and text sizes, hover).
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -437,14 +444,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status            | `@mui/styles` files remaining |
-| ------------------------------------------ | ----------------- | ----------------------------- |
-| 0 Prep                                     | ✅                | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅                | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.10b done | 63                            |
-| 3 Remove bridge + SSR                      | ☐                 |                               |
-| 4 Remove dependency + lint guard           | ☐                 | 0                             |
-| 5 Verify + docs                            | ☐                 | 0                             |
+| Phase                                      | Status           | `@mui/styles` files remaining |
+| ------------------------------------------ | ---------------- | ----------------------------- |
+| 0 Prep                                     | ✅               | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.10 done | 59                            |
+| 3 Remove bridge + SSR                      | ☐                |                               |
+| 4 Remove dependency + lint guard           | ☐                | 0                             |
+| 5 Verify + docs                            | ☐                | 0                             |
 
 ## 8. Open questions for the maintainers
 
