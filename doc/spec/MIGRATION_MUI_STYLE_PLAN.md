@@ -346,6 +346,18 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Share project wizard — step 1: field spacing (margin-top 3) on the switcher, organization select and project-type selector; type cards (active card teal background and border). Details step: at `md` photo and summary side by side with 16 px inner padding, stacked without padding below it; summary textarea fills the 16:9 box at `md`+; project name input 20 px bold, label 20 px until it shrinks; sub-header and tooltip icon sizes; uploaded image as the photo zone background. Team step: 800 px search bars and block spacing. Event registration step: 700 px max width, rows stacking below `sm` with right-aligned action buttons, full-width date picker, header colours. Success panel (`ShareProjectCallToAction`): fade-rise animation, column stacking and dividers at `lg`, `prefers-reduced-motion`.
   - Edit project page: overview image zone with and without image (dashed border, 16:9, centred photo icon and upload button), title input 32 px, location field top margin, sector chips (border, 40 px height) and select; right-hand info column padding at `md`; flush container on small screens; content section (250 px organization select, 200 px project type select that is 100 % below `sm`, creator preview for personal projects); description editor character counter.
 
+#### Phase 2.10a results (`project/Buttons`, preview/display and sidebar components of `project/`)
+
+- Migrated 19 component files: `project/Buttons/` (6: `ContactCreatorButton`, `JoinButton`, `LikeButton`, `ProjectContentSideButtons`, `ProjectInteractionButtons`, `RegistrationActionButton`) and `project/` (13: `CustomHubSelection`, `DiscussionPreview`, `EventDateIndicator`, `LocationDisplay`, `ManageProjectMembers`, `ProjectCommentsContent`, `ProjectDescriptionHelp`, `ProjectPreview`, `ProjectPreviews`, `ProjectSectorsDisplay`, `ProjectSideBar`, `ProjectTeamContent`, `ProjectTypeDisplay`). `@mui/styles` importing files: 94 → 75. Still on `makeStyles` in `project/` (batches 2.10b / 2.10c): `ProjectContent`, `ProjectMetaData`, `ProjectOverview`, `ProjectPageRoot`, `ProjectRegistrationsContent`, `EventRegistrationModal`, `EditEventRegistrationModal`, `CancelRegistrationModal`, `CancelGuestRegistrationModal`, `SendEmailToGuestsModal`, `ViewRegistrationAnswersModal` and the five `Registration*Field` components, plus the project test files.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests, including `RegistrationActionButton`, `ProjectContent` and `ProjectPageRoot`, which exercise these components). A throwaway jsdom render of 18 variants (all `Buttons/*` in both screen sizes, previews, sector/location/type displays, discussion preview, team content, sidebar with supporters) produced no React errors except the HTML-nesting warning that originates in `communication/Post` (`<div>` inside a `<p>`), which was already there. The throwaway test file was deleted. Not checked in a real browser.
+- Review finding fixed before committing: the floating contact card (`LargeScreenContactButton`, a `styled(ContactCreatorButton)`) had `bottom` / `right` as `$` props that change while the page scrolls (`visibleFooterHeight`). Emotion generates a new CSS class per distinct prop value, so scrolling would have inserted many classes (the old JSS function rules updated one rule in place). `ContactCreatorButton` now accepts an optional `style` pass-through (applied to the root only in the info-card variant, like `className`) and `ProjectInteractionButtons` passes `style={{ bottom, right }}`; verified in jsdom (`bottom: 32px; right: 44px` for `visibleFooterHeight=30`, `right=44`). **Rule for the remaining batches: values that change continuously (scroll position, drag, window size, animation) go into inline `style`, never into `$` props.**
+- Consumers of the migrated components that are still on `makeStyles` pass JSS class strings via `className` and keep winning (JSS is injected after emotion): `ProjectMetaData` (into `ProjectSectorsDisplay`, `LocationDisplay`, `ProjectTypeDisplay`: `projectSectorClassName`, `iconClassName`, `textClassName`) and `ProjectOverview` (into `RegistrationActionButton`: `registerButton`). `LocationDisplay` and `ProjectSectorsDisplay` keep applying `className` / `textClassName` / `iconClassName` so the already-migrated callers keep working (`organization/OrganizationPreviewBody` via `styled(LocationDisplay)`, `eventCalendar/EventCardWide` via static classes). `ProjectSideBar` passes the static class `ProjectSideBar-supporterSlider` as `containerClass` to `hub/HubSupporters` and styles it with a descendant selector (HubSupporters puts it on both of its roots, which sit inside the sidebar container).
+- Review notes: dead rules were re-verified against `HEAD` (`ProjectSideBar.projectCard`, `ProjectTeamContent.leaveProjectButton`, `ProjectPreview.button`, seven unused slide-in rules in `ContactCreatorButton`, `JoinButton.fabProgress` / `hidden`, `LikeButton.buttonAfterLike`; `ProjectPreview`'s `classes.media` was never defined and rendered as "undefined"). `ProjectPreview`'s `cardContentWithDescription` is `styled(styled(CardContent))` so it keeps winning over `cardContent`. No stray files in the repo.
+- **Manual visual checklist for this batch**:
+  - Project cards (browse page, profile, hubs, landing page; desktop and mobile): 2-line title clamp, draft triangle, hover shadow, no link underline; event cards: date indicator colours for past, future and custom-hub events; sector and location rows; project previews in the sidebar.
+  - Project page: sidebar (supporter slider width and margins at 900–1200 px, expand and show-all buttons, grey rounded container on large screens only), discussion preview hover colour, team tab edit button; event page below `sm`: fixed bottom action bar above the footer (z-index, shadow); desktop after scrolling: **floating contact card position (bottom / right) while scrolling and near the footer**; like button on large screens while pending (spinner, white-on-secondary disabled look); project side buttons for admin and member, desktop and narrow (colours, hover, spacing); contact-creator info card.
+  - Manage project members page: cancel button dark colours and hover, save button, right-aligned button row; edit/share project pages: custom-hub (prio1) checkbox selection.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -419,14 +431,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status          | `@mui/styles` files remaining |
-| ------------------------------------------ | --------------- | ----------------------------- |
-| 0 Prep                                     | ✅              | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.9 done | 94                            |
-| 3 Remove bridge + SSR                      | ☐               |                               |
-| 4 Remove dependency + lint guard           | ☐               | 0                             |
-| 5 Verify + docs                            | ☐               | 0                             |
+| Phase                                      | Status            | `@mui/styles` files remaining |
+| ------------------------------------------ | ----------------- | ----------------------------- |
+| 0 Prep                                     | ✅                | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅                | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.10a done | 75                            |
+| 3 Remove bridge + SSR                      | ☐                 |                               |
+| 4 Remove dependency + lint guard           | ☐                 | 0                             |
+| 5 Verify + docs                            | ☐                 | 0                             |
 
 ## 8. Open questions for the maintainers
 

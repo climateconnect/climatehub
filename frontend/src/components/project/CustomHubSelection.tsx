@@ -4,15 +4,8 @@ import getTexts from "../../../public/texts/texts";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import UserContext from "../context/UserContext";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import { makeStyles } from "@mui/styles";
 import { useTheme } from "@mui/material/styles";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-
-const useStyles = makeStyles(() => ({
-  text: {
-    color: "inherit",
-  },
-}));
 
 type Props = {
   currentHubName: string;
@@ -31,7 +24,6 @@ export default function CustomHubSelection({
   if (!ToolTipIcon) {
     ToolTipIcon = HelpOutlineIcon;
   }
-  const classes = useStyles();
   const theme = useTheme();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ locale: locale, page: "project" });
@@ -52,7 +44,7 @@ export default function CustomHubSelection({
   const checkboxColor = getBackgroundContrastColor(theme);
 
   return (
-    <Typography component="h2" variant="subtitle2" className={classes.text}>
+    <Typography component="h2" variant="subtitle2" sx={{ color: "inherit" }}>
       <Checkbox
         color={checkboxColor}
         {...label}

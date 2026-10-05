@@ -1,61 +1,66 @@
-import { Button, CircularProgress, IconButton, Link, Typography, useTheme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { Theme } from "@mui/material/styles";
+import { Button, CircularProgress, IconButton, Link, Typography } from "@mui/material";
+import { styled, useTheme } from "@mui/material/styles";
 import React, { MouseEventHandler } from "react";
 import ButtonIcon from "../../general/ButtonIcon";
 
-type MakeStylesProps = {
-  likingChangePending: boolean;
-  isUserLiking: boolean;
-};
+const shouldForwardProp = (prop: string) => !prop.startsWith("$");
 
-const useStyles = makeStyles((theme: Theme) => ({
-  largeScreenButtonContainer: {
-    display: "inline-flex",
-    flexDirection: "column",
-    alignItems: "center",
+const LargeScreenButtonContainer = styled("span")({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+});
+
+const LikesLink = styled(Link)({
+  cursor: "pointer",
+  textAlign: "center",
+});
+
+const LargeLikeButton = styled(Button)(({ theme }) => ({
+  height: 40,
+  maxWidth: 120,
+  "&:disabled": {
+    color: "white",
+    background: theme.palette.secondary.main,
   },
-  likesLink: {
-    cursor: "pointer",
-    textAlign: "center",
+}));
+
+const LikeNumber = styled("span")({
+  fontWeight: 700,
+});
+
+const LikeNumberMobile = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  color: theme.palette.text.primary,
+  whiteSpace: "nowrap",
+}));
+
+const LikesText = styled(Typography)({
+  fontWeight: 500,
+  fontSize: 18,
+});
+
+const MediumScreenIconButton = styled(IconButton)({
+  height: 40,
+});
+
+const MobileButtonContainer = styled("span")({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  cursor: "pointer",
+  height: 40,
+});
+
+const MobileIconButton = styled(IconButton)(({ theme }) => ({
+  padding: theme.spacing(1),
+  "&:hover": {
+    background: "none",
   },
-  largeLikeButton: {
-    height: 40,
-    maxWidth: 120,
-    "&:disabled": {
-      color: "white",
-      background: theme.palette.secondary.main,
-    },
-  },
-  likeNumber: {
-    fontWeight: 700,
-  },
-  likeNumberMobile: {
-    fontWeight: 600,
-    color: theme.palette.text.primary,
-    whiteSpace: "nowrap",
-  },
-  likesText: {
-    fontWeight: 500,
-    fontSize: 18,
-  },
-  mediumScreenIconButton: {
-    height: 40,
-  },
-  mobileButtonContainer: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    cursor: "pointer",
-    height: 40,
-  },
-  iconButton: {
-    padding: theme.spacing(1),
-    "&:hover": {
-      background: "none",
-    },
-  },
-  fabProgress: {
+}));
+
+const FabProgress = styled(CircularProgress, { shouldForwardProp })<{ $hidden: boolean }>(
+  ({ $hidden }) => ({
     color: "white",
     position: "absolute",
     left: 0,
@@ -66,24 +71,20 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginRight: "auto",
     marginTop: "auto",
     marginBottom: "auto",
-  },
-  buttonLabel: {
-    position: "relative",
-  },
-  buttonText: (props: MakeStylesProps) => ({
-    visibility: props.likingChangePending ? "hidden" : "visible",
-    color: props.isUserLiking
-      ? theme.palette.secondary.contrastText
-      : theme.palette.primary.contrastText,
-  }),
-  hidden: {
-    visibility: "hidden",
-  },
-  //Weird naming
-  buttonAfterLike: (props: MakeStylesProps) => ({
-    backgroundColor: props.isUserLiking ? theme.palette.secondary.main : theme.palette.primary.main,
-    color: theme.palette.background.default,
-  }),
+    ...($hidden && { visibility: "hidden" }),
+  })
+);
+
+const ButtonLabel = styled("div")({
+  position: "relative",
+});
+
+const ButtonText = styled("div", { shouldForwardProp })<{
+  $likingChangePending: boolean;
+  $isUserLiking: boolean;
+}>(({ theme, $likingChangePending, $isUserLiking }) => ({
+  visibility: $likingChangePending ? "hidden" : "visible",
+  color: $isUserLiking ? theme.palette.secondary.contrastText : theme.palette.primary.contrastText,
 }));
 
 type Args = {
@@ -109,39 +110,28 @@ export default function LikeButton({
   numberOfLikes,
   bindLike,
 }: Args) {
-  const classes = useStyles({
-    likingChangePending: likingChangePending,
-    isUserLiking: isUserLiking,
-  });
   const theme = useTheme();
   //Small screens
   if (screenSize?.belowSmall) {
     return (
-      <span
-        className={classes.mobileButtonContainer}
-        onClick={handleToggleLikeProject}
-        {...bindLike}
-      >
-        <IconButton className={`${classes.iconButton}`} disabled={likingChangePending} size="large">
+      <MobileButtonContainer onClick={handleToggleLikeProject} {...bindLike}>
+        <MobileIconButton disabled={likingChangePending} size="large">
           <ButtonIcon
             icon="like"
             size={40}
             color={isUserLiking ? "earth" : theme.palette.background.default_contrastText}
           />
-        </IconButton>
-        {numberOfLikes > 0 && (
-          <Typography className={classes.likeNumberMobile}>• {numberOfLikes}</Typography>
-        )}
-      </span>
+        </MobileIconButton>
+        {numberOfLikes > 0 && <LikeNumberMobile>• {numberOfLikes}</LikeNumberMobile>}
+      </MobileButtonContainer>
     );
     //Medium screens
   } else if (screenSize?.belowMedium && !screenSize.belowSmall && !hasAdminPermissions) {
     return (
-      <span className={classes.largeScreenButtonContainer}>
-        <IconButton
+      <LargeScreenButtonContainer>
+        <MediumScreenIconButton
           onClick={handleToggleLikeProject}
           disabled={likingChangePending}
-          className={`${classes.mediumScreenIconButton}`}
           size="large"
         >
           <ButtonIcon
@@ -149,27 +139,22 @@ export default function LikeButton({
             size={40}
             color={isUserLiking ? "earth" : theme.palette.primary.main}
           />
-        </IconButton>
+        </MediumScreenIconButton>
         {numberOfLikes > 0 && (
-          <Link
-            color="secondary"
-            className={classes.likesLink}
-            underline="none"
-            onClick={toggleShowLikes}
-          >
-            <Typography className={classes.likesText}>
-              <span className={classes.likeNumber}>{numberOfLikes} </span>
+          <LikesLink color="secondary" underline="none" onClick={toggleShowLikes}>
+            <LikesText>
+              <LikeNumber>{numberOfLikes} </LikeNumber>
               {numberOfLikes > 1 ? texts.likes : texts.one_like}
-            </Typography>
-          </Link>
+            </LikesText>
+          </LikesLink>
         )}
-      </span>
+      </LargeScreenButtonContainer>
     );
     //Large screens
   } else {
     return (
-      <span className={classes.largeScreenButtonContainer}>
-        <Button
+      <LargeScreenButtonContainer>
+        <LargeLikeButton
           onClick={handleToggleLikeProject}
           variant="contained"
           startIcon={
@@ -181,30 +166,23 @@ export default function LikeButton({
           }
           disabled={likingChangePending}
           color={isUserLiking ? "secondary" : "primary"}
-          className={classes.largeLikeButton}
         >
-          <div className={classes.buttonLabel}>
-            <CircularProgress
-              size={20}
-              className={`${classes.fabProgress} ${!likingChangePending && classes.hidden}`}
-            />
-            <div className={classes.buttonText}>{isUserLiking ? texts.liked : texts.like}</div>
-          </div>
-        </Button>
+          <ButtonLabel>
+            <FabProgress size={20} $hidden={!likingChangePending} />
+            <ButtonText $likingChangePending={likingChangePending} $isUserLiking={isUserLiking}>
+              {isUserLiking ? texts.liked : texts.like}
+            </ButtonText>
+          </ButtonLabel>
+        </LargeLikeButton>
         {numberOfLikes > 0 && (
-          <Link
-            color="text.primary"
-            className={classes.likesLink}
-            underline="none"
-            onClick={toggleShowLikes}
-          >
-            <Typography className={classes.likesText}>
-              <span className={classes.likeNumber}>{numberOfLikes} </span>
+          <LikesLink color="text.primary" underline="none" onClick={toggleShowLikes}>
+            <LikesText>
+              <LikeNumber>{numberOfLikes} </LikeNumber>
               {numberOfLikes > 1 ? texts.likes : texts.one_like}
-            </Typography>
-          </Link>
+            </LikesText>
+          </LikesLink>
         )}
-      </span>
+      </LargeScreenButtonContainer>
     );
   }
 }
