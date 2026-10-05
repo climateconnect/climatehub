@@ -18,7 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import dayjs, { Dayjs } from "dayjs";
 import Cookies from "universal-cookie";
 
@@ -35,38 +35,41 @@ import DatePicker from "../general/DatePicker";
 import RegistrationFieldList from "../shareProject/RegistrationFieldList";
 import { validateRegistrationFields } from "../../utils/eventRegistrationHelpers";
 
-const useStyles = makeStyles((theme) => ({
-  fieldsRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: theme.spacing(2),
-    marginTop: theme.spacing(1),
-  },
-  field: {
-    width: 240,
-    [theme.breakpoints.down("sm")]: {
-      width: "100%",
-    },
-  },
-  errorText: {
-    color: theme.palette.error.main,
-    fontSize: "0.75rem",
-    marginTop: theme.spacing(0.5),
-  },
-  statusHint: {
-    marginTop: theme.spacing(0.5),
-    fontSize: "0.75rem",
-    color: theme.palette.warning.dark,
-  },
-  customFieldsSection: {
+const FieldsRow = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: theme.spacing(2),
+  marginTop: theme.spacing(1),
+}));
+
+const Field = styled("div")(({ theme }) => ({
+  width: 240,
+  [theme.breakpoints.down("sm")]: {
     width: "100%",
-    marginTop: theme.spacing(3),
   },
-  customFieldsError: {
-    color: theme.palette.error.main,
-    fontSize: "0.75rem",
-    marginTop: theme.spacing(0.5),
-  },
+}));
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  fontSize: "0.75rem",
+  marginTop: theme.spacing(0.5),
+}));
+
+const StatusHint = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(0.5),
+  fontSize: "0.75rem",
+  color: theme.palette.warning.dark,
+}));
+
+const CustomFieldsSection = styled("div")(({ theme }) => ({
+  width: "100%",
+  marginTop: theme.spacing(3),
+}));
+
+const CustomFieldsError = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  fontSize: "0.75rem",
+  marginTop: theme.spacing(0.5),
 }));
 
 type FormErrors = {
@@ -100,7 +103,6 @@ export default function EditEventRegistrationModal({
   project,
   eventRegistration,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
   const token = new Cookies().get("auth_token");
@@ -389,8 +391,8 @@ export default function EditEventRegistrationModal({
               {texts.registration_config_draft_indicator}
             </Alert>
           )}
-          <Box className={classes.fieldsRow}>
-            <Box className={classes.field}>
+          <FieldsRow>
+            <Field>
               <TextField
                 fullWidth
                 variant="outlined"
@@ -404,8 +406,8 @@ export default function EditEventRegistrationModal({
                 required
                 aria-label={texts.max_participants}
               />
-            </Box>
-            <Box className={classes.field}>
+            </Field>
+            <Field>
               <DatePicker
                 label={texts.registration_end_date}
                 enableTime
@@ -416,10 +418,10 @@ export default function EditEventRegistrationModal({
                 error={errors.registration_end_date as any}
                 required
               />
-            </Box>
+            </Field>
 
             {/* Status field */}
-            <Box className={classes.field}>
+            <Field>
               {isStatusEnded ? (
                 // "ended" is system-managed — show read-only chip, no select
                 <Box>
@@ -475,20 +477,16 @@ export default function EditEventRegistrationModal({
                         : texts.registration_is_closed
                     }
                   />
-                  {errors.status && (
-                    <Typography className={classes.errorText} role="alert">
-                      {errors.status}
-                    </Typography>
-                  )}
+                  {errors.status && <ErrorText role="alert">{errors.status}</ErrorText>}
                   {isStatusFull && !canSelectOpen && (
-                    <Typography className={classes.statusHint} role="note">
+                    <StatusHint role="note">
                       {texts.registration_fully_booked_increase_max_participants}
-                    </Typography>
+                    </StatusHint>
                   )}
                 </Box>
               )}
-            </Box>
-          </Box>
+            </Field>
+          </FieldsRow>
 
           {/* Notify admins toggle */}
           <Box sx={{ width: "100%", mt: 2 }}>
@@ -506,7 +504,7 @@ export default function EditEventRegistrationModal({
           </Box>
 
           {/* Custom fields section */}
-          <Box className={classes.customFieldsSection}>
+          <CustomFieldsSection>
             <Divider sx={{ mb: 2 }} />
             <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600 }}>
               {texts.registration_custom_fields}
@@ -528,17 +526,13 @@ export default function EditEventRegistrationModal({
               eventStartDate={project.start_date}
               eventEndDate={project.end_date}
             />
-            {errors.fields && (
-              <Typography className={classes.customFieldsError} role="alert">
-                {errors.fields}
-              </Typography>
-            )}
-          </Box>
+            {errors.fields && <CustomFieldsError role="alert">{errors.fields}</CustomFieldsError>}
+          </CustomFieldsSection>
 
           {errors.general && (
-            <Typography className={classes.errorText} sx={{ mt: 1 }} role="alert">
+            <ErrorText sx={{ mt: 1 }} role="alert">
               {errors.general}
-            </Typography>
+            </ErrorText>
           )}
         </DialogContent>
 

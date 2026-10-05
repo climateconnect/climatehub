@@ -358,6 +358,12 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Project page: sidebar (supporter slider width and margins at 900–1200 px, expand and show-all buttons, grey rounded container on large screens only), discussion preview hover colour, team tab edit button; event page below `sm`: fixed bottom action bar above the footer (z-index, shadow); desktop after scrolling: **floating contact card position (bottom / right) while scrolling and near the footer**; like button on large screens while pending (spinner, white-on-secondary disabled look); project side buttons for admin and member, desktop and narrow (colours, hover, spacing); contact-creator info card.
   - Manage project members page: cancel button dark colours and hover, save button, right-aligned button row; edit/share project pages: custom-hub (prio1) checkbox selection.
 
+#### Phase 2.10b results (registration and event modals in `project/`)
+
+- Migrated 12 component files: `EventRegistrationModal`, `EditEventRegistrationModal`, `CancelRegistrationModal`, `CancelGuestRegistrationModal`, `ViewRegistrationAnswersModal`, `SendEmailToGuestsModal`, `ProjectRegistrationsContent` and the five `Registration*Field` components. `@mui/styles` importing files: 75 → 63. Their 10 test files still wrap with `StylesThemeProvider` until Phase 3 and pass unchanged (about 270 tests cover this batch).
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). Not checked in a real browser. No nested `ThemeProvider`, no `styled()` wrapper around a still-JSS component, no consumer passes class props. Dead rules re-verified against `HEAD`: `EventRegistrationModal` (`infoField`, `actionRow`, `authMessage`, `authButtons`, `confirmationActions`, `authFieldsContainer`, `loadingContainer`, `stickyActionRow`) and `ViewRegistrationAnswersModal.checkboxIconUnchecked` were never referenced.
+- **Visual checklist**: event registration dialog (title and close-button spacing, `DialogContent dividers` padding override, 64 px status icons); edit registration modal (three-field top row width, error/hint text, custom-fields spacing); registrations tab (settings summary spacing and uppercase labels, edit button); view-answers modal (checkbox description link colour, `<p>` margins, last block without bottom margin); cancel modals (message field top margin); send-email modal (`DialogContent` padding, `DialogActions` layout); registration checkbox field (link colour, checkbox left offset).
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -435,7 +441,7 @@ Update this table in each PR.
 | ------------------------------------------ | ----------------- | ----------------------------- |
 | 0 Prep                                     | ✅                | 316                           |
 | 1 Mechanical (useTheme, types, withStyles) | ✅                | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.10a done | 75                            |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.10b done | 63                            |
 | 3 Remove bridge + SSR                      | ☐                 |                               |
 | 4 Remove dependency + lint guard           | ☐                 | 0                             |
 | 5 Verify + docs                            | ☐                 | 0                             |
