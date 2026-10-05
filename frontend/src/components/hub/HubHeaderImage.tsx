@@ -1,66 +1,52 @@
-import { Theme, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles<Theme, any>((theme) => ({
-  imageContainer: (props) => ({
-    background: `url('${props.image}')`,
+const ImageContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isLocationHub",
+})<{ $isLocationHub?: boolean }>(({ theme, $isLocationHub }) => ({
+  backgroundSize: "cover",
+  backgroundPosition: "bottom center",
+  zIndex: -1,
+  width: "100%",
+  [theme.breakpoints.down("md")]: {
+    minHeight: 100,
     backgroundSize: "cover",
-    backgroundPosition: "bottom center",
+  },
+  position: "relative",
+  [theme.breakpoints.up("md")]: {
+    position: $isLocationHub ? "absolute" : "relative", // we want to have absolute positioning when its a location hub and user is not logged out
     zIndex: -1,
-    width: "100%",
-    isLocationHub: {
-      marginTop: 200,
-    },
-    [theme.breakpoints.down("md")]: {
-      minHeight: 100,
-      backgroundSize: "cover",
-    },
-    position: "relative",
-    [theme.breakpoints.up("md")]: {
-      position: props.isLocationHub ? "absolute" : "relative", // we want to have absolute positioning when its a location hub and user is not logged out
-      zIndex: -1,
-      minHeight: 200,
-    },
-  }),
-  img: (props) => ({
-    width: props.fullWidth ? "80%" : "50%",
-    visibility: "hidden",
-  }),
-  attribution: {
-    float: "right",
-    fontSize: 12,
-    marginRight: theme.spacing(2),
+    minHeight: 200,
   },
-  closeButton: {
-    position: "absolute",
-    top: theme.spacing(0.5),
-    right: theme.spacing(0.5),
-    fontWeight: "bold",
-    fontSize: 30,
-    cursor: "pointer",
-  },
+}));
+
+const HeaderImg = styled("img", {
+  shouldForwardProp: (prop) => prop !== "$fullWidth",
+})<{ $fullWidth?: boolean }>(({ $fullWidth }) => ({
+  width: $fullWidth ? "80%" : "50%",
+  visibility: "hidden",
 }));
 
 export default function HubHeaderImage({ image, source, fullWidth, isLocationHub }: any) {
   const { locale } = useContext(UserContext);
 
-  const classes = useStyles({
-    image: image,
-    fullWidth: fullWidth,
-    isLocationHub: isLocationHub,
-  });
-
   const texts = getTexts({ page: "hub", locale: locale });
   return (
     <>
-      <div className={classes.imageContainer}>
-        <img src={image} className={classes.img} alt="hub header" />
-      </div>
+      <ImageContainer $isLocationHub={isLocationHub} style={{ backgroundImage: `url('${image}')` }}>
+        <HeaderImg src={image} $fullWidth={fullWidth} alt="hub header" />
+      </ImageContainer>
       {source && (
-        <Typography className={classes.attribution}>
+        <Typography
+          sx={(theme) => ({
+            float: "right",
+            fontSize: 12,
+            marginRight: theme.spacing(2),
+          })}
+        >
           {texts.image}: {source}
         </Typography>
       )}

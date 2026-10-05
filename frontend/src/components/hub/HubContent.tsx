@@ -1,5 +1,5 @@
 import { Button, Collapse, Container, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useContext, useState } from "react";
@@ -18,43 +18,13 @@ import theme from "../../themes/theme";
 import { PrioOneBackgroundBrowse, PrioOneBackgroundBrowseIcon } from "./CustomBackground";
 import { getCustomHubData } from "../../../public/data/customHubData";
 
-type MakeStylesProps = {
-  isLocationHub: boolean;
-  loggedOut: boolean;
-  image: string;
-};
-
-const useStyles = makeStyles((theme) => ({
-  expandMoreButton: {
-    width: "100%",
-  },
-  h2: {
-    color: theme.palette.secondary.main,
-    fontWeight: 600,
-    fontSize: 21,
-    marginBottom: theme.spacing(1),
-  },
-  textHeadline: {
-    color: theme.palette.primary.main,
-    fontWeight: 600,
-    fontSize: 22,
-    marginBottom: theme.spacing(0.5),
-    [theme.breakpoints.down("sm")]: {
-      fontSize: 18,
-    },
-  },
-  infoBoxContainerMobile: {
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "center",
-    marginBottom: theme.spacing(2),
-  },
-  showSolutionsButton: {
-    width: "100%",
-    marginBottom: theme.spacing(0.25),
-    height: 40,
-  },
-  showMoreFixed: {
+const ShowSolutionsButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "$fixed",
+})<{ $fixed?: boolean }>(({ theme, $fixed }) => ({
+  width: "100%",
+  marginBottom: theme.spacing(0.25),
+  height: 40,
+  ...($fixed && {
     width: 250,
     position: "fixed",
     bottom: theme.spacing(2),
@@ -62,72 +32,76 @@ const useStyles = makeStyles((theme) => ({
     marginLeft: -125,
     zIndex: 1,
     border: "1px solid white",
-  },
-  ambassadorAndSupporters: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  buttonContainer: (props: MakeStylesProps) => ({
-    display: props.isLocationHub ? "none" : "flex",
-    justifyContent: "center",
-    maxWidth: 800,
-    height: 40,
-    marginTop: theme.spacing(2),
-    [theme.breakpoints.down("md")]: {
-      marginTop: theme.spacing(1),
-    },
-  }),
-  quickInfo: {
-    fontSize: 17,
-    maxWidth: 800,
-  },
-  marginTop: {
-    marginTop: theme.spacing(4),
-  },
-  dashboardAndStatboxWrapper: {
-    display: "flex",
-    justifyContent: "space-between",
-    margin: "16px auto",
-    gap: "1rem",
-    alignItems: "end",
-  },
-  infoBoxContainer: {
-    marginTop: theme.spacing(0),
-    marginLeft: theme.spacing(2),
-    float: "right",
-  },
-  topSectionWrapper: (props: MakeStylesProps) => ({
-    // TODO: decide if "props.image" should be checked as well
-    // > pro: it prevents requests to "/undefined"
-    // > con: it might be a bug that should be fixed in the parent component
-    // > con: it will not "report" the bug
-    background: props.isLocationHub && props.image ? `url('${props.image}')` : "none",
-
-    position: "relative",
-    backgroundSize: "cover",
-    backgroundPosition: "bottom center",
-    paddingTop: theme.spacing(2),
-    paddingBottom: theme.spacing(2),
-    [theme.breakpoints.down("md")]: {
-      paddingTop: props.loggedOut ? theme.spacing(1) : theme.spacing(2),
-      marginBottom: props.loggedOut ? theme.spacing(4) : 0,
-    },
-  }),
-  backgroundImageContainer: (props: MakeStylesProps) => ({
-    //TODO dead code?
-    display: "none",
-    background: props.isLocationHub ? `url('${props.image}')` : "none",
-    backgroundSize: "cover",
-    backgroundPosition: "bottom center",
-    height: 180,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: -1,
   }),
 }));
+
+const AmbassadorAndSupporters = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+  gap: "14px",
+});
+
+const ButtonContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isLocationHub",
+})<{ $isLocationHub?: boolean }>(({ theme, $isLocationHub }) => ({
+  display: $isLocationHub ? "none" : "flex",
+  justifyContent: "center",
+  maxWidth: 800,
+  height: 40,
+  marginTop: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
+    marginTop: theme.spacing(1),
+  },
+}));
+
+const QuickInfo = styled("div")(({ theme }) => ({
+  fontSize: 17,
+  maxWidth: 800,
+  marginTop: theme.spacing(4),
+}));
+
+const DashboardAndStatboxWrapper = styled("div")({
+  display: "flex",
+  justifyContent: "space-between",
+  margin: "16px auto",
+  gap: "1rem",
+  alignItems: "end",
+});
+
+const InfoBoxContainer = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(0),
+  marginLeft: theme.spacing(2),
+  float: "right",
+}));
+
+const TopSectionWrapper = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$loggedOut",
+})<{ $loggedOut: boolean }>(({ theme, $loggedOut }) => ({
+  position: "relative",
+  backgroundSize: "cover",
+  backgroundPosition: "bottom center",
+  paddingTop: theme.spacing(2),
+  paddingBottom: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
+    paddingTop: $loggedOut ? theme.spacing(1) : theme.spacing(2),
+    marginBottom: $loggedOut ? theme.spacing(4) : 0,
+  },
+}));
+
+// This element is only rendered for non-location hubs, where the old background was always "none".
+const BackgroundImageContainer = styled("div")({
+  //TODO dead code?
+  display: "none",
+  background: "none",
+  backgroundSize: "cover",
+  backgroundPosition: "bottom center",
+  height: 180,
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  zIndex: -1,
+});
 
 export default function HubContent({
   headline,
@@ -147,7 +121,6 @@ export default function HubContent({
   image,
 }) {
   const { locale, user } = useContext(UserContext);
-  const classes = useStyles({ isLocationHub: isLocationHub, loggedOut: !user, image: image });
   const texts = getTexts({ page: "hub", locale: locale });
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   const [expanded, setExpanded] = useState(false);
@@ -172,16 +145,23 @@ export default function HubContent({
     <div>
       <div>
         {!isNarrowScreen && !isLocationHub && !user && (
-          <div className={classes.infoBoxContainer}>
+          <InfoBoxContainer>
             <StatBox title={statBoxTitle} stats={stats} />
-          </div>
+          </InfoBoxContainer>
         )}
         {isLocationHub ? (
-          <div className={classes.topSectionWrapper}>
+          <TopSectionWrapper
+            $loggedOut={!user}
+            // TODO: decide if "image" should be checked as well
+            // > pro: it prevents requests to "/undefined"
+            // > con: it might be a bug that should be fixed in the parent component
+            // > con: it will not "report" the bug
+            style={{ backgroundImage: image ? `url('${image}')` : "none" }}
+          >
             {hubUrl === "prio1" && <PrioOneBackgroundBrowse isLoggedInUser={user ? true : false} />}
 
             <Container>
-              <div className={classes.dashboardAndStatboxWrapper}>
+              <DashboardAndStatboxWrapper>
                 {user ? (
                   <>
                     {!isNarrowScreen && (
@@ -206,7 +186,7 @@ export default function HubContent({
                   (!user ? (
                     <>
                       {hubAmbassador && (
-                        <div className={classes.ambassadorAndSupporters}>
+                        <AmbassadorAndSupporters>
                           <LocalAmbassadorInfoBox
                             hubAmbassador={hubAmbassador}
                             hubData={hubData}
@@ -219,7 +199,7 @@ export default function HubContent({
                               hubUrl={hubUrl}
                             />
                           )}
-                        </div>
+                        </AmbassadorAndSupporters>
                       )}
                     </>
                   ) : (
@@ -239,16 +219,15 @@ export default function HubContent({
                       )}
                     </>
                   ))}
-              </div>
+              </DashboardAndStatboxWrapper>
             </Container>
-          </div>
+          </TopSectionWrapper>
         ) : (
           <Container>
-            <div className={classes.backgroundImageContainer} />
+            <BackgroundImageContainer />
             <HubHeadlineContainer
               subHeadline={subHeadline}
               headline={headline}
-              headlineClassName={classes.h1}
               isLocationHub={isLocationHub}
             />
             <BottomContent
@@ -264,23 +243,23 @@ export default function HubContent({
         )}
       </div>
       <Container>
-        <div
-          className={classes.buttonContainer}
+        <ButtonContainer
+          $isLocationHub={isLocationHub}
           ref={(node) => {
             if (node) {
               setShowMoreEl(node);
             }
           }}
         >
-          <Button
-            className={`${classes.showSolutionsButton} ${fixed && classes.showMoreFixed}`}
+          <ShowSolutionsButton
+            $fixed={fixed}
             variant="contained"
             color="primary"
             onClick={scrollToSolutions}
           >
             <ExpandMoreIcon /> {texts.show_projects}
-          </Button>
-        </div>
+          </ShowSolutionsButton>
+        </ButtonContainer>
       </Container>
     </div>
   );
@@ -295,29 +274,28 @@ const BottomContent = ({
   isLocationHub,
   isNarrowScreen,
 }) => {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "hub", locale: locale });
   return (
     <>
       <div>
         {!isLocationHub && (
-          <div className={`${classes.quickInfo} ${classes.marginTop}`}>
+          <QuickInfo>
             <MessageContent content={quickInfo} />
-          </div>
+          </QuickInfo>
         )}
         <Collapse in={expanded}>
           {isLocationHub && (
-            <div className={`${classes.quickInfo} ${classes.marginTop}`}>
+            <QuickInfo>
               <MessageContent content={quickInfo} />
-            </div>
+            </QuickInfo>
           )}
           {detailledInfo}
         </Collapse>
       </div>
       {!isLocationHub && (
-        <div className={classes.buttonContainer}>
-          <Button className={classes.expandMoreButton} onClick={handleClickExpand}>
+        <ButtonContainer>
+          <Button sx={{ width: "100%" }} onClick={handleClickExpand}>
             {expanded ? (
               <>
                 <ExpandLessIcon />
@@ -330,7 +308,7 @@ const BottomContent = ({
               </>
             )}
           </Button>
-        </div>
+        </ButtonContainer>
       )}
       {!isNarrowScreen && <ContactAmbassadorButton hubAmbassador={hubAmbassador} mobile={false} />}
     </>
