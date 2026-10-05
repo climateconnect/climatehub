@@ -283,6 +283,23 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - Hub sub header (hub pages): background on the `prio1` hub, hubs container centred at `sm` and below, `HubsDropDown` button height, "all projects" link style (currently unreachable because `showAllProjectsButton` is never set).
   - `/donorforest`: transition section with four clouds (sizes, positions, `md` and `sm` breakpoints, cloud 2 moves at `md`), entries grid column spans at `md` (12n+7, 12n+11, 7n+5 to 7), per-entry tree image width by step, avatar placement, "how it works" dialog (badge list in one column at `sm`, Typography font sizes).
 
+#### Phase 2.6b results (`staticpages`)
+
+- Migrated the remaining 18 `staticpages` component files: `staticpages/` (11: `ExplainerBox`, `ExplainerElement`, `FaqSection`, `HeaderImage`, `HoverImage`, `InfoLinkBox`, `LightBigButton`, `Quote`, `QuoteBox`, `StartNowBanner`, `TopSection`) and `staticpages/donate/` (7: `DonationCampaignInformation`, `DonationGoal`, `FloatingWidget`, `IconWrapper`, `TextBox`, `ToggleWidgetButton`, `WhoWeAreContent`). `@mui/styles` importing files: 173 → 155. No `staticpages` file imports `@mui/styles` any more.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of all 18 components in 23 variants produced no React console errors except a `useEffect` dependency-array warning in `FloatingWidget`, which comes from the shared custom hooks (`BottomOfPage`, `ElementOnScreen`, `ElementSpaceToTop`) that this migration did not touch. The throwaway test file was deleted. Not checked in a real browser.
+- Before starting, the cross-batch rule from 2.6a was checked: no `styled(X)` wrapper around a `staticpages` component exists outside the folder, and the agents were told to report any `styled(X)` over a still-`makeStyles` component (none occurred: `SmallCloud`, `FaqQuestionElement`, `LightBigButton` are already emotion). Pages (still on `makeStyles`) that pass JSS class strings via `className` into these components keep winning over their emotion base styles, because JSS is injected after emotion.
+- Review notes:
+  - Dead-code claims were re-verified against `HEAD`: unreferenced keys in `DonationCampaignInformation` (`showMoreButton`, `expandableContent`, `donationGoal`, `textBlock`, `flexWrapper`, `christmasIcon`, `white`), `DonationGoal` (`rootFixed`, `text`, `amount`), `FloatingWidget` (`twingleContainerHidden`), `WhoWeAreContent` (`infoLinkBox`), `TopSection` (`mobileSubheaderContainer`). `HeaderImage` had two `theme.breakpoints.down("sm")` keys in one object, so the second silently replaced the first and its `marginBottom` never applied; only `height: 180` is kept.
+  - Text classes (`yellow`, `faqLink`) are kept through static class names handed to `getTexts` and styled as descendants of the component root (`StartNowBanner`, `FaqSection`, as in `landingPage/DonationsBanner`); components whose texts only read `yellow` without having such a rule no longer pass `classes`.
+  - `DonationGoal`: the `LinearProgress` bar slot is styled with `& .MuiLinearProgress-bar` instead of `classes.bar`; the per-render text offset is an inline `style`. `HoverImage` / `HeaderImage`: image URLs are inline `style` (the old `background: url()` shorthand only reset properties to their defaults).
+  - `SmallCloud` renders `display: none` unless `show` is passed, and `ExplainerBox` / `TopSection` do not pass it, so those clouds are invisible both before and after (unchanged behaviour).
+  - Process: one agent again wrote a file with a shell heredoc and rewrote it with the Write tool; another heredoc attempt was denied. No stray files were left in the repo (`git status` checked).
+- **Manual visual checklist for this batch**:
+  - `/donate` and pages showing the donation campaign (`WideLayout`, hub pages): donation progress bar (bar colour, yellow on the embedded banner, bar-text position, height/radius), `DonationGoal` fixed positioning below `md`, `FloatingWidget` switching between fixed and at-bottom while scrolling, `DonateButton` hover colour, `IconWrapper` on the logged-out location hub box, who-we-are content.
+  - `/faq`: header image (page `className` margin, `lg` breakpoint), `FaqSection` headline colour (page JSS class), `faqLink` underline, yellow left border, question text colour and bold at `sm`.
+  - Landing page: `InfoLinkBox` in the team box (full width and margin at `md` and below, 45 px icon and 21 px headline at 400 px), `StartNowBanner` yellow words and centred sign-up button, `LightBigButton` hover (white background) in `DonationsBanner` / `JoinCommunityBox`.
+  - `/donorforest`: `TopSection` header box position at `lg` and `sm`, `fixedHeight` zero-height behaviour. Any page using `Quote` / `QuoteBox`: open/close quote icon layout at `sm` and below. `HoverImage`: hover scale animation. `ExplainerBox` / `ExplainerElement` where used.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -356,14 +373,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status           | `@mui/styles` files remaining |
-| ------------------------------------------ | ---------------- | ----------------------------- |
-| 0 Prep                                     | ✅               | 316                           |
-| 1 Mechanical (useTheme, types, withStyles) | ✅               | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.6a done | 173                           |
-| 3 Remove bridge + SSR                      | ☐                |                               |
-| 4 Remove dependency + lint guard           | ☐                | 0                             |
-| 5 Verify + docs                            | ☐                | 0                             |
+| Phase                                      | Status          | `@mui/styles` files remaining |
+| ------------------------------------------ | --------------- | ----------------------------- |
+| 0 Prep                                     | ✅              | 316                           |
+| 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.6 done | 155                           |
+| 3 Remove bridge + SSR                      | ☐               |                               |
+| 4 Remove dependency + lint guard           | ☐               | 0                             |
+| 5 Verify + docs                            | ☐               | 0                             |
 
 ## 8. Open questions for the maintainers
 

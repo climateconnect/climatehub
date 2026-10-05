@@ -1,14 +1,23 @@
 import React from "react";
-import { Typography, Link, Theme } from "@mui/material";
+import { Typography, Link } from "@mui/material";
+import { styled } from "@mui/material/styles";
 
-import makeStyles from "@mui/styles/makeStyles";
+const noTransientProps = (prop: PropertyKey) => !(typeof prop === "string" && prop.startsWith("$"));
 
-const useStyles = makeStyles<Theme, { centerContent?: boolean }>((theme) => ({
-  infoLinkBox: (props) => ({
+const NoUnderlineLink = styled(Link)({
+  textDecoration: "inherit",
+  "&:hover": {
+    textDecoration: "inherit",
+  },
+  color: "inherit",
+});
+
+const Box = styled("div", { shouldForwardProp: noTransientProps })<{ $centerContent?: boolean }>(
+  ({ theme, $centerContent }) => ({
     display: "flex",
     alignItems: "center",
     maxWidth: 600,
-    marginLeft: props.centerContent ? theme.spacing(5) : 0,
+    marginLeft: $centerContent ? theme.spacing(5) : 0,
     background: "#E6E5E5",
     padding: theme.spacing(3),
     [theme.breakpoints.down("md")]: {
@@ -17,36 +26,31 @@ const useStyles = makeStyles<Theme, { centerContent?: boolean }>((theme) => ({
       margin: "0 auto",
       marginTop: theme.spacing(3),
     },
-  }),
-  icon: (props) => ({
-    marginRight: props.centerContent ? 0 : theme.spacing(3),
+  })
+);
+
+const Icon = styled("img", { shouldForwardProp: noTransientProps })<{ $centerContent?: boolean }>(
+  ({ theme, $centerContent }) => ({
+    marginRight: $centerContent ? 0 : theme.spacing(3),
     width: 80,
     ["@media (max-width: 400px)"]: {
       width: 45,
     },
-  }),
+  })
+);
 
-  headline: {
-    fontSize: 20,
-    fontWeight: 700,
-    marginBottom: theme.spacing(1),
-    ["@media (max-width: 400px)"]: {
-      fontSize: 21,
-    },
+const Headline = styled(Typography)(({ theme }) => ({
+  fontSize: 20,
+  fontWeight: 700,
+  marginBottom: theme.spacing(1),
+  ["@media (max-width: 400px)"]: {
+    fontSize: 21,
   },
+})) as typeof Typography;
 
-  noUnderline: {
-    textDecoration: "inherit",
-    "&:hover": {
-      textDecoration: "inherit",
-    },
-    color: "inherit",
-  },
-
-  text: {
-    fontWeight: 600,
-  },
-}));
+const Text = styled(Typography)({
+  fontWeight: 600,
+});
 
 export default function InfoLinkBox({
   className,
@@ -58,22 +62,19 @@ export default function InfoLinkBox({
   centerContent,
   link,
 }: any) {
-  const classes = useStyles({ centerContent: centerContent });
   return (
-    <Link href={link} className={classes.noUnderline} underline="hover">
-      <div className={`${classes.infoLinkBox} ${className}`}>
-        <img src={iconSrc} className={classes.icon} alt={iconAlt} />
+    <NoUnderlineLink href={link} underline="hover">
+      <Box className={className} $centerContent={centerContent}>
+        <Icon src={iconSrc} $centerContent={centerContent} alt={iconAlt} />
         <div>
-          <Typography color="primary" component="h2" className={classes.headline}>
+          <Headline color="primary" component="h2">
             {headline}
-          </Typography>
+          </Headline>
 
-          <Typography color="secondary" className={classes.text}>
-            {text}
-          </Typography>
+          <Text color="secondary">{text}</Text>
           {children}
         </div>
-      </div>
-    </Link>
+      </Box>
+    </NoUnderlineLink>
   );
 }
