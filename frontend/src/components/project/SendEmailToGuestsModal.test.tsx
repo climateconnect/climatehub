@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import SendEmailToGuestsModal from "./SendEmailToGuestsModal";
@@ -104,18 +103,16 @@ function renderModal({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={makeContextValue(email) as any}>
-          <SendEmailToGuestsModal
-            open={true}
-            onClose={onClose}
-            project={project}
-            activeGuestCount={activeGuestCount}
-            lastGuestEmailSentAt={lastGuestEmailSentAt}
-            registrations={registrations}
-          />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={makeContextValue(email) as any}>
+        <SendEmailToGuestsModal
+          open={true}
+          onClose={onClose}
+          project={project}
+          activeGuestCount={activeGuestCount}
+          lastGuestEmailSentAt={lastGuestEmailSentAt}
+          registrations={registrations}
+        />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }
@@ -370,18 +367,16 @@ describe("SendEmailToGuestsModal", () => {
       const onClose = jest.fn();
       render(
         <ThemeProvider theme={theme}>
-          <StylesThemeProvider theme={theme}>
-            <UserContext.Provider value={makeContextValue(ORGANISER_EMAIL) as any}>
-              <SendEmailToGuestsModal
-                open={true}
-                onClose={onClose}
-                project={makeProject()}
-                activeGuestCount={3}
-                lastGuestEmailSentAt={null}
-                registrations={[]}
-              />
-            </UserContext.Provider>
-          </StylesThemeProvider>
+          <UserContext.Provider value={makeContextValue(ORGANISER_EMAIL) as any}>
+            <SendEmailToGuestsModal
+              open={true}
+              onClose={onClose}
+              project={makeProject()}
+              activeGuestCount={3}
+              lastGuestEmailSentAt={null}
+              registrations={[]}
+            />
+          </UserContext.Provider>
         </ThemeProvider>
       );
       fireEvent.change(screen.getByRole("textbox", { name: /subject/i }), {

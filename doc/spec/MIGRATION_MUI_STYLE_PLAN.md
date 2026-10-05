@@ -415,6 +415,16 @@ Things to watch in every batch:
 - **Hooks order**: removing `useStyles()` must not change hook ordering of surrounding code.
 - **Server vs client**: `styled` is SSR-safe; do not read `window` in style callbacks.
 
+#### Phase 3 results (bridge removed) — pending review, not yet committed
+
+- `pages/_app.tsx` and `src/components/layouts/LayoutWrapper.tsx`: `StylesThemeProvider`, its explanatory comments and both `declare module "@mui/styles/defaultTheme"` blocks removed (unused `Theme` import dropped from `_app`). `StyledEngineProvider injectFirst` is kept (emotion styles stay prepended to `<head>`, so the CSS order relative to the devlink CSS is unchanged).
+- `pages/_document.tsx`: `ServerStyleSheets` and the whole `getInitialProps` override removed (Next's default is enough; emotion already renders its `<style data-emotion>` tags during SSR). No new dependency was added.
+- 41 test files: the `StylesThemeProvider` import and wrapper removed (mechanical codemod); the explanatory comment in `ProjectDescriptionEditor.test.tsx` removed.
+- Lint guard: with no files left, the `overrides` allowlist block was removed from `.eslintrc.js` (ESLint rejects an empty `files` list) and `scripts/mui-styles-allowlist.json` deleted; the `no-restricted-imports` error for `@mui/styles` and `@mui/styles/*` stays.
+- Verified: `grep` finds no `@mui/styles` import left in `src`, `pages` or `public`; `yarn check-types`, `yarn lint` (0 errors, same 3 warnings; a probe file importing `@mui/styles` still fails lint), `yarn test` (59 suites, 848 tests, no JSS/theme warnings), `yarn build` (succeeds in an isolated copy, shared JS 251 kB, same as before). Production server: `/terms`, `/browse`, `/faq`, `/donorforest`, `/about` return 200 with no `jss-server-side` tag, no `jssNN` class names and five `<style data-emotion>` tags each.
+- Not verified: a real-browser pass (the browser extension was not connected). Please check the style order after hydration and a hub page: emotion tags should come before the Next/devlink CSS in `<head>`, and there must be no flash of unstyled content.
+- Still to do: Phase 4 (`yarn remove @mui/styles`, check `@types`/peer warnings) and Phase 5 (final `build` + smoke pass, update `frontend/agent.md` and the CLAUDE.md "Styling" bullet).
+
 ### Phase 3 — Remove the bridge (one PR, after `grep -rF "makeStyles" src pages public` returns nothing)
 
 1. Delete `StylesThemeProvider` import and wrapper from `pages/_app.tsx`; delete `declare module "@mui/styles/defaultTheme"` blocks from `_app.tsx` and `layouts/LayoutWrapper.tsx` (and the stale comment block around lines ~317–330 of `_app.tsx`).

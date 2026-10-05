@@ -1,6 +1,5 @@
 import { Snackbar, SnackbarContent, Theme, useMediaQuery } from "@mui/material";
 
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import { ThemeProvider, styled, useTheme } from "@mui/material/styles";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -14,11 +13,6 @@ import LoadingContainer from "../general/LoadingContainer";
 import CloseSnackbarAction from "../snackbarActions/CloseSnackbarAction";
 import LogInAction from "../snackbarActions/LogInAction";
 import { DevLinkProvider } from "../../../devlink/DevLinkProvider";
-
-declare module "@mui/styles/defaultTheme" {
-  // eslint-disable-next-line no-unused-vars
-  interface DefaultTheme extends Theme {}
-}
 
 const SpinnerContainer = styled("div")({
   display: "flex",
@@ -180,55 +174,47 @@ export default function LayoutWrapper({
       </Head>
       {/* If theme is falsy, slience the MUI console.warning for having an undefined theme */}
       <ThemeProvider theme={theme}>
-        {/*
-         * `@mui/styles` bundles its own `@mui/private-theming` instance, separate from the one
-         * used by `@mui/material` v7, so it can't see the theme from the `ThemeProvider` above
-         * via React context. Nesting `@mui/styles`' own `ThemeProvider` keeps `makeStyles`
-         * consumers (including this component's own `useStyles`) in sync with custom hub themes.
-         */}
-        <StylesThemeProvider theme={theme}>
-          <DevLinkProvider>
-            {loading || isLoading ? (
-              <SpinnerContainer>
-                <LoadingContainer headerHeight={0} footerHeight={0} />
-              </SpinnerContainer>
-            ) : (
-              <FeedbackContext.Provider value={contextValues}>
-                <PageWrapper
-                  $footerPadding={
-                    !fixedHeight && !noSpaceForFooter ? outerTheme.spacing(12) : undefined
-                  }
+        <DevLinkProvider>
+          {loading || isLoading ? (
+            <SpinnerContainer>
+              <LoadingContainer headerHeight={0} footerHeight={0} />
+            </SpinnerContainer>
+          ) : (
+            <FeedbackContext.Provider value={contextValues}>
+              <PageWrapper
+                $footerPadding={
+                  !fixedHeight && !noSpaceForFooter ? outerTheme.spacing(12) : undefined
+                }
+              >
+                {children}
+                {shouldShowCookieBanner() && <CookieBanner closeBanner={closeBanner} />}
+                {!noFeedbackButton && !isSmallerThanMediumScreen && <FeedbackButton />}
+                <Snackbar
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  color="primary"
+                  open={snackbarProps.open}
+                  autoHideDuration={10000}
+                  onClose={handleSnackbarClose}
                 >
-                  {children}
-                  {shouldShowCookieBanner() && <CookieBanner closeBanner={closeBanner} />}
-                  {!noFeedbackButton && !isSmallerThanMediumScreen && <FeedbackButton />}
-                  <Snackbar
-                    anchorOrigin={{
-                      vertical: "bottom",
-                      horizontal: "left",
-                    }}
-                    color="primary"
-                    open={snackbarProps.open}
-                    autoHideDuration={10000}
-                    onClose={handleSnackbarClose}
-                  >
-                    <StyledSnackbarContent
-                      message={snackbarProps.message}
-                      action={snackbarProps.action}
-                      $background={
-                        snackbarProps.success
-                          ? outerTheme.palette.success.main
-                          : snackbarProps.error
-                          ? outerTheme.palette.error.main
-                          : outerTheme.palette.primary.main
-                      }
-                    />
-                  </Snackbar>
-                </PageWrapper>
-              </FeedbackContext.Provider>
-            )}
-          </DevLinkProvider>
-        </StylesThemeProvider>
+                  <StyledSnackbarContent
+                    message={snackbarProps.message}
+                    action={snackbarProps.action}
+                    $background={
+                      snackbarProps.success
+                        ? outerTheme.palette.success.main
+                        : snackbarProps.error
+                        ? outerTheme.palette.error.main
+                        : outerTheme.palette.primary.main
+                    }
+                  />
+                </Snackbar>
+              </PageWrapper>
+            </FeedbackContext.Provider>
+          )}
+        </DevLinkProvider>
       </ThemeProvider>
     </>
   );

@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import AddToCalendarDialog from "./AddToCalendarDialog";
 
@@ -33,9 +32,7 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof AddToCalend
   };
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <AddToCalendarDialog {...defaultProps} />
-      </StylesThemeProvider>
+      <AddToCalendarDialog {...defaultProps} />
     </ThemeProvider>
   );
 }

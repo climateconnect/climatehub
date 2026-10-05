@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../../themes/theme";
 import UserContext from "../../context/UserContext";
 import ChatDrawer from "./ChatDrawer";
@@ -136,17 +135,15 @@ function drawerTree({
 } = {}) {
   return (
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={{ ...defaultContextValue, chatSocket } as any}>
-          <ChatDrawer
-            open={open}
-            onClose={onClose}
-            contactPerson={contactPerson}
-            contextTerm={contextTerm}
-            contactRole={contactRole}
-          />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={{ ...defaultContextValue, chatSocket } as any}>
+        <ChatDrawer
+          open={open}
+          onClose={onClose}
+          contactPerson={contactPerson}
+          contextTerm={contextTerm}
+          contactRole={contactRole}
+        />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }
