@@ -425,6 +425,13 @@ Things to watch in every batch:
 - Not verified: a real-browser pass (the browser extension was not connected). Please check the style order after hydration and a hub page: emotion tags should come before the Next/devlink CSS in `<head>`, and there must be no flash of unstyled content.
 - Still to do: Phase 4 (`yarn remove @mui/styles`, check `@types`/peer warnings) and Phase 5 (final `build` + smoke pass, update `frontend/agent.md` and the CLAUDE.md "Styling" bullet).
 
+#### Phase 4 and 5 results — migration complete
+
+- Phase 4: `yarn remove @mui/styles` — `package.json` and `yarn.lock` no longer mention `@mui/styles`, `@mui/private-theming@6`, `@mui/utils@6` or any `jss*` package; no other dependency changed version. Nothing else depended on it (`yarn why`).
+- Phase 5 verification on the final dependency set: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests), `yarn build` (exit 0, shared JS 251 kB, unchanged). Production server: `/terms`, `/browse`, `/faq`, `/donorforest`, `/about`, `/login` return 200 with no `jss-server-side` tag, no `jssNN` class names and five `<style data-emotion>` tags; `/hubs/prio1` redirects.
+- Docs: `frontend/agent.md` and the local (gitignored) `CLAUDE.md` now state that `@mui/styles` is removed and ESLint blocks it, and that continuously changing values belong in an inline `style`.
+- **Still open for humans** (not covered by automated checks): the per-batch manual visual checklists above, a real-browser look at the style order after hydration (emotion tags before the Next/devlink CSS in `<head>`, no flash of unstyled content) and a pass over hub-themed pages, because the browser extension was not connected during this work. Bundle size was not re-measured beyond the unchanged "First Load JS shared" figure.
+
 ### Phase 3 — Remove the bridge (one PR, after `grep -rF "makeStyles" src pages public` returns nothing)
 
 1. Delete `StylesThemeProvider` import and wrapper from `pages/_app.tsx`; delete `declare module "@mui/styles/defaultTheme"` blocks from `_app.tsx` and `layouts/LayoutWrapper.tsx` (and the stale comment block around lines ~317–330 of `_app.tsx`).
@@ -462,14 +469,14 @@ Things to watch in every batch:
 
 Update this table in each PR.
 
-| Phase                                      | Status | `@mui/styles` files remaining  |
-| ------------------------------------------ | ------ | ------------------------------ |
-| 0 Prep                                     | ✅     | 316                            |
-| 1 Mechanical (useTheme, types, withStyles) | ✅     | 310                            |
-| 2.1–2.11 `makeStyles` batches              | ✅     | 44 (41 tests + 3 bridge files) |
-| 3 Remove bridge + SSR                      | ☐      |                                |
-| 4 Remove dependency + lint guard           | ☐      | 0                              |
-| 5 Verify + docs                            | ☐      | 0                              |
+| Phase                                      | Status                          | `@mui/styles` files remaining  |
+| ------------------------------------------ | ------------------------------- | ------------------------------ |
+| 0 Prep                                     | ✅                              | 316                            |
+| 1 Mechanical (useTheme, types, withStyles) | ✅                              | 310                            |
+| 2.1–2.11 `makeStyles` batches              | ✅                              | 44 (41 tests + 3 bridge files) |
+| 3 Remove bridge + SSR                      | ✅                              | 0                              |
+| 4 Remove dependency + lint guard           | ✅                              | 0                              |
+| 5 Verify + docs                            | ✅ (manual browser checks open) | 0                              |
 
 ## 8. Open questions for the maintainers
 
