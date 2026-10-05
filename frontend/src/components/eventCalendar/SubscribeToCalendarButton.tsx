@@ -1,5 +1,5 @@
 import { Box, Button, IconButton, TextField, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import React, { useContext, useEffect, useState } from "react";
@@ -8,35 +8,35 @@ import UserContext from "../context/UserContext";
 import GenericDialog from "../dialogs/GenericDialog";
 import { apiRequest } from "../../../public/lib/apiOperations";
 
-const useStyles = makeStyles((theme) => ({
-  subscribeButton: {
-    alignSelf: "flex-start",
-    marginTop: theme.spacing(1),
-  },
-  dialogContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-  },
-  urlRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1),
-  },
-  urlField: {
-    flex: 1,
-  },
-  googleButton: {
-    alignSelf: "flex-start",
-  },
-  instructions: {
-    color: theme.palette.text.secondary,
-  },
-  lagNote: {
-    color: theme.palette.text.secondary,
-    fontStyle: "italic",
-    fontSize: "0.85rem",
-  },
+const SubscribeButton = styled(Button)(({ theme }) => ({
+  alignSelf: "flex-start",
+  marginTop: theme.spacing(1),
+}));
+
+const DialogContent = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+}));
+
+const UrlRow = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+}));
+
+const UrlField = styled(TextField)({
+  flex: 1,
+});
+
+const Instructions = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+}));
+
+const LagNote = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  fontStyle: "italic",
+  fontSize: "0.85rem",
 }));
 
 type Props = {
@@ -59,7 +59,6 @@ export default function SubscribeToCalendarButton({
   defaultOpen = false,
 }: Props) {
   const { locale } = useContext(UserContext);
-  const classes = useStyles();
   const texts = getTexts({ page: "hub", locale: locale });
   const [open, setOpen] = useState(defaultOpen);
   const [feedUrl, setFeedUrl] = useState("");
@@ -129,8 +128,7 @@ export default function SubscribeToCalendarButton({
           </IconButton>
         </Tooltip>
       ) : (
-        <Button
-          className={classes.subscribeButton}
+        <SubscribeButton
           variant="outlined"
           color="primary"
           size="small"
@@ -138,7 +136,7 @@ export default function SubscribeToCalendarButton({
           onClick={() => setOpen(true)}
         >
           {texts.subscribe_to_calendar_button ?? "Subscribe"}
-        </Button>
+        </SubscribeButton>
       )}
 
       <GenericDialog
@@ -150,15 +148,14 @@ export default function SubscribeToCalendarButton({
             : texts.subscribe_dialog_title ?? "Subscribe to event calendar"
         }
       >
-        <div className={classes.dialogContent}>
-          <Typography className={classes.instructions}>
+        <DialogContent>
+          <Instructions>
             {texts.subscribe_dialog_instructions ??
               "Copy the URL below and add it to your calendar app using 'Subscribe to calendar' or 'Add calendar by URL'."}
-          </Typography>
+          </Instructions>
 
-          <div className={classes.urlRow}>
-            <TextField
-              className={classes.urlField}
+          <UrlRow>
+            <UrlField
               value={loading ? "Loading..." : feedUrl}
               InputProps={{ readOnly: true }}
               inputProps={{ "data-feed-url-input": true }}
@@ -180,12 +177,12 @@ export default function SubscribeToCalendarButton({
                 <ContentCopyIcon />
               </IconButton>
             </Tooltip>
-          </div>
+          </UrlRow>
 
           {feedUrl && (
             <Box>
               <Button
-                className={classes.googleButton}
+                sx={{ alignSelf: "flex-start" }}
                 variant="contained"
                 color="primary"
                 href={googleCalendarUrl}
@@ -197,11 +194,11 @@ export default function SubscribeToCalendarButton({
             </Box>
           )}
 
-          <Typography className={classes.lagNote}>
+          <LagNote>
             {texts.subscribe_google_lag_note ??
               "Note: Google Calendar refreshes subscribed feeds every 12\u201324 hours, so new events may take up to a day to appear."}
-          </Typography>
-        </div>
+          </LagNote>
+        </DialogContent>
       </GenericDialog>
     </>
   );

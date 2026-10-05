@@ -316,6 +316,21 @@ Every phase = at least one PR off `master`. Use a branch name like `mui-styles/<
   - `/login` and `/signup` on `prio1` and `perth`: background, split-triangle colour, icon at 915 px, auth image font sizes/heights at `xl` and `lg`.
   - Project page: `WasseraktionswochenLink` pill colours, hover and icon gap; `/hubs/em/wasseraktionswochen` subheaders.
 
+#### Phase 2.8 results (`calendar`, `eventCalendar`)
+
+- Migrated 6 component files: `calendar/` (`AddToCalendarDialog`, `ProjectAddToCalendarButton`) and `eventCalendar/` (`EventCalendarContent`, `EventCalendarEventList`, `EventCardWide`, `SubscribeToCalendarButton`). `@mui/styles` importing files: 130 → 124. The 3 test files (`AddToCalendarDialog.test`, `ProjectAddToCalendarButton.test`, `EventCalendarEventList.test`) still wrap with `StylesThemeProvider` and stay on the allowlist until Phase 3; they pass unchanged.
+- Verified: `yarn check-types`, `yarn lint` (0 errors, same 3 warnings), `yarn test` (59 suites, 848 tests). A throwaway jsdom render of `EventCardWide` (2 variants), `SubscribeToCalendarButton` (button, icon + open) and `EventCalendarContent` produced no React errors apart from a missing-`key` warning that comes from my fixture lacking `original_name` (the code keys the sector checkboxes with `key={s.original_name}`, as in the original). The throwaway test files were deleted. Not checked in a real browser.
+- Cross-batch / theme-context checks (rules from 2.6a / 2.7) were run first: no `styled(X)` wrapper around these components exists elsewhere, and none of the six renders a nested `ThemeProvider`. `EventCardWide` hands class names to two components that are **still on `makeStyles`** (`project/LocationDisplay`, `project/ProjectSectorsDisplay`, both in the `project` batch): instead of `styled()`-wrapping them it passes static class names (`EventCardWide-cardIcon`, `EventCardWide-locationText`, `EventCardWide-locationCell`) and styles them with descendant selectors from the card root. Those have higher specificity than the JSS classes, so the old override (`marginRight: 12px`) is kept. **When `LocationDisplay` / `ProjectSectorsDisplay` are migrated (batch 2.10), the descendant-selector approach in `EventCardWide` keeps working and can optionally be simplified to `styled(LocationDisplay)`.**
+- Review notes:
+  - `ProjectAddToCalendarButton`: `className` still goes to the wrapper div and the two consumers (`ProjectOverview`, `ProjectPageRoot`, both still on `makeStyles`) pass their JSS `classes.calendarButtonContainer` there; the icon button itself is `styled(IconButton)`.
+  - `SubscribeToCalendarButton`: the Google button uses `sx` because `styled(Button)` rejected `href` in the type check.
+  - `EventCardWide`: a plain `Box` without styling became `styled("div")`; the per-render tile colours in `EventCalendarEventList` stay in inline `style`.
+  - No dead rules were removed: every rule key in the six originals was referenced (checked against `HEAD`).
+- **Manual visual checklist for this batch**:
+  - `/events` and `/hubs/<hub>/events`, desktop (260 px left panel): search bar width, calendar overflow and width, event dot under day numbers, topic checkbox rows (icon and label), reset button alignment; below `md`: mobile row (search bar, Filters button with #707070 border and icon colour, subscribe icon), 10-unit bottom padding, full-screen filter dialog padding.
+  - Event list: day header and tile, "today" badge size, tile colour for past/today/future days on a custom hub and a normal hub; `EventCardWide` (image padding and radius, sector topic in the top row on desktop and below the text on mobile, 12 px location cell margin, register button size/padding, hover shadow without underline).
+  - Project page: calendar icon button (35 px, primary colour, no hover change) and the add-to-calendar dialog (option borders and hover); event calendar page: subscribe dialog layout.
+
 ### Phase 2 — `makeStyles` batches (≈12–14 PRs, 15–25 files each)
 
 Order from lowest to highest blast radius, so patterns are settled before the big components. Suggested batches (adjust to actual diff size; keep each reviewable):
@@ -393,7 +408,7 @@ Update this table in each PR.
 | ------------------------------------------ | --------------- | ----------------------------- |
 | 0 Prep                                     | ✅              | 316                           |
 | 1 Mechanical (useTheme, types, withStyles) | ✅              | 310                           |
-| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.7 done | 130                           |
+| 2.1–2.11 `makeStyles` batches              | 🔄 2.1–2.8 done | 124                           |
 | 3 Remove bridge + SSR                      | ☐               |                               |
 | 4 Remove dependency + lint guard           | ☐               | 0                             |
 | 5 Verify + docs                            | ☐               | 0                             |
