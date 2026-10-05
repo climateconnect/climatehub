@@ -1,5 +1,4 @@
 import { Container, IconButton, TextField, Tooltip, Typography, Switch } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
@@ -15,65 +14,56 @@ import ProjectDescriptionEditor from "../editProject/ProjectDescriptionEditor";
 import { checkProjectDatesValid } from "../../../public/lib/dateOperations";
 import { indicateWrongLocation, isLocationValid } from "../../../public/lib/locationOperations";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import dayjs from "dayjs";
 import EventRegistrationSection from "./EventRegistrationSection";
 import { validateRegistrationFields } from "../../utils/eventRegistrationHelpers";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(8),
-      marginBottom: theme.spacing(8),
+// Static class names are handed to the section components (which take *ClassName props)
+// and styled via descendant selectors from Block.
+const SUB_HEADER_CLASS = "EnterDetails-subHeader";
+const TOOLTIP_CLASS = "EnterDetails-tooltip";
+const PHOTO_SECTION_CLASS = "EnterDetails-photoSection";
+const SUMMARY_SECTION_CLASS = "EnterDetails-summarySection";
+
+const Block = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+  [`& .${SUB_HEADER_CLASS}`]: {
+    marginBottom: theme.spacing(2),
+    fontSize: 20,
+    color: theme.palette.background.default_contrastText,
+  },
+  [`& .${TOOLTIP_CLASS}`]: {
+    fontSize: 16,
+  },
+  [`& .${PHOTO_SECTION_CLASS}, & .${SUMMARY_SECTION_CLASS}`]: {
+    display: "inline-block",
+    width: "50%",
+    marginTop: theme.spacing(4),
+    verticalAlign: "top",
+    [theme.breakpoints.down("md")]: {
+      width: "100%",
+      padding: 0,
     },
-    stepsTracker: {
-      maxWidth: 600,
-      margin: "0 auto",
+  },
+  [`& .${PHOTO_SECTION_CLASS}`]: {
+    paddingRight: theme.spacing(2),
+    [theme.breakpoints.down("md")]: {
+      padding: 0,
     },
-    subHeader: {
-      marginBottom: theme.spacing(2),
-      fontSize: 20,
-      color: theme.palette.background.default_contrastText,
+  },
+  [`& .${SUMMARY_SECTION_CLASS}`]: {
+    paddingLeft: theme.spacing(2),
+    [theme.breakpoints.down("md")]: {
+      padding: 0,
     },
-    inlineSubHeader: {
-      display: "inline-block",
-      marginRight: theme.spacing(4),
-    },
-    inlineBlock: {
-      display: "inline-block",
-    },
-    block: {
-      marginBottom: theme.spacing(4),
-    },
-    datePicker: {
-      marginTop: 0,
-      marginLeft: theme.spacing(4),
-    },
-    photoContainer: {
-      paddingRight: theme.spacing(2),
-    },
-    summaryContainer: {
-      paddingLeft: theme.spacing(2),
-    },
-    inlineOnBigScreens: {
-      width: "50%",
-      marginTop: theme.spacing(4),
-      verticalAlign: "top",
-      [theme.breakpoints.down("md")]: {
-        width: "100%",
-        padding: 0,
-      },
-    },
-    tooltip: {
-      fontSize: 16,
-    },
-    requiredFieldsNotice: {
-      display: "block",
-      marginBottom: theme.spacing(2),
-    },
-  };
-});
+  },
+}));
+
+const StyledRequiredFieldsNotice = styled(RequiredFieldsNotice)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(2),
+}));
 
 const getHelpTexts = (projectTypeTexts, typeId) => ({
   addPhoto: projectTypeTexts.addPhoto[typeId],
@@ -106,7 +96,6 @@ export default function EnterDetails({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const locationInputRef = useRef(null);
   const [locationOptionsOpen, setLocationOptionsOpen] = useState(false);
-  const classes = useStyles(projectData);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: projectData });
   const projectTypeTexts = getProjectTypeTexts(texts);
@@ -289,7 +278,7 @@ export default function EnterDetails({
     <>
       <Container maxWidth="lg">
         <form ref={topRef} onSubmit={onClickNextStep}>
-          <RequiredFieldsNotice className={classes.requiredFieldsNotice} />
+          <StyledRequiredFieldsNotice />
           <ProjectNameSection
             projectData={projectData}
             handleSetProjectData={handleSetProjectData}
@@ -302,13 +291,13 @@ export default function EnterDetails({
             setLocationOptionsOpen={setLocationOptionsOpen}
             errors={errors}
           />
-          <div className={classes.block}>
+          <Block>
             <AddPhotoSection
               projectData={projectData}
               handleSetProjectData={handleSetProjectData}
-              className={`${classes.inlineBlock} ${classes.inlineOnBigScreens} ${classes.photoContainer}`}
-              subHeaderClassname={classes.subHeader}
-              toolTipClassName={classes.tooltip}
+              className={PHOTO_SECTION_CLASS}
+              subHeaderClassname={SUB_HEADER_CLASS}
+              toolTipClassName={TOOLTIP_CLASS}
               helpTexts={helpTexts}
               ToolTipIcon={HelpOutlineIcon}
               open={open}
@@ -317,22 +306,22 @@ export default function EnterDetails({
             <AddSummarySection
               projectData={projectData}
               onDescriptionChange={onTextChange}
-              className={`${classes.inlineBlock} ${classes.inlineOnBigScreens} ${classes.summaryContainer}`}
-              subHeaderClassname={classes.subHeader}
-              toolTipClassName={classes.tooltip}
+              className={SUMMARY_SECTION_CLASS}
+              subHeaderClassname={SUB_HEADER_CLASS}
+              toolTipClassName={TOOLTIP_CLASS}
               helpTexts={helpTexts}
               ToolTipIcon={HelpOutlineIcon}
             />
-          </div>
-          <div className={classes.block}>
+          </Block>
+          <Block>
             <Typography
               component="h2"
               variant="subtitle2"
               color="primary"
-              className={classes.subHeader}
+              className={SUB_HEADER_CLASS}
             >
               {texts.project_description}
-              <Tooltip title={helpTexts.description} className={classes.tooltip}>
+              <Tooltip title={helpTexts.description} className={TOOLTIP_CLASS}>
                 <IconButton size="large">
                   <HelpOutlineIcon />
                 </IconButton>
@@ -343,13 +332,13 @@ export default function EnterDetails({
               onChange={(html) => handleSetProjectData({ description_html: html })}
               error={errors?.description_html}
             />
-          </div>
-          <div className={classes.block}>
+          </Block>
+          <Block>
             <Typography
               component="h2"
               variant="subtitle2"
               color="primary"
-              className={classes.subHeader}
+              className={SUB_HEADER_CLASS}
             >
               {projectTypeTexts.website[projectData.project_type.type_id]}
             </Typography>
@@ -361,9 +350,9 @@ export default function EnterDetails({
               value={projectData.website}
               helperText={projectTypeTexts.website_helper[projectData.project_type.type_id]}
             />
-          </div>
+          </Block>
           {projectData.registrationEnabled && projectData.project_type?.type_id === "event" && (
-            <div className={classes.block}>
+            <Block>
               <EventRegistrationSection
                 projectData={projectData}
                 handleSetProjectData={handleSetProjectData}
@@ -380,18 +369,18 @@ export default function EnterDetails({
                   })
                 }
               />
-            </div>
+            </Block>
           )}
           {false && (
-            <div className={classes.block}>
+            <Block>
               <Typography
                 component="h2"
                 variant="subtitle2"
                 color="primary"
-                className={classes.subHeader}
+                className={SUB_HEADER_CLASS}
               >
                 {projectTypeTexts.allow[projectData.project_type.type_id]}
-                <Tooltip title={helpTexts.collaboration} className={classes.tooltip}>
+                <Tooltip title={helpTexts.collaboration} className={TOOLTIP_CLASS}>
                   <IconButton size="large">
                     <HelpOutlineIcon />
                   </IconButton>
@@ -404,7 +393,7 @@ export default function EnterDetails({
                 inputProps={{ "aria-label": "secondary checkbox" }}
                 color={backgroundContrastColor}
               />
-            </div>
+            </Block>
           )}
           {/* The Draft button appears after the project name is filled out */}
           <NavigationButtons

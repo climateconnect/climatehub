@@ -1,5 +1,4 @@
 import { IconButton, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import React, { useContext } from "react";
@@ -8,24 +7,22 @@ import UserContext from "../context/UserContext";
 import MiniOrganizationPreview from "../organization/MiniOrganizationPreview";
 import AutoCompleteSearchBar from "../search/AutoCompleteSearchBar";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    header: {
-      marginBottom: theme.spacing(2),
-      fontSize: 20,
-      color: theme.palette.background.default_contrastText,
-    },
-    info: {
-      textAlign: "center",
-      fontWeight: "bold",
-      marginBottom: theme.spacing(2),
-    },
-    infoIcon: {
-      marginBottom: -6,
-    },
-  };
+const Header = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  fontSize: 20,
+  color: theme.palette.background.default_contrastText,
+}));
+
+const Info = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  fontWeight: "bold",
+  marginBottom: theme.spacing(2),
+}));
+
+const InfoIcon = styled(InfoOutlinedIcon)({
+  marginBottom: -6,
 });
 
 export default function OrganizersContainer({
@@ -36,7 +33,6 @@ export default function OrganizersContainer({
   handleAddOrganization,
   handleRemoveOrganization,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: projectData });
   const theme = useTheme();
@@ -77,19 +73,19 @@ export default function OrganizersContainer({
           />
         </div>
         <div className={blockClassName}>
-          <Typography className={classes.info}>
-            <InfoOutlinedIcon className={classes.infoIcon} />
+          <Info>
+            <InfoIcon />
             {texts.use_the_search_bar_to_add_collaborating_organizations}
-          </Typography>
+          </Info>
           {projectData.isPersonalProject ? (
-            <Typography component="h2" variant="subtitle2" className={classes.header}>
+            <Header component="h2" variant="subtitle2">
               {texts.personal_project}
-            </Typography>
+            </Header>
           ) : (
             <>
-              <Typography component="h2" variant="subtitle2" className={classes.header}>
+              <Header component="h2" variant="subtitle2">
                 {texts.responsible_organization}
-              </Typography>
+              </Header>
               <MiniOrganizationPreview
                 organization={projectData.parent_organization}
                 /*TODO(unused) type="parentOrganization" */
@@ -99,9 +95,9 @@ export default function OrganizersContainer({
         </div>
         {projectData.collaborating_organizations.length > 0 && (
           <div>
-            <Typography component="h2" variant="subtitle2" className={classes.header}>
+            <Header component="h2" variant="subtitle2">
               {texts.collaborating_organizations}
-            </Typography>
+            </Header>
             {projectData.collaborating_organizations.map((o, index) => (
               <MiniOrganizationPreview
                 key={index}

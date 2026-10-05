@@ -1,29 +1,28 @@
 import React, { useContext } from "react";
 import { Container, FormControlLabel, Switch, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import NavigationButtons from "../general/NavigationButtons";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 import { Project } from "../../types";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    maxWidth: 700,
-    margin: "0 auto",
-    padding: theme.spacing(4),
-    paddingTop: theme.spacing(2),
-  },
-  switchRow: {
-    marginTop: theme.spacing(3),
-    display: "flex",
-    alignItems: "center",
-  },
-  helpText: {
-    marginTop: theme.spacing(1),
-    color: theme.palette.text.secondary,
-  },
+const Root = styled(Container)(({ theme }) => ({
+  maxWidth: 700,
+  margin: "0 auto",
+  padding: theme.spacing(4),
+  paddingTop: theme.spacing(2),
+}));
+
+const SwitchRow = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(3),
+  display: "flex",
+  alignItems: "center",
+}));
+
+const HelpText = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  color: theme.palette.text.secondary,
 }));
 
 type Props = {
@@ -39,7 +38,6 @@ export default function EventRegistrationStep({
   goToNextStep,
   goToPreviousStep,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
   const theme = useTheme();
@@ -64,8 +62,8 @@ export default function EventRegistrationStep({
   };
 
   return (
-    <Container maxWidth="md" className={classes.root}>
-      <div className={classes.switchRow}>
+    <Root maxWidth="md">
+      <SwitchRow>
         <FormControlLabel
           control={
             <Switch
@@ -77,17 +75,15 @@ export default function EventRegistrationStep({
           }
           label={texts.allow_online_registration}
         />
-      </div>
+      </SwitchRow>
       {projectData.registrationEnabled && (
-        <Typography variant="body2" className={classes.helpText}>
-          {texts.registration_enabled_help_text}
-        </Typography>
+        <HelpText variant="body2">{texts.registration_enabled_help_text}</HelpText>
       )}
       <NavigationButtons
         onClickPreviousStep={goToPreviousStep as React.MouseEventHandler<HTMLButtonElement>}
         onClickNextStep={handleClickNext as React.MouseEventHandler<HTMLButtonElement>}
         sticky
       />
-    </Container>
+    </Root>
   );
 }

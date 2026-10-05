@@ -8,8 +8,7 @@ import {
   TextField,
   Grid,
 } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import React, { RefObject, useContext, useRef, useState } from "react";
 import SelectField from "../general/SelectField";
@@ -31,65 +30,95 @@ import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-const useStyles = makeStyles<Theme, { image?: string }>((theme) => ({
-  ...projectOverviewStyles(theme),
-  projectTitleInput: {
-    marginBottom: theme.spacing(2),
-    marginTop: theme.spacing(2),
-    width: "100%",
-  },
-  largeProjectTitleInput: {
-    fontSize: 32,
-  },
-  largeScreenImageContainer: {
-    width: "50%",
-  },
-  imageZoneWrapper: {
-    display: "block",
-    width: "100%",
-    position: "relative",
-  },
-  imageZone: (props) => ({
-    cursor: "pointer",
-    border: "1px dashed #000",
-    width: "100%",
-    paddingBottom: "56.25%",
-    backgroundImage: `${props.image ? `url(${props.image})` : null}`,
-    backgroundSize: "contain",
-  }),
-  addPhotoContainer: {
-    position: "absolute",
-    left: "-50%",
-    top: "-50%",
-    width: 170,
-  },
-  addPhotoWrapper: {
-    position: "absolute",
-    left: "calc(50% - 85px)",
-    top: "calc(50% - 44px)",
-  },
-  photoIcon: {
-    display: "block",
-    marginBottom: theme.spacing(1),
-    margin: "0 auto",
-    cursor: "pointer",
-    fontSize: 40,
-  },
-  imageBtn: {
-    padding: "8px 32px",
-  },
-  locationInput: {
-    marginBottom: theme.spacing(1),
-    marginTop: theme.spacing(2),
-  },
-  overviewHeadline: {
-    fontSize: 12,
-  },
-  sectorField: {
-    marginTop: theme.spacing(1.25),
-    minWidth: "100px",
-  },
+const OverviewContainer = styled(Container)(
+  ({ theme }) => projectOverviewStyles(theme).projectOverview
+);
+
+const BlockProjectInfo = styled("div")(
+  ({ theme }) => projectOverviewStyles(theme).blockProjectInfo
+);
+
+const FlexContainer = styled("div")(({ theme }) => projectOverviewStyles(theme).flexContainer);
+
+const InlineProjectInfo = styled("div")(
+  ({ theme }) => projectOverviewStyles(theme).inlineProjectInfo
+);
+
+const LargeScreenImageContainer = styled("div")({
+  width: "50%",
+});
+
+const ShortDescriptionField = styled(TextField)(
+  ({ theme }) => projectOverviewStyles(theme).projectInfoEl
+);
+
+const ProjectInfoEl = styled("div")(({ theme }) => projectOverviewStyles(theme).projectInfoEl);
+
+// projectInfoEl first, then locationInput: the later rule wins (marginTop)
+const LocationSearchBar = styled(ProjectLocationSearchBar)(({ theme }) => ({
+  ...projectOverviewStyles(theme).projectInfoEl,
+  marginBottom: theme.spacing(1),
+  marginTop: theme.spacing(2),
 }));
+
+const WebsiteField = styled(TextField)(({ theme }) => projectOverviewStyles(theme).projectInfoEl);
+
+const SectorList = styled(List)(({ theme }) => projectOverviewStyles(theme).flexContainer);
+
+const SkillChip = styled(Chip)(({ theme }) => projectOverviewStyles(theme).skill);
+
+const SectorSelectField = styled(SelectField)(({ theme }) => ({
+  marginTop: theme.spacing(1.25),
+  minWidth: "100px",
+}));
+
+const TitleInput = styled(TextField, {
+  shouldForwardProp: (prop) => prop !== "$largeInput",
+})<{ $largeInput?: boolean }>(({ theme, $largeInput }) => ({
+  marginBottom: theme.spacing(2),
+  marginTop: theme.spacing(2),
+  width: "100%",
+  ...($largeInput ? { "& .MuiInputBase-input": { fontSize: 32 } } : {}),
+}));
+
+const ImageZoneWrapper = styled("label")({
+  display: "block",
+  width: "100%",
+  position: "relative",
+});
+
+const ImageZone = styled("div")({
+  cursor: "pointer",
+  border: "1px dashed #000",
+  width: "100%",
+  paddingBottom: "56.25%",
+  backgroundSize: "contain",
+});
+
+const AddPhotoContainer = styled("div")({
+  position: "absolute",
+  left: "-50%",
+  top: "-50%",
+  width: 170,
+});
+
+const AddPhotoWrapper = styled("div")({
+  position: "absolute",
+  left: "calc(50% - 85px)",
+  top: "calc(50% - 44px)",
+});
+
+const PhotoIcon = styled(AddAPhotoIcon)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(1),
+  margin: "0 auto",
+  cursor: "pointer",
+  fontSize: 40,
+}));
+
+const ImageButton = styled(Button)({
+  padding: "8px 32px",
+});
 
 type Args = {
   project: Project;
@@ -116,7 +145,6 @@ export default function EditProjectOverview({
   locationInputRef,
   sectorOptions,
 }: Args) {
-  const classes = useStyles({});
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
 
@@ -156,13 +184,13 @@ export default function EditProjectOverview({
   };
 
   return (
-    <Container className={classes.projectOverview}>
+    <OverviewContainer>
       {smallScreen ? (
         <SmallScreenOverview {...passThroughProps} />
       ) : (
         <LargeScreenOverview {...passThroughProps} />
       )}
-    </Container>
+    </OverviewContainer>
   );
 }
 
@@ -206,7 +234,6 @@ function SmallScreenOverview({
   isImgLoading,
   setIsImgLoading,
 }: ScreenOverviewProps) {
-  const classes = useStyles({});
   return (
     <>
       <InputImage
@@ -221,7 +248,7 @@ function SmallScreenOverview({
         isImgLoading={isImgLoading}
         setIsImgLoading={setIsImgLoading}
       />
-      <div className={classes.blockProjectInfo} ref={overviewInputsRef}>
+      <BlockProjectInfo ref={overviewInputsRef}>
         <InputName
           project={project}
           screenSize="small"
@@ -249,7 +276,7 @@ function SmallScreenOverview({
           texts={texts}
           sectorOptions={sectorOptions}
         />
-      </div>
+      </BlockProjectInfo>
     </>
   );
 }
@@ -272,7 +299,6 @@ function LargeScreenOverview({
   isImgLoading,
   setIsImgLoading,
 }: ScreenOverviewProps) {
-  const classes = useStyles({});
   function handleUpdateSelectedHub(hubUrl: string) {
     handleSetProject({
       ...project,
@@ -288,8 +314,8 @@ function LargeScreenOverview({
         handleChangeProject={handleChangeProject}
         texts={texts}
       />
-      <div className={classes.flexContainer}>
-        <div className={classes.largeScreenImageContainer}>
+      <FlexContainer>
+        <LargeScreenImageContainer>
           <InputImage
             project={project}
             screenSize="large"
@@ -302,8 +328,8 @@ function LargeScreenOverview({
             isImgLoading={isImgLoading}
             setIsImgLoading={setIsImgLoading}
           />
-        </div>
-        <div className={classes.inlineProjectInfo} ref={overviewInputsRef}>
+        </LargeScreenImageContainer>
+        <InlineProjectInfo ref={overviewInputsRef}>
           <InputShortDescription
             project={project}
             handleChangeProject={handleChangeProject}
@@ -330,16 +356,15 @@ function LargeScreenOverview({
             handleUpdateSelectedHub={handleUpdateSelectedHub}
             typeId={project.project_type.type_id}
           />
-        </div>
-      </div>
+        </InlineProjectInfo>
+      </FlexContainer>
     </>
   );
 }
 
 const InputShortDescription = ({ project, handleChangeProject, texts }) => {
-  const classes = useStyles({});
   return (
-    <TextField
+    <ShortDescriptionField
       label={texts["summarize_your_" + project.project_type.type_id]}
       variant="outlined"
       multiline
@@ -350,7 +375,6 @@ const InputShortDescription = ({ project, handleChangeProject, texts }) => {
       onChange={(event) =>
         handleChangeProject(event.target.value.substring(0, 280), "short_description")
       }
-      className={classes.projectInfoEl}
       required
       placeholder={texts.briefly_summarise_what_you_are_doing_please_only_use_english}
     />
@@ -366,7 +390,6 @@ const InputLocation = ({
   locationOptionsOpen,
   handleSetLocationOptionsOpen,
 }) => {
-  const classes = useStyles({});
   const handleChangeLocation = (newLocation) => {
     handleChangeProject(newLocation, "loc");
   };
@@ -395,10 +418,9 @@ const InputLocation = ({
         handleSetOpen={handleSetLocationOptionsOpen}
         locationInputRef={locationInputRef}
       />*/}
-      <ProjectLocationSearchBar
+      <LocationSearchBar
         projectData={project}
         handleSetProjectData={handleSetProject}
-        className={`${classes.locationInput} ${classes.projectInfoEl}`}
         hideHelperText
         locationInputRef={locationInputRef}
         locationOptionsOpen={locationOptionsOpen}
@@ -410,19 +432,17 @@ const InputLocation = ({
 };
 
 const InputWebsite = ({ project, handleChangeProject, texts }) => {
-  const classes = useStyles({});
   return (
-    <div className={classes.projectInfoEl}>
-      <TextField
+    <ProjectInfoEl>
+      <WebsiteField
         label={texts.website}
         variant="outlined"
         fullWidth
         value={project.website}
-        className={`${classes.input} ${classes.projectInfoEl}`}
         type="text"
         onChange={(event) => handleChangeProject(event.target.value, "website")}
       />
-    </div>
+    </ProjectInfoEl>
   );
 };
 
@@ -439,8 +459,6 @@ const InputSectors = ({
   texts,
   sectorOptions,
 }: InputSectorsProps) => {
-  const classes = useStyles({});
-
   const handleValueChange = (selectedNames) => {
     // Map selected names to sector objects
     const selectedSectors = sectorOptions.filter((sector) => selectedNames.includes(sector.name));
@@ -451,31 +469,29 @@ const InputSectors = ({
     handleChangeProject([...(project.sectors ?? []).filter((t) => t.id !== sector.id)], "sectors");
   };
   return (
-    <div className={classes.projectInfoEl}>
-      <List className={classes.flexContainer}>
+    <ProjectInfoEl>
+      <SectorList>
         {project?.sectors?.map((sector) => (
-          <Chip
+          <SkillChip
             key={sector.name}
             label={sector.name}
-            className={classes.skill}
             onDelete={() => handleSectorDelete(sector)}
           />
         ))}
         <Grid container>
-          <SelectField
+          <SectorSelectField
             options={sectorOptions}
-            className={classes.sectorField}
             multiple
             values={project.sectors?.map((s) => s.name)}
-            label={<div className={classes.iconLabel}>{texts.project_categories}</div>}
+            label={<div>{texts.project_categories}</div>}
             size="small"
             onChange={(event) => {
               handleValueChange(event.target.value);
             }}
           />
         </Grid>
-      </List>
-    </div>
+      </SectorList>
+    </ProjectInfoEl>
   );
 };
 
@@ -487,15 +503,13 @@ type InputNameArgs = {
 };
 
 const InputName = ({ project, screenSize, handleChangeProject, texts }: InputNameArgs) => {
-  const classes = useStyles({});
   const typeId = project.project_type?.type_id ?? "project";
   const projectTypeTexts = getProjectTypeTexts(texts);
   return (
-    <TextField
+    <TitleInput
       label={projectTypeTexts.name[typeId]}
       value={project.name}
-      className={classes.projectTitleInput}
-      inputProps={screenSize === "large" ? { className: classes.largeProjectTitleInput } : {}}
+      $largeInput={screenSize === "large"}
       type="text"
       onChange={(event) => handleChangeProject(event.target.value, "name")}
       required
@@ -515,7 +529,6 @@ const InputImage = ({
   isImgLoading,
   setIsImgLoading,
 }) => {
-  const classes = useStyles(project);
   const inputFileRef = useRef(null as HTMLInputElement | null);
 
   const onImageChange = async (event) => {
@@ -560,7 +573,7 @@ const InputImage = ({
 
   return (
     <>
-      <label htmlFor="photo" className={classes.imageZoneWrapper}>
+      <ImageZoneWrapper htmlFor="photo">
         <input
           type="file"
           name="photo"
@@ -570,22 +583,17 @@ const InputImage = ({
           onChange={onImageChange}
           accept=".png,.jpeg,.jpg"
         />
-        <div className={classes.imageZone}>
-          <div className={classes.addPhotoWrapper}>
-            <div className={classes.addPhotoContainer}>
-              <AddAPhotoIcon className={classes.photoIcon} />
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={onUploadImageClick}
-                className={classes.imageBtn}
-              >
+        <ImageZone style={project.image ? { backgroundImage: `url(${project.image})` } : undefined}>
+          <AddPhotoWrapper>
+            <AddPhotoContainer>
+              <PhotoIcon />
+              <ImageButton variant="contained" color="primary" onClick={onUploadImageClick}>
                 {!project.image ? texts.upload_image : texts.change_image}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </label>
+              </ImageButton>
+            </AddPhotoContainer>
+          </AddPhotoWrapper>
+        </ImageZone>
+      </ImageZoneWrapper>
       <UploadImageDialog
         onClose={handleImageDialogClose}
         open={imageDialogOpen}

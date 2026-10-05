@@ -1,32 +1,29 @@
 import { IconButton, TextField, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useRef } from "react";
 
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme) => ({
-  shortDescriptionWrapper: {
+const ShortDescriptionWrapper = styled("div")(({ theme }) => ({
+  width: "100%",
+  [theme.breakpoints.up("md")]: {
+    paddingTop: "56.25%",
+    position: "relative",
+  },
+}));
+
+const ShortDescription = styled(TextField)(({ theme }) => ({
+  [theme.breakpoints.up("md")]: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
     width: "100%",
-    [theme.breakpoints.up("md")]: {
-      paddingTop: "56.25%",
-      position: "relative",
-    },
-  },
-  shortDescription: {
-    [theme.breakpoints.up("md")]: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      bottom: 0,
-      right: 0,
-      width: "100%",
-    },
-  },
-  input: {
-    [theme.breakpoints.up("md")]: {
+    // the original passed the same "input" rule as the root, input and inputMultiline classes
+    "& .MuiInputBase-root, & .MuiInputBase-input, & .MuiInputBase-inputMultiline": {
       height: "100%",
       alignItems: "flex-start",
     },
@@ -42,7 +39,6 @@ export default function AddSummarySection({
   helpTexts,
   ToolTipIcon,
 }) {
-  const classes = useStyles(projectData);
   const shortDescriptionRef = useRef(null);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
@@ -59,8 +55,8 @@ export default function AddSummarySection({
           </IconButton>
         </Tooltip>
       </Typography>
-      <div className={classes.shortDescriptionWrapper}>
-        <TextField
+      <ShortDescriptionWrapper>
+        <ShortDescription
           variant="outlined"
           required
           fullWidth
@@ -76,13 +72,9 @@ export default function AddSummarySection({
             shrink: true,
           }}
           onChange={(event) => onDescriptionChange(event, "short_description")}
-          className={classes.shortDescription}
-          InputProps={{
-            classes: { root: classes.input, input: classes.input, inputMultiline: classes.input },
-          }}
           value={projectData.short_description}
         />
-      </div>
+      </ShortDescriptionWrapper>
     </div>
   );
 }

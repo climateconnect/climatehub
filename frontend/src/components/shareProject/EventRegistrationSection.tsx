@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
 import { Box, Divider, FormControlLabel, Switch, TextField, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import dayjs, { Dayjs } from "dayjs";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -10,23 +9,23 @@ import { getBackgroundContrastColor } from "../../../public/lib/themeOperations"
 import { Project, RegistrationField } from "../../types";
 import RegistrationFieldList from "./RegistrationFieldList";
 
-const useStyles = makeStyles((theme) => ({
-  subHeader: {
-    marginBottom: theme.spacing(2),
-    fontSize: 20,
-    color: theme.palette.background.default_contrastText,
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: theme.palette.background.default_contrastText,
-  },
-  datePicker: {
-    marginTop: 0,
-    display: "block",
-    width: "100%",
-  },
-}));
+const SubHeader = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  fontSize: 20,
+  color: theme.palette.background.default_contrastText,
+})) as typeof Typography;
+
+const SectionHeader = styled(Typography)(({ theme }) => ({
+  fontSize: 16,
+  fontWeight: 600,
+  color: theme.palette.background.default_contrastText,
+})) as typeof Typography;
+
+const StyledDatePicker = styled(DatePicker)({
+  marginTop: 0,
+  display: "block",
+  width: "100%",
+});
 
 type RegistrationErrors = {
   max_participants?: string;
@@ -48,7 +47,6 @@ export default function EventRegistrationSection({
   fieldErrors,
   onClearFieldError,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
   const theme = useTheme();
@@ -72,9 +70,9 @@ export default function EventRegistrationSection({
 
   return (
     <>
-      <Typography component="h2" variant="subtitle2" color="primary" className={classes.subHeader}>
+      <SubHeader component="h2" variant="subtitle2" color="primary">
         {texts.registration_settings}
-      </Typography>
+      </SubHeader>
       <Box sx={{ display: "flex", flexWrap: { xs: "wrap", md: "nowrap" }, gap: 2 }}>
         <Box sx={{ width: { xs: "100%", md: 240 } }}>
           <TextField
@@ -91,9 +89,8 @@ export default function EventRegistrationSection({
           />
         </Box>
         <Box sx={{ width: { xs: "100%", md: 240 } }}>
-          <DatePicker
+          <StyledDatePicker
             required
-            className={classes.datePicker}
             label={texts.registration_end_date}
             enableTime={true}
             handleChange={handleRegistrationEndDateChange}
@@ -119,9 +116,9 @@ export default function EventRegistrationSection({
         />
       </Box>
       <Divider sx={{ my: 2 }} />
-      <Typography component="h3" className={classes.sectionHeader} gutterBottom>
+      <SectionHeader component="h3" gutterBottom>
         {texts.registration_custom_fields}
-      </Typography>
+      </SectionHeader>
       <RegistrationFieldList
         fields={projectData.registration_fields ?? []}
         onFieldsChange={handleFieldsChange}

@@ -13,7 +13,7 @@ import {
   LinkBubbleMenu,
   LinkBubbleMenuHandler,
 } from "mui-tiptap";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { getLinkBubbleMenuLabels } from "../richText/richTextLabels";
@@ -45,12 +45,10 @@ const EXTENSIONS: Extensions = [
   CharacterCount.configure({ limit: CHARACTER_LIMIT }),
 ];
 
-const useStyles = makeStyles((theme) => ({
-  charCount: {
-    textAlign: "right",
-    padding: theme.spacing(0.5, 1.5),
-    borderTop: `1px solid ${theme.palette.divider}`,
-  },
+const CharCount = styled(Box)(({ theme }) => ({
+  textAlign: "right",
+  padding: theme.spacing(0.5, 1.5),
+  borderTop: `1px solid ${theme.palette.divider}`,
 }));
 
 type Props = {
@@ -68,7 +66,6 @@ export default function CheckboxFieldEditor({
   isDraft,
   error,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
   const rteRef = useRef<RichTextEditorRef>(null);
@@ -131,14 +128,14 @@ export default function CheckboxFieldEditor({
               }
             : undefined,
           footer: disabled ? undefined : (
-            <Box className={classes.charCount}>
+            <CharCount>
               <Typography
                 variant="caption"
                 color={charCount >= CHARACTER_LIMIT ? "error" : "textSecondary"}
               >
                 {charCount}/{CHARACTER_LIMIT}
               </Typography>
-            </Box>
+            </CharCount>
           ),
         }}
       >
