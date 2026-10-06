@@ -40,10 +40,10 @@ const SearchBarContainer = styled("div")({
 
 const StyledFilterSearchBar = styled(FilterSearchBar, { shouldForwardProp })<StyleProps>(
   ({ theme, $applyBackgroundColor }) => ({
-    marginRight: theme.spacing(2),
     width: "100%",
     maxWidth: 650,
     margin: "0 auto",
+    marginRight: theme.spacing(2),
     borderColor: "#000",
     ...($applyBackgroundColor && { background: "rgba(255, 255, 255, 0.9)" }),
     "& .MuiOutlinedInput-root, & .MuiInputLabel-root, & .MuiOutlinedInput-notchedOutline": {

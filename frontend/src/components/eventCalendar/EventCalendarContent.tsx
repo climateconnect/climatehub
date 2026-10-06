@@ -67,6 +67,7 @@ const Layout = styled("div")(({ theme }) => ({
   alignItems: "flex-start",
   [theme.breakpoints.down("md")]: {
     flexDirection: "column",
+    alignItems: "stretch",
   },
 }));
 
