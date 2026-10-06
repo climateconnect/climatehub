@@ -1,5 +1,5 @@
 import Grid from "@mui/material/Grid";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -7,14 +7,12 @@ import LoadingSpinner from "../general/LoadingSpinner";
 import ProfilePreview from "./ProfilePreview";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 
-const useStyles = makeStyles({
-  reset: {
-    margin: 0,
-    padding: 0,
-    listStyleType: "none",
-    width: "100%",
-  },
-});
+const ResetGrid = styled(Grid)({
+  margin: 0,
+  padding: 0,
+  listStyleType: "none",
+  width: "100%",
+}) as typeof Grid;
 
 export default function ProfilePreviews({
   hasMore,
@@ -24,7 +22,6 @@ export default function ProfilePreviews({
   showAdditionalInfo,
   isLoading = false,
 }: any) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale: locale });
   const toProfilePreviews = (profiles) =>
@@ -57,7 +54,7 @@ export default function ProfilePreviews({
 
   return (
     <>
-      <Grid className={classes.reset} component="ul" container spacing={1}>
+      <ResetGrid component="ul" container spacing={1}>
         {displayedProfiles.map((profile, index) => {
           const isLastElement = index === displayedProfiles.length - 1;
           return (
@@ -75,7 +72,7 @@ export default function ProfilePreviews({
             </Grid>
           );
         })}
-      </Grid>
+      </ResetGrid>
       {isLoading && <LoadingSpinner isLoading />}
     </>
   );

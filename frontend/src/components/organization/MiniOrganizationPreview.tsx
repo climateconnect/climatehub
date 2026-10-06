@@ -1,5 +1,5 @@
-import { Avatar, IconButton, Theme, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Avatar, IconButton, Tooltip, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
@@ -7,61 +7,69 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { getImageUrl } from "./../../../public/lib/imageOperations";
 
-const useStyles = makeStyles<Theme, { showBorder: boolean }>((theme) => ({
-  orgName: {
-    display: "inline-block",
-    wordBreak: "break-word",
-  },
-  tinyOrgName: {
-    display: "-webkit-box",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    WebkitBoxOrient: "vertical",
-    WebkitLineClamp: 3,
-    lineHeight: 1.4,
-    wordBreak: "break-word",
-  },
-  smallAvatar: (props) => ({
-    height: 20,
-    width: 20,
-    border: props.showBorder ? "0.5px solid gray" : undefined,
-  }),
-  mediumAvatar: (props) => ({
-    height: 30,
-    width: 30,
-    border: props.showBorder ? "0.5px solid gray" : undefined,
-  }),
-  avatarWrapper: {
-    display: "inline-block",
-    verticalAlign: "middle",
-    marginRight: theme.spacing(1),
-    wordBreak: "break-word",
-  },
-  wrapper: {
-    display: "flex",
-    alignItems: "center",
-  },
-  mediumOrgName: {
-    fontSize: 16,
-    wordBreak: "break-word",
-  },
-  inlineWrapper: {
-    display: "inline-flex",
-    alignItems: "center",
-    verticalAlign: "middle",
-  },
-  boldOrgName: {
-    fontSize: 18,
-    fontWeight: 600,
-    display: "inline-block",
-  },
-  inlineBoldOrgName: {
-    fontSize: "inherit",
-    fontWeight: 600,
-    lineHeight: "inherit",
-    display: "inline-block",
-  },
+const shouldForwardProp = (prop: string) => !prop.startsWith("$");
+
+// Both avatar sizes only differ in their dimensions; "tiny" and "small" share the small one.
+const OrgAvatar = styled(Avatar, { shouldForwardProp })<{
+  $avatarSize?: number;
+  $showBorder?: boolean;
+}>(({ $avatarSize, $showBorder }) => ({
+  ...($avatarSize && { height: $avatarSize, width: $avatarSize }),
+  ...($avatarSize && $showBorder && { border: "0.5px solid gray" }),
 }));
+
+const AvatarWrapper = styled("div")(({ theme }) => ({
+  display: "inline-block",
+  verticalAlign: "middle",
+  marginRight: theme.spacing(1),
+  wordBreak: "break-word",
+}));
+
+const Wrapper = styled("div", { shouldForwardProp })<{ $inline?: boolean }>(({ $inline }) =>
+  $inline
+    ? {
+        display: "inline-flex",
+        alignItems: "center",
+        verticalAlign: "middle",
+      }
+    : {
+        display: "flex",
+        alignItems: "center",
+      }
+);
+
+type OrgNameVariant = "tiny" | "bold" | "inlineBold" | "medium" | "default";
+
+// Every name also had the "tinyOrgName" class. Variants listed after it in the old stylesheet
+// (medium, bold, inlineBold) override it; "default" (orgName) came before it and is fully overridden.
+const OrgName = styled(Typography, { shouldForwardProp })<{ $variant: OrgNameVariant }>(
+  ({ $variant }) => [
+    {
+      display: "-webkit-box",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      WebkitBoxOrient: "vertical",
+      WebkitLineClamp: 3,
+      lineHeight: 1.4,
+      wordBreak: "break-word",
+    },
+    $variant === "medium" && {
+      fontSize: 16,
+      wordBreak: "break-word",
+    },
+    $variant === "bold" && {
+      fontSize: 18,
+      fontWeight: 600,
+      display: "inline-block",
+    },
+    $variant === "inlineBold" && {
+      fontSize: "inherit",
+      fontWeight: 600,
+      lineHeight: "inherit",
+      display: "inline-block",
+    },
+  ]
+);
 
 export default function MiniOrganizationPreview({
   organization,
@@ -108,53 +116,42 @@ export default function MiniOrganizationPreview({
 function Content({ organization, size, onDelete, doNotShowName, inline }) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "organization", locale: locale, organization: organization });
-  const classes = useStyles({ showBorder: doNotShowName });
-  const avatarProps = {
-    alt: texts.organizations_logo,
-    src: getImageUrl(organization.thumbnail_image),
-    className: `${(size === "tiny" || size === "small") && classes.smallAvatar} ${
-      size === "medium" && classes.mediumAvatar
-    }`,
-  };
+  const avatarSize = size === "tiny" || size === "small" ? 20 : size === "medium" ? 30 : undefined;
   return (
-    <div className={inline ? classes.inlineWrapper : classes.wrapper}>
-      <div className={classes.avatarWrapper}>
-        <Avatar {...avatarProps} />
-      </div>
+    <Wrapper $inline={inline}>
+      <AvatarWrapper>
+        <OrgAvatar
+          alt={texts.organizations_logo}
+          src={getImageUrl(organization.thumbnail_image)}
+          $avatarSize={avatarSize}
+          $showBorder={doNotShowName}
+        />
+      </AvatarWrapper>
       {!doNotShowName && (
         <>
           {size === "tiny" || size === "small" ? (
             size === "tiny" ? (
               <Tooltip title={organization.name} placement="bottom">
-                <Typography variant="body2" className={classes.tinyOrgName}>
+                <OrgName variant="body2" $variant="tiny">
                   {organization.name}
-                </Typography>
+                </OrgName>
               </Tooltip>
             ) : (
               <Tooltip title={organization.name} placement="bottom">
-                <Typography
-                  variant="body2"
-                  className={
-                    inline
-                      ? `${classes.inlineBoldOrgName} ${classes.tinyOrgName}`
-                      : `${classes.boldOrgName} ${classes.tinyOrgName}`
-                  }
-                >
+                <OrgName variant="body2" $variant={inline ? "inlineBold" : "bold"}>
                   {organization.name}
-                </Typography>
+                </OrgName>
               </Tooltip>
             )
           ) : size === "medium" ? (
             <Tooltip title={organization.name} placement="bottom">
-              <Typography className={`${classes.mediumOrgName} ${classes.tinyOrgName}`}>
-                {organization.name}
-              </Typography>
+              <OrgName $variant="medium">{organization.name}</OrgName>
             </Tooltip>
           ) : (
             <Tooltip title={organization.name} placement="bottom">
-              <Typography variant="body2" className={`${classes.orgName} ${classes.tinyOrgName}`}>
+              <OrgName variant="body2" $variant="default">
                 {organization.name}
-              </Typography>
+              </OrgName>
             </Tooltip>
           )}
           {onDelete && (
@@ -164,6 +161,6 @@ function Content({ organization, size, onDelete, doNotShowName, inline }) {
           )}
         </>
       )}
-    </div>
+    </Wrapper>
   );
 }

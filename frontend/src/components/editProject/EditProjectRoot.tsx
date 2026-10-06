@@ -1,6 +1,5 @@
 import { Container, Divider, Typography, useMediaQuery } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { Theme, styled } from "@mui/material/styles";
 import { useRouter } from "next/router";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import Cookies from "universal-cookie";
@@ -32,26 +31,20 @@ import TranslateIcon from "@mui/icons-material/Translate";
 import SaveAsIcon from "@mui/icons-material/SaveAs";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    divider: {
-      marginBottom: theme.spacing(2),
-    },
-    navigationButtons: {
-      marginTop: theme.spacing(3),
-      minHeight: theme.spacing(2),
-    },
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(4),
-    },
-    requiredFieldsNotice: {
-      display: "block",
-      marginBottom: theme.spacing(2),
-      marginTop: theme.spacing(4),
-    },
-  };
-});
+const StyledDivider = styled(Divider)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const StyledNavigationButtons = styled(NavigationButtons)(({ theme }) => ({
+  marginTop: theme.spacing(3),
+  minHeight: theme.spacing(2),
+}));
+
+const StyledRequiredFieldsNotice = styled(RequiredFieldsNotice)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(2),
+  marginTop: theme.spacing(4),
+}));
 
 type Props = {
   project: Project;
@@ -78,7 +71,6 @@ export default function EditProjectRoot({
   hubUrl,
   sectorOptions,
 }: Props) {
-  const classes = useStyles();
   const router = useRouter();
   const token = new Cookies().get("auth_token");
   const { locale, locales, user } = useContext(UserContext);
@@ -404,15 +396,14 @@ export default function EditProjectRoot({
       {step === "edit_project" ? (
         <form onSubmit={handleSubmit}>
           {!isNarrowScreen && (
-            <NavigationButtons
+            <StyledNavigationButtons
               position="top"
               onClickCancel={handleCancel}
               additionalButtons={additionalButtons}
               nextStepButtonType={project.is_draft ? "publish" : "save"}
-              className={classes.navigationButtons}
             />
           )}
-          <RequiredFieldsNotice className={classes.requiredFieldsNotice} />
+          <StyledRequiredFieldsNotice />
           <EditProjectOverview
             project={project}
             smallScreen={isNarrowScreen}
@@ -433,13 +424,12 @@ export default function EditProjectRoot({
             projectTypeOptions={projectTypeOptions}
             savedIsEventType={oldProject?.project_type?.type_id === "event"}
           />
-          <Divider className={classes.divider} />
-          <NavigationButtons
+          <StyledDivider />
+          <StyledNavigationButtons
             position="bottom"
             onClickCancel={handleCancel}
             additionalButtons={additionalButtons}
             nextStepButtonType={project.is_draft ? "publish" : "save"}
-            className={classes.navigationButtons}
             fixedOnMobile
           />
           <ConfirmDialog
@@ -453,7 +443,12 @@ export default function EditProjectRoot({
         </form>
       ) : (
         <>
-          <Typography color="primary" className={classes.headline} component="h1" variant="h4">
+          <Typography
+            color="primary"
+            sx={{ textAlign: "center", marginTop: 4 }}
+            component="h1"
+            variant="h4"
+          >
             {texts.translate}
           </Typography>
           <TranslateTexts

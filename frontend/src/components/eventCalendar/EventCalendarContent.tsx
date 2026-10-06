@@ -7,9 +7,8 @@ import {
   FormControlLabel,
   Typography,
   useMediaQuery,
-  Theme,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, Theme } from "@mui/material/styles";
 import TuneIcon from "@mui/icons-material/Tune";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getImageUrl } from "../../../public/lib/imageOperations";
@@ -30,110 +29,126 @@ import { PickersDay } from "@mui/x-date-pickers/PickersDay";
 import Cookies from "universal-cookie";
 import { apiRequest } from "../../../public/lib/apiOperations";
 
-const useStyles = makeStyles((theme) => ({
-  mobileSearchBar: {
+const MobileSearchBar = styled(FilterSearchBar)(({ theme }) => ({
+  width: "100%",
+  marginBottom: theme.spacing(0),
+}));
+
+const LeftSearchBar = styled(FilterSearchBar)({
+  width: "100%",
+});
+
+const FilterLabel = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  marginBottom: theme.spacing(0.5),
+})) as typeof Typography;
+
+const TopicList = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+});
+
+const TopicIcon = styled("img")(({ theme }) => ({
+  height: 20,
+  width: 20,
+  marginRight: theme.spacing(0.5),
+  flexShrink: 0,
+}));
+
+const TopicLabel = styled("span")({
+  display: "flex",
+  alignItems: "center",
+  minWidth: 0,
+});
+
+const Layout = styled("div")(({ theme }) => ({
+  display: "flex",
+  gap: theme.spacing(4),
+  alignItems: "flex-start",
+  [theme.breakpoints.down("md")]: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+}));
+
+const PageContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(4),
+  paddingBottom: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
+    paddingTop: theme.spacing(2),
+    paddingBottom: theme.spacing(10),
+  },
+}));
+
+const LeftPanel = styled("div")(({ theme }) => ({
+  width: 260,
+  flexShrink: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
     width: "100%",
-    marginBottom: theme.spacing(0),
   },
-  leftSearchBar: {
-    width: "100%",
-  },
-  filterLabel: {
-    fontWeight: 600,
-    marginBottom: theme.spacing(0.5),
-  },
-  topicList: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  topicIcon: {
-    height: 20,
-    width: 20,
-    marginRight: theme.spacing(0.5),
-    flexShrink: 0,
-  },
-  topicLabel: {
-    display: "flex",
-    alignItems: "center",
-    minWidth: 0,
-  },
-  layout: {
-    display: "flex",
-    gap: theme.spacing(4),
-    alignItems: "flex-start",
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "column",
-    },
-  },
-  pageContainer: {
-    paddingTop: theme.spacing(4),
-    paddingBottom: theme.spacing(2),
-    [theme.breakpoints.down("md")]: {
-      paddingTop: theme.spacing(2),
-      paddingBottom: theme.spacing(10),
-    },
-  },
-  leftPanel: {
-    width: 260,
-    flexShrink: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    [theme.breakpoints.down("md")]: {
-      width: "100%",
-    },
-  },
-  rightPanel: {
-    flex: 1,
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(3),
-  },
-  mobileFilterRow: {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: theme.spacing(2),
-  },
-  mobileFilterButton: {
-    borderColor: "#707070",
-    height: 40,
-    flexShrink: 0,
-    marginLeft: theme.spacing(1),
-  },
-  mobileFilterIcon: {
-    color: theme.palette.background.default_contrastText,
-  },
-  mobileFilterDialogContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    padding: theme.spacing(0, 1),
-  },
-  resetButton: {
-    alignSelf: "flex-start",
-    marginTop: theme.spacing(1),
-  },
-  calendar: {
-    width: "100%",
-    overflow: "visible",
-  },
-  dayCell: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: "1 1 0",
-    minWidth: 0,
-    overflow: "hidden",
-  },
-  eventDot: {
-    width: 5,
-    height: 5,
-    borderRadius: "50%",
-    backgroundColor: theme.palette.primary.main,
-    marginTop: 2,
-  },
+}));
+
+const RightPanel = styled("div")(({ theme }) => ({
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(3),
+}));
+
+const MobileFilterRow = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  marginBottom: theme.spacing(2),
+}));
+
+const MobileFilterButton = styled(Button)(({ theme }) => ({
+  borderColor: "#707070",
+  height: 40,
+  flexShrink: 0,
+  marginLeft: theme.spacing(1),
+}));
+
+const MobileFilterIcon = styled(TuneIcon)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const MobileFilterDialogContent = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+  padding: theme.spacing(0, 1),
+}));
+
+const ResetButton = styled(Button)(({ theme }) => ({
+  alignSelf: "flex-start",
+  marginTop: theme.spacing(1),
+}));
+
+const StyledDateCalendar = styled(DateCalendar)({
+  width: "100%",
+  overflow: "visible",
+}) as typeof DateCalendar;
+
+const DayCell = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "1 1 0",
+  minWidth: 0,
+  overflow: "hidden",
+});
+
+const EventDot = styled("span")(({ theme }) => ({
+  width: 5,
+  height: 5,
+  borderRadius: "50%",
+  backgroundColor: theme.palette.primary.main,
+  marginTop: 2,
 }));
 
 function syncFiltersToUrl(search: string, sectors: string[], selectedDay: Dayjs) {
@@ -179,7 +194,6 @@ export default function EventCalendarContent({
   autoOpenSubscribe = false,
 }: any) {
   const { locale } = useContext(UserContext);
-  const classes = useStyles();
   const texts = getTexts({ page: "hub", locale: locale });
   const filterTexts = getTexts({ page: "filter_and_search", locale: locale });
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
@@ -323,7 +337,7 @@ export default function EventCalendarContent({
     const key = day.format("YYYY-MM-DD");
     const count = dayCounts[key] || 0;
     return (
-      <div className={classes.dayCell}>
+      <DayCell>
         <PickersDay
           {...other}
           day={day}
@@ -331,21 +345,17 @@ export default function EventCalendarContent({
           sx={{ width: 32, height: 32, fontSize: 13, margin: 0 }}
         />
         {!outsideCurrentMonth && count > 0 && (
-          <span
-            className={classes.eventDot}
-            title={`${count} ${count === 1 ? "event" : "events"}`}
-          />
+          <EventDot title={`${count} ${count === 1 ? "event" : "events"}`} />
         )}
-      </div>
+      </DayCell>
     );
   };
 
   return (
-    <Container maxWidth="lg" className={classes.pageContainer}>
+    <PageContainer maxWidth="lg">
       {isNarrowScreen && (
-        <div className={classes.mobileFilterRow}>
-          <FilterSearchBar
-            className={classes.mobileSearchBar}
+        <MobileFilterRow>
+          <MobileSearchBar
             label={texts.search_events ?? "Search events"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -358,14 +368,13 @@ export default function EventCalendarContent({
             max={9}
             aria-label={activeFilterCount > 0 ? `${activeFilterCount} active filters` : undefined}
           >
-            <Button
-              className={classes.mobileFilterButton}
+            <MobileFilterButton
               variant="outlined"
               onClick={() => setMobileFiltersOpen(true)}
-              startIcon={<TuneIcon className={classes.mobileFilterIcon} />}
+              startIcon={<MobileFilterIcon />}
             >
               {texts.filters ?? "Filters"}
-            </Button>
+            </MobileFilterButton>
           </Badge>
           {showSubscribe && (
             <SubscribeToCalendarButton
@@ -378,7 +387,7 @@ export default function EventCalendarContent({
               defaultOpen={autoOpenSubscribe}
             />
           )}
-        </div>
+        </MobileFilterRow>
       )}
 
       {isNarrowScreen && (
@@ -393,10 +402,9 @@ export default function EventCalendarContent({
           applyText={filterTexts.apply_filters ?? "Apply filters"}
           topBarFixed
         >
-          <div className={classes.mobileFilterDialogContent}>
+          <MobileFilterDialogContent>
             <LocalizationProvider adapterLocale={locale} dateAdapter={AdapterDayjs}>
-              <DateCalendar
-                className={classes.calendar}
+              <StyledDateCalendar
                 value={draftSelectedDay}
                 onChange={handleDraftDayChange}
                 onMonthChange={handleDraftMonthChange}
@@ -405,10 +413,8 @@ export default function EventCalendarContent({
             </LocalizationProvider>
 
             <FormControl component="fieldset" fullWidth>
-              <Typography component="legend" className={classes.filterLabel}>
-                {texts.topic ?? "Topics"}
-              </Typography>
-              <div className={classes.topicList}>
+              <FilterLabel component="legend">{texts.topic ?? "Topics"}</FilterLabel>
+              <TopicList>
                 {(filterChoices?.sectors || []).map((s: any) => (
                   <FormControlLabel
                     key={s.original_name}
@@ -420,28 +426,21 @@ export default function EventCalendarContent({
                       />
                     }
                     label={
-                      <span className={classes.topicLabel}>
-                        {s.icon && (
-                          <img src={getImageUrl(s.icon)} className={classes.topicIcon} alt="" />
-                        )}
+                      <TopicLabel>
+                        {s.icon && <TopicIcon src={getImageUrl(s.icon)} alt="" />}
                         <Typography component="span" variant="body2" noWrap>
                           {s.name}
                         </Typography>
-                      </span>
+                      </TopicLabel>
                     }
                   />
                 ))}
-              </div>
+              </TopicList>
             </FormControl>
 
-            <Button
-              className={classes.resetButton}
-              variant="outlined"
-              color="primary"
-              onClick={handleResetDraft}
-            >
+            <ResetButton variant="outlined" color="primary" onClick={handleResetDraft}>
               {filterTexts.clear_all ?? "Clear all"}
-            </Button>
+            </ResetButton>
 
             {showSubscribe && (
               <SubscribeToCalendarButton
@@ -452,15 +451,14 @@ export default function EventCalendarContent({
                 date={draftSelectedDay.format("YYYY-MM-DD")}
               />
             )}
-          </div>
+          </MobileFilterDialogContent>
         </GenericDialog>
       )}
 
-      <div className={classes.layout}>
+      <Layout>
         {!isNarrowScreen && (
-          <div className={classes.leftPanel}>
-            <FilterSearchBar
-              className={classes.leftSearchBar}
+          <LeftPanel>
+            <LeftSearchBar
               label={texts.search_events ?? "Search events"}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -468,8 +466,7 @@ export default function EventCalendarContent({
               type="events"
             />
             <LocalizationProvider adapterLocale={locale} dateAdapter={AdapterDayjs}>
-              <DateCalendar
-                className={classes.calendar}
+              <StyledDateCalendar
                 value={selectedDay}
                 onChange={(newValue: Dayjs | null) => {
                   const value = newValue ?? dayjs();
@@ -484,10 +481,8 @@ export default function EventCalendarContent({
             </LocalizationProvider>
 
             <FormControl component="fieldset" fullWidth>
-              <Typography component="legend" className={classes.filterLabel}>
-                {texts.topic ?? "Topics"}
-              </Typography>
-              <div className={classes.topicList}>
+              <FilterLabel component="legend">{texts.topic ?? "Topics"}</FilterLabel>
+              <TopicList>
                 {(filterChoices?.sectors || []).map((s: any) => (
                   <FormControlLabel
                     key={s.original_name}
@@ -499,28 +494,21 @@ export default function EventCalendarContent({
                       />
                     }
                     label={
-                      <span className={classes.topicLabel}>
-                        {s.icon && (
-                          <img src={getImageUrl(s.icon)} className={classes.topicIcon} alt="" />
-                        )}
+                      <TopicLabel>
+                        {s.icon && <TopicIcon src={getImageUrl(s.icon)} alt="" />}
                         <Typography component="span" variant="body2" noWrap>
                           {s.name}
                         </Typography>
-                      </span>
+                      </TopicLabel>
                     }
                   />
                 ))}
-              </div>
+              </TopicList>
             </FormControl>
 
-            <Button
-              className={classes.resetButton}
-              variant="outlined"
-              color="primary"
-              onClick={handleReset}
-            >
+            <ResetButton variant="outlined" color="primary" onClick={handleReset}>
               {texts.reset ?? "Reset"}
-            </Button>
+            </ResetButton>
 
             {showSubscribe && (
               <SubscribeToCalendarButton
@@ -532,10 +520,10 @@ export default function EventCalendarContent({
                 defaultOpen={autoOpenSubscribe}
               />
             )}
-          </div>
+          </LeftPanel>
         )}
 
-        <div className={classes.rightPanel}>
+        <RightPanel>
           <EventCalendarEventList
             initialEvents={initialEvents}
             initialHasMore={initialHasMore}
@@ -545,8 +533,8 @@ export default function EventCalendarContent({
             hubUrl={hubUrl}
             subHubName={subHubName}
           />
-        </div>
-      </div>
-    </Container>
+        </RightPanel>
+      </Layout>
+    </PageContainer>
   );
 }

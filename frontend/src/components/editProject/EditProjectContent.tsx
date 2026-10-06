@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   Theme,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { RefObject, useContext, useState } from "react";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import { apiRequest } from "../../../public/lib/apiOperations";
@@ -27,64 +27,21 @@ import ProjectDateSection from "../shareProject/ProjectDateSection";
 import SettingsIcon from "@mui/icons-material/Settings";
 import EditEventRegistrationModal from "../project/EditEventRegistrationModal";
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  select: {
-    maxWidth: 250,
-  },
-  startDate: {
-    marginRight: theme.spacing(4),
-    [theme.breakpoints.down("md")]: {
-      marginBottom: theme.spacing(2),
-    },
-  },
-  creator: {
-    display: "inline-block",
-    marginLeft: theme.spacing(2),
-  },
-  inlineBlock: {
-    marginBottom: theme.spacing(2),
-    display: "inline-block",
-  },
-  block: {
-    marginBottom: theme.spacing(2),
-  },
-  subHeader: {
-    fontWeight: "bold",
-    color: theme.palette.background.default_contrastText,
-  },
-  skill: {
-    display: "flex",
-    border: "1px solid black",
-    height: theme.spacing(5),
-    minWidth: 220,
-    maxWidth: "100%",
-    marginRight: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-    background: "none",
-    borderRadius: 0,
-    fontSize: 16,
-  },
-  flexContainer: {
-    display: "flex",
-    flexDirection: "row",
-    padding: 0,
-    flexWrap: "wrap",
-    marginTop: theme.spacing(2),
-  },
-  spacer: {
-    marginBottom: theme.spacing(1),
-  },
-  addButton: {
-    marginTop: theme.spacing(2),
-  },
-  buttonsContainer: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  warning: {
-    color: theme.palette.error.main,
-  },
+const Block = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const Spacer = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+}));
+
+const StyledSelectField = styled(SelectField)({
+  maxWidth: 250,
+});
+
+const CreatorPreview = styled(MiniProfilePreview)(({ theme }) => ({
+  display: "inline-block",
+  marginLeft: theme.spacing(2),
 }));
 
 type Args = {
@@ -108,7 +65,6 @@ export default function EditProjectContent({
   projectTypeOptions,
   savedIsEventType,
 }: Args) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
   const projectTypeTexts = getProjectTypeTexts(texts);
@@ -221,8 +177,8 @@ export default function EditProjectContent({
 
   return (
     <div ref={contentRef}>
-      <div className={classes.block}>
-        <div className={classes.block}>
+      <Block>
+        <Block>
           <Typography component="span">
             {isNarrowScreen ? texts.personal : projectTypeTexts.personal[typeId]}
           </Typography>
@@ -234,30 +190,26 @@ export default function EditProjectContent({
             color="primary"
           />
           <Typography component="span">{projectTypeTexts.organizations[typeId]}</Typography>
-        </div>
-        <div className={classes.block}>
+        </Block>
+        <Block>
           {project.is_personal_project ? (
             <>
               {texts.created_by}
-              <MiniProfilePreview
-                className={classes.creator}
-                profile={project?.project_parents?.parent_user}
-                size="small"
-              />
+              <CreatorPreview profile={project?.project_parents?.parent_user} size="small" />
             </>
           ) : (
             <>
               {(!Array.isArray(userOrganizations) || userOrganizations.length === 0) && (
                 <>
-                  <Typography color="error" variant="body2" className={classes.block}>
+                  <Typography color="error" variant="body2" sx={{ marginBottom: 2 }}>
                     {texts.you_are_not_a_member_of_any_organization_yet}
                   </Typography>
-                  <Typography variant="body2" className={classes.block}>
+                  <Typography variant="body2" sx={{ marginBottom: 2 }}>
                     {texts.if_your_organization_does_not_exist_yet_click_here}
                   </Typography>
                 </>
               )}
-              <SelectField
+              <StyledSelectField
                 controlled
                 controlledValue={
                   project?.project_parents?.parent_organization
@@ -277,21 +229,20 @@ export default function EditProjectContent({
                 }
                 options={userOrganizations ?? []}
                 label={texts.created_by}
-                className={classes.select}
                 error={!!errors?.parent_organization}
                 helperText={errors?.parent_organization}
                 required
               />
             </>
           )}
-        </div>
-        <div className={classes.block}>
+        </Block>
+        <Block>
           <EditProjectTypeSelector
             project={project}
             projectTypeOptions={projectTypeOptions}
             onChangeProjectType={handleChangeProjectType}
           />
-        </div>
+        </Block>
         {canToggleRegistration && user_role.role_type === ROLE_TYPES.all_type && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <Switch
@@ -328,15 +279,15 @@ export default function EditProjectContent({
             )}
           </Box>
         )}
-        <div className={classes.block}>
+        <Block>
           <ProjectDateSection
             projectData={project}
             handleSetProjectData={handleSetProjectData}
             errors={errors}
           />
-        </div>
-        <div className={classes.block}>
-          <div className={classes.spacer} />
+        </Block>
+        <Block>
+          <Spacer />
           <Typography variant="body2" color="textSecondary" gutterBottom>
             {texts.project_description}
           </Typography>
@@ -348,8 +299,8 @@ export default function EditProjectContent({
           <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
             {texts.describe_your_project_in_detail_please_only_use_english}
           </Typography>
-        </div>
-      </div>
+        </Block>
+      </Block>
       {showEditRegistrationButton && editRegistrationOpen && (
         <EditEventRegistrationModal
           open={editRegistrationOpen}

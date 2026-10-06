@@ -23,7 +23,7 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ShortTextIcon from "@mui/icons-material/ShortText";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { Dayjs } from "dayjs";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -41,28 +41,29 @@ const FIELD_TYPE_LABEL_KEYS: Record<string, string> = {
   text: "field_type_text",
 };
 
-const useStyles = makeStyles((theme) => ({
-  fieldPaper: {
-    marginBottom: theme.spacing(1.5),
-    padding: theme.spacing(1.5, 2),
-  },
-  fieldHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing(0.5),
-  },
-  controlsRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(0.25),
-  },
-  fieldFooter: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: theme.spacing(0.5),
-  },
+const FieldPaper = styled(Paper)(({ theme }) => ({
+  marginBottom: theme.spacing(1.5),
+  padding: theme.spacing(1.5, 2),
+}));
+
+const FieldHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: theme.spacing(0.5),
+}));
+
+const ControlsRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.25),
+}));
+
+const FieldFooter = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginTop: theme.spacing(0.5),
 }));
 
 type Props = {
@@ -111,7 +112,6 @@ export default function RegistrationFieldList({
   eventStartDate,
   eventEndDate,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -248,12 +248,11 @@ export default function RegistrationFieldList({
   return (
     <Box>
       {fields.map((field, index) => (
-        <Paper
+        <FieldPaper
           key={field._clientKey ?? (field.id != null ? String(field.id) : `idx_${index}`)}
           variant="outlined"
-          className={classes.fieldPaper}
         >
-          <Box className={classes.fieldHeader}>
+          <FieldHeader>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1, minWidth: 0 }}>
               {getFieldIcon(field.field_type)}
               {editingIndex === index ? (
@@ -294,7 +293,7 @@ export default function RegistrationFieldList({
                 </>
               )}
             </Box>
-            <Box className={classes.controlsRow}>
+            <ControlsRow>
               <Tooltip title={texts.move_field_up}>
                 <span>
                   <IconButton
@@ -319,8 +318,8 @@ export default function RegistrationFieldList({
                   </IconButton>
                 </span>
               </Tooltip>
-            </Box>
-          </Box>
+            </ControlsRow>
+          </FieldHeader>
           <Divider sx={{ mb: 1.5 }} />
           <RegistrationFieldEditor
             field={field}
@@ -354,7 +353,7 @@ export default function RegistrationFieldList({
             eventEndDate={eventEndDate}
           />
           <Divider sx={{ mt: 1.5 }} />
-          <Box className={classes.fieldFooter}>
+          <FieldFooter>
             <FormControlLabel
               control={
                 <Switch
@@ -386,8 +385,8 @@ export default function RegistrationFieldList({
                 </IconButton>
               </Tooltip>
             </Box>
-          </Box>
-        </Paper>
+          </FieldFooter>
+        </FieldPaper>
       ))}
       <Button
         variant="outlined"

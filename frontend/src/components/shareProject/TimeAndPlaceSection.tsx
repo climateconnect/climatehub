@@ -1,34 +1,32 @@
 import React, { useContext } from "react";
 import { Project } from "../../types";
 import ProjectDateSection from "./ProjectDateSection";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ProjectLocationSearchBar from "./ProjectLocationSearchBar";
-import { FormControlLabel, Switch, Theme, Typography } from "@mui/material";
+import { FormControlLabel, Switch, Typography } from "@mui/material";
 import CustomHubSelection from "../project/CustomHubSelection";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles<Theme>((theme) => {
-  return {
-    root: {
-      [theme.breakpoints.up("md")]: {
-        display: "flex",
-        justifyContent: "space-between",
-      },
-    },
-    verticalFlex: {
-      flexGrow: 1,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "left",
-    },
-    subHeader: {
-      fontSize: 20,
-      color: theme.palette.background.default_contrastText,
-      marginBottom: theme.spacing(1),
-    },
-  };
+const Root = styled("div")(({ theme }) => ({
+  [theme.breakpoints.up("md")]: {
+    display: "flex",
+    justifyContent: "space-between",
+  },
+}));
+
+const VerticalFlex = styled("div")({
+  flexGrow: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "left",
 });
+
+const SubHeader = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  fontSize: 20,
+  color: theme.palette.background.default_contrastText,
+  marginBottom: theme.spacing(1),
+}));
 
 type Args = {
   projectData: Project;
@@ -47,7 +45,6 @@ export default function ProjectTimeAndPlaceSectionAndCustomHub({
   setLocationOptionsOpen,
   errors,
 }: Args) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
 
@@ -70,21 +67,16 @@ export default function ProjectTimeAndPlaceSectionAndCustomHub({
   const typeId = projectData.project_type?.type_id ?? "project";
 
   return (
-    <div className={classes.root}>
+    <Root>
       <ProjectDateSection
         projectData={projectData}
         handleSetProjectData={handleSetProjectData}
         errors={errors}
       />
-      <div className={classes.verticalFlex}>
-        <Typography
-          component="h2"
-          variant="subtitle2"
-          color="primary"
-          className={classes.subHeader}
-        >
+      <VerticalFlex>
+        <SubHeader component="h2" variant="subtitle2" color="primary">
           {locationSubHeaderByType[typeId] ?? texts.project_location}
-        </Typography>
+        </SubHeader>
         <FormControlLabel
           control={
             <Switch
@@ -111,7 +103,7 @@ export default function ProjectTimeAndPlaceSectionAndCustomHub({
           handleUpdateSelectedHub={handleUpdateSelectedHub}
           typeId={typeId}
         />
-      </div>
-    </div>
+      </VerticalFlex>
+    </Root>
   );
 }

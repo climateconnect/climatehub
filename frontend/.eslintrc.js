@@ -52,6 +52,24 @@ module.exports = {
     ],
     "import/named": "off", // Disable named import checking - can cause false positives with TypeScript
     "import/namespace": "off", // Disable namespace checking - not needed for our use case
+    // @mui/styles was removed (#2290); do not reintroduce it.
+    "no-restricted-imports": [
+      "error",
+      {
+        paths: [
+          {
+            name: "@mui/styles",
+            message: "@mui/styles is deprecated. Use styled() or sx from @mui/material/styles.",
+          },
+        ],
+        patterns: [
+          {
+            group: ["@mui/styles/*"],
+            message: "@mui/styles is deprecated. Use styled() or sx from @mui/material/styles.",
+          },
+        ],
+      },
+    ],
   },
   settings: {
     react: {

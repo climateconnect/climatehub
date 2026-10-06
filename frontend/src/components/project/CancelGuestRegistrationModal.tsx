@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Box, Button, CircularProgress, TextField, Theme, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Button, CircularProgress, TextField, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import Cookies from "universal-cookie";
 
 import { apiRequest } from "../../../public/lib/apiOperations";
@@ -13,24 +13,25 @@ import GenericDialog from "../dialogs/GenericDialog";
 // Styles
 // ---------------------------------------------------------------------------
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  confirmText: {
-    marginBottom: theme.spacing(2),
-  },
-  messageField: {
-    marginTop: theme.spacing(1),
-  },
-  actionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: theme.spacing(1),
-    marginTop: theme.spacing(3),
-  },
-  errorText: {
-    color: theme.palette.error.main,
-    fontSize: "0.875rem",
-    marginTop: theme.spacing(1),
-  },
+const ConfirmText = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const MessageField = styled(TextField)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const ActionRow = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: theme.spacing(1),
+  marginTop: theme.spacing(3),
+}));
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  fontSize: "0.875rem",
+  marginTop: theme.spacing(1),
 }));
 
 // ---------------------------------------------------------------------------
@@ -68,7 +69,6 @@ export default function CancelGuestRegistrationModal({
   project,
   onCancelled,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
   const token = new Cookies().get("auth_token");
@@ -131,9 +131,9 @@ export default function CancelGuestRegistrationModal({
       title={texts.cancel_guest_registration as string}
       maxWidth="sm"
     >
-      <Typography className={classes.confirmText}>{confirmText}</Typography>
+      <ConfirmText>{confirmText}</ConfirmText>
 
-      <TextField
+      <MessageField
         fullWidth
         multiline
         minRows={3}
@@ -143,19 +143,14 @@ export default function CancelGuestRegistrationModal({
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         disabled={cancelling}
-        className={classes.messageField}
         aria-label={texts.message_to_guest_optional as string}
         inputProps={{ maxLength: 1000 }}
         helperText={`${message.length} / 1000`}
       />
 
-      {error && (
-        <Typography className={classes.errorText} role="alert">
-          {error}
-        </Typography>
-      )}
+      {error && <ErrorText role="alert">{error}</ErrorText>}
 
-      <Box className={classes.actionRow}>
+      <ActionRow>
         <Button
           variant="outlined"
           onClick={onClose}
@@ -176,7 +171,7 @@ export default function CancelGuestRegistrationModal({
             ? `${texts.yes_cancel_registration}…`
             : (texts.yes_cancel_registration as string)}
         </Button>
-      </Box>
+      </ActionRow>
     </GenericDialog>
   );
 }

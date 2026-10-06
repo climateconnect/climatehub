@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import AutoCompleteSearchBar from "../../../../src/components/search/AutoCompleteSearchBar";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../../../src/components/context/UserContext";
@@ -10,33 +10,31 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import Cookies from "universal-cookie";
 import { useRouter } from "next/router";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    buttonBar: {
-      marginTop: 20,
-      marginBottom: theme.spacing(2),
-      position: "relative",
-      height: 40,
-    },
-    cancelButton: {
-      marginBottom: theme.spacing(2),
-      position: "absolute",
-      right: 0,
-    },
-    miniProfilePreview: {
-      padding: theme.spacing(2),
-      display: "inline-flex",
-    },
-    groupChatName: {
-      marginTop: 5,
-      marginLeft: theme.spacing(2),
-      width: 250,
-    },
-  };
-});
+const ButtonBar = styled("div")(({ theme }) => ({
+  marginTop: 20,
+  marginBottom: theme.spacing(2),
+  position: "relative",
+  height: 40,
+}));
+
+const CancelButton = styled(Button)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  position: "absolute",
+  right: 0,
+}));
+
+const StyledMiniProfilePreview = styled(MiniProfilePreview)(({ theme }) => ({
+  padding: theme.spacing(2),
+  display: "inline-flex",
+}));
+
+const GroupChatName = styled(TextField)(({ theme }) => ({
+  marginTop: 5,
+  marginLeft: theme.spacing(2),
+  width: 250,
+}));
 
 export default function UserSearchField({ cancelUserSearch, setErrorMessage }) {
-  const classes = useStyles();
   const token = new Cookies().get("auth_token");
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
@@ -135,10 +133,9 @@ export default function UserSearchField({ cancelUserSearch, setErrorMessage }) {
       />
       <form onSubmit={handleStartChat}>
         {newChatMembers.length > 1 && (
-          <TextField
+          <GroupChatName
             label={texts.group_chat_name}
             size="small"
-            className={classes.groupChatName}
             required
             onChange={handleGroupNameChange}
             value={groupName}
@@ -146,22 +143,17 @@ export default function UserSearchField({ cancelUserSearch, setErrorMessage }) {
         )}
         <div /*TODO(undefined) className={classes.newChatParticipantsContainer} */>
           {newChatMembers.map((m) => (
-            <MiniProfilePreview
-              key={m.url_slug}
-              profile={m}
-              className={classes.miniProfilePreview}
-              onDelete={handleRemoveMember}
-            />
+            <StyledMiniProfilePreview key={m.url_slug} profile={m} onDelete={handleRemoveMember} />
           ))}
         </div>
-        <div className={classes.buttonBar}>
+        <ButtonBar>
           <Button variant="contained" color="primary" type="submit">
             {texts.start_chat}
           </Button>
-          <Button variant="contained" className={classes.cancelButton} onClick={cancelUserSearch}>
+          <CancelButton variant="contained" onClick={cancelUserSearch}>
             {texts.cancel}
-          </Button>
-        </div>
+          </CancelButton>
+        </ButtonBar>
       </form>
     </>
   );

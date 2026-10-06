@@ -1,5 +1,5 @@
 import { Button, ButtonProps } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import React, { useContext, useRef } from "react";
 import getTexts from "../../../../public/texts/texts";
@@ -9,19 +9,15 @@ import { useIsEventsPage } from "../../../hooks/usePageNavEntries";
 import { getHubBrowsePathForType } from "../../../../public/lib/urlOperations";
 import { BrowseEntity } from "../../../types";
 
-type MakeStylesProps = {
-  height: number;
-};
-
-const useStyles = makeStyles((theme) => ({
-  hubsDropDownButton: (props: MakeStylesProps) => ({
-    textTransform: "none",
-    color: theme.palette.primary.contrastText,
-    fontSize: 16,
-    height: props.height ? props.height : 54,
-    paddingTop: theme.spacing(2),
-    paddingBottom: theme.spacing(2),
-  }),
+const HubsDropDownButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "$height",
+})<{ $height: number }>(({ theme, $height }) => ({
+  textTransform: "none",
+  color: theme.palette.primary.contrastText,
+  fontSize: 16,
+  height: $height ? $height : 54,
+  paddingTop: theme.spacing(2),
+  paddingBottom: theme.spacing(2),
 }));
 
 /**
@@ -63,7 +59,6 @@ export default function HubsDropDown({
   addLocationHubExplainerLink?: boolean;
   height?: number;
 }) {
-  const classes = useStyles({ height: height ?? 54 });
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popperRef = useRef<HTMLAnchorElement | null>(null);
   const { locale, user } = useContext(UserContext);
@@ -122,16 +117,16 @@ export default function HubsDropDown({
 
   return (
     <span onBlur={handleBlur} id={`dropdown-${label.toLowerCase()}`}>
-      <Button
+      <HubsDropDownButton
         {...toggleButtonProps}
         onClick={onToggleOpen}
         aria-haspopup="true"
         ref={buttonRef}
-        className={classes.hubsDropDownButton}
+        $height={height ?? 54}
       >
         {label}
         <ArrowDropDownIcon />
-      </Button>
+      </HubsDropDownButton>
       <DropDownList
         buttonRef={buttonRef}
         handleOpen={onOpen}

@@ -1,126 +1,119 @@
 import React from "react";
-import makeStyles from "@mui/styles/makeStyles";
-import withStyles from "@mui/styles/withStyles";
-import { Stepper, Step, StepLabel, StepConnector, Typography } from "@mui/material";
+import { styled, Theme } from "@mui/material/styles";
+import {
+  Stepper,
+  Step,
+  StepLabel,
+  StepConnector,
+  Typography,
+  stepConnectorClasses,
+} from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 
 const ICON_OFFSET = 3; //offset required to center icons horizontally in px.
 
-const useStyles = makeStyles((theme) => {
-  return {
-    stepper: {
-      maxWidth: 1000,
-      margin: "0 auto",
-    },
-    grayBackgroundRoot: {
-      backgroundColor: "#F7F7F7",
-      paddingTop: theme.spacing(10),
-      paddingBottom: theme.spacing(6),
-    },
-    grayBackground: {
-      backgroundColor: "#F7F7F7",
-    },
-    customIcon: {
-      backgroundColor: theme.palette.background.default_contrastText,
-      display: "flex",
-      height: 20,
-      width: 20,
-      borderRadius: 20,
-      alignItems: "center",
-      marginTop: ICON_OFFSET,
-      zIndex: 10,
-    },
-    customIconMarginBottom: {
-      marginBottom: 10,
-    },
-    stepText: {
-      fontSize: 13,
-      textTransform: "uppercase",
-      color: theme.palette.background.default_contrastText,
-    },
-    active: {
-      height: 40,
-      width: 40,
-      border: "10px solid #D7E2E4",
-      borderRadius: 20,
-      marginTop: ICON_OFFSET - 10,
-      marginLeft: -10,
-      position: "absolute",
-    },
-    completed: {
-      backgroundColor: "#D7E2E4",
-      height: 40,
-      width: 40,
-      border: "10px solid #D7E2E4",
-      borderRadius: 20,
-      marginTop: ICON_OFFSET - 10,
-      fontSize: "bold",
-    },
-    completedText: {
-      color: "#a4b4b7",
-    },
-    /*topDivActive: {
-      content: '""',
-      position: "absolute",
-      top: -20,
-      display: "block",
-      margin: "0 auto",
-      height: 40,
-      width: 40,
-      backgroundColor: "#D7E2E4",
-      borderRadius: 20,
-      fontSize: 100
-    },
-    progressTrack: {
-      position: "absolute",
-      top: 0,
-      height: 2,
-      width: "100%",
-      background: theme.palette.primary.main,
-      zIndex: 10
-    }*/
-  };
+const GrayBackgroundRoot = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$grayBackground",
+})<{ $grayBackground?: boolean }>(({ theme, $grayBackground }) =>
+  $grayBackground
+    ? {
+        backgroundColor: "#F7F7F7",
+        paddingTop: theme.spacing(10),
+        paddingBottom: theme.spacing(6),
+      }
+    : {}
+);
+
+const StyledStepper = styled(Stepper, {
+  shouldForwardProp: (prop) => prop !== "$grayBackground",
+})<{ $grayBackground?: boolean }>(({ $grayBackground }) => ({
+  maxWidth: 1000,
+  margin: "0 auto",
+  ...($grayBackground && { backgroundColor: "#F7F7F7" }),
+}));
+
+const stepTextStyles = (theme: Theme) => ({
+  fontSize: 13,
+  textTransform: "uppercase" as const,
+  color: theme.palette.background.default_contrastText,
 });
 
-const CustomConnector = withStyles((theme) => {
-  return {
-    root: {
-      left: "calc(-50%)",
-      right: "calc(50%)",
-    },
-    line: {
-      height: 3,
-      border: 0,
-      backgroundColor: theme.palette.background.default_contrastText,
-      borderRadius: 1,
-      margin: 0,
-      zIndex: 9,
-    },
-    completed: {
-      "& $line": {
-        backgroundColor: "#bbced2",
-      },
-    },
-    active: {
-      "& $line": {
-        backgroundColor: "#bbced2",
-      },
-    },
-  };
-})(StepConnector);
+const StyledStepLabel = styled(StepLabel)(({ theme }) => stepTextStyles(theme));
+
+const StepText = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$completed",
+})<{ $completed?: boolean }>(({ theme, $completed }) => ({
+  ...stepTextStyles(theme),
+  ...($completed && { color: "#a4b4b7" }),
+}));
+
+const iconBaseStyles = (theme: Theme) => ({
+  backgroundColor: theme.palette.background.default_contrastText,
+  display: "flex",
+  height: 20,
+  width: 20,
+  borderRadius: 20,
+  alignItems: "center",
+  marginTop: ICON_OFFSET,
+  zIndex: 10,
+});
+
+const CompletedIcon = styled(CheckIcon)(({ theme }) => ({
+  ...iconBaseStyles(theme),
+  backgroundColor: "#D7E2E4",
+  height: 40,
+  width: 40,
+  border: "10px solid #D7E2E4",
+  borderRadius: 20,
+  marginTop: ICON_OFFSET - 10,
+  fontSize: "bold",
+}));
+
+const InactiveIcon = styled("div")(({ theme }) => ({
+  ...iconBaseStyles(theme),
+  marginBottom: 10,
+}));
+
+const ActiveRing = styled("div")({
+  height: 40,
+  width: 40,
+  border: "10px solid #D7E2E4",
+  borderRadius: 20,
+  marginTop: ICON_OFFSET - 10,
+  marginLeft: -10,
+  position: "absolute",
+});
+
+const CustomConnector = styled(StepConnector)(({ theme }) => ({
+  left: "calc(-50%)",
+  right: "calc(50%)",
+  [`& .${stepConnectorClasses.line}`]: {
+    height: 3,
+    border: 0,
+    backgroundColor: theme.palette.background.default_contrastText,
+    borderRadius: 1,
+    margin: 0,
+    zIndex: 9,
+  },
+  [`&.${stepConnectorClasses.completed} .${stepConnectorClasses.line}`]: {
+    backgroundColor: "#bbced2",
+  },
+  [`&.${stepConnectorClasses.active} .${stepConnectorClasses.line}`]: {
+    backgroundColor: "#bbced2",
+  },
+}));
 
 const CustomStepIcon = (props) => {
-  const classes = useStyles();
   const { active, completed } = props;
-  if (completed) return <CheckIcon className={`${classes.customIcon} ${classes.completed}`} />;
+  if (completed) return <CompletedIcon />;
   else if (active)
     return (
       <>
-        <div className={`${classes.customIcon} ${classes.customIconMarginBottom}`} />
-        <div className={classes.active} />
+        <InactiveIcon />
+        <ActiveRing />
       </>
     );
-  else return <div className={`${classes.customIcon} ${classes.customIconMarginBottom}`} />;
+  else return <InactiveIcon />;
 };
 
 export default function StepsTracker({
@@ -129,30 +122,25 @@ export default function StepsTracker({
   grayBackground,
   onlyDisplayActiveStep,
 }: any) {
-  const classes = useStyles();
   const activeStepIndex = steps.indexOf(steps.find((step) => step.key === activeStep));
   return (
-    <div className={`${grayBackground && classes.grayBackgroundRoot}`}>
-      <Stepper
+    <GrayBackgroundRoot $grayBackground={!!grayBackground}>
+      <StyledStepper
         activeStep={activeStepIndex}
         alternativeLabel
         connector={<CustomConnector />}
-        className={`${classes.stepper} ${grayBackground && classes.grayBackground}`}
+        $grayBackground={!!grayBackground}
       >
         {steps.map((step, index) => (
           <Step /*TODO(unused) className={classes.step}*/ key={index}>
-            <StepLabel StepIconComponent={CustomStepIcon} className={classes.stepText}>
-              <Typography
-                className={`${classes.stepText} ${
-                  index < activeStepIndex && classes.completedText
-                }`}
-              >
+            <StyledStepLabel StepIconComponent={CustomStepIcon}>
+              <StepText $completed={index < activeStepIndex}>
                 {(!onlyDisplayActiveStep || index === activeStepIndex) && step.text}
-              </Typography>
-            </StepLabel>
+              </StepText>
+            </StyledStepLabel>
           </Step>
         ))}
-      </Stepper>
-    </div>
+      </StyledStepper>
+    </GrayBackgroundRoot>
   );
 }

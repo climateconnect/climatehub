@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Button, Badge, useMediaQuery, IconButton } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import Cookies from "universal-cookie";
 import dayjs from "dayjs";
 
@@ -19,51 +19,57 @@ import JoinButton from "./JoinButton";
 import theme from "../../../themes/theme";
 import EditEventRegistrationModal from "../EditEventRegistrationModal";
 
-const useStyles = makeStyles((theme) => ({
-  memberButtons: {
-    float: "right",
-    display: "flex",
-    flexDirection: "column",
-  },
+const MemberButtons = styled("div")({
+  float: "right",
+  display: "flex",
+  flexDirection: "column",
+});
 
-  editProjectButton: {
-    marginTop: theme.spacing(1),
+const EditProjectButtonBase = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+// editProjectButton + showRequestsButton were applied together (the latter wins)
+const ShowRequestsDesktopButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  background: "#f7f7f7",
+  color: theme.palette.secondary.main,
+  "&:hover": {
+    background: "#e3e3e3",
   },
-  showRequestsButton: {
-    background: "#f7f7f7",
-    color: theme.palette.secondary.main,
-    "&:hover": {
-      background: "#e3e3e3",
-    },
+}));
+
+const LeaveProjectDesktopButton = styled(Button)(({ theme }) => ({
+  // TODO: we should really encapsulate
+  // spacing style into specific spacing components, akin
+  // to what Braid's <Box /> component does. This makes
+  // the frontend code more maintainable, and spacing more deterministic
+  marginTop: theme.spacing(1),
+  background: theme.palette.error.main,
+  color: "white",
+  ["&:hover"]: {
+    backgroundColor: theme.palette.error.main,
   },
-  leaveProjectButton: {
-    // TODO: we should really encapsulate
-    // spacing style into specific spacing components, akin
-    // to what Braid's <Box /> component does. This makes
-    // the frontend code more maintainable, and spacing more deterministic
-    marginTop: theme.spacing(1),
-    background: theme.palette.error.main,
-    color: "white",
-    ["&:hover"]: {
-      backgroundColor: theme.palette.error.main,
-    },
+}));
+
+const StyledJoinButton = styled(JoinButton)({
+  float: "right",
+});
+
+const SideIconButton = styled(IconButton)(({ theme }) => ({
+  color: "white",
+  marginBottom: theme.spacing(1),
+  backgroundColor: theme.palette.primary.main,
+  "&:hover": {
+    backgroundColor: "#36797e",
   },
-  joinButton: {
-    float: "right",
-  },
-  iconButton: {
-    color: "white",
-    marginBottom: theme.spacing(1),
-    backgroundColor: theme.palette.primary.main,
-    "&:hover": {
-      backgroundColor: "#36797e",
-    },
-  },
-  leaveIconButton: {
-    background: theme.palette.error.main,
-    "&:hover": {
-      backgroundColor: "#c96262",
-    },
+}));
+
+// iconButton + leaveIconButton were applied together (the latter wins)
+const LeaveSideIconButton = styled(SideIconButton)(({ theme }) => ({
+  background: theme.palette.error.main,
+  "&:hover": {
+    backgroundColor: "#c96262",
   },
 }));
 
@@ -80,7 +86,6 @@ export default function ProjectContentSideButtons({
   onMembersRefreshed,
 }) {
   const token = new Cookies().get("auth_token");
-  const classes = useStyles();
   const { user, locale, CUSTOM_HUB_URLS } = useContext(UserContext);
   const isCustomHub = CUSTOM_HUB_URLS.includes(hubUrl);
 
@@ -145,22 +150,17 @@ export default function ProjectContentSideButtons({
     if (isNarrowScreen) {
       return (
         <Badge badgeContent={requesters.length} color="error">
-          <IconButton size="large" className={classes.iconButton} onClick={toggleShowRequests}>
+          <SideIconButton size="large" onClick={toggleShowRequests}>
             <GroupAddIcon />
-          </IconButton>
+          </SideIconButton>
         </Badge>
       );
     } else {
       return (
         <Badge badgeContent={requesters.length} color="primary">
-          <Button
-            className={`${classes.editProjectButton} ${classes.showRequestsButton}`}
-            variant="contained"
-            onClick={toggleShowRequests}
-            fullWidth
-          >
+          <ShowRequestsDesktopButton variant="contained" onClick={toggleShowRequests} fullWidth>
             {texts.review_join_requests}
-          </Button>
+          </ShowRequestsDesktopButton>
         </Badge>
       );
     }
@@ -169,23 +169,21 @@ export default function ProjectContentSideButtons({
   const EditProjectButton = () => {
     if (isNarrowScreen) {
       return (
-        <IconButton
+        <SideIconButton
           size="large"
-          className={classes.iconButton}
           href={getLocalePrefix(locale) + "/editProject/" + project.url_slug + queryString}
         >
           <EditIcon />
-        </IconButton>
+        </SideIconButton>
       );
     } else {
       return (
-        <Button
-          className={classes.editProjectButton}
+        <EditProjectButtonBase
           variant="contained"
           href={getLocalePrefix(locale) + "/editProject/" + project.url_slug + queryString}
         >
           {project.is_draft ? texts.edit_draft : texts.edit}
-        </Button>
+        </EditProjectButtonBase>
       );
     }
   };
@@ -193,26 +191,24 @@ export default function ProjectContentSideButtons({
   const EditRegistrationButton = () => {
     if (isNarrowScreen) {
       return (
-        <IconButton
+        <SideIconButton
           size="large"
-          className={classes.iconButton}
           onClick={() => setEditRegistrationOpen(true)}
           aria-label={texts.edit_registration_settings}
         >
           <SettingsIcon />
-        </IconButton>
+        </SideIconButton>
       );
     } else {
       return (
-        <Button
-          className={classes.editProjectButton}
+        <EditProjectButtonBase
           variant="outlined"
           color="primary"
           onClick={() => setEditRegistrationOpen(true)}
           aria-label={texts.edit_registration_settings}
         >
           {texts.edit_registration_settings}
-        </Button>
+        </EditProjectButtonBase>
       );
     }
   };
@@ -220,19 +216,15 @@ export default function ProjectContentSideButtons({
   const LeaveProjectButton = () => {
     if (isNarrowScreen) {
       return (
-        <IconButton
-          size="large"
-          className={`${classes.iconButton} ${classes.leaveIconButton}`}
-          onClick={leaveProject}
-        >
+        <LeaveSideIconButton size="large" onClick={leaveProject}>
           <ExitToAppIcon />
-        </IconButton>
+        </LeaveSideIconButton>
       );
     } else {
       return (
-        <Button className={classes.leaveProjectButton} variant="contained" onClick={leaveProject}>
+        <LeaveProjectDesktopButton variant="contained" onClick={leaveProject}>
           {texts.leave_project}
-        </Button>
+        </LeaveProjectDesktopButton>
       );
     }
   };
@@ -240,7 +232,7 @@ export default function ProjectContentSideButtons({
   return (
     <div>
       {user && project.team && project.team.find((m) => m.id === user.id) && (
-        <div className={classes.memberButtons}>
+        <MemberButtons>
           {user_permission && hasAdminPermissions && (
             <>
               {/* Badge is dynamic based on the number of membership requesters */}
@@ -251,7 +243,7 @@ export default function ProjectContentSideButtons({
           )}
           {/* Otherwise if not a project admin, just show the Leave Project button */}
           <LeaveProjectButton />
-        </div>
+        </MemberButtons>
       )}
 
       {/* If the user is an admin on the project, or is already part
@@ -259,10 +251,9 @@ export default function ProjectContentSideButtons({
       {!hasAdminPermissions &&
         project.project_type.type_id !== "event" &&
         !(user_permission && [ROLE_TYPES.read_only_type].includes(user_permission)) && (
-          <JoinButton
+          <StyledJoinButton
             handleSendProjectJoinRequest={handleSendProjectJoinRequest}
             requestedToJoin={requestedToJoinProject}
-            className={classes.joinButton}
             hasAdminPermissions={hasAdminPermissions}
           />
         )}

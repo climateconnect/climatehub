@@ -1,6 +1,5 @@
 import { Link, Theme, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { ThemeProvider } from "@mui/material/styles";
+import { styled, ThemeProvider } from "@mui/material/styles";
 import React, { useContext } from "react";
 import { Chart } from "react-google-charts";
 import getTexts from "../../../../public/texts/texts";
@@ -8,33 +7,23 @@ import hubTheme from "../../../themes/hubTheme";
 import theme from "../../../themes/theme";
 import UserContext from "../../context/UserContext";
 
-const useStyles = makeStyles((theme) => ({
-  pieChart: {
-    maxWidth: 250,
-    padding: 50,
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-  },
-  chart: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  pieChartsContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  imgWrapper: {
-    maxWidth: 600,
-    margin: "0 auto",
-  },
-  img: {
-    maxWidth: "100%",
-  },
-}));
+// None of the rules below read the theme, so the nested hub ThemeProvider makes no difference.
+const PieChartsContainer = styled("div")({
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+});
+
+const ImgWrapper = styled("div")({
+  maxWidth: 600,
+  margin: "0 auto",
+});
+
+const Img = styled("img")({
+  maxWidth: "100%",
+});
 
 export default function FashionDescription() {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "hub", locale: locale, hubName: "Fashion" });
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
@@ -42,16 +31,16 @@ export default function FashionDescription() {
   return (
     <ThemeProvider theme={hubTheme}>
       <div>
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography component="h2" variant="h2">
           {texts.fashion_headline}
         </Typography>
-        <Typography className={classes.textContent}>
+        <Typography>
           {texts.fashion_short_description_first_part}
           <br />
           <br />
           {texts.fashion_short_description_last_part}
         </Typography>
-        <div className={classes.pieChartsContainer}>
+        <PieChartsContainer>
           <Chart
             width={isNarrowScreen ? "330px" : isMediumScreen ? "400px" : "500px"}
             height={"300px"}
@@ -90,7 +79,7 @@ export default function FashionDescription() {
             }}
             rootProps={{ "data-testid": "2" }}
           />
-        </div>
+        </PieChartsContainer>
         <Typography>
           {texts.source}:{" "}
           <Link href="https://www.nature.com/articles/s43017-020-0039-9.epdf" target="_blank">
@@ -98,7 +87,7 @@ export default function FashionDescription() {
           </Link>{" "}
           (2020)
         </Typography>
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography component="h2" variant="h2">
           {texts.massive_increase_in_fashion_carbon_emissions}
         </Typography>
         <Typography>
@@ -152,13 +141,9 @@ export default function FashionDescription() {
             <br />
             {texts.multiple_solutions_for_a_common_goal_last_part}
           </Typography>
-          <div className={classes.imgWrapper}>
-            <img
-              src="/images/circular_economy.jpg"
-              alt={texts.circular_economy_alt}
-              className={classes.img}
-            />
-          </div>
+          <ImgWrapper>
+            <Img src="/images/circular_economy.jpg" alt={texts.circular_economy_alt} />
+          </ImgWrapper>
         </Typography>
       </div>
     </ThemeProvider>

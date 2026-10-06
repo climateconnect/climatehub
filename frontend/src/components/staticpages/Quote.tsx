@@ -1,55 +1,65 @@
 import React from "react";
-import { Typography, Container, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Typography, Container } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 
-const useStyles = makeStyles<Theme, { noPadding?: boolean }>((theme) => ({
-  root: {
+const noTransientProps = (prop: PropertyKey) => !(typeof prop === "string" && prop.startsWith("$"));
+
+const Root = styled(Container)(({ theme }) => ({
+  display: "flex",
+  position: "relative",
+  textAlign: "center",
+  [theme.breakpoints.down("sm")]: {
+    flexDirection: "column",
+  },
+}));
+
+const OpenQuoteIconContainer = styled("div", { shouldForwardProp: noTransientProps })<{
+  $noPadding?: boolean;
+}>(({ theme, $noPadding }) => ({
+  width: 180,
+  display: "flex",
+  flexGrow: 1,
+  justifyContent: "center",
+  alignItems: "flex-start",
+  paddingRight: $noPadding ? 0 : theme.spacing(3),
+  [theme.breakpoints.down("sm")]: {
     display: "flex",
-    position: "relative",
-    textAlign: "center",
-    [theme.breakpoints.down("sm")]: {
-      flexDirection: "column",
-    },
+    justifyContent: "flex-start",
   },
-  openQuoteIcon: {
-    marginTop: -35,
-  },
-  closingQuoteIcon: {
-    transform: "rotate(180deg)",
-    marginBottom: -35,
-  },
-  quoteIconContainer: {
-    width: 180,
+}));
+
+const CloseQuoteIconContainer = styled("div", { shouldForwardProp: noTransientProps })<{
+  $noPadding?: boolean;
+}>(({ theme, $noPadding }) => ({
+  width: 180,
+  display: "flex",
+  flexGrow: 1,
+  justifyContent: "center",
+  alignItems: "flex-end",
+  paddingLeft: $noPadding ? 0 : theme.spacing(3),
+  [theme.breakpoints.down("sm")]: {
+    marginLeft: "auto",
     display: "flex",
-    flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-end",
   },
-  closeQuoteIconContainer: (props) => ({
-    alignItems: "flex-end",
-    paddingLeft: props.noPadding ? 0 : theme.spacing(3),
-    [theme.breakpoints.down("sm")]: {
-      marginLeft: "auto",
-      display: "flex",
-      justifyContent: "flex-end",
-    },
-  }),
-  openQuoteIconContainer: (props) => ({
-    alignItems: "flex-start",
-    paddingRight: props.noPadding ? 0 : theme.spacing(3),
-    [theme.breakpoints.down("sm")]: {
-      display: "flex",
-      justifyContent: "flex-start",
-    },
-  }),
-  quoteIcon: {
-    fontSize: 80,
-  },
-  textBody: {
-    [theme.breakpoints.down("sm")]: {
-      paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(3),
-    },
+}));
+
+const OpenQuoteIcon = styled(FormatQuoteIcon)({
+  marginTop: -35,
+  fontSize: 80,
+});
+
+const ClosingQuoteIcon = styled(FormatQuoteIcon)({
+  transform: "rotate(180deg)",
+  marginBottom: -35,
+  fontSize: 80,
+});
+
+const TextBody = styled(Typography)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    paddingLeft: theme.spacing(3),
+    paddingRight: theme.spacing(3),
   },
 }));
 
@@ -60,22 +70,15 @@ export default function Quote({
   quoteIconClassName,
   noPadding,
 }: any) {
-  const classes = useStyles({ noPadding: noPadding });
   return (
-    <Container className={`${className} ${classes.root}`}>
-      <div className={`${classes.quoteIconContainer} ${classes.openQuoteIconContainer}`}>
-        <FormatQuoteIcon
-          color="primary"
-          className={`${classes.openQuoteIcon} ${classes.quoteIcon} ${quoteIconClassName}`}
-        />
-      </div>
-      <Typography className={`${classes.textBody} ${textClassName}`}>{text}</Typography>
-      <div className={`${classes.quoteIconContainer} ${classes.closeQuoteIconContainer}`}>
-        <FormatQuoteIcon
-          color="primary"
-          className={`${classes.closingQuoteIcon} ${classes.quoteIcon} ${quoteIconClassName}`}
-        />
-      </div>
-    </Container>
+    <Root className={className}>
+      <OpenQuoteIconContainer $noPadding={noPadding}>
+        <OpenQuoteIcon color="primary" className={quoteIconClassName} />
+      </OpenQuoteIconContainer>
+      <TextBody className={textClassName}>{text}</TextBody>
+      <CloseQuoteIconContainer $noPadding={noPadding}>
+        <ClosingQuoteIcon color="primary" className={quoteIconClassName} />
+      </CloseQuoteIconContainer>
+    </Root>
   );
 }

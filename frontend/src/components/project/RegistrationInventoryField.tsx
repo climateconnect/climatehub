@@ -1,41 +1,45 @@
 import React from "react";
 import { Box, FormHelperText, TextField, Typography } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { RegistrationField, RegistrationFieldOption } from "../../types";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  root: {
-    marginBottom: theme.spacing(2),
-    paddingLeft: 0,
-  },
-  label: {
-    fontWeight: 500,
-    color: theme.palette.text.primary,
-    marginBottom: theme.spacing(1),
-  },
-  required: {
-    color: theme.palette.error.main,
-    marginLeft: theme.spacing(0.5),
-  },
-  description: {
-    color: theme.palette.text.secondary,
-    marginBottom: theme.spacing(1),
-    fontSize: "0.875rem",
-  },
-  fixedOption: {
-    color: theme.palette.text.primary,
-  },
-  quantityRow: {
-    marginTop: theme.spacing(1),
-  },
-  helperText: {
-    color: theme.palette.text.secondary,
-    fontSize: "0.75rem",
-  },
-  errorText: {
-    color: theme.palette.error.main,
-  },
+const Root = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  paddingLeft: 0,
+}));
+
+const Label = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  fontWeight: 500,
+  color: theme.palette.text.primary,
+  marginBottom: theme.spacing(1),
+}));
+
+const RequiredMark = styled("span")(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginLeft: theme.spacing(0.5),
+}));
+
+const Description = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  marginBottom: theme.spacing(1),
+  fontSize: "0.875rem",
+}));
+
+const FixedOption = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  color: theme.palette.text.primary,
+}));
+
+const QuantityRow = styled(Box)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const HelperText = styled(FormHelperText)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  fontSize: "0.75rem",
+}));
+
+const ErrorText = styled(FormHelperText)(({ theme }) => ({
+  color: theme.palette.error.main,
 }));
 
 type Props = {
@@ -64,7 +68,6 @@ export default function RegistrationInventoryField({
   error,
   texts,
 }: Props) {
-  const classes = useStyles();
   const title = field.settings.title ?? "";
   const description = field.settings.description ?? "";
   const sortedOptions = [...(field.options ?? [])].sort((a, b) => a.order - b.order);
@@ -108,26 +111,18 @@ export default function RegistrationInventoryField({
       : opt.title;
 
   return (
-    <Box className={classes.root}>
-      <Typography component="div" variant="body1" className={classes.label}>
+    <Root>
+      <Label component="div" variant="body1">
         {title}
-        {field.is_required && (
-          <span className={classes.required} aria-hidden="true">
-            {" *"}
-          </span>
-        )}
-      </Typography>
-      {description && (
-        <Typography variant="body2" className={classes.description}>
-          {description}
-        </Typography>
-      )}
+        {field.is_required && <RequiredMark aria-hidden="true">{" *"}</RequiredMark>}
+      </Label>
+      {description && <Description variant="body2">{description}</Description>}
       {isSingleOption && singleOption ? (
-        <Typography component="div" variant="body1" className={classes.fixedOption}>
+        <FixedOption component="div" variant="body1">
           {singleOption.remaining_amount === 0
             ? `${singleOption.title} (${texts.inventory_sold_out})`
             : formatOptionLabel(singleOption)}
-        </Typography>
+        </FixedOption>
       ) : (
         <TextField
           select
@@ -150,7 +145,7 @@ export default function RegistrationInventoryField({
         </TextField>
       )}
       {activeOption && !isSoldOut && (
-        <Box className={classes.quantityRow}>
+        <QuantityRow>
           <TextField
             type="number"
             size="small"
@@ -165,18 +160,14 @@ export default function RegistrationInventoryField({
             error={exceedsMax}
           />
           {maxQuantity != null && (
-            <FormHelperText className={classes.helperText}>
+            <HelperText>
               {texts.max_per_guest}: {maxQuantity}
-            </FormHelperText>
+            </HelperText>
           )}
-          {exceedsMax && (
-            <FormHelperText className={classes.errorText}>
-              {texts.quantity_exceeds_max}
-            </FormHelperText>
-          )}
-        </Box>
+          {exceedsMax && <ErrorText>{texts.quantity_exceeds_max}</ErrorText>}
+        </QuantityRow>
       )}
-      {error && <FormHelperText className={classes.errorText}>{error}</FormHelperText>}
-    </Box>
+      {error && <ErrorText>{error}</ErrorText>}
+    </Root>
   );
 }

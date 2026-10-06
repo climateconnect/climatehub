@@ -1,5 +1,5 @@
-import { IconButton, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { IconButton } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
@@ -7,15 +7,13 @@ import UserContext from "../context/UserContext";
 import { Project } from "../../types";
 import AddToCalendarDialog from "./AddToCalendarDialog";
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  button: {
-    color: theme.palette.primary.contrastText,
-    width: 35,
-    height: 35,
+const CalendarButton = styled(IconButton)(({ theme }) => ({
+  color: theme.palette.primary.contrastText,
+  width: 35,
+  height: 35,
+  backgroundColor: theme.palette.primary.main,
+  "&:hover": {
     backgroundColor: theme.palette.primary.main,
-    "&:hover": {
-      backgroundColor: theme.palette.primary.main,
-    },
   },
 }));
 
@@ -30,7 +28,6 @@ export default function ProjectAddToCalendarButton({
   project,
   isUserRegistered,
 }: Props) {
-  const classes = useStyles();
   const { locale, user } = useContext(UserContext);
   const [open, setOpen] = useState(false);
   const texts = getTexts({ locale, page: "project", project: project });
@@ -42,9 +39,9 @@ export default function ProjectAddToCalendarButton({
   return (
     <>
       <div className={className}>
-        <IconButton className={classes.button} onClick={() => setOpen(true)} size="large">
+        <CalendarButton onClick={() => setOpen(true)} size="large">
           <CalendarTodayIcon />
-        </IconButton>
+        </CalendarButton>
       </div>
       <AddToCalendarDialog
         open={open}

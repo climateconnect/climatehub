@@ -1,5 +1,5 @@
-import { Avatar, Button, CircularProgress, Link, Theme, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Avatar, Button, CircularProgress, Link, Tooltip, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -14,66 +14,63 @@ import CommentInput from "./CommentInput";
 import MessageContent from "./MessageContent";
 import Posts from "./Posts";
 
-const useStyles = makeStyles<Theme, { preview?: boolean }>((theme) => ({
-  postDate: {
-    color: theme.palette.grey[700],
-  },
-  commentFlexBox: (props) => ({
-    display: "flex",
-    alignItems: props.preview ? "center" : "stretch",
-  }),
-  messageWithMetaData: {
-    minWidth: 0,
-    overflowWrap: "break-word",
-  },
-  avatar: {
-    marginRight: theme.spacing(2),
-  },
-  username: {
-    fontWeight: "bold",
-    marginRight: theme.spacing(0.5),
-  },
-  metadata: {
-    display: "flex",
-    alignItems: "center",
-  },
-  message: {
-    lineHeight: 1.2,
-  },
-  content: {
-    wordBreak: "break-word",
-    fontSize: 14,
-    whiteSpace: "pre-wrap",
-  },
-  toggleExpanded: {
-    fontWeight: 600,
-    fontSize: 14,
-    cursor: "pointer",
-    color: theme.palette.grey[700],
-  },
-  replyButton: {
-    color: theme.palette.grey[700],
-  },
-  toggleReplies: {
-    display: "flex",
-    alignItems: "center",
-    cursor: "pointer",
-  },
-  inlineBadge: {
-    marginRight: theme.spacing(0.5),
-  },
-  commentBox: {
-    display: "flex",
-  },
-  deleteButton: {
-    color: theme.palette.background.default_contrastText,
-  },
-  truncatedContent: {
+const PostDate = styled(Typography)(({ theme }) => ({
+  color: theme.palette.grey[700],
+}));
+
+const CommentFlexBox = styled("div", {
+  shouldForwardProp: (prop) => !String(prop).startsWith("$"),
+})<{ $preview?: boolean }>(({ $preview }) => ({
+  display: "flex",
+  alignItems: $preview ? "center" : "stretch",
+}));
+
+const MessageWithMetaData = styled("span")({
+  minWidth: 0,
+  overflowWrap: "break-word",
+});
+
+const PostAvatar = styled(Avatar)(({ theme }) => ({
+  marginRight: theme.spacing(2),
+}));
+
+const Username = styled(Typography)(({ theme }) => ({
+  fontWeight: "bold",
+  marginRight: theme.spacing(0.5),
+}));
+
+const Metadata = styled("div")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const ReplyButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.grey[700],
+}));
+
+const ToggleLink = styled(Link)({
+  display: "flex",
+  alignItems: "center",
+  cursor: "pointer",
+});
+
+const InlineBadge = styled(ProfileBadge)(({ theme }) => ({
+  marginRight: theme.spacing(0.5),
+}));
+
+const DeleteButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const ContentText = styled(Typography, {
+  shouldForwardProp: (prop) => !String(prop).startsWith("$"),
+})<{ $truncated?: boolean }>(({ $truncated }) => ({
+  ...($truncated && {
     overflow: "hidden",
     textOverflow: "ellipsis",
     display: "-webkit-box",
     WebkitBoxOrient: "vertical",
-  },
+  }),
 }));
 
 export default function Post({
@@ -89,8 +86,6 @@ export default function Post({
   noLink,
   hubUrl,
 }) {
-  const classes = useStyles({ preview: type === "preview" });
-
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "communication", locale: locale });
   const [open, setOpen] = useState(false);
@@ -157,7 +152,6 @@ export default function Post({
     src: post.author_user.image
       ? getImageUrl(post.author_user.image)
       : getImageUrl(post.author_user.thumbnail_image),
-    className: classes.avatar,
   };
   const queryString = hubUrl ? "?hub=" + hubUrl : "";
 
@@ -172,17 +166,17 @@ export default function Post({
           {post.author_user.first_name + " " + post.author_user.last_name}
         </Typography>
       ) : (
-        <div className={classes.commentFlexBox}>
+        <CommentFlexBox $preview={type === "preview"}>
           <Link
             href={getLocalePrefix(locale) + `/profiles/${post.author_user.url_slug}${queryString}`}
             target="_blank"
             onClick={handleClick}
             underline="hover"
           >
-            <Avatar {...avatarProps} />
+            <PostAvatar {...avatarProps} />
           </Link>
-          <span className={classes.messageWithMetaData}>
-            <div className={classes.metadata}>
+          <MessageWithMetaData>
+            <Metadata>
               <Link
                 color="inherit"
                 href={
@@ -192,19 +186,14 @@ export default function Post({
                 onClick={handleClick}
                 underline="hover"
               >
-                <Typography variant="body2" className={classes.username}>
+                <Username variant="body2">
                   {post.author_user.first_name + " " + post.author_user.last_name}
-                </Typography>
+                </Username>
               </Link>
               {post.author_user.badges?.length > 0 && (
-                <ProfileBadge
-                  contentOnly
-                  badge={post.author_user.badges[0]}
-                  size="medium"
-                  className={classes.inlineBadge}
-                />
+                <InlineBadge contentOnly badge={post.author_user.badges[0]} size="medium" />
               )}
-              <Typography variant="body2" className={classes.postDate}>
+              <PostDate variant="body2">
                 {post.unconfirmed && (
                   <Tooltip title={texts.sending_message + "..."}>
                     <CircularProgress
@@ -214,33 +203,26 @@ export default function Post({
                   </Tooltip>
                 )}
                 <DateDisplay date={new Date(post.created_at)} />
-              </Typography>
-            </div>
+              </PostDate>
+            </Metadata>
             {type === "preview" ? (
-              <Typography
-                className={classes.truncatedContent}
-                style={{ WebkitLineClamp: truncate }}
-              >
+              <ContentText $truncated style={{ WebkitLineClamp: truncate }}>
                 <MessageContent content={post.content} /*TODO(unused) maxLines={maxLines} */ />
-              </Typography>
+              </ContentText>
             ) : (
               <div>
-                <Typography
+                <ContentText
                   ref={contentRef}
-                  className={!isTextExpanded ? classes.truncatedContent : undefined}
+                  $truncated={!isTextExpanded}
                   style={!isTextExpanded ? { WebkitLineClamp: 3 } : undefined}
                 >
                   <MessageContent content={post.content} /*TODO(unused) maxLines={maxLines} */ />
-                </Typography>
+                </ContentText>
 
                 {isTextTruncated && (
-                  <Link
-                    className={classes.toggleReplies}
-                    onClick={handleExpandText}
-                    underline="hover"
-                  >
+                  <ToggleLink onClick={handleExpandText} underline="hover">
                     {!isTextExpanded ? texts.read_more : texts.read_less}
-                  </Link>
+                  </ToggleLink>
                 )}
               </div>
             )}
@@ -256,23 +238,15 @@ export default function Post({
                     infoTextSize={infoTextSize}
                   />
                 ) : (
-                  <Button onClick={expandReplyInterface} className={classes.replyButton}>
-                    {texts.reply}
-                  </Button>
+                  <ReplyButton onClick={expandReplyInterface}>{texts.reply}</ReplyButton>
                 ))}
               {user && user.id === post.author_user.id && type !== "preview" && (
-                <Button onClick={toggleDeleteDialogOpen} className={classes.deleteButton}>
-                  {texts.delete}
-                </Button>
+                <DeleteButton onClick={toggleDeleteDialogOpen}>{texts.delete}</DeleteButton>
               )}
             </>
             <>
               {type !== "reply" && !!post.replies && post.replies.length > 0 && type !== "preview" && (
-                <Link
-                  className={classes.toggleReplies}
-                  onClick={handleViewRepliesClick}
-                  underline="hover"
-                >
+                <ToggleLink onClick={handleViewRepliesClick} underline="hover">
                   {!displayReplies ? (
                     <>
                       <ExpandMoreIcon />
@@ -284,11 +258,11 @@ export default function Post({
                       {texts.hide_replies}
                     </>
                   )}
-                </Link>
+                </ToggleLink>
               )}
             </>
-          </span>
-        </div>
+          </MessageWithMetaData>
+        </CommentFlexBox>
       )}
       <>
         {post.replies &&

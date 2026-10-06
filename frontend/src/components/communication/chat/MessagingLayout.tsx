@@ -1,5 +1,5 @@
-import makeStyles from "@mui/styles/makeStyles";
 import Alert from "@mui/material/Alert";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useEffect, useState } from "react";
 import ROLE_TYPES from "../../../../public/data/role_types";
 import getTexts from "../../../../public/texts/texts";
@@ -8,22 +8,16 @@ import ChatContent from "./ChatContent";
 import ChatHeader from "./ChatHeader";
 import ChatMemberManagementOverlay from "./ChatMemberManagementOverlay";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    maxWidth: {
-      maxWidth: theme.breakpoints.values["md"],
-      margin: "0 auto",
-    },
-    showParticipantsButton: {
-      cursor: "pointer",
-    },
-    alert: {
-      width: "100%",
-      maxWidth: theme.breakpoints.values["md"],
-      margin: "0 auto",
-    },
-  };
-});
+const StyledChatHeader = styled(ChatHeader)(({ theme }) => ({
+  maxWidth: theme.breakpoints.values["md"],
+  margin: "0 auto",
+}));
+
+const StyledAlert = styled(Alert)(({ theme }) => ({
+  width: "100%",
+  maxWidth: theme.breakpoints.values["md"],
+  margin: "0 auto",
+}));
 
 export default function MessagingLayout({
   chatting_partner,
@@ -44,7 +38,6 @@ export default function MessagingLayout({
   leaveChat,
   relatedIdea,
 }) {
-  const classes = useStyles();
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
 
@@ -103,28 +96,26 @@ export default function MessagingLayout({
   const toggleShowChatParticipants = () => setShowChatParticipants(!showChatParticipants);
   return (
     <>
-      <ChatHeader
+      <StyledChatHeader
         isPrivateChat={isPrivateChat}
         chatting_partner={chatting_partner}
         title={title}
         toggleShowChatParticipants={toggleShowChatParticipants}
         showChatParticipants={showChatParticipants}
-        className={classes.maxWidth}
         canEditMembers={canEditMembers}
         handleToggleMemberManagementExpanded={handleToggleMemberManagementExpanded}
         memberManagementExpanded={memberManagementExpanded}
         leaveChat={leaveChat}
       />
       {showAlertMessage && alertMessage && (
-        <Alert
-          className={classes.alert}
+        <StyledAlert
           severity={alertMessage.severity}
           onClose={() => {
             setShowAlertMessage(!showAlertMessage);
           }}
         >
           {alertMessage.message}
-        </Alert>
+        </StyledAlert>
       )}
       {!memberManagementExpanded ? (
         <ChatContent

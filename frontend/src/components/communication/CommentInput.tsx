@@ -7,7 +7,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import { getImageUrl } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
@@ -18,32 +18,32 @@ import ProfileBadge from "../profile/ProfileBadge";
 import InputWithMentions from "./InputWithMentions";
 import SendIcon from "@mui/icons-material/Send";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    flexBox: {
-      display: "flex",
-      alignItems: "center",
-      marginTop: theme.spacing(1.5),
-    },
-    cancelButton: {
-      float: "right",
-      marginTop: theme.spacing(0.5),
-      marginRight: theme.spacing(1),
-    },
-    commentButton: {
-      float: "right",
-      marginTop: theme.spacing(0.5),
-    },
-    commentButtonContainer: {
-      height: 60,
-    },
-    explanation: {
-      float: "left",
-      marginLeft: theme.spacing(8.5),
-      fontSize: 13,
-      width: "100%",
-    },
-  };
+const FlexBox = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  marginTop: theme.spacing(1.5),
+}));
+
+const CommentButtonContainer = styled("div")({
+  height: 60,
+});
+
+const Explanation = styled(Typography)(({ theme }) => ({
+  float: "left",
+  marginLeft: theme.spacing(8.5),
+  fontSize: 13,
+  width: "100%",
+}));
+
+const commentButtonSx = (theme: Theme) => ({
+  float: "right",
+  marginTop: theme.spacing(0.5),
+});
+
+const cancelButtonSx = (theme: Theme) => ({
+  float: "right",
+  marginTop: theme.spacing(0.5),
+  marginRight: theme.spacing(1),
 });
 
 const INFO_TEXT_SIZES = {
@@ -62,7 +62,6 @@ function CommentInput({
   infoTextSize,
   useIconButton,
 }: any) {
-  const classes = useStyles();
   const [curComment, setCurComment] = useState("");
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "communication", locale: locale });
@@ -123,7 +122,7 @@ function CommentInput({
     return (
       <div>
         <form onSubmit={onSendComment}>
-          <div className={classes.flexBox}>
+          <FlexBox>
             {user?.badges?.length > 0 ? (
               <ProfileBadge badge={user?.badges[0]} size="small">
                 <Avatar {...avatarProps} />
@@ -153,7 +152,7 @@ function CommentInput({
                 <IconButton
                   color="primary"
                   //TODO(unused) variant="contained"
-                  className={classes.commentButton}
+                  sx={commentButtonSx}
                   onClick={(event) => handleSendComment(event)}
                   size="large"
                 >
@@ -161,26 +160,26 @@ function CommentInput({
                 </IconButton>
               </Tooltip>
             )}
-          </div>
-          <Typography className={classes.explanation}>{getInfoText()}</Typography>
+          </FlexBox>
+          <Explanation>{getInfoText()}</Explanation>
 
-          <div className={classes.commentButtonContainer}>
+          <CommentButtonContainer>
             {!useIconButton && (
               <Button
                 color="primary"
                 variant="contained"
-                className={classes.commentButton}
+                sx={commentButtonSx}
                 onClick={(event) => handleSendComment(event)}
               >
                 {texts.send}
               </Button>
             )}
             {onCancel && (
-              <Button variant="contained" className={classes.cancelButton} onClick={onCancel}>
+              <Button variant="contained" sx={cancelButtonSx} onClick={onCancel}>
                 {texts.cancel}
               </Button>
             )}
-          </div>
+          </CommentButtonContainer>
         </form>
       </div>
     );

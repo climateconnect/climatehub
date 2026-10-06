@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
-  Box,
   Button,
   CircularProgress,
   Dialog,
@@ -10,8 +9,7 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -57,144 +55,118 @@ function getRegistrationClosedState(
   return null;
 }
 
-const useStyles = makeStyles((theme: Theme) => ({
-  dialogTitle: {
-    display: "flex",
-    alignItems: "center",
-  },
-  closeButton: {
-    marginLeft: theme.spacing(-1),
-    marginRight: theme.spacing(1),
-    color: theme.palette.grey[500],
-  },
-  titleText: {
-    fontSize: 20,
-    color: theme.palette.text.primary,
-  },
-  dialogContent: {
-    padding: theme.spacing(2),
-    paddingTop: 0,
-  },
-  modalContent: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  eventSubheader: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    color: theme.palette.text.secondary,
-  },
-  eventDateLine: {
-    marginTop: theme.spacing(0.5),
-  },
-  formContainer: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-  },
-  userInfo: {
-    marginBottom: theme.spacing(3),
-  },
-  profilePreview: {
-    marginBottom: theme.spacing(2),
-  },
-  confirmationMessage: {
-    marginBottom: theme.spacing(2),
-    fontWeight: 500,
-  },
-  infoField: {
-    marginBottom: theme.spacing(2),
-  },
-  actionRow: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    marginTop: theme.spacing(3),
-    [theme.breakpoints.up("sm")]: {
-      flexDirection: "row",
-    },
-    paddingBottom: theme.spacing(2),
-  },
-  authMessage: {
-    marginBottom: theme.spacing(3),
-    textAlign: "center",
-  },
-  authButtons: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    maxWidth: 300,
-    margin: "0 auto",
-  },
-  successIcon: {
-    fontSize: 64,
-    color: theme.palette.success.main,
-    marginBottom: theme.spacing(2),
-  },
-  errorIcon: {
-    fontSize: 64,
-    color: theme.palette.error.main,
-    marginBottom: theme.spacing(2),
-  },
-  errorText: {
-    color: theme.palette.error.main,
-    marginTop: theme.spacing(2),
-  },
-  confirmationContainer: {
-    marginBottom: theme.spacing(3),
-    textAlign: "center",
-  },
-  confirmationText: {
-    marginTop: theme.spacing(2),
-  },
-  confirmationActions: {
-    justifyContent: "center",
-    marginTop: theme.spacing(4),
-  },
-  closedIcon: {
-    fontSize: 64,
-    color: theme.palette.warning.main,
-    marginBottom: theme.spacing(2),
-  },
-  closedTitle: {
-    marginBottom: theme.spacing(1),
-    textAlign: "center",
-  },
-  closedMessage: {
-    textAlign: "center",
-    color: theme.palette.text.secondary,
-  },
-  authFieldsContainer: {
-    gap: theme.spacing(2),
-    display: "flex",
-    flexDirection: "column",
-    marginTop: theme.spacing(2),
-  },
-  helperText: {
-    marginBottom: theme.spacing(2),
-    paddingLeft: theme.spacing(1),
-  },
-  loadingContainer: {
-    marginTop: theme.spacing(2),
-    textAlign: "center",
-  },
-  registerButton: {
-    whiteSpace: "nowrap",
-  },
-  customFieldsScrollable: {
-    overflowY: "auto",
-    flex: 1,
-    paddingRight: theme.spacing(0.5),
-    marginBottom: theme.spacing(2),
-  },
-  stickyActionRow: {
-    position: "sticky",
-    bottom: 0,
-    backgroundColor: theme.palette.background.paper,
-    paddingTop: theme.spacing(1),
-    zIndex: 1,
-  },
+const StyledDialogTitle = styled(DialogTitle)({
+  display: "flex",
+  alignItems: "center",
+});
+
+const CloseButton = styled(IconButton)(({ theme }) => ({
+  marginLeft: theme.spacing(-1),
+  marginRight: theme.spacing(1),
+  color: theme.palette.grey[500],
+}));
+
+const TitleText = styled(Typography)(({ theme }) => ({
+  fontSize: 20,
+  color: theme.palette.text.primary,
+}));
+
+const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
+  padding: theme.spacing(2),
+  paddingTop: 0,
+}));
+
+const ModalContent = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+});
+
+const EventSubheader = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  color: theme.palette.text.secondary,
+}));
+
+const EventDateLine = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(0.5),
+}));
+
+const FormContainer = styled("div")({
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+});
+
+const UserInfo = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+}));
+
+const ProfilePreview = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const ConfirmationMessage = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  fontWeight: 500,
+}));
+
+const SuccessIcon = styled(CheckCircleOutlineIcon)(({ theme }) => ({
+  fontSize: 64,
+  color: theme.palette.success.main,
+  marginBottom: theme.spacing(2),
+}));
+
+const ErrorIcon = styled(ErrorOutlineIcon)(({ theme }) => ({
+  fontSize: 64,
+  color: theme.palette.error.main,
+  marginBottom: theme.spacing(2),
+}));
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginTop: theme.spacing(2),
+}));
+
+const ConfirmationContainer = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  textAlign: "center",
+}));
+
+const ConfirmationText = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+}));
+
+const ClosedIcon = styled(EventBusyIcon)(({ theme }) => ({
+  fontSize: 64,
+  color: theme.palette.warning.main,
+  marginBottom: theme.spacing(2),
+}));
+
+const ClosedTitle = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+  textAlign: "center",
+}));
+
+const ClosedMessage = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  color: theme.palette.text.secondary,
+}));
+
+const HelperText = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  paddingLeft: theme.spacing(1),
+}));
+
+const RegisterButton = styled(Button)({
+  whiteSpace: "nowrap",
+});
+
+const CustomFieldsScrollable = styled("div")(({ theme }) => ({
+  overflowY: "auto",
+  flex: 1,
+  paddingRight: theme.spacing(0.5),
+  marginBottom: theme.spacing(2),
 }));
 
 type Props = {
@@ -212,7 +184,6 @@ export default function EventRegistrationModal({
   project,
   onRegistrationSuccess,
 }: Props) {
-  const classes = useStyles();
   const { locale, user, ReactGA } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale, project });
   const cookies = new Cookies();
@@ -490,24 +461,24 @@ export default function EventRegistrationModal({
   };
 
   const renderAuthenticatedContent = () => (
-    <Box className={classes.formContainer}>
-      <Box className={classes.userInfo}>
-        <Box className={classes.profilePreview}>
+    <FormContainer>
+      <UserInfo>
+        <ProfilePreview>
           <MiniProfilePreview
             profile={{ ...user, thumbnail_image: (user as any)?.image }}
             size="medium"
             nolink
           />
-        </Box>
-        <Typography variant="body1" className={classes.confirmationMessage}>
+        </ProfilePreview>
+        <ConfirmationMessage variant="body1">
           {showCustomFields
             ? texts.fill_the_form_and_confirm_your_registration_for
             : texts.confirm_your_registration_for}
-        </Typography>
-      </Box>
+        </ConfirmationMessage>
+      </UserInfo>
 
       {showCustomFields && (
-        <Box className={classes.customFieldsScrollable}>
+        <CustomFieldsScrollable>
           <RegistrationFieldAnswersForm
             ref={answersFormRef}
             fields={project.registration_config!.fields!}
@@ -530,21 +501,17 @@ export default function EventRegistrationModal({
                 texts.registration_text_field_max_length_error,
             }}
           />
-        </Box>
+        </CustomFieldsScrollable>
       )}
 
       {hasRequiredCustomFields && (
-        <Typography variant="caption" color="textSecondary" className={classes.helperText}>
+        <HelperText variant="caption" color="textSecondary">
           {texts.required_fields_participation_notice}
-        </Typography>
+        </HelperText>
       )}
 
-      {errorMessage && (
-        <Typography variant="body2" className={classes.errorText}>
-          {errorMessage}
-        </Typography>
-      )}
-    </Box>
+      {errorMessage && <ErrorText variant="body2">{errorMessage}</ErrorText>}
+    </FormContainer>
   );
 
   const renderUnauthenticatedContent = () => {
@@ -624,25 +591,21 @@ export default function EventRegistrationModal({
   };
 
   const renderSuccessContent = () => (
-    <Box className={classes.confirmationContainer}>
-      <CheckCircleOutlineIcon className={classes.successIcon} />
+    <ConfirmationContainer>
+      <SuccessIcon />
       <Typography variant="h6">{texts.youre_registered}</Typography>
-      <Typography variant="body1" className={classes.confirmationText}>
+      <ConfirmationText variant="body1">
         {texts.a_confirmation_email_has_been_sent}
-      </Typography>
-    </Box>
+      </ConfirmationText>
+    </ConfirmationContainer>
   );
 
   const renderErrorContent = () => (
-    <Box className={classes.confirmationContainer}>
-      <ErrorOutlineIcon className={classes.errorIcon} />
+    <ConfirmationContainer>
+      <ErrorIcon />
       <Typography variant="h6">{texts.registration_failed}</Typography>
-      {errorMessage && (
-        <Typography variant="body1" className={classes.errorText}>
-          {errorMessage}
-        </Typography>
-      )}
-    </Box>
+      {errorMessage && <ErrorText variant="body1">{errorMessage}</ErrorText>}
+    </ConfirmationContainer>
   );
 
   const renderRegistrationClosedContent = ({
@@ -652,15 +615,11 @@ export default function EventRegistrationModal({
     title: string;
     message: string;
   }) => (
-    <Box className={classes.confirmationContainer}>
-      <EventBusyIcon className={classes.closedIcon} />
-      <Typography variant="h6" className={classes.closedTitle}>
-        {title}
-      </Typography>
-      <Typography variant="body1" className={classes.closedMessage}>
-        {message}
-      </Typography>
-    </Box>
+    <ConfirmationContainer>
+      <ClosedIcon />
+      <ClosedTitle variant="h6">{title}</ClosedTitle>
+      <ClosedMessage variant="body1">{message}</ClosedMessage>
+    </ConfirmationContainer>
   );
 
   const renderActions = () => {
@@ -698,16 +657,15 @@ export default function EventRegistrationModal({
 
     if (user) {
       return (
-        <Button
+        <RegisterButton
           onClick={handleRegister}
           variant="contained"
           color="primary"
           disabled={loading}
           fullWidth
-          className={classes.registerButton}
         >
           {loading ? <CircularProgress size={24} /> : texts.confirm_registration}
-        </Button>
+        </RegisterButton>
       );
     }
     // Unauthenticated auth-flow steps have their own submit buttons
@@ -725,28 +683,24 @@ export default function EventRegistrationModal({
       scroll="paper"
       closeAfterTransition={false}
     >
-      <DialogTitle className={classes.dialogTitle}>
-        <IconButton aria-label="close" className={classes.closeButton} onClick={handleClose}>
+      <StyledDialogTitle>
+        <CloseButton aria-label="close" onClick={handleClose}>
           <CloseIcon />
-        </IconButton>
-        <Typography className={classes.titleText}>{texts.register_for_event}</Typography>
-      </DialogTitle>
+        </CloseButton>
+        <TitleText>{texts.register_for_event}</TitleText>
+      </StyledDialogTitle>
 
-      <DialogContent dividers className={classes.dialogContent}>
-        <Box className={classes.modalContent}>
+      <StyledDialogContent dividers>
+        <ModalContent>
           {(project.name || eventDateText) && (
-            <Box className={classes.eventSubheader}>
+            <EventSubheader>
               {project.name && <Typography variant="body2">{project.name}</Typography>}
-              {eventDateText && (
-                <Typography variant="body2" className={classes.eventDateLine}>
-                  {eventDateText}
-                </Typography>
-              )}
-            </Box>
+              {eventDateText && <EventDateLine variant="body2">{eventDateText}</EventDateLine>}
+            </EventSubheader>
           )}
           {renderContent()}
-        </Box>
-      </DialogContent>
+        </ModalContent>
+      </StyledDialogContent>
 
       {actions && <DialogActions>{actions}</DialogActions>}
     </Dialog>

@@ -13,10 +13,9 @@ import {
   FormControlLabel,
   IconButton,
   TextField,
-  Theme,
   Typography,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -34,63 +33,73 @@ import { getLinkBubbleMenuLabels, getTableMenuControlLabels } from "../richText/
 // Styles
 // ---------------------------------------------------------------------------
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  dialogTitle: {
-    display: "flex",
-    alignItems: "center",
-  },
-  closeButton: {
-    marginLeft: theme.spacing(-1),
-    marginRight: theme.spacing(1),
-    color: theme.palette.grey[500],
-  },
-  titleText: {
-    fontSize: 20,
-    color: theme.palette.text.primary,
-  },
-  dialogContent: {
-    padding: theme.spacing(2),
-  },
-  field: {
-    marginBottom: theme.spacing(2),
-  },
-  actionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: theme.spacing(1),
-  },
-  errorText: {
-    color: theme.palette.error.main,
-    fontSize: "0.875rem",
-    marginTop: theme.spacing(0.5),
-  },
-  confirmationBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1.5),
-    padding: theme.spacing(3, 0, 1),
-  },
-  confirmStepBox: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(2),
-    paddingTop: theme.spacing(2),
-  },
-  confirmInfoRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: theme.spacing(1),
-  },
-  testSuccessAlert: {
-    marginBottom: theme.spacing(2),
-  },
-  toggleSection: {
-    marginBottom: theme.spacing(2),
-  },
-  toggleHelperText: {
-    marginLeft: theme.spacing(0.5),
-    marginTop: theme.spacing(0.5),
-  },
+const StyledDialogTitle = styled(DialogTitle)({
+  display: "flex",
+  alignItems: "center",
+});
+
+const CloseButton = styled(IconButton)(({ theme }) => ({
+  marginLeft: theme.spacing(-1),
+  marginRight: theme.spacing(1),
+  color: theme.palette.grey[500],
+}));
+
+const TitleText = styled(Typography)(({ theme }) => ({
+  fontSize: 20,
+  color: theme.palette.text.primary,
+}));
+
+const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
+  padding: theme.spacing(2),
+}));
+
+const Field = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const ActionRow = styled(DialogActions)(({ theme }) => ({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: theme.spacing(1),
+}));
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  fontSize: "0.875rem",
+  marginTop: theme.spacing(0.5),
+}));
+
+const ConfirmationBox = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1.5),
+  padding: theme.spacing(3, 0, 1),
+}));
+
+const ConfirmStepBox = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+  paddingTop: theme.spacing(2),
+}));
+
+const ConfirmInfoRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: theme.spacing(1),
+}));
+
+const TestSuccessAlert = styled(Alert)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const ToggleSection = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const ToggleHelperText = styled(Typography)(({ theme }) => ({
+  marginLeft: theme.spacing(0.5),
+  marginTop: theme.spacing(0.5),
 }));
 
 // ---------------------------------------------------------------------------
@@ -132,7 +141,6 @@ export default function SendEmailToGuestsModal({
   lastGuestEmailSentAt,
   registrations,
 }: Props) {
-  const classes = useStyles();
   const { locale, user } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
   const token = new Cookies().get("auth_token");
@@ -305,29 +313,24 @@ export default function SendEmailToGuestsModal({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth scroll="paper">
-      <DialogTitle className={classes.dialogTitle}>
-        <IconButton
-          aria-label="close"
-          className={classes.closeButton}
-          onClick={onClose}
-          size="small"
-        >
+      <StyledDialogTitle>
+        <CloseButton aria-label="close" onClick={onClose} size="small">
           <CloseIcon />
-        </IconButton>
-        <Typography className={classes.titleText}>{texts.send_email_to_guests}</Typography>
-      </DialogTitle>
+        </CloseButton>
+        <TitleText>{texts.send_email_to_guests}</TitleText>
+      </StyledDialogTitle>
 
-      <DialogContent dividers className={classes.dialogContent}>
+      <StyledDialogContent dividers>
         {sendState === "sent_all" ? (
-          <Box className={classes.confirmationBox}>
+          <ConfirmationBox>
             <CheckCircleOutlineIcon color="success" aria-hidden="true" />
             <Typography color="success.main">
               {texts.email_sent_to_guests.replace("{count}", String(sentCount))}
             </Typography>
-          </Box>
+          </ConfirmationBox>
         ) : sendState === "confirming" ? (
-          <Box className={classes.confirmStepBox} role="region" aria-label={texts.confirm_and_send}>
-            <Box className={classes.confirmInfoRow}>
+          <ConfirmStepBox role="region" aria-label={texts.confirm_and_send}>
+            <ConfirmInfoRow>
               <InfoOutlinedIcon
                 color="info"
                 fontSize="small"
@@ -340,21 +343,21 @@ export default function SendEmailToGuestsModal({
                   String(effectiveRecipientCount)
                 )}
               </Typography>
-            </Box>
+            </ConfirmInfoRow>
             <Typography variant="body2" color="text.secondary">
               {texts.email_confirmation_admin_cc}
             </Typography>
-          </Box>
+          </ConfirmStepBox>
         ) : (
           <>
             <Collapse in={testSentToEmail !== null} unmountOnExit>
-              <Alert severity="success" className={classes.testSuccessAlert}>
+              <TestSuccessAlert severity="success">
                 {texts.test_email_sent_to.replace("{email}", testSentToEmail ?? "")}
-              </Alert>
+              </TestSuccessAlert>
             </Collapse>
 
             {showToggle && (
-              <Box className={classes.toggleSection}>
+              <ToggleSection>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -371,17 +374,13 @@ export default function SendEmailToGuestsModal({
                   }
                   label={texts.email_send_to_new_guests_only.replace("{date}", formattedDate)}
                 />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  className={classes.toggleHelperText}
-                >
+                <ToggleHelperText variant="body2" color="text.secondary">
                   {recipientInfoText}
-                </Typography>
-              </Box>
+                </ToggleHelperText>
+              </ToggleSection>
             )}
 
-            <Box className={classes.field}>
+            <Field>
               <TextField
                 fullWidth
                 variant="outlined"
@@ -395,9 +394,9 @@ export default function SendEmailToGuestsModal({
                 disabled={isSending}
                 aria-label={texts.email_subject}
               />
-            </Box>
+            </Field>
 
-            <Box className={classes.field}>
+            <Field>
               <OrganizerMessageEditor
                 content={message}
                 onChange={setMessage}
@@ -418,18 +417,14 @@ export default function SendEmailToGuestsModal({
                   addTable: texts.editor_add_table,
                 }}
               />
-            </Box>
+            </Field>
 
-            {errors.general && (
-              <Typography className={classes.errorText} role="alert">
-                {errors.general}
-              </Typography>
-            )}
+            {errors.general && <ErrorText role="alert">{errors.general}</ErrorText>}
           </>
         )}
-      </DialogContent>
+      </StyledDialogContent>
 
-      <DialogActions className={classes.actionRow}>
+      <ActionRow>
         {sendState === "sent_all" ? (
           <Button variant="contained" color="primary" onClick={onClose}>
             {texts.close}
@@ -476,7 +471,7 @@ export default function SendEmailToGuestsModal({
             </Button>
           </>
         )}
-      </DialogActions>
+      </ActionRow>
     </Dialog>
   );
 }

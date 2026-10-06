@@ -1,22 +1,20 @@
+import { styled } from "@mui/material/styles";
 import React, { useContext, useEffect, useState } from "react";
 import { Alert, Box, CircularProgress, IconButton, Typography } from "@mui/material";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
 import { apiRequest } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
-import makeStyles from "@mui/styles/makeStyles";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 
-const useStyles = makeStyles((theme) => ({
-  header: {
-    color: theme.palette.background.default_contrastText,
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-      fontSize: 35,
-      fontWeight: "bold",
-    },
+const Header = styled(Typography)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    textAlign: "center",
+    fontSize: 35,
+    fontWeight: "bold",
   },
 }));
 
@@ -31,7 +29,6 @@ type Status = "loading" | "success" | "error";
 export default function AuthForgotPassword({ email, onBack, hubUrl }: AuthForgotPasswordProps) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale, hubName: hubUrl });
-  const classes = useStyles();
   const [status, setStatus] = useState<Status>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -71,9 +68,7 @@ export default function AuthForgotPassword({ email, onBack, hubUrl }: AuthForgot
         <IconButton aria-label="go back" onClick={onBack} size="small" style={{ marginRight: 8 }}>
           <ArrowBack />
         </IconButton>
-        <Typography variant="h1" className={classes.header}>
-          {texts.reset_password}
-        </Typography>
+        <Header variant="h1">{texts.reset_password}</Header>
       </div>
 
       {status === "loading" && (

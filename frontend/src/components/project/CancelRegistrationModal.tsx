@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { Button, CircularProgress, TextField, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import Cookies from "universal-cookie";
 
 import { apiRequest } from "../../../public/lib/apiOperations";
@@ -10,29 +9,30 @@ import { Project } from "../../types";
 import UserContext from "../context/UserContext";
 import GenericDialog from "../dialogs/GenericDialog";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  content: {
-    textAlign: "center",
-    padding: theme.spacing(2, 0),
+const Content = styled("div")(({ theme }) => ({
+  textAlign: "center",
+  padding: theme.spacing(2, 0),
+}));
+
+const ErrorText = styled(Typography)(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginTop: theme.spacing(2),
+}));
+
+const Actions = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(1.5),
+  marginTop: theme.spacing(3),
+  [theme.breakpoints.up("sm")]: {
+    flexDirection: "row",
+    justifyContent: "center",
   },
-  errorText: {
-    color: theme.palette.error.main,
-    marginTop: theme.spacing(2),
-  },
-  actions: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(1.5),
-    marginTop: theme.spacing(3),
-    [theme.breakpoints.up("sm")]: {
-      flexDirection: "row",
-      justifyContent: "center",
-    },
-  },
-  loadingContainer: {
-    marginTop: theme.spacing(2),
-    textAlign: "center",
-  },
+}));
+
+const LoadingContainer = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  textAlign: "center",
 }));
 
 interface CancelRegistrationModalProps {
@@ -48,7 +48,6 @@ export default function CancelRegistrationModal({
   project,
   onCancellationSuccess,
 }: CancelRegistrationModalProps) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale, project });
 
@@ -105,7 +104,7 @@ export default function CancelRegistrationModal({
       title={texts.cancel_registration}
       maxWidth="sm"
     >
-      <Box className={classes.content}>
+      <Content>
         <Typography variant="body1">{confirmMessage}</Typography>
 
         <TextField
@@ -121,27 +120,23 @@ export default function CancelRegistrationModal({
           disabled={loading}
         />
 
-        {error && (
-          <Typography variant="body2" className={classes.errorText}>
-            {error}
-          </Typography>
-        )}
+        {error && <ErrorText variant="body2">{error}</ErrorText>}
 
         {loading ? (
-          <Box className={classes.loadingContainer}>
+          <LoadingContainer>
             <CircularProgress size={32} />
-          </Box>
+          </LoadingContainer>
         ) : (
-          <Box className={classes.actions}>
+          <Actions>
             <Button variant="contained" color="error" onClick={handleConfirm}>
               {texts.yes_cancel_registration}
             </Button>
             <Button variant="outlined" onClick={handleClose}>
               {texts.keep_registration}
             </Button>
-          </Box>
+          </Actions>
         )}
-      </Box>
+      </Content>
     </GenericDialog>
   );
 }

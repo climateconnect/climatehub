@@ -1,5 +1,5 @@
 import { Button, CircularProgress, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { MouseEventHandler, useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -7,60 +7,31 @@ import ConfirmDialog from "../dialogs/ConfirmDialog";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    navigationButtonWrapper: (props: any) => {
-      // Sticky mode: fixed to the bottom of the viewport at ALL screen sizes
-      if (props.sticky) {
-        return {
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          display: "flex",
-          flexWrap: "nowrap",
-          justifyContent: "flex-end",
-          alignItems: "stretch",
-          columnGap: theme.spacing(1),
-          paddingTop: theme.spacing(1.5),
-          paddingBottom: theme.spacing(1.5),
-          paddingLeft: theme.spacing(2),
-          paddingRight: theme.spacing(2),
-          background: theme.palette.background.paper,
-          boxShadow: "0px -2px 8px rgba(0,0,0,0.12)",
-          zIndex: 1100,
-        };
-      }
-      // Default (non-sticky) mode — unchanged
-      return {
-        marginTop: props.position !== "top" ? theme.spacing(10) : theme.spacing(6),
-        marginBottom: props.position === "top" ? theme.spacing(4) : 0,
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-        rowGap: theme.spacing(2),
-        [theme.breakpoints.down("md")]: {
-          position: props.fixedOnMobile && "fixed",
-          bottom: props.fixedOnMobile && 0,
-          left: props.fixedOnMobile && 0,
-          right: props.fixedOnMobile && 0,
-          alignItems: props.fixedOnMobile && "center",
-          paddingBottom: props.fixedOnMobile && theme.spacing(1),
-          background: props.fixedOnMobile && theme.palette.grey.light,
-          zIndex: props.fixedOnMobile && 10,
-          display: "flex",
-          justifyContent: "center",
-        },
-      };
-    },
-    backButton: {
-      color: theme.palette.background.default_contrastText,
-    },
-    stickyBackButton: {
-      marginRight: "auto",
-      flexShrink: 0,
-    },
-    stickyCompact: {
+type WrapperProps = { $position?: "top" | "bottom"; $fixedOnMobile?: boolean; $sticky?: boolean };
+
+const NavigationButtonWrapper = styled("div", {
+  shouldForwardProp: (prop) =>
+    prop !== "$position" && prop !== "$fixedOnMobile" && prop !== "$sticky",
+})<WrapperProps>(({ theme, $position, $fixedOnMobile, $sticky }) => {
+  // Sticky mode: fixed to the bottom of the viewport at ALL screen sizes
+  if ($sticky) {
+    return {
+      position: "fixed",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      display: "flex",
+      flexWrap: "nowrap",
+      justifyContent: "flex-end",
+      alignItems: "stretch",
+      columnGap: theme.spacing(1),
+      paddingTop: theme.spacing(1.5),
+      paddingBottom: theme.spacing(1.5),
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2),
+      background: theme.palette.background.paper,
+      boxShadow: "0px -2px 8px rgba(0,0,0,0.12)",
+      zIndex: 1100,
       // On very narrow screens reduce button padding so Draft + Next fit side-by-side
       [theme.breakpoints.down("sm")]: {
         "& .MuiButton-root": {
@@ -68,44 +39,70 @@ const useStyles = makeStyles((theme) => {
           paddingRight: theme.spacing(1),
         },
       },
-    },
-    nextStepButtonsContainer: {
-      [theme.breakpoints.down("sm")]: {
-        display: "flex",
-        justifyContent: "space-between",
-      },
-    },
-    stickyNextContainer: {
-      // Fill remaining space so buttons inside have a real width to share
-      flex: 1,
+    };
+  }
+  // Default (non-sticky) mode — unchanged
+  return {
+    marginTop: $position !== "top" ? theme.spacing(10) : theme.spacing(6),
+    marginBottom: $position === "top" ? theme.spacing(4) : 0,
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: theme.spacing(2),
+    [theme.breakpoints.down("md")]: {
+      ...($fixedOnMobile && {
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        alignItems: "center",
+        paddingBottom: theme.spacing(1),
+        background: theme.palette.grey.light,
+        zIndex: 10,
+      }),
       display: "flex",
-      flexWrap: "nowrap",
-      alignItems: "stretch",
-      justifyContent: "flex-end",
-      [theme.breakpoints.down("sm")]: {
-        "& .MuiButton-root": {
-          flex: 1,
-          whiteSpace: "normal",
-          maxWidth: 180,
-        },
-      },
-    },
-    draftButton: {
-      marginRight: theme.spacing(2),
-    },
-    translationLoader: {
-      color: "white",
-    },
-    cancelButtonTop: {
-      float: "left",
-    },
-    publishButtonOwnLine: {
-      display: "flex",
-      justifyContent: "flex-end",
-      marginTop: theme.spacing(1),
-      marginRight: theme.spacing(2),
+      justifyContent: "center",
     },
   };
+});
+
+const NextStepButtonsContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$sticky",
+})<{ $sticky?: boolean }>(({ theme, $sticky }) => ({
+  [theme.breakpoints.down("sm")]: {
+    display: "flex",
+    justifyContent: "space-between",
+  },
+  ...($sticky && {
+    // Fill remaining space so buttons inside have a real width to share
+    flex: 1,
+    display: "flex",
+    flexWrap: "nowrap",
+    alignItems: "stretch",
+    justifyContent: "flex-end",
+    [theme.breakpoints.down("sm")]: {
+      "& .MuiButton-root": {
+        flex: 1,
+        whiteSpace: "normal",
+        maxWidth: 180,
+      },
+    },
+  }),
+}));
+
+const PublishButtonOwnLine = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "flex-end",
+  marginTop: theme.spacing(1),
+  marginRight: theme.spacing(2),
+}));
+
+const backButtonSx = (theme: Theme) => ({
+  color: theme.palette.background.default_contrastText,
+});
+
+const draftButtonSx = (theme: Theme) => ({
+  marginRight: theme.spacing(2),
 });
 
 type Args = {
@@ -138,7 +135,6 @@ export default function NavigationButtons({
   fixedOnMobile,
   sticky,
 }: Args) {
-  const classes = useStyles({ position, fixedOnMobile, sticky });
   const [open, setOpen] = useState(false);
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
   const isMobileScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
@@ -162,7 +158,7 @@ export default function NavigationButtons({
         variant="contained"
         color="grey"
         onClick={onClickCancelDialogOpen}
-        className={`${classes.backButton} ${classes.draftButton}`}
+        sx={(theme) => ({ ...backButtonSx(theme), ...draftButtonSx(theme) })}
       >
         {position === "top" || (isNarrowScreen && fixedOnMobile) ? <ArrowBackIcon /> : texts.cancel}
       </Button>
@@ -178,16 +174,20 @@ export default function NavigationButtons({
   );
 
   return (
-    <div
-      className={`${classes.navigationButtonWrapper} ${sticky ? classes.stickyCompact : ""} ${
-        className ?? ""
-      }`}
+    <NavigationButtonWrapper
+      className={className}
+      $position={position}
+      $fixedOnMobile={fixedOnMobile}
+      $sticky={sticky}
     >
       {onClickPreviousStep && (
         <Button
           variant="contained"
           color="grey"
-          className={`${classes.backButton} ${sticky ? classes.stickyBackButton : ""}`}
+          sx={(theme) => ({
+            ...backButtonSx(theme),
+            ...(sticky && { marginRight: "auto", flexShrink: 0 }),
+          })}
           onClick={onClickPreviousStep}
           aria-label={sticky && isMobileScreen ? texts.back : undefined}
         >
@@ -195,11 +195,7 @@ export default function NavigationButtons({
         </Button>
       )}
       {position === "top" && onClickCancel && <CancelButton />}
-      <div
-        className={`${classes.nextStepButtonsContainer} ${
-          sticky ? classes.stickyNextContainer : ""
-        }`}
-      >
+      <NextStepButtonsContainer $sticky={sticky}>
         {onClickCancel && position !== "top" && <CancelButton />}
         {additionalButtons &&
           additionalButtons.map((b, index) => (
@@ -209,7 +205,7 @@ export default function NavigationButtons({
               color={(b.color as any) || "grey"}
               onClick={b.onClick}
               aria-label={fixedOnMobile && isNarrowScreen ? b.ariaLabel : undefined}
-              className={`${!b.color ? classes.backButton : ""} ${classes.draftButton}`}
+              sx={(theme) => ({ ...(!b.color && backButtonSx(theme)), ...draftButtonSx(theme) })}
             >
               {fixedOnMobile && isNarrowScreen ? <b.icon /> : b.text}
             </Button>
@@ -219,11 +215,11 @@ export default function NavigationButtons({
             variant="contained"
             color="grey"
             onClick={saveAsDraft}
-            className={`${classes.backButton} ${classes.draftButton}`}
+            sx={(theme) => ({ ...backButtonSx(theme), ...draftButtonSx(theme) })}
             disabled={loadingSubmitDraft || loadingSubmit}
           >
             {loadingSubmitDraft ? (
-              <CircularProgress className={classes.translationLoader} size={23} />
+              <CircularProgress sx={{ color: "white" }} size={23} />
             ) : (
               texts.save_as_draft
             )}
@@ -240,9 +236,9 @@ export default function NavigationButtons({
             isNarrowScreen={isNarrowScreen}
           />
         )}
-      </div>
+      </NextStepButtonsContainer>
       {fixedOnMobile && isMobileScreen && onClickCancel && additionalButtons.length > 1 && (
-        <div className={classes.publishButtonOwnLine}>
+        <PublishButtonOwnLine>
           <NextButtons
             nextStepButtonType={nextStepButtonType}
             onClickNextStep={onClickNextStep}
@@ -252,9 +248,9 @@ export default function NavigationButtons({
             fixedOnMobile={fixedOnMobile}
             isNarrowScreen={isNarrowScreen}
           />
-        </div>
+        </PublishButtonOwnLine>
       )}
-    </div>
+    </NavigationButtonWrapper>
   );
 }
 
@@ -267,7 +263,6 @@ function NextButtons({
   fixedOnMobile,
   isNarrowScreen,
 }) {
-  const classes = useStyles({});
   if (nextStepButtonType === "submit")
     return (
       <Button variant="contained" color="primary" type="submit">
@@ -288,11 +283,7 @@ function NextButtons({
         type="submit"
         disabled={loadingSubmit || loadingSubmitDraft}
       >
-        {loadingSubmit ? (
-          <CircularProgress className={classes.translationLoader} size={23} />
-        ) : (
-          texts.publish
-        )}
+        {loadingSubmit ? <CircularProgress sx={{ color: "white" }} size={23} /> : texts.publish}
       </Button>
     );
   else

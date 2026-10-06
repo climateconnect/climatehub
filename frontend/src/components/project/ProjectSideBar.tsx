@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, IconButton, Typography, Divider } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { styled } from "@mui/material/styles";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import ProjectPreviews from "./ProjectPreviews";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -10,47 +10,29 @@ import MenuIcon from "@mui/icons-material/Menu";
 import HubSupporters from "../hub/HubSupporters";
 import { getWasseraktionswochenUrl } from "../../../public/data/wasseraktionswochen_config.js";
 
-type useStylesProps = {
-  isSmallScreen: boolean;
-};
+const SubHeader = styled(Typography)(({ theme }) => ({
+  fontWeight: "bold",
+  marginBottom: theme.spacing(1),
+}));
 
-const useStyles = makeStyles((theme) => ({
-  projectCard: {
-    maxWidth: 290,
-    maxHeight: 320,
-  },
+const StyledDivider = styled(Divider)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+}));
 
-  smallSimilarProjectsContainer: {
-    display: "flex",
-    alignItems: "center",
-    flexDirection: "column",
-  },
-  subHeader: {
-    fontWeight: "bold",
-    marginBottom: theme.spacing(1),
-  },
-  divider: {
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-  },
-
-  largeSimilarProjectsContainer: {
-    display: "flex",
-    alignItems: "center",
-    flexDirection: "column",
+const SimilarProjectsContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isSmallScreen",
+})<{ $isSmallScreen: boolean }>(({ theme, $isSmallScreen }) => ({
+  display: "flex",
+  alignItems: "center",
+  flexDirection: "column",
+  ...(!$isSmallScreen && {
     borderRadius: 10,
     backgroundColor: "#f0f2f5",
     maxWidth: "100%",
-  },
-  showAllProjectsButton: (props: useStylesProps) => ({
-    marginBottom: props.isSmallScreen ? theme.spacing(0) : theme.spacing(1),
-    marginTop: props.isSmallScreen ? theme.spacing(0) : theme.spacing(1),
-    fontSize: props.isSmallScreen ? 14 : 12,
-    width: props.isSmallScreen ? "100%" : "95%",
-    color: theme.palette.background.default_contrastText,
-    borderColor: theme.palette.background.default_contrastText,
   }),
-  supporterSliderWidth: {
+  // static class name passed to HubSupporters' `containerClass`
+  "& .ProjectSideBar-supporterSlider": {
     width: "95%",
     marginTop: "8px",
     marginBottom: theme.spacing(2),
@@ -58,9 +40,21 @@ const useStyles = makeStyles((theme) => ({
       marginLeft: 0,
     },
   },
-  expandButton: {
-    color: theme.palette.background.default_contrastText,
-  },
+}));
+
+const ExpandButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const ShowAllProjectsButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "$isSmallScreen",
+})<{ $isSmallScreen: boolean }>(({ theme, $isSmallScreen }) => ({
+  marginBottom: $isSmallScreen ? theme.spacing(0) : theme.spacing(1),
+  marginTop: $isSmallScreen ? theme.spacing(0) : theme.spacing(1),
+  fontSize: $isSmallScreen ? 14 : 12,
+  width: $isSmallScreen ? "100%" : "95%",
+  color: theme.palette.background.default_contrastText,
+  borderColor: theme.palette.background.default_contrastText,
 }));
 
 export default function ProjectSideBar({
@@ -77,9 +71,6 @@ export default function ProjectSideBar({
   registeredEventSlugs,
   hubUrl,
 }) {
-  const classes = useStyles({
-    isSmallScreen: isSmallScreen,
-  });
   const link = getLocalePrefix(locale) + "/browse";
   const shouldDisplayOneProjectInRow = !isSmallScreen;
 
@@ -102,15 +93,10 @@ export default function ProjectSideBar({
         <>
           {hasProjectsToDisplay && (
             <>
-              <Divider className={classes.divider} />
-              <Typography
-                component="h2"
-                variant="h6"
-                color="background.default_contrastText"
-                className={classes.subHeader}
-              >
+              <StyledDivider />
+              <SubHeader component="h2" variant="h6" color="background.default_contrastText">
                 {headerText}
-              </Typography>
+              </SubHeader>
             </>
           )}
         </>
@@ -123,24 +109,18 @@ export default function ProjectSideBar({
           )}
         </>
       )}
-      <div
-        className={
-          isSmallScreen
-            ? classes.smallSimilarProjectsContainer
-            : classes.largeSimilarProjectsContainer
-        }
-      >
+      <SimilarProjectsContainer $isSmallScreen={!!isSmallScreen}>
         {isSmallScreen && hasProjectsToDisplay && (
-          <Button className={classes.expandButton} onClick={handleHideContent}>
+          <ExpandButton onClick={handleHideContent}>
             {showSimilarProjects ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </Button>
+          </ExpandButton>
         )}
         {showSimilarProjects && (
           <>
             {hubSupporters && (
               <HubSupporters
                 supportersList={hubSupporters}
-                containerClass={classes.supporterSliderWidth}
+                containerClass="ProjectSideBar-supporterSlider"
                 mobileVersion={isSmallScreen}
                 hubName={hubName}
                 hubUrl={hubUrl}
@@ -156,19 +136,19 @@ export default function ProjectSideBar({
                   registeredEventSlugs={registeredEventSlugs}
                   analyticsSurface="similar_projects_sidebar"
                 />
-                <Button
+                <ShowAllProjectsButton
                   variant="outlined"
-                  className={classes.showAllProjectsButton}
+                  $isSmallScreen={!!isSmallScreen}
                   href={showAllLink}
                 >
                   <SearchIcon />
                   {showAllText}
-                </Button>
+                </ShowAllProjectsButton>
               </>
             )}
           </>
         )}
-      </div>
+      </SimilarProjectsContainer>
     </>
   );
 }

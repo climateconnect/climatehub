@@ -1,6 +1,5 @@
 import { Container, Tab, Tabs, Typography } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { Theme, styled } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import Cookies from "universal-cookie";
@@ -31,68 +30,62 @@ import EventRegistrationModal from "./EventRegistrationModal";
 import CancelRegistrationModal from "./CancelRegistrationModal";
 import ViewRegistrationAnswersModal from "./ViewRegistrationAnswersModal";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    root: {
-      textAlign: "center",
-      color: theme.palette.grey[800],
-      position: "relative",
-    },
+// The component renders no nested ThemeProvider, so the material theme is the same one the old
+// `makeStyles` hook saw.
+const Root = styled("div")(({ theme }) => ({
+  textAlign: "center",
+  color: theme.palette.grey[800],
+  position: "relative",
+}));
 
-    buttonText: {
-      color: theme.palette.primary.main,
-    },
+const TabsContainerWithoutPadding = styled(Container)(({ theme }) => ({
+  padding: 0,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  borderBottom: `1px solid ${theme.palette.grey[500]}`,
+}));
 
-    tabsContainerWithoutPadding: {
-      padding: 0,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      borderBottom: `1px solid ${theme.palette.grey[500]}`,
-    },
-    tabContent: {
-      padding: theme.spacing(2),
-      textAlign: "left",
-    },
-    dialogText: {
-      textAlign: "center",
-      margin: "0 auto",
-      display: "block",
-    },
-    tab: {
-      paddingLeft: theme.spacing(2),
-      paddingRight: theme.spacing(2),
-      width: 145,
-      whiteSpace: "nowrap",
-      [theme.breakpoints.down("sm")]: {
-        width: 125,
-      },
-      "&.Mui-selected": {
-        color: theme.palette.background.default_contrastText,
-      },
-    },
-    tabsIndicator: {
-      backgroundColor: theme.palette.background.default_contrastText,
-    },
-    projectInteractionButtonContainer: {
-      position: "relative",
-    },
-    shareButtonContainer: {},
-    calendarButtonContainer: {},
-    actionButtonsGroup: {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      paddingRight: theme.spacing(2),
-    },
+const TabContentContainer = styled(Container)(({ theme }) => ({
+  padding: theme.spacing(2),
+  textAlign: "left",
+}));
 
-    showAllProjectsButton: {
-      marginTop: theme.spacing(1),
-      fontSize: 14,
-      width: "100%",
-    },
-  };
+const DialogText = styled("span")({
+  textAlign: "center",
+  margin: "0 auto",
+  display: "block",
 });
+
+const StyledTab = styled(Tab)(({ theme }) => ({
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(2),
+  width: 145,
+  whiteSpace: "nowrap",
+  [theme.breakpoints.down("sm")]: {
+    width: 125,
+  },
+  "&.Mui-selected": {
+    color: theme.palette.background.default_contrastText,
+  },
+}));
+
+const StyledTabs = styled(Tabs)(({ theme }) => ({
+  "& .MuiTabs-indicator": {
+    backgroundColor: theme.palette.background.default_contrastText,
+  },
+}));
+
+const ProjectInteractionButtonContainer = styled(Container)({
+  position: "relative",
+});
+
+const ActionButtonsGroup = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+  paddingRight: theme.spacing(2),
+}));
 
 export default function ProjectPageRoot({
   project,
@@ -127,10 +120,6 @@ export default function ProjectPageRoot({
   const tabContentRef = useRef(null);
   const tabContentContainerSpaceToRight = ElementSpaceToRight({ el: tabContentRef.current });
   const { locale, pathName, user, ReactGA } = useContext(UserContext);
-  const classes = useStyles({
-    showSimilarProjects: showSimilarProjects,
-    locale: locale,
-  });
   const texts = getTexts({
     locale: locale,
     page: "project",
@@ -638,7 +627,7 @@ export default function ProjectPageRoot({
   };
 
   return (
-    <div className={classes.root}>
+    <Root>
       <ProjectOverview
         contactProjectCreatorButtonRef={contactProjectCreatorButtonRef}
         followers={followers}
@@ -672,40 +661,32 @@ export default function ProjectPageRoot({
         eventRegistration={currentEventRegistration}
       />
 
-      <Container className={classes.tabsContainerWithoutPadding}>
+      <TabsContainerWithoutPadding disableGutters>
         <div ref={projectTabsRef}>
-          <Tabs
+          <StyledTabs
             variant={screenSize.belowSmall ? "fullWidth" : "standard"}
             value={tabValue}
             onChange={handleTabChange}
-            classes={{ indicator: classes.tabsIndicator }}
           >
-            <Tab label={texts.project} className={classes.tab} />
-            {showRegistrationsTab && (
-              <Tab label={registrationsTabLabel()} className={classes.tab} />
-            )}
-            <Tab label={teamTabLabel()} className={classes.tab} />
-            <Tab label={discussionTabLabel()} className={classes.tab} />
-          </Tabs>
+            <StyledTab label={texts.project} />
+            {showRegistrationsTab && <StyledTab label={registrationsTabLabel()} />}
+            <StyledTab label={teamTabLabel()} />
+            <StyledTab label={discussionTabLabel()} />
+          </StyledTabs>
         </div>
 
         {!screenSize.belowSmall && (
-          <div className={classes.actionButtonsGroup}>
-            <ProjectAddToCalendarButton
-              className={classes.calendarButtonContainer}
-              project={project}
-              isUserRegistered={isUserRegistered}
-            />
+          <ActionButtonsGroup>
+            <ProjectAddToCalendarButton project={project} isUserRegistered={isUserRegistered} />
             <ProjectSocialMediaShareButton
-              className={classes.shareButtonContainer}
               project={project}
               projectAdmin={projectAdmin}
               hubUrl={hubPage}
             />
-          </div>
+          </ActionButtonsGroup>
         )}
-      </Container>
-      <Container className={classes.projectInteractionButtonContainer}>
+      </TabsContainerWithoutPadding>
+      <ProjectInteractionButtonContainer>
         <ProjectInteractionButtons
           screenSize={screenSize}
           project={project}
@@ -736,9 +717,9 @@ export default function ProjectPageRoot({
           onModifyRegistrationClick={openModifyRegistrationModal}
           eventRegistration={currentEventRegistration}
         />
-      </Container>
+      </ProjectInteractionButtonContainer>
 
-      <Container className={classes.tabContent} ref={tabContentRef}>
+      <TabContentContainer disableGutters ref={tabContentRef}>
         <TabContent value={tabValue} index={0}>
           <ProjectContent
             project={project}
@@ -798,17 +779,13 @@ export default function ProjectPageRoot({
             />
           </>
         )}
-      </Container>
+      </TabContentContainer>
 
       <ConfirmDialog
         open={confirmDialogOpen.follow}
         onClose={onFollowDialogClose}
         title={texts.do_you_really_want_to_unfollow}
-        text={
-          <span className={classes.dialogText}>
-            {texts.are_you_sure_that_you_want_to_unfollow_this_project}
-          </span>
-        }
+        text={<DialogText>{texts.are_you_sure_that_you_want_to_unfollow_this_project}</DialogText>}
         confirmText={texts.yes}
         cancelText={texts.no}
       />
@@ -816,11 +793,7 @@ export default function ProjectPageRoot({
         open={confirmDialogOpen.like}
         onClose={onLikeDialogClose}
         title={texts.do_you_really_want_to_dislike}
-        text={
-          <span className={classes.dialogText}>
-            {texts.are_you_sure_that_you_want_to_dislike_this_project}
-          </span>
-        }
+        text={<DialogText>{texts.are_you_sure_that_you_want_to_dislike_this_project}</DialogText>}
         confirmText={texts.yes}
         cancelText={texts.no}
       />
@@ -829,7 +802,7 @@ export default function ProjectPageRoot({
         onClose={onConfirmDialogClose}
         title={texts.do_you_really_want_to_leave_this_project}
         text={
-          <span className={classes.dialogText}>
+          <DialogText>
             {texts.are_you_sure_that_you_want_to_leave_this_project}
             <br />
             {texts.you_wont_be_part_of_the_team_anymore}
@@ -838,7 +811,7 @@ export default function ProjectPageRoot({
                 <b>{texts.you_are_the_only_member_of_this_project}</b>
               </Typography>
             )}
-          </span>
+          </DialogText>
         }
         confirmText={texts.yes}
         cancelText={texts.no}
@@ -883,7 +856,7 @@ export default function ProjectPageRoot({
           contactRole={texts.contact_person}
         />
       )}
-    </div>
+    </Root>
   );
 }
 

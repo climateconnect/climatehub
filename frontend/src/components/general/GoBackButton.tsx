@@ -1,5 +1,5 @@
-import { Button, IconButton, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Button, IconButton } from "@mui/material";
+import { styled, Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import { useRouter } from "next/router";
@@ -9,31 +9,32 @@ import {
   getWasseraktionswochenUrl,
 } from "../../../public/data/wasseraktionswochen_config.js";
 
-type StyleProps = {
-  hubSlug?: string;
-};
 const PRIO1_SLUG = "prio1";
 
-const useStyles = makeStyles<Theme, StyleProps>((theme: Theme) => ({
-  button: (props) => ({
-    color:
-      props.hubSlug === PRIO1_SLUG
-        ? theme.palette.background.default
-        : theme.palette.primary.contrastText,
-    height: 54,
-    [theme.breakpoints.down("sm")]: {
-      minWidth: 35,
-      maxWidth: 35,
-      minHeight: 35,
-      maxHeight: 35,
+const shouldForwardProp = (prop: PropertyKey) => typeof prop !== "string" || !prop.startsWith("$");
+
+const backButtonStyles = ({ theme, $hubSlug }: { theme: Theme; $hubSlug?: string }) => ({
+  color:
+    $hubSlug === PRIO1_SLUG ? theme.palette.background.default : theme.palette.primary.contrastText,
+  height: 54,
+  [theme.breakpoints.down("sm")]: {
+    minWidth: 35,
+    maxWidth: 35,
+    minHeight: 35,
+    maxHeight: 35,
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    "&:hover": {
       backgroundColor: theme.palette.primary.main,
-      color: theme.palette.primary.contrastText,
-      "&:hover": {
-        backgroundColor: theme.palette.primary.main,
-      },
     },
-  }),
-}));
+  },
+});
+
+const BackIconButton = styled(IconButton, { shouldForwardProp })<{ $hubSlug?: string }>(
+  backButtonStyles
+);
+
+const BackButton = styled(Button, { shouldForwardProp })<{ $hubSlug?: string }>(backButtonStyles);
 
 export default function GoBackButton({
   texts,
@@ -44,7 +45,6 @@ export default function GoBackButton({
   project,
   defaultBackUrl,
 }: any) {
-  const classes = useStyles({ hubSlug: hubSlug });
   const router = useRouter();
 
   const [backButtonText, setBackButtonText] = useState(texts.go_back);
@@ -124,18 +124,18 @@ export default function GoBackButton({
   if (tinyScreen)
     return (
       <div className={containerClassName}>
-        <IconButton onClick={goBack} className={classes.button} size="large">
+        <BackIconButton onClick={goBack} $hubSlug={hubSlug} size="large">
           {/*adjusted viewBox to center the icon*/}
           <ArrowBackIosIcon fontSize="small" viewBox="-4.5 0 24 24" />
-        </IconButton>
+        </BackIconButton>
       </div>
     );
   else
     return (
       <div className={containerClassName}>
-        <Button onClick={goBack} className={classes.button} startIcon={<ArrowBackIcon />}>
+        <BackButton onClick={goBack} $hubSlug={hubSlug} startIcon={<ArrowBackIcon />}>
           {backButtonText}
-        </Button>
+        </BackButton>
       </div>
     );
 }

@@ -1,49 +1,48 @@
-import { Theme, Tooltip } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Tooltip } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles<Theme, { rating?: any }>((theme) => ({
-  heartContainer: {
-    height: 40,
-    position: "relative",
-    width: 47,
-    marginLeft: theme.spacing(1.5),
-  },
-  heartIconContainer: {
-    position: "absolute",
-    left: 0,
-    height: 40,
-  },
-  heartIcon: {
-    height: "100%",
-    visibility: "hidden",
-  },
-  coloredHeartIconDisplayBox: (props) => ({
-    background: "url('/images/planet-earth-heart.svg')",
-    backgroundRepeat: "no-repeat",
-    backgroundSize: "100% auto",
-    backgroundPosition: "center bottom",
-    width: "100%",
-    height: `${props.rating}%`,
-    position: "absolute",
-    bottom: 0,
-  }),
-  greyHeartIconDisplayBox: (props) => ({
-    background: "url('/images/planet-earth-grey.svg')",
-    backgroundRepeat: "no-repeat",
-    backgroundSize: "100% auto",
-    backgroundPosition: "center top",
-    width: "100%",
-    height: `${100 - props.rating}%`,
-    position: "absolute",
-    top: 0,
-  }),
+const HeartContainer = styled("div")(({ theme }) => ({
+  height: 40,
+  position: "relative",
+  width: 47,
+  marginLeft: theme.spacing(1.5),
 }));
 
+const HeartIconContainer = styled("div")({
+  position: "absolute",
+  left: 0,
+  height: 40,
+});
+
+const HeartIcon = styled("img")({
+  height: "100%",
+  visibility: "hidden",
+});
+
+const ColoredHeartIconDisplayBox = styled("div")({
+  background: "url('/images/planet-earth-heart.svg')",
+  backgroundRepeat: "no-repeat",
+  backgroundSize: "100% auto",
+  backgroundPosition: "center bottom",
+  width: "100%",
+  position: "absolute",
+  bottom: 0,
+});
+
+const GreyHeartIconDisplayBox = styled("div")({
+  background: "url('/images/planet-earth-grey.svg')",
+  backgroundRepeat: "no-repeat",
+  backgroundSize: "100% auto",
+  backgroundPosition: "center top",
+  width: "100%",
+  position: "absolute",
+  top: 0,
+});
+
 export default function IdeaRatingIcon({ rating, number_of_ratings }) {
-  const classes = useStyles({ rating: rating });
   const { locale } = useContext(UserContext);
   const texts = getTexts({
     page: "idea",
@@ -63,24 +62,16 @@ export default function IdeaRatingIcon({ rating, number_of_ratings }) {
           : texts.nobody_has_rated_this_idea_yet
       }
     >
-      <div className={classes.heartContainer}>
-        <div className={`${classes.heartIconContainer} ${classes.greyHeartIconContainer}`}>
-          <div className={classes.greyHeartIconDisplayBox} />
-          <img
-            src={"/images/planet-earth-grey.svg"}
-            className={`${classes.heartIcon} ${classes.greyHeartIcon}`}
-            alt="planet grey icon"
-          />
-        </div>
-        <div className={`${classes.heartIconContainer} ${classes.coloredHeartIconContainer}`}>
-          <div className={classes.coloredHeartIconDisplayBox} />
-          <img
-            src={"/images/planet-earth-heart.svg"}
-            className={`${classes.heartIcon} ${classes.coloredHeartIcon}`}
-            alt="planet heart icon"
-          />
-        </div>
-      </div>
+      <HeartContainer>
+        <HeartIconContainer>
+          <GreyHeartIconDisplayBox style={{ height: `${100 - rating}%` }} />
+          <HeartIcon src={"/images/planet-earth-grey.svg"} alt="planet grey icon" />
+        </HeartIconContainer>
+        <HeartIconContainer>
+          <ColoredHeartIconDisplayBox style={{ height: `${rating}%` }} />
+          <HeartIcon src={"/images/planet-earth-heart.svg"} alt="planet heart icon" />
+        </HeartIconContainer>
+      </HeartContainer>
     </Tooltip>
   );
 }

@@ -6,7 +6,6 @@ import UserContext from "../context/UserContext";
 import Cookies from "universal-cookie";
 import getTexts from "../../../public/texts/texts";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 
 // Mock the Cookies class
@@ -23,17 +22,15 @@ const mockCloseBanner = jest.fn();
 const renderWithContext = (component) => {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider
-          value={{
-            updateCookies: mockUpdateCookies,
-            locale: "en",
-            // Add other necessary context values here
-          }}
-        >
-          {component}
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider
+        value={{
+          updateCookies: mockUpdateCookies,
+          locale: "en",
+          // Add other necessary context values here
+        }}
+      >
+        {component}
+      </UserContext.Provider>
     </ThemeProvider>
   );
 };

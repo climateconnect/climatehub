@@ -1,5 +1,5 @@
-import { Box, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Theme, useMediaQuery } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import GitHubIcon from "@mui/icons-material/GitHub";
@@ -12,83 +12,98 @@ import UserContext from "../context/UserContext";
 import SocialMediaButton from "../general/SocialMediaButton";
 import LargeFooter from "./LargeFooter";
 
-type StyleProps = {
-  textColor?: "string";
-};
-
-const useStyles = makeStyles<Theme, StyleProps>((theme: Theme) => ({
-  root: (props) => ({
-    padding: theme.spacing(2),
-    borderTop: props.textColor ? 0 : `1px solid ${theme.palette.grey[100]}`,
-    width: "100%",
-    zIndex: "9",
-    color: props.textColor ? props.textColor : "inherit",
-  }),
-  absolutePosition: {
-    position: "absolute",
-    bottom: 0,
-  },
-  relativePosition: {
-    position: "fixed",
-    bottom: 0,
-    backgroundColor: "#FFFFFF",
-    height: "49px",
-  },
-  spacingTop: {
+const FooterRoot = styled("footer", {
+  shouldForwardProp: (p) =>
+    p !== "textColor" &&
+    p !== "noSpacingTop" &&
+    p !== "noAbsolutePosition" &&
+    p !== "showOnScrollUp",
+})<{
+  textColor?: string;
+  noSpacingTop?: boolean;
+  noAbsolutePosition?: boolean;
+  showOnScrollUp?: boolean;
+}>(({ theme, textColor, noSpacingTop, noAbsolutePosition, showOnScrollUp }) => ({
+  padding: theme.spacing(2),
+  borderTop: textColor ? 0 : `1px solid ${theme.palette.grey[100]}`,
+  width: "100%",
+  zIndex: "9",
+  color: textColor ? textColor : "inherit",
+  ...(!noAbsolutePosition &&
+    (showOnScrollUp === true
+      ? {
+          position: "fixed",
+          bottom: 0,
+          backgroundColor: "#FFFFFF",
+          height: "49px",
+        }
+      : {
+          position: "absolute",
+          bottom: 0,
+        })),
+  ...(!noSpacingTop && {
     marginTop: theme.spacing(2),
-  },
-  flexContainer: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "column",
-    },
-  },
-  centerText: {
-    display: "flex",
-    alignItems: "center",
-    textAlign: "center",
-    margin: "0 auto",
-  },
-  rightBox: {
-    marginLeft: "auto",
-    display: "flex",
-    alignItems: "center",
-    [theme.breakpoints.down("md")]: {
-      marginLeft: 0,
-      marginTop: theme.spacing(1),
-      marginBottom: theme.spacing(2),
-    },
-  },
-  leftBox: {
-    marginRight: "auto",
-    [theme.breakpoints.down("md")]: {
-      marginRight: 0,
-      marginBottom: theme.spacing(1),
-    },
-  },
+  }),
+}));
 
-  inheritColor: {
-    color: "inherit",
-  },
-  heart: {
-    color: "red",
-    marginLeft: theme.spacing(0.5),
-    marginRight: theme.spacing(0.5),
-  },
-  earth: {
-    color: "blue",
-    marginLeft: theme.spacing(1),
-    height: 20,
-  },
-  link: {
-    marginRight: theme.spacing(1),
-  },
-  customFooterImage: {
-    height: 100,
+const FlexContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  [theme.breakpoints.down("md")]: {
+    flexDirection: "column",
   },
 }));
+
+const CenterText = styled("span")({
+  display: "flex",
+  alignItems: "center",
+  textAlign: "center",
+  margin: "0 auto",
+});
+
+const RightBox = styled("span")(({ theme }) => ({
+  marginLeft: "auto",
+  display: "flex",
+  alignItems: "center",
+  [theme.breakpoints.down("md")]: {
+    marginLeft: 0,
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(2),
+  },
+}));
+
+const LeftBox = styled("div")(({ theme }) => ({
+  marginRight: "auto",
+  [theme.breakpoints.down("md")]: {
+    marginRight: 0,
+    marginBottom: theme.spacing(1),
+  },
+}));
+
+const InheritColorSpan = styled("span")({
+  color: "inherit",
+});
+
+const LinkSpan = styled(InheritColorSpan)(({ theme }) => ({
+  marginRight: theme.spacing(1),
+}));
+
+const Heart = styled(FavoriteIcon)(({ theme }) => ({
+  color: "red",
+  marginLeft: theme.spacing(0.5),
+  marginRight: theme.spacing(0.5),
+}));
+
+const Earth = styled("img")(({ theme }) => ({
+  color: "blue",
+  marginLeft: theme.spacing(1),
+  height: 20,
+}));
+
+const CustomFooterImage = styled("img")({
+  height: 100,
+});
 
 //TODO: make footer stay on bottom on normal layout again
 export default function Footer({
@@ -122,7 +137,6 @@ const SmallFooter = ({
   customFooterImage,
   textColor,
 }) => {
-  const classes = useStyles({ textColor: textColor });
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "navigation", locale: locale });
@@ -154,39 +168,35 @@ const SmallFooter = ({
   ];
 
   return (
-    <Box
-      component="footer"
-      className={`${className} ${classes.root} ${!noSpacingTop && classes.spacingTop} ${
-        !noAbsolutePosition &&
-        (showOnScrollUp === true ? classes.relativePosition : classes.absolutePosition)
-      }`}
+    <FooterRoot
+      className={className}
+      textColor={textColor}
+      noSpacingTop={noSpacingTop}
+      noAbsolutePosition={noAbsolutePosition}
+      showOnScrollUp={showOnScrollUp}
     >
-      <Box className={classes.flexContainer}>
-        <Box className={classes.leftBox}>
+      <FlexContainer>
+        <LeftBox>
           <AppLink href="/imprint" leaveHub color="inherit" underline="hover">
-            <span className={`${classes.inheritColor} ${classes.link}`}>{texts.imprint}</span>
+            <LinkSpan>{texts.imprint}</LinkSpan>
           </AppLink>
           <AppLink href="/privacy" leaveHub color="inherit" underline="hover">
-            <span className={`${classes.inheritColor} ${classes.link}`}>{texts.privacy}</span>
+            <LinkSpan>{texts.privacy}</LinkSpan>
           </AppLink>
           <AppLink href="/terms" leaveHub color="inherit" underline="hover">
-            <span className={classes.inheritColor}>{texts.terms}</span>
+            <InheritColorSpan>{texts.terms}</InheritColorSpan>
           </AppLink>
-        </Box>
+        </LeftBox>
         {!isNarrowScreen && (
-          <Box component="span" className={classes.centerText}>
+          <CenterText>
             {customFooterImage ? (
-              <img
-                src={customFooterImage}
-                className={classes.customFooterImage}
-                alt="custom footer"
-              />
+              <CustomFooterImage src={customFooterImage} alt="custom footer" />
             ) : (
               <MadeWithLoveForEarthSign />
             )}
-          </Box>
+          </CenterText>
         )}
-        <Box component="span" className={classes.rightBox}>
+        <RightBox>
           {socialMediaLinks.map((sml, index) => (
             <SocialMediaButton
               key={index}
@@ -196,20 +206,18 @@ const SmallFooter = ({
               isFooterIcon={sml.isFooterIcon}
             />
           ))}
-        </Box>
-      </Box>
-    </Box>
+        </RightBox>
+      </FlexContainer>
+    </FooterRoot>
   );
 };
 
 const MadeWithLoveForEarthSign = () => {
-  const classes = useStyles({});
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "navigation", locale: locale });
   return (
     <>
-      Made with <FavoriteIcon className={classes.heart} /> for{" "}
-      <img className={classes.earth} src="/images/earth.svg" alt={texts.picture_of_our_earth} />
+      Made with <Heart /> for <Earth src="/images/earth.svg" alt={texts.picture_of_our_earth} />
     </>
   );
 };

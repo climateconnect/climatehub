@@ -1,41 +1,35 @@
 import React from "react";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import InsertInvitationIcon from "@mui/icons-material/InsertInvitation";
 import GroupIcon from "@mui/icons-material/Group";
 import SubTitleWithContent from "../general/SubTitleWithContent";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    textAlign: "center",
-    marginTop: theme.spacing(4),
-  },
-  selectContainer: {
-    display: "flex",
-    flexDirection: "row",
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "column",
-    },
-  },
-  getInvolvedContainer: {
-    display: "flex",
+const SelectContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "row",
+  [theme.breakpoints.down("md")]: {
     flexDirection: "column",
-    marginRight: theme.spacing(10),
-    [theme.breakpoints.down("md")]: {
-      marginRight: theme.spacing(0),
-    },
   },
-  sizeContainer: {
-    display: "flex",
-    flexDirection: "column",
-    [theme.breakpoints.down("md")]: {
-      marginRight: theme.spacing(0),
-    },
+}));
+
+const GetInvolvedContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  marginRight: theme.spacing(10),
+  [theme.breakpoints.down("md")]: {
+    marginRight: theme.spacing(0),
+  },
+}));
+
+const SizeContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  [theme.breakpoints.down("md")]: {
+    marginRight: theme.spacing(0),
   },
 }));
 
 export default function SelectWithText({ types, info }) {
-  const classes = useStyles();
-
   const hideGetInvolvedField =
     types.map((type) => type.hide_get_involved).includes(true) || types.length === 0;
 
@@ -46,26 +40,26 @@ export default function SelectWithText({ types, info }) {
   const getInvolvedValue = info?.value.get_involved;
 
   return (
-    <div className={classes.selectContainer}>
+    <SelectContainer>
       {!hideGetInvolvedField && getInvolvedValue && (
-        <div className={classes.getInvolvedContainer}>
+        <GetInvolvedContainer>
           <SubTitleWithContent
             subTitleIcon={{ icon: InsertInvitationIcon }}
             subtitle={getInvolvedLabel}
             content={getInvolvedValue}
           />
-        </div>
+        </GetInvolvedContainer>
       )}
 
       {orgSizeValue && (
-        <div className={classes.sizeContainer}>
+        <SizeContainer>
           <SubTitleWithContent
             subTitleIcon={{ icon: GroupIcon }}
             subtitle={orgSizeLabel}
             content={orgSizeValue}
           />
-        </div>
+        </SizeContainer>
       )}
-    </div>
+    </SelectContainer>
   );
 }

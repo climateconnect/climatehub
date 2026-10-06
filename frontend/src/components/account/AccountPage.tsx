@@ -1,5 +1,5 @@
-import { Button, Chip, Container, Divider, Link, Theme, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Button, Chip, Container, Divider, Link, Tooltip, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import PlaceIcon from "@mui/icons-material/Place";
 import React, { Fragment, useContext, useEffect, useState } from "react";
 import Linkify from "react-linkify";
@@ -28,146 +28,149 @@ import SelectWithText from "./SelectWithText";
 import SubTitleWithContent from "../general/SubTitleWithContent";
 import { UserAvatar } from "./UserAvatar";
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  avatarContainer: {
-    [theme.breakpoints.up("sm")]: {
-      marginRight: theme.spacing(5),
-      marginLeft: theme.spacing(5),
-    },
-    marginTop: theme.spacing(-11),
-    marginBottom: theme.spacing(2),
+const noTransient = (prop: PropertyKey) => !(typeof prop === "string" && prop.startsWith("$"));
+
+const AvatarContainer = styled("div")(({ theme }) => ({
+  [theme.breakpoints.up("sm")]: {
+    marginRight: theme.spacing(5),
+    marginLeft: theme.spacing(5),
+  },
+  marginTop: theme.spacing(-11),
+  marginBottom: theme.spacing(2),
+  display: "inline-block",
+}));
+
+const AvatarWithInfo = styled(Container)(({ theme }) => ({
+  textAlign: "center",
+  width: theme.spacing(40),
+  margin: "0 auto",
+  [theme.breakpoints.up("sm")]: {
+    margin: 0,
+    marginLeft: theme.spacing(-5),
     display: "inline-block",
-  },
-  avatarWithInfo: {
-    textAlign: "center",
-    width: theme.spacing(40),
-    margin: "0 auto",
-    [theme.breakpoints.up("sm")]: {
-      margin: 0,
-      marginLeft: theme.spacing(-5),
-      display: "inline-block",
-      width: "auto",
-    },
-  },
-  accountInfo: (props) => ({
-    padding: 0,
-    marginTop: theme.spacing(1),
-    marginRight: props.isOwnAccount ? theme.spacing(0.5) : 0,
-  }),
-  editButtonWrapper: {
-    flex: "1 0 auto",
-  },
-  name: {
-    fontWeight: "bold",
-    padding: theme.spacing(1),
-    paddingLeft: 0,
-    paddingRight: 0,
-    wordBreak: "break-word",
-  },
-  subtitle: {
-    fontWeight: "bold",
-    wordBreak: "break-word",
-  },
-  content: {
-    paddingBottom: theme.spacing(2),
-    // color: `${theme.palette.secondary.main}`,
-    fontSize: 16,
-    wordBreak: "break-word",
-  },
-  noPadding: {
-    padding: 0,
-  },
-  infoContainer: {
-    [theme.breakpoints.up("sm")]: {
-      display: "flex",
-      alignItems: "center",
-    },
-    position: "relative",
-  },
-  noprofile: {
-    textAlign: "center",
-    padding: theme.spacing(5),
-  },
-  marginTop: {
-    marginTop: theme.spacing(1),
-  },
-  marginBottom: {
-    marginBottom: theme.spacing(1),
-  },
-  marginRight: {
-    marginRight: theme.spacing(0.5),
-  },
-  chip: {
-    marginBottom: theme.spacing(1),
-    marginRight: theme.spacing(1),
-  },
-  editButton: {
-    position: "relative",
-    cursor: "pointer",
-    color: theme.palette.background.default_contrastText,
-    width: "35px",
-    height: "35px",
-    marginRight: theme.spacing(0.5),
-    backgroundColor: "white",
-    "&:hover": {
-      backgroundColor: "white",
-    },
-    borderRadius: "50%",
-    padding: "5px",
-    left: "0",
-  },
-  infoIcon: {
-    marginBottom: -4,
-    color: theme.palette.background.default_contrastText,
-  },
-  innerIcon: {
-    marginRight: theme.spacing(0.5),
-    marginLeft: -theme.spacing(1),
-  },
-  detailledDescription: {
-    marginTop: theme.spacing(3),
-    marginBottom: theme.spacing(3),
-  },
-  shareButtonContainer: {
-    position: "relative",
-    right: "0",
-  },
-  smallIconContainer: {
-    position: "absolute",
     width: "auto",
-    display: "flex",
-    justifyContent: "space-between",
-    marginRight: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    right: "0%",
-    bottom: "0%",
   },
-  subOrgContainer: {
+}));
+
+const AccountInfo = styled(Container, {
+  shouldForwardProp: noTransient,
+})<{ $isOwnAccount?: boolean }>(({ theme, $isOwnAccount }) => ({
+  padding: 0,
+  marginTop: theme.spacing(1),
+  marginRight: $isOwnAccount ? theme.spacing(0.5) : 0,
+}));
+
+const EditButtonWrapper = styled("div")({
+  flex: "1 0 auto",
+});
+
+const Name = styled(Typography)(({ theme }) => ({
+  fontWeight: "bold",
+  padding: theme.spacing(1),
+  paddingLeft: 0,
+  paddingRight: 0,
+  wordBreak: "break-word",
+}));
+
+const Subtitle = styled("div")({
+  fontWeight: "bold",
+  wordBreak: "break-word",
+});
+
+// subtitle + subOrgContainer
+const ParentOrganizationContainer = styled("div")({
+  fontWeight: "bold",
+  wordBreak: "break-word",
+  display: "flex",
+  alignItems: "center",
+});
+
+const Content = styled("div")(({ theme }) => ({
+  paddingBottom: theme.spacing(2),
+  // color: `${theme.palette.secondary.main}`,
+  fontSize: 16,
+  wordBreak: "break-word",
+}));
+
+const NoPaddingContainer = styled(Container)({
+  padding: 0,
+});
+
+const InfoContainer = styled(Container)(({ theme }) => ({
+  [theme.breakpoints.up("sm")]: {
     display: "flex",
     alignItems: "center",
   },
-  isSubOrgText: {
-    marginRight: theme.spacing(1),
-  },
-  miniOrgPreview: {
-    display: "flex",
-  },
-  sizeContainer: {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-  },
-  getInvolvedContainer: {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    marginRight: theme.spacing(1),
-  },
-  selectContainer: {
-    display: "flex",
-    flexDirection: "row",
-  },
+  position: "relative",
 }));
+
+const MarginTopDivider = styled(Divider)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const MarginBottom = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+}));
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+  marginRight: theme.spacing(1),
+}));
+
+const EditButton = styled(IconButton)(({ theme }) => ({
+  position: "relative",
+  cursor: "pointer",
+  color: theme.palette.background.default_contrastText,
+  width: "35px",
+  height: "35px",
+  marginRight: theme.spacing(0.5),
+  backgroundColor: "white",
+  "&:hover": {
+    backgroundColor: "white",
+  },
+  borderRadius: "50%",
+  padding: "5px",
+  left: "0",
+}));
+
+const InfoIcon = styled(PlaceIcon)(({ theme }) => ({
+  marginBottom: -4,
+  color: theme.palette.background.default_contrastText,
+}));
+
+const InnerIcon = styled(EditSharpIcon)(({ theme }) => ({
+  marginRight: theme.spacing(0.5),
+  marginLeft: -theme.spacing(1),
+}));
+
+const StyledDetailledDescription = styled(DetailledDescription)(({ theme }) => ({
+  marginTop: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+}));
+
+const StyledShareButton = styled(SocialMediaShareButton)({
+  position: "relative",
+  right: "0",
+});
+
+const SmallIconContainer = styled("div")(({ theme }) => ({
+  position: "absolute",
+  width: "auto",
+  display: "flex",
+  justifyContent: "space-between",
+  marginRight: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  right: "0%",
+  bottom: "0%",
+}));
+
+const IsSubOrgText = styled(Typography)(({ theme }) => ({
+  marginRight: theme.spacing(1),
+}));
+
+const StyledMiniOrganizationPreview = styled(MiniOrganizationPreview)({
+  display: "flex",
+});
 
 //Generic component to display personal profiles or organization profiles
 export default function AccountPage({
@@ -189,7 +192,6 @@ export default function AccountPage({
   hubUrl,
 }) {
   const { locale, user } = useContext(UserContext);
-  const classes = useStyles({ isOwnAccount: isOwnAccount });
   const token = new Cookies().get("auth_token");
   const texts = getTexts({ page: "profile", locale: locale });
   const organizationTexts = isOrganization
@@ -299,16 +301,12 @@ export default function AccountPage({
   const renderParentOrganization = (value: any, index: number) => {
     if (!value.name) return null;
     return (
-      <div key={index} className={`${classes.subtitle} ${classes.subOrgContainer}`}>
-        <Typography className={classes.isSubOrgText}>
+      <ParentOrganizationContainer key={index}>
+        <IsSubOrgText>
           {account.name} {texts.is_a_suborganization_of}{" "}
-        </Typography>
-        <MiniOrganizationPreview
-          className={classes.miniOrgPreview}
-          organization={value}
-          size="tiny"
-        />
-      </div>
+        </IsSubOrgText>
+        <StyledMiniOrganizationPreview organization={value} size="tiny" />
+      </ParentOrganizationContainer>
     );
   };
 
@@ -319,25 +317,21 @@ export default function AccountPage({
       infoItem.value.length === 1 ? texts.suborganization_of : texts.suborganizations_of;
 
     return (
-      <div key={index} className={classes.subtitle}>
-        <Typography className={classes.isSubOrgText}>
+      <Subtitle key={index}>
+        <IsSubOrgText>
           {subOrgLabel} {account.name}:
-        </Typography>
+        </IsSubOrgText>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", alignItems: "left" }}>
           {infoItem.value.map((org, orgIndex) => (
             <Fragment key={org.id}>
               {orgIndex > 0 && <span style={{ flexShrink: 0 }}>,</span>}
               <div style={{ flexShrink: 0 }}>
-                <MiniOrganizationPreview
-                  className={classes.miniOrgPreview}
-                  organization={org}
-                  size="tiny"
-                />
+                <StyledMiniOrganizationPreview organization={org} size="tiny" />
               </div>
             </Fragment>
           ))}
         </div>
-      </div>
+      </Subtitle>
     );
   };
 
@@ -368,22 +362,14 @@ export default function AccountPage({
         if (infoElement.type === "array" && infoElement?.value?.length > 0) {
           return (
             <div key={index}>
-              <div className={classes.subtitle}>{infoElement.name}:</div>
-              <div className={classes.marginBottom}>
+              <Subtitle>{infoElement.name}:</Subtitle>
+              <MarginBottom>
                 {infoElement && infoElement.value && infoElement.value.length > 0
                   ? infoElement.value.map((entry) => (
-                      <Chip
-                        size="medium"
-                        color="secondary"
-                        label={entry}
-                        key={entry}
-                        className={classes.chip}
-                      />
+                      <StyledChip size="medium" color="secondary" label={entry} key={entry} />
                     ))
-                  : infoElement.missingMessage && (
-                      <div className={classes.content}>{infoElement.missingMessage}</div>
-                    )}
-              </div>
+                  : infoElement.missingMessage && <Content>{infoElement.missingMessage}</Content>}
+              </MarginBottom>
             </div>
           );
         }
@@ -391,9 +377,9 @@ export default function AccountPage({
         if (infoElement.linkify && value) {
           return (
             <Fragment key={index}>
-              <div className={classes.subtitle}>{infoElement.name}:</div>
+              <Subtitle>{infoElement.name}:</Subtitle>
               <Linkify componentDecorator={componentDecorator}>
-                <div className={classes.content}>{value}</div>
+                <Content>{value}</Content>
               </Linkify>
             </Fragment>
           );
@@ -401,20 +387,18 @@ export default function AccountPage({
 
         if (infoElement.type === "bio" && value) {
           return (
-            <div key={index} className={classes.content}>
+            <Content key={index}>
               <MessageContent
                 content={value ? value + additionalText : infoElement.missingMessage}
               />
-            </div>
+            </Content>
           );
         }
 
         if (infoElement.type === "sectors") {
           return (
             <Fragment key={index}>
-              {infoElement.value.length > 0 && (
-                <div className={classes.subtitle}>{infoElement.name}:</div>
-              )}
+              {infoElement.value.length > 0 && <Subtitle>{infoElement.name}:</Subtitle>}
 
               <SectorsPreview sectors={infoElement.value} />
             </Fragment>
@@ -469,7 +453,7 @@ export default function AccountPage({
   const locationAdditionalText = location?.additionalText ? location.additionalText : "";
 
   return (
-    <Container maxWidth="lg" className={classes.noPadding}>
+    <NoPaddingContainer disableGutters maxWidth="lg">
       <div
         style={{
           background: `url(${
@@ -482,15 +466,14 @@ export default function AccountPage({
           position: "relative",
         }}
       >
-        <div className={classes.smallIconContainer}>
+        <SmallIconContainer>
           {isOwnAccount && isSmallScreen && (
-            <IconButton href={editHref} className={classes.editButton} size="large">
+            <EditButton href={editHref} size="large">
               <EditSharpIcon />
-            </IconButton>
+            </EditButton>
           )}
           {isOrganization && (
-            <SocialMediaShareButton
-              className={classes.shareButtonContainer}
+            <StyledShareButton
               contentLinkPath={`${getLocalePrefix(locale)}/organizations/${account.url_slug}`}
               apiEndpoint={`/api/organizations/${account.url_slug}/set_shared_organization/`}
               messageTitle={`${organizationTexts.climate_protection_organization}${account.name}`}
@@ -501,11 +484,11 @@ export default function AccountPage({
               hubUrl={hubUrl}
             />
           )}
-        </div>
+        </SmallIconContainer>
       </div>
-      <Container className={classes.infoContainer}>
-        <Container className={classes.avatarWithInfo}>
-          <div className={classes.avatarContainer}>
+      <InfoContainer>
+        <AvatarWithInfo>
+          <AvatarContainer>
             {account.badges?.length > 0 ? (
               <ProfileBadge badge={account.badges[0]}>
                 <UserAvatar mode={"read"} imageUrl={account.image} alternativeText={account.name} />
@@ -513,26 +496,24 @@ export default function AccountPage({
             ) : (
               <UserAvatar mode={"read"} imageUrl={account.image} alternativeText={account.name} />
             )}
-          </div>
-          <Typography variant="h5" className={classes.name}>
-            {account.name}
-          </Typography>
+          </AvatarContainer>
+          <Name variant="h5">{account.name}</Name>
           {location && (
             <div>
-              <div className={classes.content}>
+              <Content>
                 <Tooltip title="Location">
-                  <PlaceIcon color="primary" className={classes.infoIcon} />
+                  <InfoIcon color="primary" />
                 </Tooltip>
                 {location ? location + locationAdditionalText : location.missingMessage}
-              </div>
+              </Content>
             </div>
           )}
           {account.types && (
-            <Container className={classes.noPadding}>
+            <NoPaddingContainer disableGutters>
               {account.types.map((type) => (
-                <Chip label={type.name} color="secondary" key={type.key} className={classes.chip} />
+                <StyledChip label={type.name} color="secondary" key={type.key} />
               ))}
-            </Container>
+            </NoPaddingContainer>
           )}
           {isOrganization && (
             <>
@@ -550,23 +531,23 @@ export default function AccountPage({
                 toolTipPlacement="bottom"
               />
 
-              <Typography className={classes.followInfo}>
-                {organizationTexts.follow_this_organization_for_updates}
-              </Typography>
+              <Typography>{organizationTexts.follow_this_organization_for_updates}</Typography>
             </>
           )}
-        </Container>
+        </AvatarWithInfo>
 
-        <Container className={classes.accountInfo}>{displayAccountInfo(account.info)}</Container>
+        <AccountInfo disableGutters $isOwnAccount={!!isOwnAccount}>
+          {displayAccountInfo(account.info)}
+        </AccountInfo>
         {isOwnAccount && !isSmallScreen && (
-          <div className={classes.editButtonWrapper}>
+          <EditButtonWrapper>
             <Button variant="contained" color="primary" href={editHref}>
-              <EditSharpIcon className={classes.innerIcon} />
+              <InnerIcon />
               {editText ? editText : texts.edit_profile}
             </Button>
-          </div>
+          </EditButtonWrapper>
         )}
-      </Container>
+      </InfoContainer>
       <FollowersDialog
         open={showFollowers}
         loading={!initiallyCaughtFollowers}
@@ -593,18 +574,17 @@ export default function AccountPage({
         confirmText={organizationTexts.yes}
         cancelText={organizationTexts.no}
       />
-      <Divider className={classes.marginTop} />
+      <MarginTopDivider />
       {detailedDescription?.value && (
         <Container>
-          <DetailledDescription
+          <StyledDetailledDescription
             title={detailedDescription.name}
             value={detailedDescription.value}
-            className={classes.detailledDescription}
           />
         </Container>
       )}
       {children}
-    </Container>
+    </NoPaddingContainer>
   );
 }
 

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Container, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import getFilters from "../../../public/data/possibleFilters";
 import { getActiveFilterCount } from "../../../public/lib/filterOperations";
 import { FilterContext } from "../context/FilterContext";
@@ -16,28 +16,29 @@ import { BrowseEntity } from "../../types";
 
 const FilterSection = lazy(() => import("../indexPage/FilterSection"));
 
-const useStyles = makeStyles((theme) => ({
-  // The container provides 24px horizontal padding on each side and a
-  // sensible max-width (1200px on `lg`). When nested inside another
-  // width-constrained Container (e.g. `HubPageLayout`), MUI's Container
-  // still applies its own padding — so the parent Container must not
-  // also add horizontal padding, or we'd get double padding. See
-  // `HubPageLayout` for the matching `disableGutters` on its outer
-  // Container.
-  contentContainer: {
-    paddingLeft: 24,
-    paddingRight: 24,
-    paddingTop: theme.spacing(4),
-    position: "relative",
-    [theme.breakpoints.down("md")]: {
-      paddingTop: theme.spacing(2),
-    },
+// The container provides 24px horizontal padding on each side and a
+// sensible max-width (1200px on `lg`). When nested inside another
+// width-constrained Container (e.g. `HubPageLayout`), MUI's Container
+// still applies its own padding — so the parent Container must not
+// also add horizontal padding, or we'd get double padding. See
+// `HubPageLayout` for the matching `disableGutters` on its outer
+// Container.
+const ContentContainer = styled(Container)(({ theme }) => ({
+  paddingLeft: 24,
+  paddingRight: 24,
+  paddingTop: theme.spacing(4),
+  position: "relative",
+  [theme.breakpoints.down("md")]: {
+    paddingTop: theme.spacing(2),
   },
-  tabContent: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    paddingLeft: theme.spacing(1),
-  },
+}));
+
+const TabContent = styled(
+  FilterContent as React.ComponentType<Partial<React.ComponentProps<typeof FilterContent>>>
+)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  paddingLeft: theme.spacing(1),
 }));
 
 type Props = {
@@ -83,7 +84,6 @@ export default function BrowseContentBase({
   belowFilterContent,
   renderItems,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const { hubUrl } = useContext(HubContext);
   const { showFeedbackMessage } = useContext(FeedbackContext);
@@ -142,7 +142,7 @@ export default function BrowseContentBase({
   const unexpandFiltersOnMobile = () => setFiltersExpandedOnMobile(false);
 
   return (
-    <Container maxWidth="lg" className={classes.contentContainer}>
+    <ContentContainer maxWidth="lg">
       {isSmallScreen && (
         <Suspense fallback={null}>
           <FilterSection
@@ -158,8 +158,7 @@ export default function BrowseContentBase({
         </Suspense>
       )}
       {filtersExpanded && (
-        <FilterContent
-          className={classes.tabContent}
+        <TabContent
           type={type}
           applyFilters={async ({
             type: _type,
@@ -218,6 +217,6 @@ export default function BrowseContentBase({
         )}
       </div>
       {shouldShowNoItems && <NoItemsFound type={type} hubName="" />}
-    </Container>
+    </ContentContainer>
   );
 }

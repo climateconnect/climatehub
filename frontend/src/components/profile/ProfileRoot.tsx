@@ -1,6 +1,5 @@
 import { Button, Container, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { Theme, useTheme } from "@mui/material/styles";
+import { styled, Theme, useTheme } from "@mui/material/styles";
 import { useRouter } from "next/router";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import Cookies from "universal-cookie";
@@ -22,78 +21,30 @@ import FeedbackContext from "../context/FeedbackContext";
 
 const DEFAULT_BACKGROUND_IMAGE = "/images/default_background_user.jpg";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    background: {
-      width: "100%",
-    },
-    profilePreview: {
-      margin: "0 auto",
-      marginTop: theme.spacing(-11),
-      [theme.breakpoints.up("sm")]: {
-        margin: 0,
-        marginTop: theme.spacing(-11),
-        display: "inline-block",
-        width: "auto",
-      },
-    },
-    memberInfoContainer: {
-      [theme.breakpoints.up("sm")]: {
-        display: "inline-block",
-      },
-      padding: 0,
-    },
-    content: {
-      paddingTop: theme.spacing(1),
-      paddingBottom: theme.spacing(1),
-      color: `${theme.palette.secondary.main}`,
-      fontWeight: "bold",
-    },
-    noPadding: {
-      padding: 0,
-    },
-    infoContainer: {
-      [theme.breakpoints.up("sm")]: {
-        display: "flex",
-      },
-    },
-    noprofile: {
-      textAlign: "center",
-      padding: theme.spacing(5),
-    },
-    marginTop: {
-      marginTop: theme.spacing(1),
-    },
-    loginNudge: {
-      textAlign: "center",
-      margin: "0 auto",
-    },
-    container: {
-      position: "relative",
-    },
-    sectionHeadlineWithButtonContainer: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: theme.spacing(3),
-    },
-    innerIcon: {
-      marginRight: theme.spacing(0.5),
-      marginLeft: -theme.spacing(1),
-    },
-    createButton: {
-      right: theme.spacing(1),
-      position: "absolute",
-      [theme.breakpoints.down("sm")]: {
-        position: "relative",
-        marginTop: theme.spacing(2),
-      },
-    },
-    title: {
-      color: theme.palette.background.default_contrastText,
-    },
-  };
+const StyledLoginNudge = styled(LoginNudge)({
+  textAlign: "center",
+  margin: "0 auto",
 });
+
+const SectionContainer = styled(Container)({
+  position: "relative",
+});
+
+const SectionHeadlineWithButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: theme.spacing(3),
+}));
+
+const SectionTitle = styled("h2")(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const InnerIcon = styled(ControlPointSharpIcon)(({ theme }) => ({
+  marginRight: theme.spacing(0.5),
+  marginLeft: -theme.spacing(1),
+}));
 
 export default function ProfileRoot({
   profile,
@@ -109,7 +60,6 @@ export default function ProfileRoot({
   hubUrl,
 }) {
   const { showFeedbackMessage } = useContext(FeedbackContext);
-  const classes = useStyles();
   const theme = useTheme();
   const isOwnAccount = user && user.url_slug === profile.url_slug;
   const router = useRouter();
@@ -238,41 +188,32 @@ export default function ProfileRoot({
       infoMetadata={infoMetadata}
       isSmallScreen={isSmallScreen}
     >
-      {!user && (
-        <LoginNudge
-          className={classes.loginNudge}
-          whatToDo={texts.to_see_this_users_full_information}
-        />
-      )}
+      {!user && <StyledLoginNudge whatToDo={texts.to_see_this_users_full_information} />}
       {user && user.url_slug !== profile.url_slug && (
         <Button variant="contained" color="primary" onClick={handleConnectBtn}>
           {texts.send_message}
         </Button>
       )}
       {isOwnAccount && (
-        <Container className={classes.container}>
-          <div className={classes.sectionHeadlineWithButtonContainer}>
-            <h2 className={classes.title}>{texts.your_registered_events}</h2>
-          </div>
+        <SectionContainer>
+          <SectionHeadlineWithButtonContainer>
+            <SectionTitle>{texts.your_registered_events}</SectionTitle>
+          </SectionHeadlineWithButtonContainer>
           {registeredEvents && registeredEvents.length > 0 ? (
             <ProjectPreviews projects={registeredEvents} hubUrl={hubUrl} isUserRegistered />
           ) : (
             <Typography>{texts.no_registered_events_yet}</Typography>
           )}
-        </Container>
+        </SectionContainer>
       )}
-      <Container className={classes.container} ref={projectsRef}>
-        <div className={classes.sectionHeadlineWithButtonContainer}>
-          <h2 className={classes.title}>
+      <SectionContainer ref={projectsRef}>
+        <SectionHeadlineWithButtonContainer>
+          <SectionTitle>
             {isOwnAccount ? texts.your_projects : texts.this_users_projects}
-          </h2>
+          </SectionTitle>
           {isTinyScreen ? (
             <IconButton href={appHref("/share", { hubUrl, locale })} size="large">
-              <ControlPointSharpIcon
-                className={classes.button}
-                variant="contained"
-                color="primary"
-              />
+              <ControlPointSharpIcon variant="contained" color="primary" />
             </IconButton>
           ) : (
             <Button
@@ -280,11 +221,11 @@ export default function ProfileRoot({
               color="primary"
               href={appHref("/share", { hubUrl, locale })}
             >
-              <ControlPointSharpIcon className={classes.innerIcon} />
+              <InnerIcon />
               {texts.share_a_project}
             </Button>
           )}
-        </div>
+        </SectionHeadlineWithButtonContainer>
         {allProjects && allProjects.length ? (
           <>
             <ProjectPreviews projects={allProjects} hubUrl={hubUrl} parentHandlesGridItems />
@@ -308,19 +249,15 @@ export default function ProfileRoot({
               texts.not_involved_in_any_projects_yet}
           </Typography>
         )}
-      </Container>
-      <Container className={classes.container} ref={organizationsRef}>
-        <div className={classes.sectionHeadlineWithButtonContainer}>
-          <h2 className={classes.title}>
+      </SectionContainer>
+      <SectionContainer ref={organizationsRef}>
+        <SectionHeadlineWithButtonContainer>
+          <SectionTitle>
             {isOwnAccount ? texts.your_organizations : texts.this_users_organizations}
-          </h2>
+          </SectionTitle>
           {isTinyScreen ? (
             <IconButton href={appHref("/createorganization", { hubUrl, locale })} size="large">
-              <ControlPointSharpIcon
-                className={classes.button}
-                variant="contained"
-                color="primary"
-              />
+              <ControlPointSharpIcon variant="contained" color="primary" />
             </IconButton>
           ) : (
             <Button
@@ -328,11 +265,11 @@ export default function ProfileRoot({
               color="primary"
               href={appHref("/createorganization", { hubUrl, locale })}
             >
-              <ControlPointSharpIcon className={classes.innerIcon} />
+              <InnerIcon />
               {texts.create_an_organization}
             </Button>
           )}
-        </div>
+        </SectionHeadlineWithButtonContainer>
         {allOrganizations && allOrganizations.length > 0 ? (
           <>
             <OrganizationPreviews organizations={allOrganizations} parentHandlesGridItems />
@@ -356,7 +293,7 @@ export default function ProfileRoot({
               texts.not_involved_in_any_organizations_yet}
           </Typography>
         )}
-      </Container>
+      </SectionContainer>
     </AccountPage>
   );
 }

@@ -1,58 +1,68 @@
 import { Avatar, IconButton, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ClearIcon from "@mui/icons-material/Clear";
 import React from "react";
 import { getImageUrl } from "./../../../public/lib/imageOperations";
 import AppLink from "../general/AppLink";
 import ProfileBadge from "./ProfileBadge";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    avatarWrapper: {
-      display: "inline-block",
-      verticalAlign: "middle",
-    },
-    profileName: {
-      display: "inline-block",
-      verticalAlign: "middle",
-    },
-    smallProfileName: {
-      fontSize: 14,
-    },
-    mediumProfileName: {
-      fontSize: 16,
-    },
-    smallAvatar: {
-      height: 20,
-      width: 20,
-    },
-    mediumAvatar: {
-      height: 30,
-      width: 30,
-    },
-    contentWrapper: {
-      display: "inline-flex",
-      alignItems: "center",
-      verticalAlign: "middle",
-    },
-    nameAndTitle: {
-      display: "inline-flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      marginLeft: theme.spacing(1),
-    },
-    nameAndTitleWithTitle: {
-      "& $profileName": {
-        lineHeight: 1.2,
+const shouldForwardProp = (prop: PropertyKey) => !String(prop).startsWith("$");
+
+const AvatarWrapper = styled("div", { shouldForwardProp })<{ $isMedium?: boolean }>(
+  ({ $isMedium }) => ({
+    display: "inline-block",
+    verticalAlign: "middle",
+    ...($isMedium && {
+      "& .MuiBadge-badge": {
+        bottom: "20%",
       },
-    },
-    profileTitle: {
-      lineHeight: 1.2,
-    },
-    badge: {
-      bottom: "20%",
-    },
-  };
+    }),
+  })
+);
+
+const ProfileName = styled(Typography, { shouldForwardProp })<{
+  $size?: string;
+  $hasTitle?: boolean;
+}>(({ $size, $hasTitle }) => ({
+  display: "inline-block",
+  verticalAlign: "middle",
+  ...($hasTitle && {
+    lineHeight: 1.2,
+  }),
+  ...($size === "medium" && {
+    fontSize: 16,
+  }),
+  ...($size === "small" && {
+    fontSize: 14,
+  }),
+}));
+
+const ProfileAvatar = styled(Avatar, { shouldForwardProp })<{ $size?: string }>(({ $size }) => ({
+  ...($size === "small" && {
+    height: 20,
+    width: 20,
+  }),
+  ...($size === "medium" && {
+    height: 30,
+    width: 30,
+  }),
+}));
+
+const ContentWrapper = styled("span")({
+  display: "inline-flex",
+  alignItems: "center",
+  verticalAlign: "middle",
+});
+
+const NameAndTitle = styled("span")(({ theme }) => ({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  marginLeft: theme.spacing(1),
+}));
+
+const ProfileTitle = styled(Typography)({
+  lineHeight: 1.2,
 });
 
 type Props = { className?; profile?; avatarClassName?; size?; nolink?; onDelete?; title? };
@@ -93,45 +103,35 @@ export default function MiniProfilePreview({
 }
 
 function Content({ profile, avatarClassName, size, title }) {
-  const classes = useStyles();
-
   const avatarProps = {
     src: getImageUrl(profile.thumbnail_image),
-    className: `${size === "small" && classes.smallAvatar} ${
-      size === "medium" && classes.mediumAvatar
-    } ${avatarClassName}`,
+    className: avatarClassName,
+    $size: size,
   };
   return (
-    <span className={classes.contentWrapper}>
-      <div className={classes.avatarWrapper}>
+    <ContentWrapper>
+      <AvatarWrapper $isMedium={size === "medium"}>
         {profile.badges?.length > 0 ? (
           <ProfileBadge
             badge={profile.badges[0]}
             size={["medium", "small"].includes(size) ? "small" : "medium"}
-            className={size === "medium" ? classes.badge : undefined}
           >
-            <Avatar {...avatarProps} />
+            <ProfileAvatar {...avatarProps} />
           </ProfileBadge>
         ) : (
-          <Avatar {...avatarProps} />
+          <ProfileAvatar {...avatarProps} />
         )}
-      </div>
-      <span className={`${classes.nameAndTitle} ${title ? classes.nameAndTitleWithTitle : ""}`}>
-        <Typography
-          color="inherit"
-          className={`${classes.profileName} ${size === "medium" && classes.mediumProfileName} ${
-            size === "small" && classes.smallProfileName
-          }`}
-          variant="h6"
-        >
+      </AvatarWrapper>
+      <NameAndTitle>
+        <ProfileName color="inherit" $size={size} $hasTitle={!!title} variant="h6">
           {[profile.first_name, profile.last_name].filter(Boolean).join(" ")}
-        </Typography>
+        </ProfileName>
         {title && (
-          <Typography color="textSecondary" className={classes.profileTitle} variant="body2">
+          <ProfileTitle color="textSecondary" variant="body2">
             {title}
-          </Typography>
+          </ProfileTitle>
         )}
-      </span>
-    </span>
+      </NameAndTitle>
+    </ContentWrapper>
   );
 }

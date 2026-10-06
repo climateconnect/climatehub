@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import FeedbackContext from "../context/FeedbackContext";
@@ -125,39 +124,37 @@ function renderProjectPage({
 }: { project?: any; user?: any; isLoading?: boolean } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={{ ...userContextValue, user, isLoading } as any}>
-          <FeedbackContext.Provider value={{ showFeedbackMessage: jest.fn() }}>
-            <ProjectPageRoot
-              project={project}
-              setMessage={jest.fn()}
-              isUserFollowing={false}
-              isUserLiking={false}
-              setCurComments={jest.fn()}
-              followingChangePending={false}
-              likingChangePending={false}
-              projectAdmin={creator}
-              numberOfLikes={0}
-              numberOfFollowers={0}
-              handleLike={jest.fn()}
-              handleFollow={jest.fn()}
-              similarProjects={[]}
-              showSimilarProjects={false}
-              handleHideContent={jest.fn()}
-              requestedToJoinProject={false}
-              handleJoinRequest={jest.fn()}
-              hubSupporters={[]}
-              hubPage={null}
-              siblingProjects={[]}
-              isWasseraktionswochenEnabled={false}
-              isRegistered={false}
-              hasAttended={false}
-              adminCancelled={false}
-              onMembersRefreshed={jest.fn()}
-            />
-          </FeedbackContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={{ ...userContextValue, user, isLoading } as any}>
+        <FeedbackContext.Provider value={{ showFeedbackMessage: jest.fn() }}>
+          <ProjectPageRoot
+            project={project}
+            setMessage={jest.fn()}
+            isUserFollowing={false}
+            isUserLiking={false}
+            setCurComments={jest.fn()}
+            followingChangePending={false}
+            likingChangePending={false}
+            projectAdmin={creator}
+            numberOfLikes={0}
+            numberOfFollowers={0}
+            handleLike={jest.fn()}
+            handleFollow={jest.fn()}
+            similarProjects={[]}
+            showSimilarProjects={false}
+            handleHideContent={jest.fn()}
+            requestedToJoinProject={false}
+            handleJoinRequest={jest.fn()}
+            hubSupporters={[]}
+            hubPage={null}
+            siblingProjects={[]}
+            isWasseraktionswochenEnabled={false}
+            isRegistered={false}
+            hasAttended={false}
+            adminCancelled={false}
+            onMembersRefreshed={jest.fn()}
+          />
+        </FeedbackContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

@@ -1,39 +1,43 @@
-import { Theme, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Typography } from "@mui/material";
+import { keyframes, styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { Box } from "@mui/system";
 
-const useStyles = makeStyles<Theme, { subtractedHeight?: string }>(() => ({
-  spinnerContainer: (props) => ({
-    display: "flex",
-    position: "relative",
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    height: `calc(100vh - ${props.subtractedHeight}px)`,
-    flexDirection: "column",
-  }),
-  text: {
-    fontSize: 18,
-  },
+const SpinnerContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$subtractedHeight",
+})<{ $subtractedHeight?: string }>(({ $subtractedHeight }) => ({
+  display: "flex",
+  position: "relative",
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  height: `calc(100vh - ${$subtractedHeight}px)`,
+  flexDirection: "column",
 }));
+
+const spin = keyframes`
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+`;
+
 export default function LoadingContainer({ headerHeight, footerHeight }) {
-  const classes = useStyles({
-    subtractedHeight: (headerHeight + footerHeight).toString(),
-  });
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "general", locale: locale });
   return (
-    <div className={classes.spinnerContainer}>
+    <SpinnerContainer $subtractedHeight={(headerHeight + footerHeight).toString()}>
       <div>
         <LoadingIcon />
       </div>
-      <Typography component="div" className={classes.text}>
+      <Typography component="div" sx={{ fontSize: 18 }}>
         {texts.loading_and_waiting}
       </Typography>
-    </div>
+    </SpinnerContainer>
   );
 }
 
@@ -45,15 +49,7 @@ function LoadingIcon() {
       sx={{
         height: 80,
         width: 80,
-        animation: "spin 2s linear infinite",
-        "@keyframes spin": {
-          "0%": {
-            transform: "rotate(0deg)",
-          },
-          "100%": {
-            transform: "rotate(360deg)",
-          },
-        },
+        animation: `${spin} 2s linear infinite`,
       }}
     />
   );

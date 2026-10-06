@@ -1,5 +1,5 @@
 import { Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import { FilterContext } from "../context/FilterContext";
@@ -8,14 +8,12 @@ import GenericDialog from "../dialogs/GenericDialog";
 import Filters from "./Filters";
 import SelectedFilters from "./SelectedFilters";
 
-const useStyles = makeStyles((theme) => ({
-  resetButtonRow: {
-    display: "flex",
-    justifyContent: "flex-start",
-    marginTop: theme.spacing(2),
-    paddingTop: theme.spacing(2),
-    borderTop: `1px solid ${theme.palette.divider}`,
-  },
+const ResetButtonRow = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "flex-start",
+  marginTop: theme.spacing(2),
+  paddingTop: theme.spacing(2),
+  borderTop: `1px solid ${theme.palette.divider}`,
 }));
 
 export default function FilterOverlay({
@@ -39,7 +37,6 @@ export default function FilterOverlay({
   setDraftSelectedItems,
   unexpandFilters,
 }) {
-  const classes = useStyles();
   const originalContext = useContext(FilterContext);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "filter_and_search", locale: locale });
@@ -87,11 +84,11 @@ export default function FilterOverlay({
           possibleFilters={possibleFilters}
         />
       </FilterContext.Provider>
-      <div className={classes.resetButtonRow}>
+      <ResetButtonRow>
         <Button variant="outlined" color="primary" onClick={handleResetDraftFilters}>
           {texts.clear_all || "Clear all"}
         </Button>
-      </div>
+      </ResetButtonRow>
     </GenericDialog>
   );
 }

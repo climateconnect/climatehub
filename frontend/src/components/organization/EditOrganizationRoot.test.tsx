@@ -2,7 +2,6 @@ import React from "react";
 import { render, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import EditOrganizationRoot from "./EditOrganizationRoot";
 import UserContext from "../context/UserContext";
@@ -68,28 +67,26 @@ function renderComponent({
     showFeedbackMessage,
     ...render(
       <ThemeProvider theme={theme}>
-        <StylesThemeProvider theme={theme}>
-          <UserContext.Provider value={makeUserContext(locale) as any}>
-            <FeedbackContext.Provider value={{ showFeedbackMessage }}>
-              <EditOrganizationRoot
-                allSectors={[]}
-                errorMessage=""
-                existingName=""
-                existingUrlSlug=""
-                handleSetErrorMessage={jest.fn()}
-                handleSetExistingName={jest.fn()}
-                handleSetExistingUrlSlug={jest.fn()}
-                handleSetLocationOptionsOpen={jest.fn()}
-                infoMetadata={{}}
-                initialTranslations={{}}
-                locationInputRef={{ current: null }}
-                organization={organization as any}
-                tagOptions={[]}
-                hubUrl={undefined}
-              />
-            </FeedbackContext.Provider>
-          </UserContext.Provider>
-        </StylesThemeProvider>
+        <UserContext.Provider value={makeUserContext(locale) as any}>
+          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+            <EditOrganizationRoot
+              allSectors={[]}
+              errorMessage=""
+              existingName=""
+              existingUrlSlug=""
+              handleSetErrorMessage={jest.fn()}
+              handleSetExistingName={jest.fn()}
+              handleSetExistingUrlSlug={jest.fn()}
+              handleSetLocationOptionsOpen={jest.fn()}
+              infoMetadata={{}}
+              initialTranslations={{}}
+              locationInputRef={{ current: null }}
+              organization={organization as any}
+              tagOptions={[]}
+              hubUrl={undefined}
+            />
+          </FeedbackContext.Provider>
+        </UserContext.Provider>
       </ThemeProvider>
     ),
   };

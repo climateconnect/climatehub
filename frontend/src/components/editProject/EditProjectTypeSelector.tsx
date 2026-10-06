@@ -2,19 +2,16 @@ import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import SelectField from "../general/SelectField";
-import { makeStyles } from "@mui/styles";
+import { styled } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    width: 200,
-    [theme.breakpoints.down("sm")]: {
-      width: "100%",
-    },
+const StyledSelectField = styled(SelectField)(({ theme }) => ({
+  width: 200,
+  [theme.breakpoints.down("sm")]: {
+    width: "100%",
   },
 }));
 
 export function EditProjectTypeSelector({ project, onChangeProjectType, projectTypeOptions }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const onChange = (e) => {
@@ -22,13 +19,12 @@ export function EditProjectTypeSelector({ project, onChangeProjectType, projectT
     onChangeProjectType(newType);
   };
   return (
-    <SelectField
+    <StyledSelectField
       controlled
       controlledValue={project.project_type}
       options={projectTypeOptions}
       label={texts.project_type}
       onChange={onChange}
-      className={classes.root}
     />
   );
 }
