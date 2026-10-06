@@ -172,6 +172,12 @@ module.exports = withBundleAnalyzer({
         destination: `https://climatehub.org/de/projects/kassel-hitzefrei-kickoff?hub=kassel`,
         permanent: true,
       },
+      {
+        source: "/100",
+        has: [{ type: "host", value: "marburg.climatehub.org" }],
+        destination: `www.climatehub.earth/mr/crowdfunding`,
+        permanent: false,
+      },
       // 2. Cross-domain subdomain redirects (German first, then English fallback)
       // Must be permanent: false (302) — 301s are cached by browsers, breaking language switching.
       ...LOCATION_HUBS.map((hubSlug) => ({
