@@ -175,7 +175,7 @@ module.exports = withBundleAnalyzer({
       {
         source: "/100",
         has: [{ type: "host", value: "marburg.climatehub.org" }],
-        destination: `www.climatehub.earth/mr/crowdfunding`,
+        destination: `https://www.climatehub.earth/mr/crowdfunding`,
         permanent: false,
       },
       // 2. Cross-domain subdomain redirects (German first, then English fallback)
