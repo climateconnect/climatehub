@@ -184,7 +184,7 @@ export default function EditProjectOverview({
   };
 
   return (
-    <OverviewContainer>
+    <OverviewContainer disableGutters>
       {smallScreen ? (
         <SmallScreenOverview {...passThroughProps} />
       ) : (

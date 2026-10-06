@@ -403,7 +403,7 @@ export default function Header({
       $isLandingPage={isLandingPage}
       $noSpacingBottom={noSpacingBottom}
     >
-      <HeaderContainer>
+      <HeaderContainer disableGutters>
         <LogoLink href={logoLink} underline="hover">
           <Logo
             src={logo}

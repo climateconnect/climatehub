@@ -453,7 +453,7 @@ export default function AccountPage({
   const locationAdditionalText = location?.additionalText ? location.additionalText : "";
 
   return (
-    <NoPaddingContainer maxWidth="lg">
+    <NoPaddingContainer disableGutters maxWidth="lg">
       <div
         style={{
           background: `url(${
@@ -509,7 +509,7 @@ export default function AccountPage({
             </div>
           )}
           {account.types && (
-            <NoPaddingContainer>
+            <NoPaddingContainer disableGutters>
               {account.types.map((type) => (
                 <StyledChip label={type.name} color="secondary" key={type.key} />
               ))}
@@ -536,7 +536,9 @@ export default function AccountPage({
           )}
         </AvatarWithInfo>
 
-        <AccountInfo $isOwnAccount={!!isOwnAccount}>{displayAccountInfo(account.info)}</AccountInfo>
+        <AccountInfo disableGutters $isOwnAccount={!!isOwnAccount}>
+          {displayAccountInfo(account.info)}
+        </AccountInfo>
         {isOwnAccount && !isSmallScreen && (
           <EditButtonWrapper>
             <Button variant="contained" color="primary" href={editHref}>

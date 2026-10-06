@@ -62,7 +62,7 @@ export default function EventRegistrationStep({
   };
 
   return (
-    <Root maxWidth="md">
+    <Root maxWidth="md" disableGutters>
       <SwitchRow>
         <FormControlLabel
           control={

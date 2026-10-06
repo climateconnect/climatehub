@@ -23,7 +23,8 @@ const MessageText = styled(Typography, {
   shouldForwardProp: (prop) => prop !== "$received",
 })<{ $received?: boolean }>(({ theme, $received }) => ({
   alignSelf: "flex-start",
-  color: $received ? "default" : theme?.palette?.primary?.contrastText,
+  // Only chat messages pass `received`; elsewhere (undefined) the text color is inherited.
+  ...($received === false && { color: theme?.palette?.primary?.contrastText }),
 }));
 
 type Props = {

@@ -247,7 +247,7 @@ export default function ProjectOverview({
   };
 
   return (
-    <OverviewContainer>
+    <OverviewContainer disableGutters>
       {screenSize?.belowSmall ? (
         <SmallScreenOverview {...passThroughProps} />
       ) : (

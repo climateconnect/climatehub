@@ -205,7 +205,7 @@ export default function Inbox({ chatData, initialNextPage, hubUrl }) {
         resetAlertMessage={resetAlertMessage}
         hubUrl={hubUrl}
       >
-        <InboxContainer maxWidth="md">
+        <InboxContainer maxWidth="md" disableGutters>
           <Headline component="h1" variant="h4">
             {texts.inbox}
           </Headline>

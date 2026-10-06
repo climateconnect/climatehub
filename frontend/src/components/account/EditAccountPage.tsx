@@ -665,7 +665,7 @@ export default function EditAccountPage({
   };
 
   return (
-    <NoPaddingContainer maxWidth="lg">
+    <NoPaddingContainer disableGutters maxWidth="lg">
       <form onSubmit={handleFormSubmit}>
         {errorMessage && (
           <StyledAlert severity="error">
@@ -779,7 +779,7 @@ export default function EditAccountPage({
             )}
 
             {editedAccount.types && (
-              <NoPaddingContainer>
+              <NoPaddingContainer disableGutters>
                 {possibleAccountTypes &&
                   getTypesOfAccount(
                     editedAccount,
@@ -808,7 +808,7 @@ export default function EditAccountPage({
               </NoPaddingContainer>
             )}
           </AvatarWithInfo>
-          <AccountInfo>
+          <AccountInfo disableGutters>
             {/*Contains all the possible info a user can put about their account e.g. website, location, summary, bio, ...*/}
             <StyledRequiredFieldsNotice />
             {displayAccountInfo(editedAccount.info)}

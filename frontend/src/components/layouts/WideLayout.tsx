@@ -155,6 +155,7 @@ export default function WideLayout({
       ) : (
         <Main
           maxWidth={false}
+          disableGutters
           component="main"
           className={rootClassName}
           $noSpaceBottom={noSpaceBottom}

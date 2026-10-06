@@ -90,7 +90,7 @@ export default function TopSection({ headline, subHeader, fixedHeight, noMarginB
       <ImageContainer>
         <HeaderImage src="/images/static_page_header.svg" alt="static page header" />
       </ImageContainer>
-      <ContentContainer $fixedHeight={fixedHeight}>
+      <ContentContainer disableGutters $fixedHeight={fixedHeight}>
         <HeadersContainer>
           <Headline component="h1">{headline}</Headline>
           <SubHeader component="h2">{subHeader}</SubHeader>

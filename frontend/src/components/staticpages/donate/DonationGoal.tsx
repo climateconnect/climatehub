@@ -66,7 +66,7 @@ export default function DonationGoal({
     current / goal < 0.9 ? `${(current / goal) * 100 + 1}%` : `${(current / goal) * 100 - 25}%`;
   return (
     <Root className={className} $embedded={embedded} $barOnly={barOnly}>
-      <GoalContainer>
+      <GoalContainer disableGutters>
         <Progress
           variant="determinate"
           value={current / goal < 100 ? (current / goal) * 100 : 100}

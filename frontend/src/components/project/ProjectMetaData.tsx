@@ -187,7 +187,7 @@ const WithDescription = ({
 }: any) => {
   return (
     <MetaDataRoot className={className}>
-      <Wrapper>
+      <Wrapper disableGutters>
         <CreatorAndCollaboratorPreviews
           collaborating_organization={project.collaborating_organizations}
           project_parent={project_parent}
@@ -239,7 +239,7 @@ const WithOutDescription = ({
 }: any) => {
   return (
     <MetaDataRoot className={className}>
-      <Wrapper>
+      <Wrapper disableGutters>
         <CreatorAndCollaboratorPreviews
           collaborating_organization={project.collaborating_organizations}
           project_parent={project_parent}

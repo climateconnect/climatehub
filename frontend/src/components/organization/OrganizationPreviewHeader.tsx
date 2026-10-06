@@ -7,8 +7,8 @@ const Media = styled(Avatar)(({ theme }) => ({
   height: 80,
   width: 80,
   backgroundSize: "contain",
-  marginTop: theme.spacing(3),
   margin: "0 auto",
+  marginTop: theme.spacing(3),
 }));
 
 const ChipGroup = styled(Box)({

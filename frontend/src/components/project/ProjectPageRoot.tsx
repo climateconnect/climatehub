@@ -661,7 +661,7 @@ export default function ProjectPageRoot({
         eventRegistration={currentEventRegistration}
       />
 
-      <TabsContainerWithoutPadding>
+      <TabsContainerWithoutPadding disableGutters>
         <div ref={projectTabsRef}>
           <StyledTabs
             variant={screenSize.belowSmall ? "fullWidth" : "standard"}
@@ -719,7 +719,7 @@ export default function ProjectPageRoot({
         />
       </ProjectInteractionButtonContainer>
 
-      <TabContentContainer ref={tabContentRef}>
+      <TabContentContainer disableGutters ref={tabContentRef}>
         <TabContent value={tabValue} index={0}>
           <ProjectContent
             project={project}
