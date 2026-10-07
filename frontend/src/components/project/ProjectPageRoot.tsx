@@ -881,6 +881,7 @@ export default function ProjectPageRoot({
           contactPerson={creator}
           contextTerm={texts.contact_chat_context_term}
           contactRole={texts.contact_person}
+          origin={{ type: "project", urlSlug: project.url_slug, id: project.id }}
         />
       )}
     </div>
