@@ -49,6 +49,13 @@ const useStyles = makeStyles((theme) => {
       justifyContent: "space-between",
       alignItems: "center",
       borderBottom: `1px solid ${theme.palette.grey[500]}`,
+      // Never let the tab bar widen the page; overflowing tabs scroll inside the bar
+      overflow: "hidden",
+    },
+    tabsWrapper: {
+      // Allow the tabs to shrink inside the flex container so the scrollable variant kicks in
+      flex: 1,
+      minWidth: 0,
     },
     tabContent: {
       padding: theme.spacing(2),
@@ -62,10 +69,14 @@ const useStyles = makeStyles((theme) => {
     tab: {
       paddingLeft: theme.spacing(2),
       paddingRight: theme.spacing(2),
-      width: 145,
+      // Size to the label (e.g. "Registrations • 12") instead of a fixed width that cuts it off
+      minWidth: 145,
+      maxWidth: "none",
       whiteSpace: "nowrap",
-      [theme.breakpoints.down("sm")]: {
-        width: 125,
+      [theme.breakpoints.down("md")]: {
+        minWidth: 0,
+        paddingLeft: theme.spacing(1.5),
+        paddingRight: theme.spacing(1.5),
       },
       "&.Mui-selected": {
         color: theme.palette.background.default_contrastText,
@@ -673,9 +684,11 @@ export default function ProjectPageRoot({
       />
 
       <Container className={classes.tabsContainerWithoutPadding}>
-        <div ref={projectTabsRef}>
+        <div ref={projectTabsRef} className={classes.tabsWrapper}>
           <Tabs
-            variant={screenSize.belowSmall ? "fullWidth" : "standard"}
+            variant={screenSize.belowSmall ? "scrollable" : "standard"}
+            scrollButtons={screenSize.belowSmall ? "auto" : false}
+            allowScrollButtonsMobile
             value={tabValue}
             onChange={handleTabChange}
             classes={{ indicator: classes.tabsIndicator }}
