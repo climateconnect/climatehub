@@ -38,6 +38,16 @@ const useStyles = makeStyles<
     height: "auto",
     overflow: "auto",
   },
+  // MUI's FocusTrap moves focus onto this Paper (tabIndex={-1}) whenever the
+  // dialog opens. Chrome shows a focus-visible ring on it when the dialog was
+  // opened via a keyboard action (e.g. pasting an image with Ctrl/Cmd+V), so
+  // it needs to match the brand color instead of the browser's default blue.
+  dialogPaper: {
+    "&:focus-visible": {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: -2,
+    },
+  },
   closeButtonLeft: {
     marginLeft: theme.spacing(-1),
     color: theme.palette.grey[500],
@@ -141,7 +151,7 @@ export default function GenericDialog({
       maxWidth={maxWidth ? maxWidth : "md"}
       fullScreen={fullScreen}
       classes={{
-        paper: paperClassName,
+        paper: `${classes.dialogPaper} ${paperClassName ?? ""}`.trim(),
       }}
       PaperProps={PaperProps}
       closeAfterTransition={false}
