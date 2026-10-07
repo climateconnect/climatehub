@@ -388,6 +388,7 @@ curl -X POST http://localhost:8000/api/auth/verify-token \
 | `/api/projects/{slug}/registrations/{id}/` | PATCH | Yes | Cancel a specific guest's registration (organiser/admin only) |
 | `/api/projects/{slug}/registrations/email/` | POST | Yes | Send email to all active guests (organiser/admin only) |
 | `/api/event-registration-origin/{registration_id}/` | GET | Yes | Resolve event context for an event-registration-origin chat message (issue #2102) |
+| `/api/project-origin/{project_id}/` | GET | Yes | Resolve project context for a project-origin chat message (issue #2296) |
 
 #### Deprecated and removed: project tag surface
 
@@ -647,6 +648,12 @@ Allows the authenticated member to cancel their own registration for an upcoming
 **OPEN recovery**: if the event was at full capacity (`status = "full"`) and this cancellation frees a seat, `EventRegistrationConfig.status` is atomically reverted to `"open"`.
 
 **Seat count**: all places that compute `available_seats` filter by `cancelled_at IS NULL` so cancelled registrations never hold capacity.
+
+#### Project-origin chat messages and `GET /api/project-origin/{project_id}/` (issue #2296)
+
+`POST /api/chat/{chat_uuid}/send_message/` and the chat WebSocket payload accept an optional `origin_project_url_slug`. The server validates that the project exists and that another active chat participant is an admin (`Role.ALL_TYPE` / `READ_WRITE_TYPE`) of it, then stores `origin_type="project"`, `origin_id=<project id>`. The client never sends a raw `origin_id`. Invalid origin: the POST returns 400 with `detail`; over the socket the message is saved without origin and a warning is logged.
+
+`GET /api/project-origin/{project_id}/` (auth required) returns `{ "project_name", "project_url_slug", "project_type" }` (`project_type` is `PR`, `ID` or `EV`). 403 unless the user is an active participant of a chat containing a message with this origin, or a project admin; 404 if the project does not exist; 401 if unauthenticated.
 
 #### GET `/api/event-registration-origin/{registration_id}/` — Resolve event context for a cancellation chat message (issue #2102)
 
