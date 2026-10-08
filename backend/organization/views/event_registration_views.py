@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from chat_messages.models import Participant
 from climateconnect_api.models import Role
 from climateconnect_api.utility.html import sanitize_html
-from organization.models import Project, ProjectMember
+from organization.models import Organization, OrganizationMember, Project, ProjectMember
 from organization.models.event_registration import (
     EventRegistration,
     EventRegistrationConfig,
@@ -590,6 +590,52 @@ class EventRegistrationOriginView(APIView):
             {
                 "event_name": project.name,
                 "event_url_slug": project.url_slug,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrganizationOriginView(APIView):
+    """Resolve organization context for organization-origin chat messages."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, organization_id):
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            return Response(
+                {"message": "Organization not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_chat_participant = Participant.objects.filter(
+            user=request.user,
+            is_active=True,
+            chat__participant_message__origin_type="organization",
+            chat__participant_message__origin_id=organization_id,
+        ).exists()
+
+        is_organization_admin = OrganizationMember.objects.filter(
+            user=request.user,
+            role__role_type__in=[Role.ALL_TYPE, Role.READ_WRITE_TYPE],
+            organization=organization,
+        ).exists()
+
+        if not (is_chat_participant or is_organization_admin):
+            return Response(
+                {
+                    "message": (
+                        "You do not have permission to access this organization origin."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response(
+            {
+                "organization_name": organization.name,
+                "organization_url_slug": organization.url_slug,
             },
             status=status.HTTP_200_OK,
         )

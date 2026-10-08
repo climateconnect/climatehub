@@ -290,7 +290,7 @@ ClimateConnect API supports two authentication methods:
 - `GET /api/my_profile/` - Your profile
 - `POST /api/projects/` - Create project
 - `PUT /api/projects/{slug}/` - Update project
-- `POST /api/send_message/` - Send chat message
+- `POST /api/send_message/` - Send chat message. Optional `origin_organization_url_slug` tags the message with `origin_type="organization"` (validated server-side: 400 if unknown or no org admin in the chat) and adds all org admins to the chat as participants. The WebSocket payload accepts the same field (invalid origin → delivered untagged)
 - `GET /api/notifications/` - Your notifications
 - Most `POST`, `PUT`, `PATCH`, `DELETE` operations
 
@@ -388,6 +388,7 @@ curl -X POST http://localhost:8000/api/auth/verify-token \
 | `/api/projects/{slug}/registrations/{id}/` | PATCH | Yes | Cancel a specific guest's registration (organiser/admin only) |
 | `/api/projects/{slug}/registrations/email/` | POST | Yes | Send email to all active guests (organiser/admin only) |
 | `/api/event-registration-origin/{registration_id}/` | GET | Yes | Resolve event context for an event-registration-origin chat message (issue #2102) |
+| `/api/organization-origin/{organization_id}/` | GET | Yes | Resolve organization context for an organization-origin chat message (issue #2327). Returns `{organization_name, organization_url_slug}`; 403 unless chat participant or org admin, 404 unknown org |
 
 #### Deprecated and removed: project tag surface
 

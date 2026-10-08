@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import ListAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -29,6 +29,11 @@ from chat_messages.utility.chat_setup import (
     check_can_start_chat,
     get_or_create_private_chat,
     set_read,
+)
+from chat_messages.utility.message_origin import (
+    ORIGIN_TYPE_ORGANIZATION,
+    add_organization_admins_to_chat,
+    resolve_message_origin,
 )
 from chat_messages.utility.notification import create_chat_message_notification
 from climateconnect_api.models import Role, UserProfile
@@ -408,6 +413,14 @@ class SendChatMessage(APIView):
         except Participant.DoesNotExist:
             raise NotFound("You are not a participant of this chat.")
         if chat:
+            try:
+                origin_type, origin_id = resolve_message_origin(
+                    user, chat, request.data
+                )
+            except ValidationError as e:
+                return Response(
+                    {"detail": e.detail[0]}, status=status.HTTP_400_BAD_REQUEST
+                )
             # Check if this is a first message and restrict sending a message
             # if its a cold-message.
             message_count = Message.objects.filter(message_participant=chat).count()
@@ -425,6 +438,8 @@ class SendChatMessage(APIView):
                     },
                     status=status.HTTP_411_LENGTH_REQUIRED,
                 )
+            if origin_type == ORIGIN_TYPE_ORGANIZATION:
+                add_organization_admins_to_chat(origin_id, chat)
             receiver_user_ids = Participant.objects.filter(
                 chat=chat, is_active=True
             ).values_list("user", flat=True)
@@ -434,6 +449,8 @@ class SendChatMessage(APIView):
                 sender=user,
                 message_participant=chat,
                 sent_at=timezone.now(),
+                origin_type=origin_type,
+                origin_id=origin_id,
             )
             chat.last_message_at = timezone.now()
             chat.save()
