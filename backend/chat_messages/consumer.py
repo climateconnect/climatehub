@@ -1,6 +1,7 @@
 import json
 import logging
 from django.utils import timezone
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chat_messages.models import (
     Message,
@@ -62,7 +63,8 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 },
             )
 
-    async def new_message(
+    @database_sync_to_async
+    def new_message(
         self, chat_uuid, user, message_content, origin_project_url_slug=None
     ):
         try:
@@ -73,7 +75,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         receiver_user_ids = Participant.objects.filter(
             chat=chat, is_active=True
         ).values_list("user", flat=True)
-        receiver_users = User.objects.filter(id__in=receiver_user_ids)
+        receiver_users = list(User.objects.filter(id__in=receiver_user_ids))
         origin_type, origin_id = "", None
         if origin_project_url_slug:
             try:
