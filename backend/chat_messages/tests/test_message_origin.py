@@ -72,7 +72,9 @@ class OrganizationOriginFixtureMixin:
 class TestSendMessageOrganizationOrigin(OrganizationOriginFixtureMixin, APITestCase):
     def setUp(self):
         self._fixture()
-        self.url = reverse("chat_messages:send_message", args=[self.chat.chat_uuid])
+        self.url = reverse(
+            "chat_messages:send-chat-message-api", args=[self.chat.chat_uuid]
+        )
         self.client.force_authenticate(self.sender)
 
     def _post(self, **extra):
