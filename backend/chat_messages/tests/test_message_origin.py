@@ -63,7 +63,9 @@ class TestSendMessageOrigin(APITestCase):
         self.chat = get_or_create_private_chat(
             self.sender, self.admin, created_by=self.sender
         )
-        self.url = reverse("chat_messages:send_message", args=[self.chat.chat_uuid])
+        self.url = reverse(
+            "chat_messages:send-chat-message-api", args=[self.chat.chat_uuid]
+        )
         self.client.force_authenticate(self.sender)
 
     def _post(self, **extra):
@@ -160,13 +162,15 @@ class TestConsumerOrigin(TransactionTestCase):
             self.sender, self.admin, created_by=self.sender
         )
 
-    def _send(self, slug):
+    async def _send(self, slug):
         consumer = DirectMessageConsumer()
         with (
             mock_patch("chat_messages.consumer.create_email_notification"),
             mock_patch("chat_messages.consumer.create_user_notification"),
         ):
-            return consumer.new_message(self.chat.chat_uuid, self.sender, "hi", slug)
+            return await consumer.new_message(
+                self.chat.chat_uuid, self.sender, "hi", slug
+            )
 
     async def _run(self, slug):
         return await self._send(slug)
