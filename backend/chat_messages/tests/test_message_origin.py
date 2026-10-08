@@ -12,7 +12,7 @@ from chat_messages.consumer import DirectMessageConsumer
 from chat_messages.models import Message, MessageReceiver, Participant
 from chat_messages.serializers.message import MessageSerializer
 from chat_messages.utility.chat_setup import get_or_create_private_chat
-from climateconnect_api.models import Language, Role
+from climateconnect_api.models import Language, Role, UserProfile
 from organization.models import Organization, OrganizationMember
 
 LONG_MESSAGE = "word " * 60
@@ -39,6 +39,12 @@ def _get_language():
     return language
 
 
+def _create_user(username):
+    user = User.objects.create_user(username, password="pw", first_name=username)
+    UserProfile.objects.create(user=user, name=username, url_slug=username)
+    return user
+
+
 def _create_org(slug="origin-org"):
     return Organization.objects.create(
         name="Origin Org " + slug,
@@ -50,10 +56,10 @@ def _create_org(slug="origin-org"):
 class OrganizationOriginFixtureMixin:
     def _fixture(self):
         self.admin_role, self.read_only_role = _setup_roles()
-        self.creator = User.objects.create_user("org_creator", password="pw")
-        self.second_admin = User.objects.create_user("org_admin2", password="pw")
-        self.member = User.objects.create_user("org_member", password="pw")
-        self.sender = User.objects.create_user("org_sender", password="pw")
+        self.creator = _create_user("org_creator")
+        self.second_admin = _create_user("org_admin2")
+        self.member = _create_user("org_member")
+        self.sender = _create_user("org_sender")
         self.org = _create_org()
         OrganizationMember.objects.create(
             user=self.creator, organization=self.org, role=self.admin_role
@@ -232,7 +238,7 @@ class TestOrganizationOriginView(OrganizationOriginFixtureMixin, APITestCase):
         self.assertEqual(self.client.get(self.url).status_code, status.HTTP_200_OK)
 
     def test_unrelated_user_forbidden(self):
-        stranger = User.objects.create_user("stranger", password="pw")
+        stranger = _create_user("stranger")
         self.client.force_authenticate(stranger)
         self.assertEqual(
             self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN
