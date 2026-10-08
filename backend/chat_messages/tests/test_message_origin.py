@@ -30,11 +30,19 @@ def _setup_roles():
     return admin_role, read_only
 
 
+def _get_language():
+    # TransactionTestCase flushes the Language rows the test runner seeds
+    language, _ = Language.objects.get_or_create(
+        language_code="de", defaults={"name": "German", "native_name": "Deutsch"}
+    )
+    return language
+
+
 def _create_org(slug="origin-org"):
     return Organization.objects.create(
         name="Origin Org " + slug,
         url_slug=slug,
-        language=Language.objects.get(language_code="de"),
+        language=_get_language(),
     )
 
 
