@@ -11,7 +11,7 @@ from rest_framework.test import APITestCase
 from chat_messages.consumer import DirectMessageConsumer
 from chat_messages.models import Message
 from chat_messages.utility.chat_setup import get_or_create_private_chat
-from climateconnect_api.models import Language, Role
+from climateconnect_api.models import Language, Role, UserProfile
 from organization.models import Project, ProjectMember, ProjectStatus
 
 LONG_MESSAGE = "word " * 60
@@ -57,6 +57,8 @@ class TestSendMessageOrigin(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user("origin_admin", password="pw")
         self.sender = User.objects.create_user("origin_sender", password="pw")
+        UserProfile.objects.create(user=self.sender)
+        UserProfile.objects.create(user=self.admin)
         self.project, role = _setup_project()
         ProjectMember.objects.create(user=self.admin, project=self.project, role=role)
         self.other_project, _ = _setup_project("other-origin-project")
