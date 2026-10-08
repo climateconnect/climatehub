@@ -1,4 +1,5 @@
 import NextCookies from "next-cookies";
+import { useRouter } from "next/router";
 import React, { useContext, useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 import { apiRequest, redirect, sendToLogin, getRedirectUrl } from "../../public/lib/apiOperations";
@@ -9,6 +10,7 @@ import {
   getRolesOptions,
   parseParticipantsWithRole,
 } from "../../public/lib/messagingOperations";
+import { getOrganizationOriginBySlug } from "../../public/lib/messageOriginOperations";
 import getTexts from "../../public/texts/texts";
 import MessagingLayout from "../../src/components/communication/chat/MessagingLayout";
 import UserContext from "../../src/components/context/UserContext";
@@ -73,6 +75,17 @@ export default function Chat({
     hasMore: hasMore,
   });
   const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
+  const originOrganizationSlug =
+    typeof router.query.origin_organization === "string" ? router.query.origin_organization : "";
+  // Resolved from the URL param; null while loading or if the organization does not exist
+  const [originOrganization, setOriginOrganization] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  // Set after the server rejected the origin, so later messages are not tagged either
+  const [originRejected, setOriginRejected] = useState(false);
+  const activeOriginSlug = originOrganizationSlug && !originRejected ? originOrganizationSlug : "";
   const [dialogOpen, setDialogOpen] = useState(false);
   const texts = getTexts({ page: "chat", locale: locale });
   const handleChatWindowClose = (e) => {
@@ -106,6 +119,20 @@ export default function Chat({
       };
     } else console.log("now there is no chat socket");
   }, [chatSocket, state]);
+
+  useEffect(() => {
+    if (!originOrganizationSlug) {
+      setOriginOrganization(null);
+      return;
+    }
+    let active = true;
+    getOrganizationOriginBySlug(originOrganizationSlug, token, locale).then((org) => {
+      if (active) setOriginOrganization(org);
+    });
+    return () => {
+      active = false;
+    };
+  }, [originOrganizationSlug, locale]);
 
   useEffect(() => {
     const redirectUrl = getRedirectUrl(locale);
@@ -161,9 +188,20 @@ export default function Chat({
     }
   };
 
+  const getOptimisticOrigin = () =>
+    activeOriginSlug && originOrganization
+      ? { origin_type: "organization", origin_id: originOrganization.id }
+      : {};
+
   const sendChatMessageThroughSocket = async (message) => {
     try {
-      chatSocket.send(JSON.stringify({ message: message, chat_uuid: chatUUID }));
+      chatSocket.send(
+        JSON.stringify({
+          message: message,
+          chat_uuid: chatUUID,
+          ...(activeOriginSlug && { origin_organization_url_slug: activeOriginSlug }),
+        })
+      );
       setState({
         ...state,
         messages: [
@@ -173,6 +211,7 @@ export default function Chat({
             sender: user,
             unconfirmed: true,
             sent_at: new Date(),
+            ...getOptimisticOrigin(),
           },
         ],
       });
@@ -183,12 +222,21 @@ export default function Chat({
     }
   };
 
-  const sendChatMessageThroughPostRequest = async (message, chat_uuid, token) => {
+  const sendChatMessageThroughPostRequest = async (
+    message,
+    chat_uuid,
+    token,
+    withOrigin = true
+  ) => {
+    const useOrigin = withOrigin && !!activeOriginSlug;
     try {
       const resp = await apiRequest({
         method: "post",
         url: "/api/chat/" + chat_uuid + "/send_message/",
-        payload: { message_content: message },
+        payload: {
+          message_content: message,
+          ...(useOrigin && { origin_organization_url_slug: activeOriginSlug }),
+        },
         token: token,
         locale: locale,
       });
@@ -201,10 +249,16 @@ export default function Chat({
             content: message,
             sender: user,
             sent_at: new Date(),
+            ...(useOrigin ? getOptimisticOrigin() : {}),
           },
         ],
       });
     } catch (err: any) {
+      // The server rejected the origin (400 with a detail): silently retry untagged
+      if (useOrigin && err.response?.status === 400) {
+        setOriginRejected(true);
+        return sendChatMessageThroughPostRequest(message, chat_uuid, token, false);
+      }
       if (err.response && err.response.data)
         console.log("Error in sendChatMessageThroughPostRequest: " + err.response.data.detail);
       setErrorMessage(err.response.data.detail);
@@ -273,6 +327,14 @@ export default function Chat({
           handleChatWindowClose={handleChatWindowClose}
           leaveChat={requestLeaveChat}
           relatedIdea={idea}
+          inputNote={
+            activeOriginSlug && originOrganization
+              ? (texts.chat_message_origin_organization_admins_note as string).replace(
+                  "{organization_name}",
+                  originOrganization.name
+                )
+              : ""
+          }
         />
       ) : (
         <PageNotFound itemName="Chat" returnText={texts.return_to_inbox} returnLink="/inbox" />

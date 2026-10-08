@@ -2,9 +2,14 @@ import { Box, CircularProgress, Link, Tooltip, Typography } from "@mui/material"
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useEffect, useState } from "react";
 import EventIcon from "@mui/icons-material/Event";
+import BusinessIcon from "@mui/icons-material/Business";
 import Cookies from "universal-cookie";
 import { apiRequest, getLocalePrefix } from "../../../../public/lib/apiOperations";
 import { getDateTime } from "../../../../public/lib/dateOperations";
+import {
+  fetchOrganizationOriginContext,
+  OrganizationOriginContext,
+} from "../../../../public/lib/messageOriginOperations";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import MessageContent from "./../MessageContent";
@@ -91,13 +96,39 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function Message({ message, classes, isPrivateChat }) {
+export default function Message({ message, classes, isPrivateChat, previousMessage = null }) {
   const ownClasses = useStyles();
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   const received = message.sender.url_slug !== user.url_slug;
   const sent_date = getDateTime(message.sent_at);
   const [originContext, setOriginContext] = useState<EventRegistrationOriginContext | null>(null);
+
+  const [organizationOrigin, setOrganizationOrigin] = useState<OrganizationOriginContext | null>(
+    null
+  );
+  // Show the organization chip only when the origin differs from the previous message
+  const isNewOrganizationOrigin =
+    message.origin_type === "organization" &&
+    !(
+      previousMessage?.origin_type === "organization" &&
+      previousMessage?.origin_id === message.origin_id
+    );
+
+  useEffect(() => {
+    if (!isNewOrganizationOrigin || !message.origin_id) {
+      setOrganizationOrigin(null);
+      return;
+    }
+    let active = true;
+    const token = new Cookies().get("auth_token");
+    fetchOrganizationOriginContext(message.origin_id, token, locale).then((data) => {
+      if (active) setOrganizationOrigin(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, [locale, message.origin_id, isNewOrganizationOrigin]);
 
   useEffect(() => {
     if (message.origin_type !== "event_registration" || !message.origin_id) {
@@ -119,6 +150,9 @@ export default function Message({ message, classes, isPrivateChat }) {
   }, [locale, message.origin_id, message.origin_type]);
 
   const originTemplate = texts.chat_message_origin_event_registration as string;
+  const organizationOriginParts = (texts.chat_message_origin_organization as string).split(
+    "{organization_name}"
+  );
   const originParts = originTemplate?.split("{event_name}") ?? [originTemplate ?? "", ""];
 
   return (
@@ -163,6 +197,30 @@ export default function Message({ message, classes, isPrivateChat }) {
                 {originContext.event_name}
               </Link>
               {originParts[1]}
+            </Typography>
+          </Box>
+        )}
+        {organizationOrigin && isNewOrganizationOrigin && (
+          <Box className={ownClasses.originContext}>
+            <BusinessIcon
+              fontSize="inherit"
+              sx={(theme) => ({ color: received ? "inherit" : theme.palette.text.primary })}
+            />
+            <Typography
+              variant="caption"
+              className={ownClasses.originContextText}
+              sx={(theme) => ({ color: received ? "inherit" : theme.palette.text.primary })}
+            >
+              {organizationOriginParts[0]}
+              <Link
+                href={`${getLocalePrefix(locale)}/organizations/${
+                  organizationOrigin.organization_url_slug
+                }`}
+                underline="hover"
+              >
+                {organizationOrigin.organization_name}
+              </Link>
+              {organizationOriginParts[1]}
             </Typography>
           </Box>
         )}

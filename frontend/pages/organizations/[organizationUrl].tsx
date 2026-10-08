@@ -276,7 +276,9 @@ function OrganizationLayout({
     const token = cookies.get("auth_token");
     const creator = members.filter((m) => m.isCreator === true)[0];
     const chat = await startPrivateChat(creator, token, locale);
-    const chatLink = hubUrl ? `/chat/${chat.chat_uuid}/?hub=${hubUrl}` : `/chat/${chat.chat_uuid}/`;
+    const chatParams = new URLSearchParams({ origin_organization: organization.url_slug });
+    if (hubUrl) chatParams.set("hub", hubUrl);
+    const chatLink = `/chat/${chat.chat_uuid}/?${chatParams.toString()}`;
     router.push(chatLink);
   };
   const canEdit =

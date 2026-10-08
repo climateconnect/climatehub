@@ -175,6 +175,14 @@
     "en": "This message is about the registration for {event_name}",
     "de": "Diese Nachricht betrifft die Anmeldung für {event_name}"
   },
+  "chat_message_origin_organization": {
+    "en": "This message is about the organization {organization_name}",
+    "de": "Diese Nachricht betrifft die Organisation {organization_name}"
+  },
+  "chat_message_origin_organization_admins_note": {
+    "en": "Your message will be visible to all admins of {organization_name}.",
+    "de": "Deine Nachricht ist für alle Admins von {organization_name} sichtbar."
+  },
   "close_chat": {
     "en": "Close chat",
     "de": "Chat schließen"
