@@ -1,4 +1,5 @@
 import asyncio
+import os
 from unittest.mock import patch as mock_patch
 
 from django.contrib.auth.models import User
@@ -177,7 +178,9 @@ class TestConsumerOrganizationOrigin(
                     self.chat.chat_uuid, self.sender, "hi", data
                 )
 
-        asyncio.run(run())
+        # new_message does synchronous ORM calls inside an async def
+        with mock_patch.dict(os.environ, {"DJANGO_ALLOW_ASYNC_UNSAFE": "true"}):
+            asyncio.run(run())
 
     def test_valid_origin(self):
         self._send({"origin_organization_url_slug": self.org.url_slug})
