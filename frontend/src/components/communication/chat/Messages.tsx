@@ -138,6 +138,7 @@ const Messages = ({
             return (
               <Message
                 message={message}
+                previousMessage={index > 0 ? messages[index - 1] : null}
                 key={index}
                 classes={classes}
                 isPrivateChat={isPrivateChat}

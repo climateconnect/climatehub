@@ -1,4 +1,4 @@
-import { Button, IconButton, TextField, Tooltip } from "@mui/material";
+import { Button, IconButton, TextField, Tooltip, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import SendIcon from "@mui/icons-material/Send";
@@ -75,6 +75,7 @@ export default function ChatContent({
   setShowSendHelper,
   relatedIdea,
   emptyConversationLead,
+  inputNote = "",
 }) {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
@@ -128,6 +129,11 @@ export default function ChatContent({
         />
       )}
       <div className={`${classes.bottomBar} ${classes.maxWidth}`}>
+        {inputNote && (
+          <Typography variant="caption" component="p" sx={{ px: 1, pt: 1 }}>
+            {inputNote}
+          </Typography>
+        )}
         <form className={classes.sendMessageBarContent} onSubmit={onSendMessage}>
           <TextField
             variant="outlined"
