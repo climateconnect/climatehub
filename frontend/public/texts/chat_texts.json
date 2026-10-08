@@ -175,6 +175,18 @@
     "en": "This message is about the registration for {event_name}",
     "de": "Diese Nachricht betrifft die Anmeldung für {event_name}"
   },
+  "chat_message_origin_project": {
+    "en": "This message is about the project {project_name}",
+    "de": "Diese Nachricht betrifft das Projekt {project_name}"
+  },
+  "chat_message_origin_idea": {
+    "en": "This message is about the idea {project_name}",
+    "de": "Diese Nachricht betrifft die Idee {project_name}"
+  },
+  "chat_message_origin_event": {
+    "en": "This message is about the event {project_name}",
+    "de": "Diese Nachricht betrifft die Veranstaltung {project_name}"
+  },
   "close_chat": {
     "en": "Close chat",
     "de": "Chat schließen"

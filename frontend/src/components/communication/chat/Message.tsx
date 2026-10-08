@@ -3,59 +3,16 @@ import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useEffect, useState } from "react";
 import EventIcon from "@mui/icons-material/Event";
 import Cookies from "universal-cookie";
-import { apiRequest, getLocalePrefix } from "../../../../public/lib/apiOperations";
+import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import { getDateTime } from "../../../../public/lib/dateOperations";
+import {
+  fetchOriginContext,
+  isSupportedOriginType,
+  OriginContext,
+} from "../../../../public/lib/messageOriginOperations";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import MessageContent from "./../MessageContent";
-
-type EventRegistrationOriginContext = {
-  event_name: string;
-  event_url_slug: string;
-};
-
-const originContextCache = new Map<number, EventRegistrationOriginContext | null>();
-const pendingOriginContextRequests = new Map<
-  number,
-  Promise<EventRegistrationOriginContext | null>
->();
-
-const fetchEventRegistrationOriginContext = async (
-  registrationId: number,
-  token?: string,
-  locale?: string
-): Promise<EventRegistrationOriginContext | null> => {
-  if (!registrationId || registrationId <= 0) return null;
-  if (originContextCache.has(registrationId)) {
-    return originContextCache.get(registrationId) ?? null;
-  }
-
-  const pendingRequest = pendingOriginContextRequests.get(registrationId);
-  if (pendingRequest) return pendingRequest;
-
-  const request = apiRequest({
-    method: "get",
-    url: `/api/event-registration-origin/${registrationId}/`,
-    token,
-    locale,
-  })
-    .then((response) => {
-      const data = response.data as EventRegistrationOriginContext;
-      originContextCache.set(registrationId, data);
-      return data;
-    })
-    .catch((error) => {
-      console.warn("Failed to resolve event registration origin context", error);
-      originContextCache.set(registrationId, null);
-      return null;
-    })
-    .finally(() => {
-      pendingOriginContextRequests.delete(registrationId);
-    });
-
-  pendingOriginContextRequests.set(registrationId, request);
-  return request;
-};
 
 const useStyles = makeStyles((theme) => ({
   time: {
@@ -91,16 +48,22 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const PROJECT_TYPE_ORIGIN_TEXT_KEYS = {
+  EV: "chat_message_origin_event",
+  ID: "chat_message_origin_idea",
+  PR: "chat_message_origin_project",
+};
+
 export default function Message({ message, classes, isPrivateChat }) {
   const ownClasses = useStyles();
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   const received = message.sender.url_slug !== user.url_slug;
   const sent_date = getDateTime(message.sent_at);
-  const [originContext, setOriginContext] = useState<EventRegistrationOriginContext | null>(null);
+  const [originContext, setOriginContext] = useState<OriginContext | null>(null);
 
   useEffect(() => {
-    if (message.origin_type !== "event_registration" || !message.origin_id) {
+    if (!isSupportedOriginType(message.origin_type) || !message.origin_id) {
       setOriginContext(null);
       return;
     }
@@ -108,7 +71,7 @@ export default function Message({ message, classes, isPrivateChat }) {
     let active = true;
     const token = new Cookies().get("auth_token");
 
-    fetchEventRegistrationOriginContext(message.origin_id, token, locale).then((data) => {
+    fetchOriginContext(message.origin_type, message.origin_id, token, locale).then((data) => {
       if (!active) return;
       setOriginContext(data);
     });
@@ -118,8 +81,21 @@ export default function Message({ message, classes, isPrivateChat }) {
     };
   }, [locale, message.origin_id, message.origin_type]);
 
-  const originTemplate = texts.chat_message_origin_event_registration as string;
-  const originParts = originTemplate?.split("{event_name}") ?? [originTemplate ?? "", ""];
+  let originTemplate = "";
+  let originName = "";
+  let originHref = "";
+  if (originContext?.type === "event_registration") {
+    originTemplate = texts.chat_message_origin_event_registration as string;
+    originName = originContext.event_name;
+    originHref = `${getLocalePrefix(locale)}/projects/${originContext.event_url_slug}`;
+  } else if (originContext?.type === "project") {
+    const textKey =
+      PROJECT_TYPE_ORIGIN_TEXT_KEYS[originContext.project_type] ?? PROJECT_TYPE_ORIGIN_TEXT_KEYS.PR;
+    originTemplate = texts[textKey] as string;
+    originName = originContext.project_name;
+    originHref = `${getLocalePrefix(locale)}/projects/${originContext.project_url_slug}`;
+  }
+  const originParts = originTemplate.split(/\{(?:event_name|project_name)\}/);
 
   return (
     <div
@@ -144,7 +120,7 @@ export default function Message({ message, classes, isPrivateChat }) {
           </Link>
         )}
         <MessageContent content={message.content} received={received} />
-        {originContext && message.origin_type === "event_registration" && (
+        {originContext && (
           <Box className={ownClasses.originContext}>
             <EventIcon
               fontSize="inherit"
@@ -156,11 +132,8 @@ export default function Message({ message, classes, isPrivateChat }) {
               sx={(theme) => ({ color: received ? "inherit" : theme.palette.text.primary })}
             >
               {originParts[0]}
-              <Link
-                href={`${getLocalePrefix(locale)}/projects/${originContext.event_url_slug}`}
-                underline="hover"
-              >
-                {originContext.event_name}
+              <Link href={originHref} underline="hover">
+                {originName}
               </Link>
               {originParts[1]}
             </Typography>

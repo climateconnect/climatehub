@@ -24,6 +24,7 @@ type ChatDrawerProps = {
   contactPerson: any;
   contextTerm: string;
   contactRole?: string;
+  origin?: { type: "project"; urlSlug: string; id: number };
 };
 
 const useStyles = makeStyles((theme) => ({
@@ -66,6 +67,7 @@ export default function ChatDrawer({
   contactPerson,
   contextTerm,
   contactRole,
+  origin,
 }: ChatDrawerProps) {
   const classes = useStyles();
   const isMobile = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
@@ -247,9 +249,17 @@ export default function ChatDrawer({
     }
   };
 
+  const originMessageFields = origin ? { origin_type: origin.type, origin_id: origin.id } : {};
+
   const sendChatMessageThroughSocket = async (message) => {
     try {
-      chatSocket.send(JSON.stringify({ message: message, chat_uuid: chat.chat_uuid }));
+      chatSocket.send(
+        JSON.stringify({
+          message: message,
+          chat_uuid: chat.chat_uuid,
+          ...(origin && { origin_project_url_slug: origin.urlSlug }),
+        })
+      );
       setThread((thread) => ({
         ...thread,
         messages: [
@@ -259,6 +269,7 @@ export default function ChatDrawer({
             sender: user,
             unconfirmed: true,
             sent_at: new Date(),
+            ...originMessageFields,
           },
         ],
       }));
@@ -274,7 +285,10 @@ export default function ChatDrawer({
       await apiRequest({
         method: "post",
         url: "/api/chat/" + chat_uuid + "/send_message/",
-        payload: { message_content: message },
+        payload: {
+          message_content: message,
+          ...(origin && { origin_project_url_slug: origin.urlSlug }),
+        },
         token: token,
         locale: locale,
       });
@@ -286,6 +300,7 @@ export default function ChatDrawer({
             content: message,
             sender: user,
             sent_at: new Date(),
+            ...originMessageFields,
           },
         ],
       }));
