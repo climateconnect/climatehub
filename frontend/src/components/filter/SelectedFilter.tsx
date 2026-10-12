@@ -1,31 +1,26 @@
 import { Chip, Tooltip } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React from "react";
 import { getLocationFilterKeys } from "../../../public/data/locationFilters";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    selectedBlock: {
-      display: "inline-flex",
-      alignItems: "center",
-      marginBottom: theme.spacing(1),
-      marginTop: theme.spacing(1),
-      flexWrap: "wrap",
-    },
-    selectedToolTip: {
-      marginRight: theme.spacing(1),
-    },
-    selectedChip: {
-      margin: theme.spacing(1),
-      "&:first-child": {
-        marginLeft: 0,
-      },
-    },
-    selectedChipIcon: {
-      width: 20,
-      height: 20,
-    },
-  };
+const SelectedBlock = styled("div")(({ theme }) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  marginBottom: theme.spacing(1),
+  marginTop: theme.spacing(1),
+  flexWrap: "wrap",
+}));
+
+const SelectedChip = styled(Chip)(({ theme }) => ({
+  margin: theme.spacing(1),
+  "&:first-child": {
+    marginLeft: 0,
+  },
+}));
+
+const SelectedChipIcon = styled("img")({
+  width: 20,
+  height: 20,
 });
 
 export default function SelectedFilter({
@@ -34,7 +29,6 @@ export default function SelectedFilter({
   possibleFilters,
   handleUnselectFilter,
 }) {
-  const classes = useStyles();
   let currentFilterValues = currentFilters[filterKey];
   const locationFilterKeys = getLocationFilterKeys();
   const possibleFilterKeys = possibleFilters.map((entry) => entry.key);
@@ -64,7 +58,7 @@ export default function SelectedFilter({
     currentFilterValues = [currentFilterValues];
   }
   return (
-    <div key={filterKey} className={classes.selectedBlock}>
+    <SelectedBlock key={filterKey}>
       {/* Handle strings like "Energy" as being selected too */}
       {possibleFilterKeys.includes(filterKey) &&
         currentFilterValues.map((filter) => {
@@ -80,19 +74,14 @@ export default function SelectedFilter({
           const iconUrl = matchedOption ? matchedOption?.icon : null;
           return (
             <Tooltip title={filterMetadata.title} key={filterName}>
-              <Chip
+              <SelectedChip
                 icon={
                   iconUrl ? (
-                    <img
-                      src={iconUrl}
-                      alt={`${filterName} icon`}
-                      className={classes.selectedChipIcon}
-                    />
+                    <SelectedChipIcon src={iconUrl} alt={`${filterName} icon`} />
                   ) : (
                     <filterMetadata.icon name={filterMetadata.iconName} />
                   )
                 }
-                className={classes.selectedChip}
                 label={filterName}
                 color="secondary"
                 onDelete={() => handleUnselectFilter(filter, filterMetadata.key)}
@@ -100,6 +89,6 @@ export default function SelectedFilter({
             </Tooltip>
           );
         })}
-    </div>
+    </SelectedBlock>
   );
 }

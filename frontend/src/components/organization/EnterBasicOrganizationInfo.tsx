@@ -1,5 +1,5 @@
 import { IconButton, Chip, Tooltip } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import React, { useContext, useState } from "react";
 import { getLocationFields } from "../../../public/lib/locationOperations";
@@ -18,37 +18,32 @@ const renderSearchOption = ({ key, ...props }, option) => {
   );
 };
 
-const useStyles = makeStyles((theme) => ({
-  selectedTypes: {
+const SelectedTypes = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  display: "flex",
+  justifyContent: "space-evenly",
+
+  [theme.breakpoints.down("sm")]: {
+    flexDirection: "column",
+    marginTop: theme.spacing(0),
+    alignItems: "center",
+  },
+}));
+
+const FormWrapper = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(8),
+  padding: theme.spacing(2),
+}));
+
+const TypeChip = styled(Chip, {
+  shouldForwardProp: (prop) => prop !== "$isLast",
+})<{ $isLast?: boolean }>(({ theme, $isLast }) => ({
+  height: 30,
+  width: "100%",
+  ...($isLast && { marginLeft: theme.spacing(0.5) }),
+
+  [theme.breakpoints.down("md")]: {
     marginTop: theme.spacing(1),
-    display: "flex",
-    justifyContent: "space-evenly",
-
-    [theme.breakpoints.down("sm")]: {
-      flexDirection: "column",
-      marginTop: theme.spacing(0),
-      alignItems: "center",
-    },
-  },
-  formWrapper: {
-    marginTop: theme.spacing(8),
-    padding: theme.spacing(2),
-  },
-  chip: {
-    height: 30,
-    width: "100%",
-
-    [theme.breakpoints.down("md")]: {
-      marginTop: theme.spacing(1),
-    },
-  },
-  lastChip: {
-    height: 30,
-    width: "100%",
-    marginLeft: theme.spacing(0.5),
-    [theme.breakpoints.down("md")]: {
-      marginTop: theme.spacing(1),
-    },
   },
 }));
 
@@ -61,7 +56,6 @@ export default function EnterBasicOrganizationInfo({
   handleSetLocationOptionsOpen,
   tagOptions,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "organization", locale: locale });
   const [parentOrganization, setParentOrganization] = useState(null);
@@ -133,11 +127,11 @@ export default function EnterBasicOrganizationInfo({
       multiple: true,
       key: "orgtypes",
       bottomLink: (
-        <div className={classes.selectedTypes}>
+        <SelectedTypes>
           {selectedTypes.map((selectedType, index) => (
             <Tooltip placement="top" arrow title={selectedType} key={index}>
-              <Chip
-                className={index === 1 ? classes.lastChip : classes.chip}
+              <TypeChip
+                $isLast={index === 1}
                 label={selectedType}
                 color="secondary"
                 onDelete={() => handleRemoveType(selectedType)}
@@ -145,7 +139,7 @@ export default function EnterBasicOrganizationInfo({
               />
             </Tooltip>
           ))}
-        </div>
+        </SelectedTypes>
       ),
     },
     {
@@ -162,7 +156,7 @@ export default function EnterBasicOrganizationInfo({
   };
 
   return (
-    <div className={classes.formWrapper}>
+    <FormWrapper>
       <Form
         fields={fields}
         messages={messages}
@@ -176,7 +170,7 @@ export default function EnterBasicOrganizationInfo({
         }
         errorMessage={errorMessage}
       />
-    </div>
+    </FormWrapper>
   );
 }
 

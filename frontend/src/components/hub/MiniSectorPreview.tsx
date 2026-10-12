@@ -1,5 +1,5 @@
-import { Card, IconButton, Theme, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Card, IconButton, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import React, { useContext } from "react";
 import { getImageUrl } from "../../../public/lib/imageOperations";
@@ -7,65 +7,64 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import SelectField from "../general/SelectField";
 
-const useStyles = makeStyles<Theme, any>((theme) => ({
-  link: {
-    ["&:hover"]: {
-      textDecoration: "none",
-    },
-  },
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    cursor: (props) => (props.sector?.url_slug ? "pointer" : "default"),
-    "-webkit-user-select": "none",
-    "-moz-user-select": "none",
-    "-ms-user-select": "none",
-    userSelect: "none",
-    position: "relative",
-    borderRadius: 4,
-    padding: 0,
-    boxShadow: "none",
-  },
-  textContainer: {
-    boxShadow: "3px 3px 6px #00000017",
-    border: "1px solid #E0E0E0",
-    padding: theme.spacing(1),
-    height: 60,
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  placeholderImage: {
-    visibility: "hidden",
-    width: "100%",
-  },
-  placeholderImageContainer: (props) => ({
-    background: props.createMode
-      ? `url(/images/mini_hub_preview_background.jpg)`
-      : `url(${getImageUrl(props.image)})`,
-    backgroundSize: "cover",
-    width: "100%",
-    height: 60,
-    backgroundPosition: "center",
-  }),
-  sectorName: {
-    fontSize: 19,
-    fontWeight: 600,
-  },
-  sectorIcon: {
-    height: 26,
-    marginBottom: -3,
-    marginRight: theme.spacing(0.25),
-  },
-  closeIconButton: {
-    position: "absolute",
-    top: theme.spacing(0.5),
-    right: theme.spacing(0.5),
-    color: "red",
-    background: "rgba(255, 255, 255, 0.9)",
-    "&:hover": {
-      background: "rgba(255, 255, 255, 0.98)",
-    },
+const SectorCard = styled(Card, {
+  shouldForwardProp: (prop) => prop !== "$clickable",
+})<{ $clickable?: boolean }>(({ $clickable }) => ({
+  display: "flex",
+  flexDirection: "column",
+  cursor: $clickable ? "pointer" : "default",
+  "-webkit-user-select": "none",
+  "-moz-user-select": "none",
+  "-ms-user-select": "none",
+  userSelect: "none",
+  position: "relative",
+  borderRadius: 4,
+  padding: 0,
+  boxShadow: "none",
+}));
+
+const TextContainer = styled("div")(({ theme }) => ({
+  boxShadow: "3px 3px 6px #00000017",
+  border: "1px solid #E0E0E0",
+  padding: theme.spacing(1),
+  height: 60,
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+}));
+
+const PlaceholderImage = styled("img")({
+  visibility: "hidden",
+  width: "100%",
+});
+
+// the background image URL is per-render, so it is set via inline style
+const PlaceholderImageContainer = styled("div")({
+  backgroundSize: "cover",
+  width: "100%",
+  height: 60,
+  backgroundPosition: "center",
+});
+
+const SectorName = styled(Typography)({
+  fontSize: 19,
+  fontWeight: 600,
+});
+
+const SectorIcon = styled("img")(({ theme }) => ({
+  height: 26,
+  marginBottom: -3,
+  marginRight: theme.spacing(0.25),
+}));
+
+const CloseIconButton = styled(IconButton)(({ theme }) => ({
+  position: "absolute",
+  top: theme.spacing(0.5),
+  right: theme.spacing(0.5),
+  color: "red",
+  background: "rgba(255, 255, 255, 0.9)",
+  "&:hover": {
+    background: "rgba(255, 255, 255, 0.98)",
   },
 }));
 
@@ -78,11 +77,6 @@ export default function MiniSectorPreview({
   onSelect,
   onClickRemoveSector,
 }) {
-  const classes = useStyles({
-    createMode: createMode,
-    sector: sector,
-    image: sector?.image,
-  });
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "hub", locale: locale });
   const handleRemoveHub = (event) => {
@@ -94,20 +88,25 @@ export default function MiniSectorPreview({
   //  Case 2: General platform -> link to browse page filtered by this sector
 
   return (
-    <Card className={classes.root}>
+    <SectorCard $clickable={!!sector?.url_slug}>
       {editMode && (
-        <IconButton className={classes.closeIconButton} size="small" onClick={handleRemoveHub}>
+        <CloseIconButton size="small" onClick={handleRemoveHub}>
           <CloseIcon />
-        </IconButton>
+        </CloseIconButton>
       )}
-      <div className={classes.placeholderImageContainer}>
-        <img
+      <PlaceholderImageContainer
+        style={{
+          backgroundImage: createMode
+            ? `url(/images/mini_hub_preview_background.jpg)`
+            : `url(${getImageUrl(sector?.image)})`,
+        }}
+      >
+        <PlaceholderImage
           src={createMode ? "/images/mini_hub_preview_background.jpg" : getImageUrl(sector?.image)}
-          className={classes.placeholderImage}
           alt="mini sector preview"
         />
-      </div>
-      <div className={classes.textContainer}>
+      </PlaceholderImageContainer>
+      <TextContainer>
         {createMode ? (
           <SelectField
             label={texts.add_a_sector_where_you_are_active}
@@ -117,18 +116,12 @@ export default function MiniSectorPreview({
             onChange={(event) => event.target.value && onSelect(event)}
           />
         ) : (
-          <Typography color="text" className={classes.sectorName}>
-            {sector.icon && (
-              <img
-                src={getImageUrl(sector.icon)}
-                className={classes.sectorIcon}
-                alt="sector icon"
-              />
-            )}
+          <SectorName color="text">
+            {sector.icon && <SectorIcon src={getImageUrl(sector.icon)} alt="sector icon" />}
             {sector?.name}
-          </Typography>
+          </SectorName>
         )}
-      </div>
-    </Card>
+      </TextContainer>
+    </SectorCard>
   );
 }

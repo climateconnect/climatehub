@@ -1,32 +1,34 @@
-import { Theme, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Tooltip, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import ExploreIcon from "@mui/icons-material/Explore";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles<Theme, { hovering?: boolean }>((theme) => ({
-  sectors: (props) => ({
-    display: "flex",
-    marginBottom: theme.spacing(0.75),
-    background: props.hovering ? "#e1e1e147" : "auto",
-    padding: props.hovering ? theme.spacing(2) : 0,
-    paddingTop: props.hovering ? theme.spacing(1) : 0,
-    paddingBottom: props.hovering ? theme.spacing(1) : 0,
-    alignItems: "center",
-  }),
-  sectorText: {
-    marginLeft: theme.spacing(0.5),
-    fontSize: 15,
-    maxWidth: "250px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  icon: {
-    fontSize: 17,
-  },
+const Sectors = styled("div", {
+  shouldForwardProp: (prop) => !(prop as string).startsWith("$"),
+})<{ $hovering?: boolean }>(({ theme, $hovering }) => ({
+  display: "flex",
+  marginBottom: theme.spacing(0.75),
+  background: $hovering ? "#e1e1e147" : "auto",
+  padding: $hovering ? theme.spacing(2) : 0,
+  paddingTop: $hovering ? theme.spacing(1) : 0,
+  paddingBottom: $hovering ? theme.spacing(1) : 0,
+  alignItems: "center",
 }));
+
+const SectorText = styled(Typography)(({ theme }) => ({
+  marginLeft: theme.spacing(0.5),
+  fontSize: 15,
+  maxWidth: "250px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+}));
+
+const defaultIconStyles = {
+  fontSize: 17,
+};
 
 export default function ProjectSectorsDisplay({
   main_project_sector,
@@ -36,20 +38,18 @@ export default function ProjectSectorsDisplay({
   iconClassName,
   className,
 }: any) {
-  const classes = useStyles({ hovering: hovering });
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   return (
     <Tooltip title={texts.categories}>
-      <div className={`${classes.sectors} ${className}`}>
+      <Sectors $hovering={hovering} className={className}>
         <ExploreIcon
-          className={`${iconClassName ? iconClassName : classes.icon}`}
+          className={iconClassName}
+          sx={iconClassName ? undefined : defaultIconStyles}
           color={color && color}
         />{" "}
-        <Typography className={`${classes.sectorText} ${projectSectorClassName}`}>
-          {main_project_sector}
-        </Typography>
-      </div>
+        <SectorText className={projectSectorClassName}>{main_project_sector}</SectorText>
+      </Sectors>
     </Tooltip>
   );
 }

@@ -1,6 +1,6 @@
-import { Avatar, Theme } from "@mui/material";
+import { Avatar } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import React, { ReactElement, useContext, useRef, useState } from "react";
-import makeStyles from "@mui/styles/makeStyles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -29,36 +29,39 @@ interface UserAvatarProps {
 
 const dimensions = 150;
 
-const useStyles = makeStyles<Theme, { avatarImage?: string }>((theme) => ({
-  avatarImage: {
-    width: `${dimensions}px`,
-    height: `${dimensions}px`,
-    border: "4px solid white",
-  },
-  imageOverlay: {
-    position: "absolute",
-    opacity: 0.4,
-    backgroundColor: "white",
-    width: `calc(${dimensions}px - 4px)`,
-    height: `calc(${dimensions}px - 4px)`,
-    borderRadius: "100px",
-  },
-  editIconContainer: {
-    display: "flex",
-    flexDirection: "row",
-    position: "absolute",
-    width: `${dimensions}px`,
-    height: `${dimensions}px`,
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: (props) => (!props.avatarImage ? "pointer" : "default"),
-    columnGap: theme.spacing(1),
-  },
-  editIcon: {
-    fontSize: "40px",
-    cursor: "pointer",
-  },
+const AvatarImageElement = styled(Avatar)({
+  width: `${dimensions}px`,
+  height: `${dimensions}px`,
+  border: "4px solid white",
+});
+
+const ImageOverlay = styled("div")({
+  position: "absolute",
+  opacity: 0.4,
+  backgroundColor: "white",
+  width: `calc(${dimensions}px - 4px)`,
+  height: `calc(${dimensions}px - 4px)`,
+  borderRadius: "100px",
+});
+
+const EditIconContainer = styled("div", {
+  shouldForwardProp: (prop) => !(typeof prop === "string" && prop.startsWith("$")),
+})<{ $hasImage?: boolean }>(({ theme, $hasImage }) => ({
+  display: "flex",
+  flexDirection: "row",
+  position: "absolute",
+  width: `${dimensions}px`,
+  height: `${dimensions}px`,
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: !$hasImage ? "pointer" : "default",
+  columnGap: theme.spacing(1),
 }));
+
+const editIconSx = {
+  fontSize: "40px",
+  cursor: "pointer",
+};
 
 export function UserAvatar(props: UserAvatarProps): ReactElement {
   const { locale } = useContext(UserContext);
@@ -78,7 +81,6 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
     thumbnailImageUrl: props.thumbnailImageUrl,
   });
 
-  const classes = useStyles({ avatarImage: avatarImage.imageUrl });
   const [isLoading, setIsLoading] = useState(false);
   const onImageChanged = async (avatarEvent) => {
     const file = avatarEvent.target.files[0];
@@ -136,32 +138,28 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
 
   return (
     <>
-      <Avatar
-        className={classes.avatarImage}
-        alt={props.alternativeText}
-        src={avatarImage.imageUrl}
-      />
-      {props.mode === "edit" && <div className={classes.imageOverlay} />}
+      <AvatarImageElement alt={props.alternativeText} src={avatarImage.imageUrl} />
+      {props.mode === "edit" && <ImageOverlay />}
 
       {props.mode === "edit" && (
-        <div
-          className={classes.editIconContainer}
+        <EditIconContainer
+          $hasImage={!!avatarImage.imageUrl}
           onClick={avatarImage.imageUrl ? () => void 0 : onClickChangeImage}
         >
           <AddAPhotoIcon
-            className={classes.editIcon}
+            sx={editIconSx}
             aria-label={texts.edit_avatar}
             onClick={avatarImage.imageUrl ? onClickChangeImage : () => void 0}
           />
           {avatarImage.imageUrl && (
             <CloseIcon
-              className={classes.editIcon}
+              sx={editIconSx}
               onClick={() => setDialogStates({ ...dialogStates, confirmDeleteOpen: true })}
               aria-label={texts.remove_avatar}
               ref={closeIconRef}
             />
           )}
-        </div>
+        </EditIconContainer>
       )}
 
       <input

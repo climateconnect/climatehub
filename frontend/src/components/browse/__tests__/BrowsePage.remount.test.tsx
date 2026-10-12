@@ -2,7 +2,6 @@ import { createElement, ReactNode, useRef } from "react";
 import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 
 import UserContext from "../../context/UserContext";
 import { HubContext } from "../../context/HubContext";
@@ -77,13 +76,11 @@ jest.mock("../../../../public/lib/profileOperations", () => ({
 function renderPage() {
   return render(
     <ThemeProvider theme={testTheme}>
-      <StylesThemeProvider theme={testTheme}>
-        <UserContext.Provider value={userContextValue}>
-          <HubContext.Provider value={{ hubs: [] }}>
-            <BrowsePage filterChoices={{}} initialLocationFilter={null} />
-          </HubContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={userContextValue}>
+        <HubContext.Provider value={{ hubs: [] }}>
+          <BrowsePage filterChoices={{}} initialLocationFilter={null} />
+        </HubContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }
@@ -91,13 +88,11 @@ function renderPage() {
 function rerenderPage(rerender: (_ui: ReactNode) => void) {
   rerender(
     <ThemeProvider theme={testTheme}>
-      <StylesThemeProvider theme={testTheme}>
-        <UserContext.Provider value={userContextValue}>
-          <HubContext.Provider value={{ hubs: [] }}>
-            <BrowsePage filterChoices={{}} initialLocationFilter={null} />
-          </HubContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={userContextValue}>
+        <HubContext.Provider value={{ hubs: [] }}>
+          <BrowsePage filterChoices={{}} initialLocationFilter={null} />
+        </HubContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

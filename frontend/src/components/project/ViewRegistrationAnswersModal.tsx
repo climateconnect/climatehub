@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
 import {
   Alert,
-  Box,
   Button,
   Dialog,
   DialogActions,
@@ -10,8 +9,7 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -21,63 +19,68 @@ import { RegistrationField, RegistrationFieldAnswer } from "../../types";
 import { findOption, formatTimeRange } from "../../utils/resolveRegistrationFieldAnswer";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  titleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1),
+const TitleRow = styled(DialogTitle)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+}));
+
+const CloseButton = styled(IconButton)(({ theme }) => ({
+  color: theme.palette.grey[500],
+}));
+
+const FieldBlock = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  "&:last-child": {
+    marginBottom: 0,
   },
-  closeButton: {
-    color: theme.palette.grey[500],
-  },
-  fieldBlock: {
-    marginBottom: theme.spacing(3),
-    "&:last-child": {
-      marginBottom: 0,
-    },
-  },
-  checkboxRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: theme.spacing(1.5),
-  },
-  checkboxIconChecked: {
+}));
+
+const CheckboxRow = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: theme.spacing(1.5),
+}));
+
+const CheckboxIconChecked = styled(CheckBoxIcon)(({ theme }) => ({
+  color: theme.palette.primary.main,
+  marginTop: 2,
+}));
+
+const DescriptionHtml = styled(Typography)(({ theme }) => ({
+  flex: 1,
+  "& a": {
     color: theme.palette.primary.main,
-    marginTop: 2,
   },
-  checkboxIconUnchecked: {
-    color: theme.palette.action.disabled,
-    marginTop: 2,
+  "& p": {
+    margin: 0,
   },
-  descriptionHtml: {
-    flex: 1,
-    "& a": {
-      color: theme.palette.primary.main,
-    },
-    "& p": {
-      margin: 0,
-    },
-  },
-  optionFieldTitle: {
-    marginBottom: theme.spacing(0.5),
-  },
-  optionAnswer: {
-    color: theme.palette.text.secondary,
-  },
-  emptyState: {
-    fontStyle: "italic",
-    color: theme.palette.text.secondary,
-  },
-  cancelledNotice: {
-    marginBottom: theme.spacing(2),
-  },
-  eventSubheader: {
-    marginBottom: theme.spacing(2),
-    color: theme.palette.text.secondary,
-  },
-  eventDateLine: {
-    marginTop: theme.spacing(0.5),
-  },
+}));
+
+const OptionFieldTitle = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(0.5),
+}));
+
+const OptionAnswer = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+}));
+
+const EmptyState = styled(Typography)(({ theme }) => ({
+  fontStyle: "italic",
+  color: theme.palette.text.secondary,
+}));
+
+const CancelledNotice = styled(Alert)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+}));
+
+const EventSubheader = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  color: theme.palette.text.secondary,
+}));
+
+const EventDateLine = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(0.5),
 }));
 
 export type ViewRegistrationAnswersModalRegistration = {
@@ -144,7 +147,6 @@ export default function ViewRegistrationAnswersModal({
   event,
   cancelAction,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -167,32 +169,23 @@ export default function ViewRegistrationAnswersModal({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" scroll="paper">
-      <DialogTitle className={classes.titleRow}>
-        <IconButton
-          aria-label={texts.close as string}
-          className={classes.closeButton}
-          onClick={onClose}
-          size="small"
-        >
+      <TitleRow>
+        <CloseButton aria-label={texts.close as string} onClick={onClose} size="small">
           <CloseIcon />
-        </IconButton>
+        </CloseButton>
         <Typography variant="h6" component="span">
           {title}
         </Typography>
-      </DialogTitle>
+      </TitleRow>
       <DialogContent dividers>
         {(event?.name || eventDateText) && (
-          <Box className={classes.eventSubheader}>
+          <EventSubheader>
             {event?.name && <Typography variant="body2">{event.name}</Typography>}
-            {eventDateText && (
-              <Typography variant="body2" className={classes.eventDateLine}>
-                {eventDateText}
-              </Typography>
-            )}
-          </Box>
+            {eventDateText && <EventDateLine variant="body2">{eventDateText}</EventDateLine>}
+          </EventSubheader>
         )}
         {registration.cancelled_at && (
-          <Alert severity="warning" className={classes.cancelledNotice}>
+          <CancelledNotice severity="warning">
             <Typography variant="body2">{texts.registration_answers_cancelled_notice}</Typography>
             {registration.cancellation_reason && (
               <Typography variant="body2" sx={{ mt: 1 }}>
@@ -200,13 +193,11 @@ export default function ViewRegistrationAnswersModal({
                 {registration.cancellation_reason}
               </Typography>
             )}
-          </Alert>
+          </CancelledNotice>
         )}
 
         {sortedFields.length === 0 ? null : registration.field_answers.length === 0 ? (
-          <Typography variant="body2" className={classes.emptyState}>
-            {texts.no_registration_answers}
-          </Typography>
+          <EmptyState variant="body2">{texts.no_registration_answers}</EmptyState>
         ) : (
           sortedFields.map((field) => {
             if (field.id == null) return null;
@@ -219,19 +210,15 @@ export default function ViewRegistrationAnswersModal({
               const stateLabel = texts.registration_answer_checked as string;
 
               return (
-                <Box key={field.id} className={classes.fieldBlock}>
-                  <Box className={classes.checkboxRow}>
-                    <CheckBoxIcon
-                      className={classes.checkboxIconChecked}
-                      fontSize="small"
-                      aria-label={stateLabel}
-                    />
-                    <Typography variant="body2" component="div" className={classes.descriptionHtml}>
+                <FieldBlock key={field.id}>
+                  <CheckboxRow>
+                    <CheckboxIconChecked fontSize="small" aria-label={stateLabel} />
+                    <DescriptionHtml variant="body2" component="div">
                       {/* Description was sanitized on organiser write. */}
                       <div dangerouslySetInnerHTML={{ __html: description }} />
-                    </Typography>
-                  </Box>
-                </Box>
+                    </DescriptionHtml>
+                  </CheckboxRow>
+                </FieldBlock>
               );
             }
 
@@ -242,14 +229,10 @@ export default function ViewRegistrationAnswersModal({
                 selectedOption?.title ?? (texts.registration_answer_no_selection as string);
 
               return (
-                <Box key={field.id} className={classes.fieldBlock}>
-                  <Typography variant="body1" className={classes.optionFieldTitle}>
-                    {fieldTitle}
-                  </Typography>
-                  <Typography variant="body2" className={classes.optionAnswer}>
-                    {answerText}
-                  </Typography>
-                </Box>
+                <FieldBlock key={field.id}>
+                  <OptionFieldTitle variant="body1">{fieldTitle}</OptionFieldTitle>
+                  <OptionAnswer variant="body2">{answerText}</OptionAnswer>
+                </FieldBlock>
               );
             }
 
@@ -263,14 +246,10 @@ export default function ViewRegistrationAnswersModal({
                 quantity != null ? `${optionTitle} \u00d7 ${quantity}` : optionTitle;
 
               return (
-                <Box key={field.id} className={classes.fieldBlock}>
-                  <Typography variant="body1" className={classes.optionFieldTitle}>
-                    {fieldTitle}
-                  </Typography>
-                  <Typography variant="body2" className={classes.optionAnswer}>
-                    {answerText}
-                  </Typography>
-                </Box>
+                <FieldBlock key={field.id}>
+                  <OptionFieldTitle variant="body1">{fieldTitle}</OptionFieldTitle>
+                  <OptionAnswer variant="body2">{answerText}</OptionAnswer>
+                </FieldBlock>
               );
             }
 
@@ -290,14 +269,10 @@ export default function ViewRegistrationAnswersModal({
               }
 
               return (
-                <Box key={field.id} className={classes.fieldBlock}>
-                  <Typography variant="body1" className={classes.optionFieldTitle}>
-                    {fieldTitle}
-                  </Typography>
-                  <Typography variant="body2" className={classes.optionAnswer}>
-                    {answerText}
-                  </Typography>
-                </Box>
+                <FieldBlock key={field.id}>
+                  <OptionFieldTitle variant="body1">{fieldTitle}</OptionFieldTitle>
+                  <OptionAnswer variant="body2">{answerText}</OptionAnswer>
+                </FieldBlock>
               );
             }
 
@@ -306,19 +281,12 @@ export default function ViewRegistrationAnswersModal({
               const displayValue = answer.value_text || "\u2014";
 
               return (
-                <Box key={field.id} className={classes.fieldBlock}>
-                  <Typography variant="body1" className={classes.optionFieldTitle}>
-                    {fieldTitle}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className={classes.optionAnswer}
-                    component="div"
-                    style={{ whiteSpace: "pre-wrap" }}
-                  >
+                <FieldBlock key={field.id}>
+                  <OptionFieldTitle variant="body1">{fieldTitle}</OptionFieldTitle>
+                  <OptionAnswer variant="body2" component="div" style={{ whiteSpace: "pre-wrap" }}>
                     {displayValue}
-                  </Typography>
-                </Box>
+                  </OptionAnswer>
+                </FieldBlock>
               );
             }
 

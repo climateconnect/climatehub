@@ -1,5 +1,5 @@
 import { Button, Theme, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -12,114 +12,120 @@ import { appHref } from "../../../public/lib/appLink";
 import { useRouter } from "next/router";
 import { HubContext } from "../context/HubContext";
 
-type MakeStylesProps = {
-  isLocationHub: boolean;
-  isNarrowScreen: boolean;
-};
+const shouldForwardProp = (prop: PropertyKey) => typeof prop !== "string" || !prop.startsWith("$");
 
-const useStyles = makeStyles((theme) => ({
-  root: (props: MakeStylesProps) => ({
+const Root = styled("div", { shouldForwardProp })<{ $isNarrowScreen: boolean }>(
+  ({ theme, $isNarrowScreen }) => ({
     display: "flex",
-    flexDirection: props.isNarrowScreen ? "column" : "row",
+    flexDirection: $isNarrowScreen ? "column" : "row",
     [theme.breakpoints.down("md")]: {
       marginTop: theme.spacing(0),
       marginBottom: theme.spacing(-6),
     },
-  }),
-  contentContainer: (props: MakeStylesProps) => ({
-    minWidth: 300,
-    background: theme.palette.primary.main,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: props.isNarrowScreen ? "space-around" : "flex-start",
-    maxWidth: "800px",
-    borderRadius: 5,
-    border: `3px solid ${theme.palette.primary.main}`,
-    marginTop: props.isLocationHub ? 0 : theme.spacing(-11),
-    // marginBottom: theme.spacing(2),
+  })
+);
 
-    ["@media(max-width:960px)"]: {
-      maxWidth: 550,
-    },
-  }),
-  headlineContainer: {
-    display: "flex",
-    alignItems: "center",
+const ContentContainer = styled("div", { shouldForwardProp })<{
+  $isLocationHub: boolean;
+  $isNarrowScreen: boolean;
+}>(({ theme, $isLocationHub, $isNarrowScreen }) => ({
+  minWidth: 300,
+  background: theme.palette.primary.main,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: $isNarrowScreen ? "space-around" : "flex-start",
+  maxWidth: "800px",
+  borderRadius: 5,
+  border: `3px solid ${theme.palette.primary.main}`,
+  marginTop: $isLocationHub ? 0 : theme.spacing(-11),
+  // marginBottom: theme.spacing(2),
+
+  ["@media(max-width:960px)"]: {
+    maxWidth: 550,
   },
-  headline: {
-    fontWeight: 700,
-    [theme.breakpoints.down("md")]: {
-      fontSize: 25,
-    },
-    [theme.breakpoints.down("sm")]: {
-      fontSize: 22,
-    },
-    color: theme.palette.primary.contrastText,
-    padding: theme.spacing(1),
+}));
+
+const HeadlineContainer = styled("div")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const HeadlineText = styled(Typography)(({ theme }) => ({
+  fontWeight: 700,
+  [theme.breakpoints.down("md")]: {
+    fontSize: 25,
   },
-  lowerBoxWrapper: {
-    background: "white",
-    borderTopRightRadius: 10,
-    borderTopLeftRadius: 10,
-    display: "flex",
+  [theme.breakpoints.down("sm")]: {
+    fontSize: 22,
+  },
+  color: theme.palette.primary.contrastText,
+  padding: theme.spacing(1),
+}));
+
+const LowerBoxWrapper = styled("div")(({ theme }) => ({
+  background: "white",
+  borderTopRightRadius: 10,
+  borderTopLeftRadius: 10,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  padding: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
+    alignItems: "flex-start",
+  },
+}));
+
+const AdvantagesBox = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-around",
+  paddingBottom: theme.spacing(2),
+  textAlign: "center",
+  [theme.breakpoints.down("md")]: {
     flexDirection: "column",
-    alignItems: "center",
-    padding: theme.spacing(2),
-    [theme.breakpoints.down("md")]: {
-      alignItems: "flex-start",
-    },
+    paddingBottom: 0,
   },
-  advantagesBox: {
-    display: "flex",
-    justifyContent: "space-around",
-    paddingBottom: theme.spacing(2),
+}));
+
+const ReasonToJoinWrapper = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  width: "30%",
+  [theme.breakpoints.down("md")]: {
+    flexDirection: "row",
+    width: "100%",
+    textAlign: "start",
+    alignItems: "center",
+    marginBottom: theme.spacing(1.5),
+  },
+}));
+
+const ReasonText = styled(Typography)(({ theme }) => ({
+  [theme.breakpoints.down("md")]: {
+    fontSize: 15,
+    fontWeight: 500,
+    color: theme.palette.secondary.main,
+    marginLeft: theme.spacing(2),
+  },
+}));
+
+const SignUpButton = styled(Button)(({ theme }) => ({
+  [theme.breakpoints.down("md")]: {
+    width: "100%",
     textAlign: "center",
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "column",
-      paddingBottom: 0,
-    },
   },
-  reasonToJoin: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    width: "30%",
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "row",
-      width: "100%",
-      textAlign: "start",
-      alignItems: "center",
-      marginBottom: theme.spacing(1.5),
-    },
-  },
-  reasonText: {
-    [theme.breakpoints.down("md")]: {
-      fontSize: 15,
-      fontWeight: 500,
-      color: theme.palette.secondary.main,
-      marginLeft: theme.spacing(2),
-    },
-  },
-  signUpButton: {
-    [theme.breakpoints.down("md")]: {
-      width: "100%",
-      textAlign: "center",
-    },
-  },
-  buttonContainer: {
-    display: "flex",
-    justifyContent: "center",
-    background: "white",
-    paddingBottom: theme.spacing(2),
-    borderBottomRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    [theme.breakpoints.down("md")]: {
-      paddingBottom: 0,
-      borderBottom: 0,
-    },
-  },
-  icon: {
-    color: theme.palette.primary.light,
+}));
+
+const ButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  background: "white",
+  paddingBottom: theme.spacing(2),
+  borderBottomRightRadius: 10,
+  borderBottomLeftRadius: 10,
+  [theme.breakpoints.down("md")]: {
+    paddingBottom: 0,
+    borderBottom: 0,
   },
 }));
 
@@ -133,7 +139,6 @@ export default function LoggedOutLocationHubBox({ headline, isLocationHub, locat
   });
 
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
-  const classes = useStyles({ isLocationHub: isLocationHub, isNarrowScreen: isNarrowScreen });
 
   const REASONS_TO_JOIN = [
     {
@@ -155,24 +160,24 @@ export default function LoggedOutLocationHubBox({ headline, isLocationHub, locat
 
   function ReasonToJoin({ reason }) {
     return (
-      <div className={classes.reasonToJoin}>
+      <ReasonToJoinWrapper>
         {isNarrowScreen ? (
-          <reason.iconMobile className={classes.icon} />
+          <reason.iconMobile sx={(theme: Theme) => ({ color: theme.palette.primary.light })} />
         ) : (
           <IconWrapper src={reason.icon} noPadding={isNarrowScreen} />
         )}
-        <Typography className={classes.reasonText}>{reason.text}</Typography>
-      </div>
+        <ReasonText>{reason.text}</ReasonText>
+      </ReasonToJoinWrapper>
     );
   }
 
   function Headline() {
     return (
-      <div className={classes.headlineContainer}>
-        <Typography variant="h4" component="h1" className={classes.headline}>
+      <HeadlineContainer>
+        <HeadlineText variant="h4" component="h1">
           {headline}
-        </Typography>
-      </div>
+        </HeadlineText>
+      </HeadlineContainer>
     );
   }
   const router = useRouter();
@@ -180,31 +185,27 @@ export default function LoggedOutLocationHubBox({ headline, isLocationHub, locat
   const parentHub = router.query?.hubUrl;
 
   return (
-    <div className={classes.root}>
-      <div className={classes.contentContainer}>
+    <Root $isNarrowScreen={isNarrowScreen}>
+      <ContentContainer $isLocationHub={isLocationHub} $isNarrowScreen={isNarrowScreen}>
         <Headline />
-        <div className={classes.lowerBoxWrapper}>
+        <LowerBoxWrapper>
           <Typography component="p">
             {(texts as any)[(subHub ? (subHub as string) : (parentHub as string)) + "_welcometext"]}
           </Typography>
           {!subHub && (
-            <div className={classes.advantagesBox}>
+            <AdvantagesBox>
               {REASONS_TO_JOIN.map((r) => (
                 <ReasonToJoin reason={r} key={r.text} />
               ))}
-            </div>
+            </AdvantagesBox>
           )}
-        </div>
-        <div className={classes.buttonContainer}>
-          <Button
-            variant="contained"
-            href={appHref("/signup", { hubUrl, locale })}
-            className={classes.signUpButton}
-          >
+        </LowerBoxWrapper>
+        <ButtonContainer>
+          <SignUpButton variant="contained" href={appHref("/signup", { hubUrl, locale })}>
             {isNarrowScreen ? texts.sign_up_now : texts.sign_up_now_to_make_a_difference}
-          </Button>
-        </div>
-      </div>
-    </div>
+          </SignUpButton>
+        </ButtonContainer>
+      </ContentContainer>
+    </Root>
   );
 }

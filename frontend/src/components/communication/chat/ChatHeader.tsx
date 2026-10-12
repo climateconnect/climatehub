@@ -1,5 +1,5 @@
 import { IconButton, Link, Tooltip } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
@@ -10,29 +10,30 @@ import ChatTitle from "../../communication/chat/ChatTitle";
 import UserContext from "../../context/UserContext";
 import MiniProfilePreview from "../../profile/MiniProfilePreview";
 
-const useStyles = makeStyles((theme) => ({
-  topBar: {
-    textAlign: "center",
-    padding: theme.spacing(1),
-    background: theme.palette.grey[200],
-    width: "100%",
-    flex: "none",
-  },
-  backIcon: {
-    float: "left",
-    left: theme.spacing(1),
-    top: theme.spacing(0.75),
-  },
-  manageMembersButton: {
-    float: "right",
-    right: theme.spacing(1),
-    top: theme.spacing(0.75),
-  },
-  showParticipantsButton: {
-    cursor: "pointer",
-    userSelect: "none",
-  },
+const TopBar = styled("div")(({ theme }) => ({
+  textAlign: "center",
+  padding: theme.spacing(1),
+  background: theme.palette.grey[200],
+  width: "100%",
+  flex: "none",
 }));
+
+const BackButton = styled(IconButton)(({ theme }) => ({
+  float: "left",
+  left: theme.spacing(1),
+  top: theme.spacing(0.75),
+}));
+
+const ManageMembersButton = styled(IconButton)(({ theme }) => ({
+  float: "right",
+  right: theme.spacing(1),
+  top: theme.spacing(0.75),
+}));
+
+const ShowParticipantsLink = styled(Link)({
+  cursor: "pointer",
+  userSelect: "none",
+});
 
 export default function ChatHeader({
   isPrivateChat,
@@ -46,38 +47,29 @@ export default function ChatHeader({
   memberManagementExpanded,
   leaveChat,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   return (
-    <div className={`${classes.topBar} ${className}`}>
+    <TopBar className={className}>
       {!memberManagementExpanded && (
         <Tooltip title={texts.back_to_inbox}>
-          <IconButton
-            className={classes.backIcon}
-            href={getLocalePrefix(locale) + "/inbox"}
-            size="large"
-          >
+          <BackButton href={getLocalePrefix(locale) + "/inbox"} size="large">
             <KeyboardArrowLeftIcon />
-          </IconButton>
+          </BackButton>
         </Tooltip>
       )}
       {!isPrivateChat && (
         <Tooltip title={texts.leave_group_chat}>
-          <IconButton className={classes.manageMembersButton} onClick={leaveChat} size="large">
+          <ManageMembersButton onClick={leaveChat} size="large">
             <ExitToAppIcon />
-          </IconButton>
+          </ManageMembersButton>
         </Tooltip>
       )}
       {!isPrivateChat && !showChatParticipants && canEditMembers && !memberManagementExpanded && (
         <Tooltip title={texts.manage_chat_members}>
-          <IconButton
-            className={classes.manageMembersButton}
-            onClick={handleToggleMemberManagementExpanded}
-            size="large"
-          >
+          <ManageMembersButton onClick={handleToggleMemberManagementExpanded} size="large">
             <GroupAddIcon />
-          </IconButton>
+          </ManageMembersButton>
         </Tooltip>
       )}
       {isPrivateChat ? (
@@ -86,16 +78,12 @@ export default function ChatHeader({
         <div>
           <ChatTitle chat={{ name: title }} />
           <div>
-            <Link
-              underline="always"
-              onClick={toggleShowChatParticipants}
-              className={classes.showParticipantsButton}
-            >
+            <ShowParticipantsLink underline="always" onClick={toggleShowChatParticipants}>
               {showChatParticipants ? texts.hide_chat_participants : texts.show_chat_participants}
-            </Link>
+            </ShowParticipantsLink>
           </div>
         </div>
       )}
-    </div>
+    </TopBar>
   );
 }

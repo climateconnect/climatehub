@@ -1,5 +1,5 @@
 import { Button, TextField, Theme, Tooltip, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState, Fragment } from "react";
 import getRadiusFilterOptions from "../../../public/data/radiusFilterOptions";
 import getTexts from "../../../public/texts/texts";
@@ -11,138 +11,181 @@ import LocationSearchBar from "../search/LocationSearchBar";
 import FilterSearchBar from "../filter/FilterSearchBar";
 import LocationSearchingIcon from "@mui/icons-material/LocationSearching";
 
-const useStyles = makeStyles<Theme, { justifyContent?: any; isMobileScreen?: boolean }>((theme) => {
-  return {
-    flexContainer: (props) => ({
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "16px 8px",
-      justifyContent: props.justifyContent,
-      alignItems: "flex-start",
-    }),
-    verticalFlexContainer: {
-      flexDirection: "column",
-      marginTop: theme.spacing(2),
-    },
-    iconLabel: {
-      display: "flex",
-      alignItems: "center",
-    },
-    alignTextWithIcon: {
-      marginLeft: theme.spacing(0.5),
-    },
-    field: {
-      display: "flex",
-      width: 190,
-      minWidth: 220,
-    },
-    locationBox: {
-      width: 330,
-    },
-    locationFieldWrapper: {
-      display: "flex",
-      borderRadius: 0,
-    },
-    locationField: {
-      borderTopRightRadius: 0,
-      borderBottomRightRadius: 0,
-      borderRight: 0,
-    },
-    overlayLocationField: {
-      flexGrow: 1,
-    },
-    radiusInput: {
-      borderTopLeftRadius: 0,
-      borderBottomLeftRadius: 0,
-      borderLeft: 0,
-    },
-    filterElement: {
-      minHeight: 40,
-    },
-    overlayField: {
-      marginBottom: theme.spacing(2),
-      width: "100%",
-    },
-    outlinedField: {
+const shouldForwardProp = (prop: PropertyKey) => typeof prop !== "string" || !prop.startsWith("$");
+
+const IconLabelContainer = styled("div")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const IconLabelText = styled("span")(({ theme }) => ({
+  marginLeft: theme.spacing(0.5),
+}));
+
+const FilterTextField = styled(TextField, { shouldForwardProp })<{
+  $isInOverlay?: boolean;
+  $hasValue?: boolean;
+}>(({ theme, $isInOverlay, $hasValue }) => ({
+  display: "flex",
+  width: 190,
+  minWidth: 220,
+  minHeight: 40,
+  ...($isInOverlay && {
+    marginBottom: theme.spacing(2),
+    width: "100%",
+  }),
+  ...($hasValue && {
+    "& .MuiOutlinedInput-notchedOutline": {
       borderColor: theme.palette.primary.main,
       borderWidth: 2,
     },
-    errorMessageWrapper: {
-      textAlign: "center",
-      marginBottom: theme.spacing(1),
+  }),
+}));
+
+const FilterSelectField = styled(SelectField, { shouldForwardProp })<{
+  $isInOverlay?: boolean;
+  $hasValue?: boolean;
+}>(({ theme, $isInOverlay, $hasValue }) => ({
+  display: "flex",
+  width: 190,
+  minWidth: 220,
+  minHeight: 40,
+  ...($isInOverlay && {
+    marginBottom: theme.spacing(2),
+    width: "100%",
+  }),
+  ...($hasValue && {
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: theme.palette.primary.main,
+      borderWidth: 2,
     },
-    openMultiSelectButton: {
-      border: `1px solid ${theme.palette.grey[500]} !important`,
-    },
-    filterSectionFirstLine: {
-      display: "flex",
-      marginBottom: theme.spacing(0.5),
-      maxWidth: 650,
-      justifyContent: "center",
-    },
-    filterSearch: {
-      display: "flex",
-      maxWidth: 650,
-      width: 230,
-    },
-    radiusField: (props) => ({
-      width: !props.isMobileScreen ? "100px" : "",
-      flex: props.isMobileScreen ? "0 0 33%" : "initial",
-    }),
-    locationContainer: {
-      display: "contents",
-    },
-  };
+  }),
+}));
+
+const OpenMultiSelectButton = styled(Button, { shouldForwardProp })<{
+  $isInOverlay?: boolean;
+}>(({ theme, $isInOverlay }) => ({
+  border: `1px solid ${theme.palette.grey[500]} !important`,
+  minHeight: 40,
+  ...($isInOverlay && {
+    marginBottom: theme.spacing(2),
+    width: "100%",
+  }),
+}));
+
+const LocationFieldWrapper = styled("div", { shouldForwardProp })<{
+  $isInOverlay?: boolean;
+}>(({ theme, $isInOverlay }) => ({
+  display: "flex",
+  borderRadius: 0,
+  ...($isInOverlay && {
+    marginBottom: theme.spacing(2),
+    width: "100%",
+  }),
+  // Autocomplete root (formerly inputClassName)
+  "& .MuiAutocomplete-root": $isInOverlay
+    ? { flexGrow: 1 }
+    : {
+        display: "flex",
+        width: 330,
+        minWidth: 220,
+      },
+  // Location input root (formerly textFieldClassName)
+  "& .MuiAutocomplete-root .MuiOutlinedInput-root": {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    borderRight: 0,
+  },
+}));
+
+const LocationContainer = styled(LocationSearchBar)({
+  display: "contents",
 });
+
+const RadiusField = styled(SelectField, { shouldForwardProp })<{
+  $isMobileScreen?: boolean;
+}>(({ $isMobileScreen }) => ({
+  ...(!$isMobileScreen && { width: "100px" }),
+  flex: $isMobileScreen ? "0 0 33%" : "initial",
+  "& .MuiOutlinedInput-root": {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderLeft: 0,
+  },
+}));
+
+const SearchFirstLine = styled("div")(({ theme }) => ({
+  display: "flex",
+  marginBottom: theme.spacing(0.5),
+  maxWidth: 650,
+  justifyContent: "center",
+}));
+
+const SearchWrapper = styled("div")({
+  display: "flex",
+  maxWidth: 650,
+  width: 230,
+});
+
+const ErrorMessageWrapper = styled("div")(({ theme }) => ({
+  textAlign: "center",
+  marginBottom: theme.spacing(1),
+}));
+
+const FlexContainer = styled("div", { shouldForwardProp })<{
+  $justifyContent?: string;
+  $isInOverlay?: boolean;
+}>(({ theme, $justifyContent, $isInOverlay }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "16px 8px",
+  justifyContent: $justifyContent,
+  alignItems: "flex-start",
+  ...($isInOverlay && {
+    flexDirection: "column",
+    marginTop: theme.spacing(2),
+  }),
+}));
 
 // Helper component for icon labels
 const IconLabel = ({ Icon, title }) => {
-  const classes = useStyles({});
   return (
-    <div className={classes.iconLabel}>
+    <IconLabelContainer>
       <Icon fontSize="inherit" />
-      <span className={classes.alignTextWithIcon}>{title}</span>
-    </div>
+      <IconLabelText>{title}</IconLabelText>
+    </IconLabelContainer>
   );
 };
 
 // Text filter component
-const TextFilter = ({ filter, value, onChange, isInOverlay, classes }) => {
+const TextFilter = ({ filter, value, onChange, isInOverlay }) => {
   return (
-    <TextField
+    <FilterTextField
       label={<IconLabel Icon={filter.icon} title={filter.title} />}
       type="text"
       value={value}
-      className={`${classes.field} ${classes.filterElement} ${isInOverlay && classes.overlayField}`}
+      $isInOverlay={isInOverlay}
+      $hasValue={!!value}
       variant="outlined"
       size="small"
       onChange={(event) => onChange(filter.key, event.target.value)}
-      InputProps={{
-        classes: {
-          notchedOutline: value && classes.outlinedField,
-        },
-      }}
     />
   );
 };
 
 // Select/Multiselect filter component
-const SelectFilter = ({ filter, value, onChange, isInOverlay, classes }) => {
+const SelectFilter = ({ filter, value, onChange, isInOverlay }) => {
   const isMultiselect = filter.type === "multiselect";
   return (
-    <SelectField
+    <FilterSelectField
       options={filter.options}
-      className={`${classes.field} ${classes.filterElement} ${isInOverlay && classes.overlayField}`}
+      $isInOverlay={isInOverlay}
+      $hasValue={!!(value && value.length)}
       multiple={isMultiselect}
       values={isMultiselect && value}
       controlled={!isMultiselect}
       controlledValue={!isMultiselect && value}
       label={<IconLabel Icon={filter.icon} title={filter.title} />}
-      InputProps={{
-        classes: {
-          notchedOutline: value && value.length && classes.outlinedField,
-        },
-      }}
       size="small"
       isInOverlay={isInOverlay}
       onChange={(event) => onChange(filter.key, event.target.value)}
@@ -160,7 +203,6 @@ const MultiSelectDialogFilter = ({
   handleClickDialogClose,
   handleClickDialogSave,
   isInOverlay,
-  classes,
   texts,
 }) => {
   const curSelectedItems = selectedItems[filter.key];
@@ -174,16 +216,14 @@ const MultiSelectDialogFilter = ({
 
   return (
     <>
-      <Button
+      <OpenMultiSelectButton
         variant="outlined"
         color="grey"
-        className={`${classes.openMultiSelectButton} ${classes.filterElement} ${
-          isInOverlay && classes.overlayField
-        }`}
+        $isInOverlay={isInOverlay}
         onClick={() => handleClickDialogOpen(filter.key)}
       >
         {filter.title}
-      </Button>
+      </OpenMultiSelectButton>
       <MultiLevelSelectDialog
         options={filter.options}
         onClose={() => handleClickDialogClose(filter.key)}
@@ -200,12 +240,12 @@ const MultiSelectDialogFilter = ({
 
 // Location filter component
 const LocationFilter = ({
+  isMobileScreen,
   filter,
   value,
   radiusValue,
   onChange,
   isInOverlay,
-  classes,
   locationInputRef,
   locationOptionsOpen,
   handleSetLocationOptionsOpen,
@@ -213,36 +253,26 @@ const LocationFilter = ({
   const radiusFilterOptions = getRadiusFilterOptions();
 
   return (
-    <div className={`${classes.locationFieldWrapper} ${isInOverlay && classes.overlayField}`}>
-      <LocationSearchBar
+    <LocationFieldWrapper $isInOverlay={isInOverlay}>
+      <LocationContainer
         smallInput
         onSelect={(location) => onChange(filter.key, location)}
-        inputClassName={
-          !isInOverlay ? `${classes.field} ${classes.locationBox}` : classes.overlayLocationField
-        }
         value={value}
-        textFieldClassName={classes.locationField}
         onChange={(value) => onChange(filter.key, value)}
         locationInputRef={locationInputRef}
         open={locationOptionsOpen}
         handleSetOpen={handleSetLocationOptionsOpen}
         filterMode
         label={<IconLabel Icon={filter.icon} title={filter.title} />}
-        className={classes.locationContainer}
       />
-      <SelectField
-        className={classes.radiusField}
+      <RadiusField
+        $isMobileScreen={isMobileScreen}
         label={<LocationSearchingIcon fontSize="inherit" />}
         options={radiusFilterOptions}
         controlled
         controlledValue={{ name: radiusValue }}
         size="small"
         onChange={(event) => onChange("radius", event.target.value)}
-        InputProps={{
-          classes: {
-            root: classes.radiusInput,
-          },
-        }}
         sx={{
           "& .MuiSelect-select": {
             paddingRight: "10px !important",
@@ -252,28 +282,20 @@ const LocationFilter = ({
           },
         }}
       />
-    </div>
+    </LocationFieldWrapper>
   );
 };
 
 //Search e.g Projects, Organizations and members name on Browse page
-const SearchSectionFilter = ({
-  label,
-  onSubmit,
-  value,
-  onChange,
-  isMobileScreen,
-  justifyContent = "space-around",
-  type,
-}) => {
+const SearchSectionFilter = ({ label, onSubmit, value, onChange, isMobileScreen, type }) => {
   const isMediumScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.between("md", 1187));
-  const classes = useStyles({ justifyContent });
+  const SearchContainer = isMediumScreen ? SearchFirstLine : SearchWrapper;
   // Don't render on narrow screens
   if (isMobileScreen) {
     return null;
   }
   return (
-    <div className={`${isMediumScreen ? classes.filterSectionFirstLine : classes.filterSearch}`}>
+    <SearchContainer>
       <FilterSearchBar
         label={label}
         onSubmit={onSubmit}
@@ -281,7 +303,7 @@ const SearchSectionFilter = ({
         value={value}
         onChange={onChange}
       />
-    </div>
+    </SearchContainer>
   );
 };
 // Main component
@@ -308,10 +330,6 @@ export default function Filters({
 
   const { filters: currentFilters } = useContext(FilterContext);
   const texts = getTexts({ page: "filter_and_search", locale: locale, filterType: searchType });
-  const classes = useStyles({
-    justifyContent: justifyContent || "space-around" || "flex-start",
-    isMobileScreen: isMobileScreen,
-  });
   const [searchValue, setSearchValue] = useState(currentFilters.search || "");
   const shouldShowFilter = (filter) => {
     if (!filter.showIf) return true;
@@ -334,7 +352,6 @@ export default function Filters({
             value={currentFilterValue}
             onChange={handleValueChange}
             isInOverlay={isInOverlay}
-            classes={classes}
           />
         );
         break;
@@ -347,7 +364,6 @@ export default function Filters({
             value={currentFilterValue}
             onChange={handleValueChange}
             isInOverlay={isInOverlay}
-            classes={classes}
           />
         );
         break;
@@ -365,7 +381,6 @@ export default function Filters({
             handleClickDialogClose={handleClickDialogClose}
             handleClickDialogSave={handleClickDialogSave}
             isInOverlay={isInOverlay}
-            classes={classes}
             texts={texts}
           />
         );
@@ -379,7 +394,7 @@ export default function Filters({
             radiusValue={currentFilters.radius}
             onChange={handleValueChange}
             isInOverlay={isInOverlay}
-            classes={classes}
+            isMobileScreen={isMobileScreen}
             locationInputRef={locationInputRef}
             locationOptionsOpen={locationOptionsOpen}
             handleSetLocationOptionsOpen={handleSetLocationOptionsOpen}
@@ -416,14 +431,14 @@ export default function Filters({
   return (
     <>
       {errorMessage && (
-        <div className={classes.errorMessageWrapper}>
+        <ErrorMessageWrapper>
           <Typography color="error">{errorMessage}</Typography>
-        </div>
+        </ErrorMessageWrapper>
       )}
 
-      <div className={`${classes.flexContainer} ${isInOverlay && classes.verticalFlexContainer}`}>
+      <FlexContainer $justifyContent={justifyContent || "space-around"} $isInOverlay={isInOverlay}>
         {possibleFilters.map(renderFilter)}
-      </div>
+      </FlexContainer>
     </>
   );
 }

@@ -1,15 +1,5 @@
-import {
-  Box,
-  Button,
-  Link,
-  MenuItem,
-  MenuList,
-  Paper,
-  Popper,
-  Theme,
-  Typography,
-} from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Box, Button, Link, MenuItem, MenuList, Paper, Popper, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -23,89 +13,59 @@ import UserContext from "../context/UserContext";
 import UserImage from "./UserImage";
 import { getUserOrganizations } from "../../../public/lib/organizationOperations";
 
-const useStyles = makeStyles((theme: Theme) => {
-  return {
-    welcomeBanner: {
-      backgroundColor: theme.palette.primary.main,
-      minWidth: 300,
-      width: "100%",
-      borderRadius: 5,
-      border: `3px solid ${theme.palette.primary.main}`,
-      color: "white",
-      position: "relative",
-      maxWidth: "800px",
-    },
-    profileInner: {
-      float: "left",
-      position: "absolute",
-      left: "0px",
-      top: "0px",
-      "z-index": " 1000",
-      padding: "5px",
-    },
-    root: {
-      marginBottom: theme.spacing(1.5),
-      borderLeft: `5px solid ${theme.palette.primary.main}`,
-    },
+const WelcomeBanner = styled("div")(({ theme }) => ({
+  backgroundColor: theme.palette.primary.main,
+  minWidth: 300,
+  width: "100%",
+  borderRadius: 5,
+  border: `3px solid ${theme.palette.primary.main}`,
+  color: "white",
+  position: "relative",
+  maxWidth: "800px",
+}));
 
-    userImage: {
-      // TODO(design): what color should this actually be -- I
-      // don't see it represented in the XD mockup? Ideally
-      // it'd be from our emerging design system
-      border: `1px solid #e0e0e0`,
-      borderRadius: "50%",
-      height: "40px",
-      width: "43px",
-      background: "white",
-    },
-    subsection: {
-      // TODO(design): again want to make sure we reflect this color
-      // scheme in our design system or in code. I just grabbed
-      // this color from the color picker in Chrome DevTools
-      background: "#f0f2f5",
-      borderRadius: 4,
-      padding: theme.spacing(1),
-    },
+const Subsection = styled("div")(({ theme }) => ({
+  // TODO(design): again want to make sure we reflect this color
+  // scheme in our design system or in code. I just grabbed
+  // this color from the color picker in Chrome DevTools
+  background: "#f0f2f5",
+  borderRadius: 4,
+  padding: theme.spacing(1),
+}));
 
-    // TODO(Chris): is there a standard
-    // set of Typography headings, components?
-    headingText: {
-      fontWeight: "bold",
-      paddingLeft: theme.spacing(1),
-    },
+const WelcomeMessage = styled("div")(({ theme }) => ({
+  background: "white",
+  borderRadius: "25px",
+  color: theme.palette.secondary.main,
+  display: "flex",
+  alignItems: "center",
+  width: "100%",
+  // TODO: not sure about correct weight here
+  fontWeight: "700",
+  padding: theme.spacing(1.5),
+}));
 
-    welcomeMessage: {
-      background: "white",
-      borderRadius: "25px",
-      color: theme.palette.secondary.main,
-      display: "flex",
-      alignItems: "center",
-      width: "100%",
-      // TODO: not sure about correct weight here
-      fontWeight: "700",
-      padding: theme.spacing(1.5),
-    },
-
-    welcomeSubsection: {
-      display: "flex",
-      alignItems: "center",
-    },
-
-    buttonContainer: {
-      display: "flex",
-      justifyContent: "space-around",
-    },
-    climateHubOption: {
-      width: "100%",
-    },
-    buttonLabelColor: {
-      color: theme.palette.background.default_contrastText,
-    },
-    linkText: {
-      color: theme.palette.background.default_contrastText,
-    },
-  };
+const WelcomeSubsection = styled("div")({
+  display: "flex",
+  alignItems: "center",
 });
+
+const ButtonContainer = styled("div")({
+  display: "flex",
+  justifyContent: "space-around",
+});
+
+const HoverButtonLabel = styled(Button)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const DropDownLink = styled(Link)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const ClimateHubOption = styled(MenuItem)({
+  width: "100%",
+}) as typeof MenuItem;
 
 // TODO: generalize this spacing unit to be used in other places,
 // for consistency.
@@ -118,7 +78,6 @@ const HorizontalSpacing = ({ children, size }) => {
 // TODO(Piper): we should generalize these components post launch
 // of ClimateHub so that they can be used across the platform.
 const HoverButton = ({ items, label, startIcon }) => {
-  const classes = useStyles();
   const buttonRef = useRef(null);
   const [open, setOpen] = useState(false);
 
@@ -133,9 +92,8 @@ const HoverButton = ({ items, label, startIcon }) => {
 
   return (
     <>
-      <Button
+      <HoverButtonLabel
         aria-haspopup="true"
-        className={classes.buttonLabelColor}
         color="primary"
         onClick={handleOpen}
         onMouseEnter={handleOpen}
@@ -146,7 +104,7 @@ const HoverButton = ({ items, label, startIcon }) => {
       >
         {label}
         <ArrowDropDownIcon />
-      </Button>
+      </HoverButtonLabel>
       <DropDownList
         buttonRef={buttonRef}
         handleClose={handleClose}
@@ -159,7 +117,6 @@ const HoverButton = ({ items, label, startIcon }) => {
 };
 
 const DropDownList = ({ buttonRef, handleOpen, handleClose, items, open }) => {
-  const classes = useStyles();
   const { startLoading } = useContext(UserContext);
 
   const handleClick = (onClick) => {
@@ -172,20 +129,17 @@ const DropDownList = ({ buttonRef, handleOpen, handleClose, items, open }) => {
 
   return (
     <Popper open={open} anchorEl={buttonRef.current}>
-      <Paper onMouseEnter={handleOpen} onMouseLeave={handleClose} className={classes.menu}>
+      <Paper onMouseEnter={handleOpen} onMouseLeave={handleClose}>
         <MenuList>
           {items?.map((item) => (
-            <Link
+            <DropDownLink
               key={item.url_slug}
               href={item.url_slug}
               onClick={() => handleClick(item.onClick)}
               underline="hover"
-              className={classes.linkText}
             >
-              <MenuItem component="button" className={classes.climateHubOption}>
-                {item.name}
-              </MenuItem>
-            </Link>
+              <ClimateHubOption component="button">{item.name}</ClimateHubOption>
+            </DropDownLink>
           ))}
         </MenuList>
       </Paper>
@@ -208,7 +162,6 @@ export default function Dashboard({
   welcomeMessageLoggedIn,
   welcomeMessageLoggedOut,
 }: Props) {
-  const classes = useStyles();
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({
     page: "dashboard",
@@ -253,23 +206,23 @@ export default function Dashboard({
   };
 
   return (
-    <div className={`${classes.welcomeBanner} ${className}`}>
-      <div className={`${classes.subsection}`}>
+    <WelcomeBanner className={className}>
+      <Subsection>
         <HorizontalSpacing size={1}>
-          <div className={`${classes.welcomeSubsection}`}>
+          <WelcomeSubsection>
             <UserImage user={user} />
             {/* TODO: doing some left spacing here -- trying to keep spacing directly out of the UI components, and isolated within Box components directly  */}
             <Box sx={{ marginLeft: theme.spacing(1), width: "100%" }}>
-              <div className={`${classes.welcomeMessage}`}>
+              <WelcomeMessage>
                 <Typography style={{ fontWeight: "600" }}>{welcomeMessage}</Typography>
-              </div>
+              </WelcomeMessage>
             </Box>
-          </div>
+          </WelcomeSubsection>
         </HorizontalSpacing>
 
         <hr />
 
-        <div className={`${classes.buttonContainer}`}>
+        <ButtonContainer>
           {/* When the user is logged out, we want to prompt them to sign up! And we don't
           show them the other controls. */}
           {user ? (
@@ -328,8 +281,8 @@ export default function Dashboard({
               </Button>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </ButtonContainer>
+      </Subsection>
+    </WelcomeBanner>
   );
 }

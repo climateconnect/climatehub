@@ -1,26 +1,26 @@
 import React from "react";
 import { Box, FormHelperText, TextField, Typography } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { RegistrationField } from "../../types";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  root: {
-    marginBottom: theme.spacing(2),
-    paddingLeft: 0,
-  },
-  label: {
-    fontWeight: 500,
-    color: theme.palette.text.primary,
-    marginBottom: theme.spacing(1),
-  },
-  required: {
-    color: theme.palette.error.main,
-    marginLeft: theme.spacing(0.5),
-  },
-  errorText: {
-    color: theme.palette.error.main,
-  },
+const Root = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  paddingLeft: 0,
+}));
+
+const Label = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  fontWeight: 500,
+  color: theme.palette.text.primary,
+  marginBottom: theme.spacing(1),
+}));
+
+const RequiredMark = styled("span")(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginLeft: theme.spacing(0.5),
+}));
+
+const ErrorText = styled(FormHelperText)(({ theme }) => ({
+  color: theme.palette.error.main,
 }));
 
 type Props = {
@@ -40,7 +40,6 @@ export default function RegistrationOptionSelectField({
   error,
   texts,
 }: Props) {
-  const classes = useStyles();
   const title = field.settings.title ?? "";
   const sortedOptions = [...(field.options ?? [])].sort((a, b) => a.order - b.order);
 
@@ -54,15 +53,11 @@ export default function RegistrationOptionSelectField({
   };
 
   return (
-    <Box className={classes.root}>
-      <Typography component="div" variant="body1" className={classes.label}>
+    <Root>
+      <Label component="div" variant="body1">
         {title}
-        {field.is_required && (
-          <span className={classes.required} aria-hidden="true">
-            {" *"}
-          </span>
-        )}
-      </Typography>
+        {field.is_required && <RequiredMark aria-hidden="true">{" *"}</RequiredMark>}
+      </Label>
       <TextField
         select
         fullWidth
@@ -79,7 +74,7 @@ export default function RegistrationOptionSelectField({
           </option>
         ))}
       </TextField>
-      {error && <FormHelperText className={classes.errorText}>{error}</FormHelperText>}
-    </Box>
+      {error && <ErrorText>{error}</ErrorText>}
+    </Root>
   );
 }

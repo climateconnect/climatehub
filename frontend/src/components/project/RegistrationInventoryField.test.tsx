@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import RegistrationInventoryField from "./RegistrationInventoryField";
 import { RegistrationField, RegistrationFieldOption } from "../../types";
@@ -45,17 +44,15 @@ function renderField({
 }) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <RegistrationInventoryField
-          field={field}
-          optionId={optionId}
-          quantity={quantity}
-          onOptionChange={() => {}}
-          onQuantityChange={() => {}}
-          error={error}
-          texts={texts}
-        />
-      </StylesThemeProvider>
+      <RegistrationInventoryField
+        field={field}
+        optionId={optionId}
+        quantity={quantity}
+        onOptionChange={() => {}}
+        onQuantityChange={() => {}}
+        error={error}
+        texts={texts}
+      />
     </ThemeProvider>
   );
 }

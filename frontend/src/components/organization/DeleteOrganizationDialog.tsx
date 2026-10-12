@@ -1,18 +1,17 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { bool, func, object, oneOfType, string } from "prop-types";
 import React from "react";
 
 import GenericDialog from "../dialogs/GenericDialog";
 
-const useStyles = makeStyles((theme) => ({
-  buttonsContainer: {
-    marginTop: theme.spacing(3),
-    textAlign: "right",
-  },
-  button: {
-    marginLeft: theme.spacing(1),
-  },
+const ButtonsContainer = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(3),
+  textAlign: "right",
+}));
+
+const DialogButton = styled(Button)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
 }));
 
 export default function DeleteOrganizationDialog({
@@ -25,8 +24,6 @@ export default function DeleteOrganizationDialog({
   className,
   showConfirmButton,
 }) {
-  const classes = useStyles();
-
   const handleCancel = () => {
     onClose(false);
   };
@@ -38,26 +35,16 @@ export default function DeleteOrganizationDialog({
   return (
     <GenericDialog onClose={handleCancel} open={open} title={title} dialogContentClass={className}>
       <Typography>{text}</Typography>
-      <div className={classes.buttonsContainer}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleCancel}
-          className={classes.button}
-        >
+      <ButtonsContainer>
+        <DialogButton variant="contained" color="primary" onClick={handleCancel}>
           {cancelText}
-        </Button>
+        </DialogButton>
         {showConfirmButton && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleConfirm}
-            className={classes.button}
-          >
+          <DialogButton variant="contained" color="primary" onClick={handleConfirm}>
             {confirmText}
-          </Button>
+          </DialogButton>
         )}
-      </div>
+      </ButtonsContainer>
     </GenericDialog>
   );
 }

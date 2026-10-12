@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import RegistrationCheckboxField from "./RegistrationCheckboxField";
 import { RegistrationField } from "../../types";
@@ -36,9 +35,7 @@ function renderField({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <RegistrationCheckboxField field={field} value={value} onChange={onChange} error={error} />
-      </StylesThemeProvider>
+      <RegistrationCheckboxField field={field} value={value} onChange={onChange} error={error} />
     </ThemeProvider>
   );
 }

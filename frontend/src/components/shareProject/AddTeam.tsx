@@ -1,5 +1,4 @@
 import { Container, IconButton } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import React, { useContext } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
@@ -10,29 +9,31 @@ import AutoCompleteSearchBar from "../search/AutoCompleteSearchBar";
 import AddProjectMembersContainer from "./AddProjectMembersContainer";
 import OrganizersContainer from "./OrganizersContainer";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
-import { useTheme } from "@mui/styles";
+import { styled, useTheme } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    searchBarContainer: {
-      marginTop: theme.spacing(4),
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexGrow: 100,
-    },
-    searchBar: {
-      width: 800,
-      display: "flex",
-    },
-    block: {
-      marginBottom: theme.spacing(4),
-    },
-    marginTop: {
-      marginTop: theme.spacing(4),
-    },
-  };
-});
+// Static class names are handed to the child components (which take *ClassName props)
+// and styled via descendant selectors from the root.
+const SEARCH_BAR_CONTAINER_CLASS = "AddTeam-searchBarContainer";
+const SEARCH_BAR_CLASS = "AddTeam-searchBar";
+const BLOCK_CLASS = "AddTeam-block";
+
+const Root = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  [`& .${SEARCH_BAR_CONTAINER_CLASS}`]: {
+    marginTop: theme.spacing(4),
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexGrow: 100,
+  },
+  [`& .${SEARCH_BAR_CLASS}`]: {
+    width: 800,
+    display: "flex",
+  },
+  [`& .${BLOCK_CLASS}`]: {
+    marginBottom: theme.spacing(4),
+  },
+}));
 
 export default function AddTeam({
   projectData,
@@ -47,7 +48,6 @@ export default function AddTeam({
   loadingSubmit,
   loadingSubmitDraft,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const theme = useTheme();
@@ -120,13 +120,13 @@ export default function AddTeam({
   const backgroundContrastColor = getBackgroundContrastColor(theme);
 
   return (
-    <Container maxWidth="lg" className={classes.marginTop}>
+    <Root maxWidth="lg">
       <form onSubmit={isLastStep ? onSubmit : onClickNextStep}>
-        <div className={classes.searchBarContainer}>
+        <div className={SEARCH_BAR_CONTAINER_CLASS}>
           <AutoCompleteSearchBar
             label={texts.search_for_your_team_members}
             color={backgroundContrastColor}
-            className={`${classes.searchBar} ${classes.block}`}
+            className={`${SEARCH_BAR_CLASS} ${BLOCK_CLASS}`}
             baseUrl={process.env.API_URL + "/api/members/?search="}
             clearOnSelect
             freeSolo
@@ -139,7 +139,7 @@ export default function AddTeam({
         </div>
         <AddProjectMembersContainer
           projectData={projectData}
-          blockClassName={classes.block}
+          blockClassName={BLOCK_CLASS}
           handleRemoveMember={handleRemoveMember}
           availabilityOptions={availabilityOptions}
           rolesOptions={rolesOptions}
@@ -147,9 +147,9 @@ export default function AddTeam({
         />
         <OrganizersContainer
           projectData={projectData}
-          blockClassName={classes.block}
-          searchBarClassName={classes.searchBar}
-          searchBarContainerClassName={classes.searchBarContainer}
+          blockClassName={BLOCK_CLASS}
+          searchBarClassName={SEARCH_BAR_CLASS}
+          searchBarContainerClassName={SEARCH_BAR_CONTAINER_CLASS}
           handleAddOrganization={handleAddOrganization}
           handleRemoveOrganization={handleRemoveOrganization}
         />
@@ -173,6 +173,6 @@ export default function AddTeam({
           />
         )}
       </form>
-    </Container>
+    </Root>
   );
 }

@@ -19,8 +19,7 @@ import {
   SwipeableDrawer,
   Typography,
 } from "@mui/material";
-import { Theme, useTheme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { CSSObject, styled, Theme, useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -41,126 +40,225 @@ import StaticPageLinks from "./StaticPageLinks";
 import { HeaderProps } from "./types";
 import { getLinks, getLoggedInLinks, getStaticLinkFromItem } from "../../../public/lib/headerLinks";
 
-type StyleProps = {
-  transparentHeader?: boolean;
-  fixedHeader?: boolean;
-  background?: string;
-  isStaticPage?: boolean;
-  isHubPage?: boolean;
-  isLocationHub?: boolean;
-  isCustomHub?: boolean;
-  isLoggedInUser?: boolean;
-  isLandingPage?: boolean;
+// Do not forward `$`-prefixed (transient) props to the wrapped component / DOM element
+const isNotTransientProp = (prop: PropertyKey) => typeof prop !== "string" || !prop.startsWith("$");
+
+function getHeaderColor(theme: Theme, isCustomHub, transparent, isLandingPage) {
+  if (transparent || isLandingPage) return "white";
+  return isCustomHub ? theme.palette.primary.contrastText : theme.palette.primary.main;
+}
+
+function getHeaderBackground(theme: Theme, background, transparent, isLandingPage) {
+  if (background) return background;
+  if (transparent) return "";
+  return isLandingPage ? theme.palette.primary.main : "white";
+}
+
+type HeaderRootProps = {
+  $transparentHeader?: boolean;
+  $fixedHeader?: boolean;
+  $background?: string;
+  $isStaticPage?: boolean;
+  $isHubPage?: boolean;
+  $isCustomHub?: boolean;
+  $isLandingPage?: boolean;
+  $noSpacingBottom?: boolean;
 };
 
-const useStyles = makeStyles<Theme, StyleProps>((theme: Theme) => {
-  function getHeaderColor(isCustomHub, transparent, isLandingPage, customTheme) {
-    if (transparent || isLandingPage) return "white";
-    return isCustomHub ? customTheme.palette.primary.contrastText : theme.palette.primary.main;
-  }
+const HeaderRoot = styled("header", { shouldForwardProp: isNotTransientProp })<HeaderRootProps>(
+  ({
+    theme,
+    $transparentHeader,
+    $fixedHeader,
+    $background,
+    $isStaticPage,
+    $isHubPage,
+    $isCustomHub,
+    $isLandingPage,
+    $noSpacingBottom,
+  }) => ({
+    zIndex: $fixedHeader ? 1000 : "auto",
+    borderBottom:
+      $transparentHeader || $isStaticPage || $isHubPage
+        ? 0
+        : `1px solid ${theme.palette.grey[300]}`,
+    position: $fixedHeader ? "fixed" : ("auto" as "inherit"),
+    width: $fixedHeader ? "100%" : "auto",
+    top: $fixedHeader ? 0 : "auto",
+    //Use custom background if the header is fixed and not transparent (landing page) or if it's a custom hub
+    background: getHeaderBackground(theme, $background, $transparentHeader, $isLandingPage),
+    color: getHeaderColor(theme, $isCustomHub, $transparentHeader, $isLandingPage),
+    textDecoration: "inherit",
+    transition: "all 0.25s linear", // use all instead of transform since the background color too is changing at some point. It'll be nice to have a smooth transition.
+    ...(!$noSpacingBottom && { marginBottom: theme.spacing(2) }),
+  })
+);
 
-  function getHeaderBackground(background, transparent, isLandingPage) {
-    if (background) return background;
-    if (transparent) return "";
-    return isLandingPage ? theme.palette.primary.main : "white";
-  }
+const HeaderContainer = styled(Container)(({ theme }) => ({
+  padding: theme.spacing(2),
+  paddingRight: "auto",
+  paddingLeft: "auto",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  [theme.breakpoints.down("lg")]: {
+    padding: theme.spacing(2),
+  },
+  [theme.breakpoints.down("md")]: {
+    padding: `${theme.spacing(0.8)} ${theme.spacing(2)}`,
+  },
+}));
 
+const LogoLink = styled(Link)(({ theme }) => ({
+  [theme.breakpoints.down("md")]: {
+    flex: `0 1 auto`,
+    // width: "calc(1.1vw + 1.3em)",
+    // maxWidth: "2.3rem",
+    minWidth: "1.3rem",
+  },
+}));
+
+const Logo = styled("img", { shouldForwardProp: isNotTransientProp })<{
+  $isLocationHub?: boolean;
+  $isCustomHub?: boolean;
+}>(({ theme, $isLocationHub, $isCustomHub }) => ({
+  height: 60,
+  maxWidth: 180,
+  [theme.breakpoints.down("md")]: {
+    height: $isLocationHub || $isCustomHub ? 35 : "auto",
+  },
+}));
+
+const PoweredByContainer = styled(Link)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  flexDirection: "column",
+  marginRight: "auto",
+  marginBottom: theme.spacing(-2),
+  color: theme.palette.primary.contrastText,
+  "&:hover": {
+    textDecoration: "none",
+  },
+  [theme.breakpoints.down("md")]: {
+    marginBottom: 0,
+  },
+}));
+
+const PoweredByText = styled("span")(({ theme }) => ({
+  fontSize: 6,
+  fontWeight: 800,
+  [theme.breakpoints.down("md")]: {
+    fontSize: 4,
+  },
+}));
+
+const PoweredByImg = styled("img")(({ theme }) => ({
+  height: 20,
+  marginLeft: theme.spacing(1),
+  marginTop: theme.spacing(0.1),
+  [theme.breakpoints.down("md")]: {
+    height: 15,
+  },
+}));
+
+const LinkContainer = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  maxWidth: "calc(100% - 200px)",
+  justifyContent: "space-around",
+  [theme.breakpoints.down("lg")]: {
+    maxWidth: "calc(100% - 150px)",
+  },
+  [theme.breakpoints.down("md")]: {
+    maxWidth: "calc(100% - 35px)",
+  },
+}));
+
+const LoggedInRoot = styled(Box)(({ theme }) => ({
+  verticalAlign: "middle",
+  marginLeft: theme.spacing(2),
+  zIndex: 101,
+}));
+
+const LoggedInAvatar = styled(Avatar)({
+  height: 30,
+  width: 30,
+});
+
+const LoggedInAvatarMobile = styled(Avatar)({
+  height: 60,
+  width: 60,
+  margin: "0 auto",
+});
+
+const MobileAvatarContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+}));
+
+// Link in the mobile drawer
+const DrawerLink = styled(Link, { shouldForwardProp: isNotTransientProp })<{
+  $isCustomHub?: boolean;
+}>(({ theme, $isCustomHub }) => ({
+  color: $isCustomHub ? theme.palette.background.default_contrastText : theme.palette.primary.main,
+}));
+
+const DropdownMenuInMobile = styled("div", { shouldForwardProp: isNotTransientProp })<{
+  $isCustomHub?: boolean;
+  $open?: boolean;
+}>(({ theme, $isCustomHub, $open }) => ({
+  backgroundColor: $isCustomHub ? theme.palette.primary.main : theme.palette.secondary.main,
+  maxHeight: 0,
+  opacity: 0,
+  overflow: "hidden",
+  transition: `max-height 0.3s ease, opacity 0.3s ease`,
+  ...($open && {
+    maxHeight: "150px",
+    opacity: 1,
+  }),
+}));
+
+// one-off styles applied through `sx`
+const notificationsHeadlineSx = { p: 2, textAlign: "center" } as const;
+
+const languageSelectMobileSx = { display: "flex", justifyContent: "center" } as const;
+
+const drawerItemSx = (theme: Theme) => ({
+  color: theme.palette.background.default_contrastText,
+});
+
+const normalScreenIconSx = (theme: Theme) => ({
+  fontSize: 20,
+  marginRight: theme.spacing(0.25),
+});
+
+const loggedInLinkSx = (theme: Theme) => ({
+  color: theme?.palette?.background?.default_contrastText,
+  width: "100%",
+});
+
+const loggedInPopperSx = { zIndex: 130 } as const;
+
+type LinkSx = Record<string, (_theme: Theme) => CSSObject>;
+
+// Styles that can be selected by name through `link.className` in public/lib/headerLinks.ts
+function getLinkSx({
+  isCustomHub,
+  isLandingPage,
+}: {
+  isCustomHub?: boolean;
+  isLandingPage?: boolean;
+}): LinkSx {
   return {
-    root: (props) => {
-      return {
-        zIndex: props.fixedHeader ? 1000 : "auto",
-        borderBottom:
-          props.transparentHeader || props.isStaticPage || props.isHubPage
-            ? 0
-            : `1px solid ${theme.palette.grey[300]}`,
-        position: props.fixedHeader ? "fixed" : ("auto" as "inherit"),
-        width: props.fixedHeader ? "100%" : "auto",
-        top: props.fixedHeader ? 0 : "auto",
-        //Use custom background if the header is fixed and not transparent (landing page) or if it's a custom hub
-        background: getHeaderBackground(
-          props.background,
-          props.transparentHeader,
-          props.isLandingPage
-        ),
-        color: getHeaderColor(
-          props.isCustomHub,
-          props.transparentHeader,
-          props.isLandingPage,
-          theme
-        ),
-        textDecoration: "inherit",
-        transition: "all 0.25s linear", // use all instead of transform since the background color too is changing at some point. It'll be nice to have a smooth transition.
-      };
-    },
-    spacingBottom: {
-      marginBottom: theme.spacing(2),
-    },
-    container: {
-      padding: theme.spacing(2),
-      paddingRight: "auto",
-      paddingLeft: "auto",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      [theme.breakpoints.down("lg")]: {
-        padding: theme.spacing(2),
-      },
-      [theme.breakpoints.down("md")]: {
-        padding: `${theme.spacing(0.8)} ${theme.spacing(2)}`,
-      },
-    },
-    logoLink: {
-      [theme.breakpoints.down("md")]: {
-        flex: `0 1 auto`,
-        // width: "calc(1.1vw + 1.3em)",
-        // maxWidth: "2.3rem",
-        minWidth: "1.3rem",
-      },
-    },
-    logo: (props) => ({
-      [theme.breakpoints.down("md")]: {
-        height: props.isLocationHub || props.isCustomHub ? 35 : "auto",
-      },
-      height: 60,
-      maxWidth: 180,
-    }),
-    buttonMarginLeft: {
+    buttonMarginLeft: (theme) => ({
       marginLeft: theme.spacing(1),
-    },
-    marginRight: {
+    }),
+    marginRight: (theme) => ({
       marginRight: theme.spacing(3),
-    },
-    loggedInRoot: {
-      verticalAlign: "middle",
-      marginLeft: theme.spacing(2),
-      zIndex: 101,
-    },
-    loggedInAvatar: {
-      height: 30,
-      width: 30,
-    },
-    loggedInAvatarMobile: {
-      height: 60,
-      width: 60,
-      margin: "0 auto",
-    },
-    loggedInLink: {
-      color: theme?.palette?.background?.default_contrastText,
-      width: "100%",
-    },
-    linkContainer: {
-      display: "flex",
-      alignItems: "center",
-      maxWidth: "calc(100% - 200px)",
-      [theme.breakpoints.down("lg")]: {
-        maxWidth: "calc(100% - 150px)",
-      },
-      [theme.breakpoints.down("md")]: {
-        maxWidth: "calc(100% - 35px)",
-      },
-      justifyContent: "space-around",
-    },
-    shareProjectButton: (props) => {
+    }),
+    shareProjectButton: (theme) => {
       const css = {
         height: 36,
         marginLeft: theme.spacing(1),
@@ -168,7 +266,7 @@ const useStyles = makeStyles<Theme, StyleProps>((theme: Theme) => {
         paddingLeft: theme.spacing(2),
         paddingRight: theme.spacing(2),
       };
-      if (props.isCustomHub) {
+      if (isCustomHub) {
         return {
           ...css,
           color: theme.palette.primary.contrastText,
@@ -178,102 +276,19 @@ const useStyles = makeStyles<Theme, StyleProps>((theme: Theme) => {
         return css;
       }
     },
-    notificationsHeadline: {
-      padding: theme.spacing(2),
-      textAlign: "center",
-    },
-    loggedInLinksFixedHeader: {
-      zIndex: 30,
-    },
-    loggedInPopper: {
-      zIndex: 130,
-    },
-    normalScreenIcon: {
-      fontSize: 20,
-      marginRight: theme.spacing(0.25),
-    },
-    mobileAvatarContainer: {
-      display: "flex",
-      justifyContent: "center",
-      marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(2),
-    },
-    languageSelectMobile: {
-      display: "flex",
-      justifyContent: "center",
-    },
-    btnColor: (props) => {
-      return {
-        color: props.isCustomHub
-          ? theme.palette.primary.contrastText
-          : props.isLandingPage
-          ? "white"
-          : theme.palette.background.default_contrastText,
-        borderColor: props.isCustomHub
-          ? theme.palette.primary.contrastText
-          : theme.palette.primary.main,
-        "&:hover": {
-          borderColor: props.isCustomHub
-            ? theme.palette.primary.contrastText
-            : theme.palette.primary.main,
-        },
-      };
-    },
-    linkUnderline: (props) => ({
-      color: props.isCustomHub
-        ? theme.palette.background.default_contrastText
-        : theme.palette.primary.main,
-    }),
-
-    drawerItem: {
-      color: theme.palette.background.default_contrastText,
-    },
-    poweredByImg: {
-      [theme.breakpoints.down("md")]: {
-        height: 15,
-      },
-      height: 20,
-      marginLeft: theme.spacing(1),
-      marginTop: theme.spacing(0.1),
-    },
-    poweredByTxt: {
-      [theme.breakpoints.down("md")]: {
-        fontSize: 4,
-      },
-      fontSize: 6,
-      fontWeight: 800,
-    },
-    poweredByContainer: {
-      display: "flex",
-      alignItems: "center",
-      flexDirection: "column",
-      marginRight: "auto",
-      marginBottom: theme.spacing(-2),
-      color: theme.palette.primary.contrastText,
+    btnColor: (theme) => ({
+      color: isCustomHub
+        ? theme.palette.primary.contrastText
+        : isLandingPage
+        ? "white"
+        : theme.palette.background.default_contrastText,
+      borderColor: isCustomHub ? theme.palette.primary.contrastText : theme.palette.primary.main,
       "&:hover": {
-        textDecoration: "none",
+        borderColor: isCustomHub ? theme.palette.primary.contrastText : theme.palette.primary.main,
       },
-      [theme.breakpoints.down("md")]: {
-        marginBottom: 0,
-      },
-    },
-    dropDownBgColorInMobile: (props) => ({
-      backgroundColor: props.isCustomHub
-        ? theme.palette.primary.main
-        : theme.palette.secondary.main,
     }),
-    dropdownMenuInMobile: {
-      maxHeight: 0,
-      opacity: 0,
-      overflow: "hidden",
-      transition: `max-height 0.3s ease, opacity 0.3s ease`,
-    },
-    dropdownMenuInMobileOpen: {
-      maxHeight: "150px",
-      opacity: 1,
-    },
   };
-});
+}
 
 export default function Header({
   className,
@@ -314,17 +329,7 @@ export default function Header({
     hubUrl,
     isLandingPage
   );
-  const classes = useStyles({
-    fixedHeader: fixedHeader,
-    transparentHeader: transparentHeader,
-    isStaticPage: isStaticPage,
-    background: background,
-    isHubPage: isHubPage,
-    isLocationHub: isLocationHub,
-    isCustomHub: isCustomHub,
-    isLoggedInUser: user ? true : false,
-    isLandingPage: isLandingPage,
-  });
+  const linkSx = getLinkSx({ isCustomHub: isCustomHub, isLandingPage: isLandingPage });
 
   const toggleShowNotifications = (event) => {
     if (!anchorEl) setAnchorEl(event.currentTarget);
@@ -387,28 +392,32 @@ export default function Header({
   const poweredByLogoSrc = poweredByLogoMap[hubUrl?.toLowerCase() ?? ""] || getLogoSrc("white");
 
   return (
-    <Box
-      component="header"
-      className={`${classes.root} ${className} ${!noSpacingBottom && classes.spacingBottom}`}
+    <HeaderRoot
+      className={className}
+      $fixedHeader={fixedHeader}
+      $transparentHeader={transparentHeader}
+      $isStaticPage={isStaticPage}
+      $background={background}
+      $isHubPage={isHubPage}
+      $isCustomHub={isCustomHub}
+      $isLandingPage={isLandingPage}
+      $noSpacingBottom={noSpacingBottom}
     >
-      <Container className={classes.container}>
-        <Link href={logoLink} className={classes.logoLink} underline="hover">
-          <img
+      <HeaderContainer disableGutters>
+        <LogoLink href={logoLink} underline="hover">
+          <Logo
             src={logo}
             alt={texts.climate_connect_logo}
-            className={classes.logo}
+            $isLocationHub={isLocationHub}
+            $isCustomHub={isCustomHub}
             onError={loadFallbackLogo}
           />
-        </Link>
+        </LogoLink>
         {isCustomHub && (
-          <Link href={localePrefix + "/"} className={classes.poweredByContainer}>
-            <span className={classes.poweredByTxt}>{texts.powered_by}</span>
-            <img
-              src={poweredByLogoSrc}
-              alt={texts.climate_connect_logo}
-              className={classes.poweredByImg}
-            />
-          </Link>
+          <PoweredByContainer href={localePrefix + "/"}>
+            <PoweredByText>{texts.powered_by}</PoweredByText>
+            <PoweredByImg src={poweredByLogoSrc} alt={texts.climate_connect_logo} />
+          </PoweredByContainer>
         )}
         {isNarrowScreen || ((isLocationHub || isCustomHub) && isMediumScreen) ? (
           <NarrowScreenLinks
@@ -425,7 +434,7 @@ export default function Header({
             isCustomHub={isCustomHub}
             hubUrl={hubUrl}
             isLandingPage={isLandingPage}
-            classes={classes}
+            linkSx={linkSx}
           />
         ) : (
           <NormalScreenLinks
@@ -436,7 +445,6 @@ export default function Header({
             onNotificationsClose={onNotificationsClose}
             notifications={notifications}
             transparentHeader={transparentHeader}
-            fixedHeader={fixedHeader}
             LINKS={LINKS}
             texts={texts}
             isStaticPage={isStaticPage}
@@ -444,12 +452,12 @@ export default function Header({
             isCustomHub={isCustomHub}
             hubUrl={hubUrl}
             isLandingPage={isLandingPage}
-            classes={classes}
+            linkSx={linkSx}
           />
         )}
-      </Container>
+      </HeaderContainer>
       <div>{isStaticPage && <StaticPageLinks isCustomHub={isCustomHub} />}</div>
-    </Box>
+    </HeaderRoot>
   );
 }
 
@@ -461,7 +469,6 @@ function NormalScreenLinks({
   onNotificationsClose,
   notifications,
   transparentHeader,
-  fixedHeader,
   LINKS,
   texts,
   isStaticPage,
@@ -469,7 +476,7 @@ function NormalScreenLinks({
   isCustomHub,
   hubUrl,
   isLandingPage,
-  classes,
+  linkSx,
 }) {
   const { locale } = useContext(UserContext);
   const localePrefix = getLocalePrefix(locale);
@@ -478,7 +485,7 @@ function NormalScreenLinks({
   const isMediumScreen = useMediaQuery<Theme>(theme.breakpoints.down("lg"));
   const STATIC_PAGE_LINKS = getStaticPageLinks(texts, locale, isCustomHub && hubUrl);
   return (
-    <Box className={classes.linkContainer}>
+    <LinkContainer>
       {LINKS.filter(
         (link) =>
           !(loggedInUser && link.onlyShowLoggedOut) &&
@@ -489,7 +496,7 @@ function NormalScreenLinks({
           link: link,
           index: index,
           loggedInUser: loggedInUser,
-          classes: classes,
+          linkSx: linkSx,
           transparentHeader: transparentHeader,
           toggleShowNotifications: toggleShowNotifications,
           localePrefix: localePrefix,
@@ -510,7 +517,7 @@ function NormalScreenLinks({
                   />
                 ) : link.onlyShowIconOnNormalScreen ? (
                   <>
-                    <IconButton {...buttonProps} size="large" className={classes.btnColor}>
+                    <IconButton {...buttonProps} size="large" sx={linkSx.btnColor}>
                       {link.hasBadge && notifications && notifications.length > 0 ? (
                         <Badge badgeContent={notifications.length} color="error">
                           <Icon />
@@ -526,11 +533,7 @@ function NormalScreenLinks({
                         open={Boolean(anchorEl)}
                         onClose={onNotificationsClose}
                       >
-                        <Typography
-                          className={classes.notificationsHeadline}
-                          component="h1"
-                          variant="h5"
-                        >
+                        <Typography sx={notificationsHeadlineSx} component="h1" variant="h5">
                           {texts.notifications}
                         </Typography>
                         <Divider />
@@ -550,13 +553,13 @@ function NormalScreenLinks({
                     {isMediumScreen && link.mediumScreenText ? link.mediumScreenText : link.text}
                   </DropDownButton>
                 ) : link?.showJustIconUnderSm && isSmallMediumScreen ? (
-                  <IconButton {...buttonProps} className={classes.link} size="large">
+                  <IconButton {...buttonProps} sx={undefined} size="large">
                     <link.showJustIconUnderSm />
                   </IconButton>
                 ) : (
                   <Button {...buttonProps}>
                     {link.icon && !(link.hideDesktopIconUnderSm && isSmallMediumScreen) && (
-                      <link.icon className={classes.normalScreenIcon} />
+                      <link.icon sx={normalScreenIconSx} />
                     )}
                     {isMediumScreen && link.mediumScreenText ? link.mediumScreenText : link.text}
                   </Button>
@@ -569,15 +572,13 @@ function NormalScreenLinks({
         <LoggedInNormalScreen
           loggedInUser={loggedInUser}
           handleLogout={handleLogout}
-          fixedHeader={fixedHeader}
           texts={texts}
           localePrefix={localePrefix}
           getLoggedInLinks={getLoggedInLinks}
           hubUrl={hubUrl}
-          classes={classes}
         />
       )}
-    </Box>
+    </LinkContainer>
   );
 }
 const handleClickMenuItems = (isLogoutButton, url, handleLogout) => {
@@ -594,12 +595,10 @@ const handleClickMenuItems = (isLogoutButton, url, handleLogout) => {
 const LoggedInNormalScreen = ({
   loggedInUser,
   handleLogout,
-  fixedHeader,
   texts,
   localePrefix,
   getLoggedInLinks,
   hubUrl,
-  classes,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const anchorRef = useRef(null);
@@ -613,13 +612,12 @@ const LoggedInNormalScreen = ({
   };
 
   const avatarProps = {
-    className: classes.loggedInAvatar,
     src: getImageUrl(loggedInUser.image),
     alt: loggedInUser.name,
   };
   return (
     <ClickAwayListener onClickAway={handleCloseMenu}>
-      <Box className={classes.loggedInRoot}>
+      <LoggedInRoot>
         <Button
           onClick={handleToggleMenu}
           disableElevation
@@ -630,19 +628,15 @@ const LoggedInNormalScreen = ({
           color="inherit"
         >
           {loggedInUser?.badges?.length > 0 ? (
-            <ProfileBadge badge={loggedInUser?.badges[0]} size="small" className={classes.badge}>
-              <Avatar {...avatarProps} />
+            <ProfileBadge badge={loggedInUser?.badges[0]} size="small">
+              <LoggedInAvatar {...avatarProps} />
             </ProfileBadge>
           ) : (
-            <Avatar {...avatarProps} />
+            <LoggedInAvatar {...avatarProps} />
           )}
           <ArrowDropDownIcon />
         </Button>
-        <Popper
-          open={menuOpen}
-          anchorEl={anchorRef.current}
-          className={`${fixedHeader && classes.loggedInLinksFixedHeader} ${classes.loggedInPopper}`}
-        >
+        <Popper open={menuOpen} anchorEl={anchorRef.current} sx={loggedInPopperSx}>
           <Paper>
             <MenuList>
               {getLoggedInLinks({ loggedInUser: loggedInUser, texts: texts, hubUrl })
@@ -650,7 +644,6 @@ const LoggedInNormalScreen = ({
                 .map((link, index) => {
                   const menuItemProps: any = {
                     component: "button",
-                    className: classes.loggedInLink,
                   };
                   if (link.isLogoutButton) menuItemProps.onClick = handleLogout;
                   else menuItemProps.href = localePrefix + link.href;
@@ -660,7 +653,7 @@ const LoggedInNormalScreen = ({
                     <MenuItem_ // todo: type issue
                       key={index}
                       component="button"
-                      className={classes.loggedInLink}
+                      sx={loggedInLinkSx}
                       onClick={() =>
                         handleClickMenuItems(link.isLogoutButton, newUrl, handleLogout)
                       }
@@ -673,7 +666,7 @@ const LoggedInNormalScreen = ({
             </MenuList>
           </Paper>
         </Popper>
-      </Box>
+      </LoggedInRoot>
     </ClickAwayListener>
   );
 };
@@ -692,7 +685,7 @@ function NarrowScreenLinks({
   isCustomHub,
   hubUrl,
   isLandingPage,
-  classes,
+  linkSx,
 }) {
   const { locale } = useContext(UserContext);
   const localePrefix = getLocalePrefix(locale);
@@ -716,7 +709,7 @@ function NarrowScreenLinks({
             link: link,
             index: index,
             loggedInUser: loggedInUser,
-            classes: classes,
+            linkSx: linkSx,
             transparentHeader: transparentHeader,
             toggleShowNotifications: toggleShowNotifications,
             isNarrowScreen: true,
@@ -725,7 +718,7 @@ function NarrowScreenLinks({
           });
 
           if (index === linksOutsideDrawer.length - 1) {
-            buttonProps.className = classes.marginRight;
+            buttonProps.sx = linkSx.marginRight;
           }
           return (
             <Fragment key={index}>
@@ -733,7 +726,7 @@ function NarrowScreenLinks({
                 <>
                   <IconButton
                     {...buttonProps}
-                    className={`${classes.marginRight} ${classes.btnColor}`}
+                    sx={[linkSx.marginRight, linkSx.btnColor]}
                     size="large"
                   >
                     {link.hasBadge && notifications && notifications.length > 0 ? (
@@ -751,11 +744,7 @@ function NarrowScreenLinks({
                       open={Boolean(anchorEl)}
                       onClose={onNotificationsClose}
                     >
-                      <Typography
-                        className={classes.notificationsHeadline}
-                        component="h1"
-                        variant="h5"
-                      >
+                      <Typography sx={notificationsHeadlineSx} component="h1" variant="h5">
                         {texts.notifications}
                       </Typography>
                       <Divider />
@@ -778,7 +767,7 @@ function NarrowScreenLinks({
                       isLandingPage={isLandingPage}
                     />
                   ) : (
-                    <Button {...buttonProps} className={buttonProps.className} key={index}>
+                    <Button {...buttonProps} key={index}>
                       {link.text}
                     </Button>
                   )}
@@ -793,7 +782,7 @@ function NarrowScreenLinks({
             aria-label="menu"
             onClick={openDrawer}
             size="large"
-            className={classes.btnColor}
+            sx={linkSx.btnColor}
           >
             <MenuIcon />
           </IconButton>
@@ -808,7 +797,7 @@ function NarrowScreenLinks({
         >
           <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
             <List sx={{ flexGrow: 1 }}>
-              <ListItemButton className={classes.languageSelectMobile}>
+              <ListItemButton sx={languageSelectMobileSx}>
                 <LanguageSelect
                   transparentHeader={transparentHeader}
                   isCustomHub={isCustomHub}
@@ -830,7 +819,7 @@ function NarrowScreenLinks({
                       <NarrowScreenDropdownMenu
                         key={index}
                         locale={locale}
-                        classes={classes}
+                        isCustomHub={isCustomHub}
                         Icon={Icon}
                         link={link}
                         STATIC_PAGE_LINKS={STATIC_PAGE_LINKS}
@@ -839,20 +828,20 @@ function NarrowScreenLinks({
                     );
                   } else {
                     return (
-                      <Link
+                      <DrawerLink
                         href={link.isExternalLink ? link.href : localePrefix + link.href}
                         key={index}
                         underline="hover"
-                        className={classes.linkUnderline}
+                        $isCustomHub={isCustomHub}
                         target={link.isExternalLink ? "_blank" : undefined}
                       >
                         <ListItemButton component="a" onClick={closeDrawer}>
                           <ListItemIcon>
-                            <Icon className={classes.drawerItem} />
+                            <Icon sx={drawerItemSx} />
                           </ListItemIcon>
-                          <ListItemText primary={link.text} className={classes.drawerItem} />
+                          <ListItemText primary={link.text} sx={drawerItemSx} />
                         </ListItemButton>
-                      </Link>
+                      </DrawerLink>
                     );
                   }
                 }
@@ -863,88 +852,83 @@ function NarrowScreenLinks({
                   (link, index) => {
                     const Icon: any = link.iconForDrawer;
                     const avatarProps = {
-                      className: classes.loggedInAvatarMobile,
                       src: getImageUrl(loggedInUser.image),
                       alt: loggedInUser.name,
                     };
                     if (link.avatar)
                       return (
-                        <div className={classes.mobileAvatarContainer} key={index}>
+                        <MobileAvatarContainer key={index}>
                           <Link
                             href={appHref("/profiles/" + loggedInUser.url_slug, { hubUrl, locale })}
                             underline="hover"
                           >
                             {loggedInUser?.badges?.length > 0 ? (
-                              <ProfileBadge
-                                badge={loggedInUser?.badges[0]}
-                                size="medium"
-                                className={classes.badge}
-                              >
-                                <Avatar {...avatarProps} />
+                              <ProfileBadge badge={loggedInUser?.badges[0]} size="medium">
+                                <LoggedInAvatarMobile {...avatarProps} />
                               </ProfileBadge>
                             ) : (
-                              <Avatar {...avatarProps} />
+                              <LoggedInAvatarMobile {...avatarProps} />
                             )}
                           </Link>
-                        </div>
+                        </MobileAvatarContainer>
                       );
                     else if (link.isLogoutButton)
                       return (
                         <ListItemButton component="a" key={index} onClick={handleLogout}>
                           <ListItemIcon>
-                            <Icon className={classes.drawerItem} />
+                            <Icon sx={drawerItemSx} />
                           </ListItemIcon>
-                          <ListItemText primary={link.text} className={classes.drawerItem} />
+                          <ListItemText primary={link.text} sx={drawerItemSx} />
                         </ListItemButton>
                       );
                     else
                       return (
-                        <Link
+                        <DrawerLink
                           href={localePrefix + link.href}
                           key={index}
                           underline="hover"
-                          className={classes.linkUnderline}
+                          $isCustomHub={isCustomHub}
                         >
                           <ListItemButton component="a" onClick={closeDrawer}>
                             <ListItemIcon>
-                              <Icon className={classes.drawerItem} />
+                              <Icon sx={drawerItemSx} />
                             </ListItemIcon>
-                            <ListItemText primary={link.text} className={classes.drawerItem} />
+                            <ListItemText primary={link.text} sx={drawerItemSx} />
                           </ListItemButton>
-                        </Link>
+                        </DrawerLink>
                       );
                   }
                 )}
             </List>
             <List>
               <Divider />
-              <Link
+              <DrawerLink
                 href={localePrefix + "/imprint"}
                 underline="hover"
-                className={classes.linkUnderline}
+                $isCustomHub={isCustomHub}
               >
                 <ListItemButton component="a" onClick={closeDrawer}>
-                  <ListItemText primary={texts.imprint} className={classes.drawerItem} />
+                  <ListItemText primary={texts.imprint} sx={drawerItemSx} />
                 </ListItemButton>
-              </Link>
-              <Link
+              </DrawerLink>
+              <DrawerLink
                 href={localePrefix + "/privacy"}
                 underline="hover"
-                className={classes.linkUnderline}
+                $isCustomHub={isCustomHub}
               >
                 <ListItemButton component="a" onClick={closeDrawer}>
-                  <ListItemText primary={texts.privacy} className={classes.drawerItem} />
+                  <ListItemText primary={texts.privacy} sx={drawerItemSx} />
                 </ListItemButton>
-              </Link>
-              <Link
+              </DrawerLink>
+              <DrawerLink
                 href={localePrefix + "/terms"}
                 underline="hover"
-                className={classes.linkUnderline}
+                $isCustomHub={isCustomHub}
               >
                 <ListItemButton component="a" onClick={closeDrawer}>
-                  <ListItemText primary={texts.terms} className={classes.drawerItem} />
+                  <ListItemText primary={texts.terms} sx={drawerItemSx} />
                 </ListItemButton>
-              </Link>
+              </DrawerLink>
             </List>
           </Box>
         </SwipeableDrawer>
@@ -955,7 +939,7 @@ function NarrowScreenLinks({
 
 const NarrowScreenDropdownMenu = ({
   locale,
-  classes,
+  isCustomHub,
   Icon,
   link,
   STATIC_PAGE_LINKS,
@@ -967,32 +951,28 @@ const NarrowScreenDropdownMenu = ({
     <>
       <ListItemButton component="a" onClick={toggleDropdownInMobile}>
         <ListItemIcon>
-          <Icon className={classes.drawerItem} />
+          <Icon sx={drawerItemSx} />
         </ListItemIcon>
-        <ListItemText primary={link.text} className={classes.drawerItem} />
-        <ArrowDropDownIcon className={classes.drawerItem} />
+        <ListItemText primary={link.text} sx={drawerItemSx} />
+        <ArrowDropDownIcon sx={drawerItemSx} />
       </ListItemButton>
-      <div
-        className={`${classes.dropDownBgColorInMobile} ${classes.dropdownMenuInMobile} ${
-          openDropdownInMobile ? classes.dropdownMenuInMobileOpen : ""
-        }`}
-      >
+      <DropdownMenuInMobile $isCustomHub={isCustomHub} $open={openDropdownInMobile}>
         {STATIC_PAGE_LINKS.map((link, index) => {
           return (
-            <Link
+            <DrawerLink
               href={getStaticLinkFromItem(locale, link)}
               key={index}
               underline="hover"
-              className={classes.linkUnderline}
+              $isCustomHub={isCustomHub}
               target={link.target || "_self"}
             >
               <ListItemButton component="a" onClick={closeDrawer}>
-                <ListItemText primary={link.text} className={classes.drawerItem} />
+                <ListItemText primary={link.text} sx={drawerItemSx} />
               </ListItemButton>
-            </Link>
+            </DrawerLink>
           );
         })}
-      </div>
+      </DropdownMenuInMobile>
     </>
   );
 };
@@ -1001,7 +981,7 @@ const getLinkButtonProps = ({
   link,
   index,
   loggedInUser,
-  classes,
+  linkSx,
   toggleShowNotifications,
   isNarrowScreen,
   linksOutsideDrawer,
@@ -1014,12 +994,11 @@ const getLinkButtonProps = ({
     if (link.className) {
       // Support multiple classNames in link.className
       // e.g. className: "btnColor buttonMarginLeft", in the heaserLink.ts file
-      buttonProps.className = link.className
+      buttonProps.sx = link.className
         .split(" ")
-        .map((name) => classes[name])
-        .filter(Boolean) // filter(Boolean) removes any undefined values
-        .join(" ");
-    } else buttonProps.className = classes.buttonMarginLeft;
+        .map((name) => linkSx[name])
+        .filter(Boolean); // filter(Boolean) removes any undefined values
+    } else buttonProps.sx = linkSx.buttonMarginLeft;
   }
   if ((isNarrowScreen || loggedInUser || !link.vanillaIfLoggedOut) && link.isOutlinedInHeader) {
     buttonProps.variant = "outlined";
@@ -1046,7 +1025,7 @@ const getLinkButtonProps = ({
     }
   }
   if (isNarrowScreen && index === linksOutsideDrawer.length - 1) {
-    buttonProps.className = classes.marginRight;
+    buttonProps.sx = linkSx.marginRight;
   }
 
   return buttonProps;

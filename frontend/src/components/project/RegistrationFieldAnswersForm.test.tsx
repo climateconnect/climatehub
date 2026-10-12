@@ -2,7 +2,6 @@ import React, { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import RegistrationFieldAnswersForm, {
   RegistrationFieldAnswersFormHandle,
@@ -84,15 +83,13 @@ function renderForm({
   return render(
     <UserContext.Provider value={{ locale: "en" } as any}>
       <ThemeProvider theme={theme}>
-        <StylesThemeProvider theme={theme}>
-          <RegistrationFieldAnswersForm
-            ref={ref}
-            fields={fields}
-            serverErrors={serverErrors}
-            onFirstInteraction={onFirstInteraction}
-            texts={texts}
-          />
-        </StylesThemeProvider>
+        <RegistrationFieldAnswersForm
+          ref={ref}
+          fields={fields}
+          serverErrors={serverErrors}
+          onFirstInteraction={onFirstInteraction}
+          texts={texts}
+        />
       </ThemeProvider>
     </UserContext.Provider>
   );

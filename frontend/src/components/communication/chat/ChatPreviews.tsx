@@ -8,7 +8,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { array } from "prop-types";
 import React, { Fragment, useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
@@ -22,53 +22,51 @@ import MobileChatPreview from "./MobileChatPreview";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 import { useRouter } from "next/router";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    date: {
-      color: theme.palette.grey[600],
-    },
-    unreadBadge: {
-      "& span": {
-        backgroundColor: theme.palette.success.main,
-      },
-    },
-    unread: {
-      color: theme.palette.success.main,
-    },
-    miniProfilePreview: {
-      display: "flex",
-      alignItems: "center",
-      flexBasis: 250,
-      flexShrink: 0,
-    },
-    unreadPreview: {
-      fontWeight: "bold",
-    },
-    contentPreview: {
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-      display: "block",
-    },
-    badgeAndTimeContainer: {
-      float: "right",
-      height: 40,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    NoChatsMessage: {
-      marginTop: theme.spacing(2),
-      textAlign: "center",
-      maxWidth: 600,
-      margin: "0 auto",
-    },
-    listItem: {
-      display: "flex",
-    },
-  };
+const NoChatsMessage = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  textAlign: "center",
+  maxWidth: 600,
+  margin: "0 auto",
+}));
+
+const miniProfilePreviewStyles = {
+  display: "flex",
+  alignItems: "center",
+  flexBasis: 250,
+  flexShrink: 0,
+} as const;
+
+// ChatTitle types `className` as required; styled() supplies it
+const StyledChatTitle = (styled(ChatTitle)(
+  miniProfilePreviewStyles
+) as unknown) as React.ComponentType<Omit<React.ComponentProps<typeof ChatTitle>, "className">>;
+
+const StyledMiniProfilePreview = styled(MiniProfilePreview)(miniProfilePreviewStyles);
+
+const ContentPreview = styled("span", {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $unread?: boolean }>(({ $unread }) => ({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  display: "block",
+  ...($unread && { fontWeight: "bold" }),
+}));
+
+const BadgeAndTimeContainer = styled("span")({
+  float: "right",
+  height: 40,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
 });
+
+const UnreadBadge = styled(Badge)(({ theme }) => ({
+  "& span": {
+    backgroundColor: theme.palette.success.main,
+  },
+}));
 
 export default function ChatPreviews({
   chats,
@@ -77,7 +75,6 @@ export default function ChatPreviews({
   chatSearchEnabled,
   isLoading = false,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
@@ -100,18 +97,16 @@ export default function ChatPreviews({
     return (
       <>
         <Divider />
-        <Typography variant="h6" className={classes.NoChatsMessage}>
+        <NoChatsMessage variant="h6">
           {texts.you_havent_chatted_to_anybody_yet_click_on}
-        </Typography>
+        </NoChatsMessage>
       </>
     );
   if (chats.length === 0 && chatSearchEnabled)
     return (
       <>
         <Divider />
-        <Typography variant="h6" className={classes.NoChatsMessage}>
-          {texts.no_chats_found_for_this_search}
-        </Typography>
+        <NoChatsMessage variant="h6">{texts.no_chats_found_for_this_search}</NoChatsMessage>
       </>
     );
 
@@ -141,7 +136,6 @@ export default function ChatPreviews({
 const ChatPreview = ({ chat, isNarrowScreen, isFirstChat, locale, forwardedRef, hubUrl }) => {
   const lastAction = chat.last_message ? chat.last_message.sent_at : chat.created_at;
   if (!lastAction) console.log(chat);
-  const classes = useStyles();
 
   if (isNarrowScreen)
     return <MobileChatPreview chat={chat} isFirstChat={isFirstChat} forwardedRef={forwardedRef} />;
@@ -156,47 +150,31 @@ const ChatPreview = ({ chat, isNarrowScreen, isFirstChat, locale, forwardedRef, 
             getLocalePrefix(locale) + "/chat/" + chat.chat_uuid + (hubUrl ? `?hub=${hubUrl}` : "")
           }
           alignItems="center"
-          className={classes.listItem}
+          sx={{ display: "flex" }}
         >
           {!chat.chatting_partner ? (
-            <ChatTitle
+            <StyledChatTitle
               chat={chat}
-              className={classes.miniProfilePreview}
               //TODO(unused) mobile={isNarrowScreen}
               size="medium"
             />
           ) : (
-            <MiniProfilePreview
-              className={classes.miniProfilePreview}
-              profile={chat.chatting_partner}
-              size="medium"
-              nolink
-            />
+            <StyledMiniProfilePreview profile={chat.chatting_partner} size="medium" nolink />
           )}
           <ListItemText
             secondary={
               <>
-                <span
-                  className={`${classes.contentPreview} ${
-                    chat.unread_count ? classes.unreadPreview : ""
-                  }`}
-                >
-                  {chat.content}
-                </span>
-                <span className={classes.badgeAndTimeContainer}>
+                <ContentPreview $unread={!!chat.unread_count}>{chat.content}</ContentPreview>
+                <BadgeAndTimeContainer>
                   <span>
                     <span>{getDateTime(lastAction)}</span>
                   </span>
                   {chat.unread_count > 0 && (
                     <span>
-                      <Badge
-                        color="primary"
-                        className={classes.unreadBadge}
-                        badgeContent={chat.unread_count}
-                      />
+                      <UnreadBadge color="primary" badgeContent={chat.unread_count} />
                     </span>
                   )}
-                </span>
+                </BadgeAndTimeContainer>
               </>
             }
           />

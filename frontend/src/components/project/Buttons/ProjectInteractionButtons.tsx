@@ -1,5 +1,5 @@
 import { AppBar, Button, Container, Toolbar, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React from "react";
 import ContactCreatorButton from "./ContactCreatorButton";
 import FollowButton from "../../general/FollowButton";
@@ -43,51 +43,56 @@ interface ProjectInteractionButtonsProps {
   eventRegistration?: { available_seats: number | null; max_participants: number | null } | null;
 }
 
-const useStyles = makeStyles((theme) => ({
-  largeScreenButton: (props) => ({
-    position: "fixed",
-    bottom: props.visibleFooterHeight + 2,
-    right: props.tabContentContainerSpaceToRight,
-    boxShadow: "3px -3px 6px #00000029",
-  }),
-  actionBar: (props) => ({
-    backgroundColor: "#ECECEC",
-    top: "auto",
-    bottom: props.visibleFooterHeight,
-    boxShadow: "-3px -3px 6px #00000029",
-    zIndex: 101,
-    paddingTop: theme.spacing(1),
-  }),
-  containerButtonsActionBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    "& button": {
-      paddingLeft: theme.spacing(2),
-      paddingRight: theme.spacing(2),
-    },
-  },
-  leftActions: {
-    display: "flex",
-    alignItems: "center",
-  },
-  rightActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1),
-  },
-  seatsInfoRow: {
-    textAlign: "left",
+const shouldForwardProp = (prop: string) => !prop.startsWith("$");
+
+// bottom / right change while scrolling, so they are passed as an inline `style` (see below)
+// instead of as props of the styled component (which would create a new class per value).
+const LargeScreenContactButton = styled(ContactCreatorButton, { shouldForwardProp })({
+  position: "fixed",
+  boxShadow: "3px -3px 6px #00000029",
+});
+
+const ActionBar = styled(AppBar)(({ theme }) => ({
+  backgroundColor: "#ECECEC",
+  top: "auto",
+  boxShadow: "-3px -3px 6px #00000029",
+  zIndex: 101,
+  paddingTop: theme.spacing(1),
+}));
+
+const ActionBarToolbar = styled(Toolbar)(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  "& button": {
     paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(1),
-    paddingBottom: theme.spacing(0.5),
-    fontWeight: 500,
-    fontSize: 15,
-    lineHeight: 1.3,
-  },
-  seatsNumber: {
-    fontWeight: 700,
+    paddingRight: theme.spacing(2),
   },
 }));
+
+const LeftActions = styled("div")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const RightActions = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+}));
+
+const SeatsInfoRow = styled(Typography)(({ theme }) => ({
+  textAlign: "left",
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(1),
+  paddingBottom: theme.spacing(0.5),
+  fontWeight: 500,
+  fontSize: 15,
+  lineHeight: 1.3,
+}));
+
+const SeatsNumber = styled("span")({
+  fontWeight: 700,
+});
 
 export default function ProjectInteractionButtons({
   projectAdmin,
@@ -119,11 +124,6 @@ export default function ProjectInteractionButtons({
   onModifyRegistrationClick,
   eventRegistration,
 }: ProjectInteractionButtonsProps) {
-  const classes = useStyles({
-    visibleFooterHeight: visibleFooterHeight,
-    tabContentContainerSpaceToRight: tabContentContainerSpaceToRight,
-  });
-
   const registrationState = getRegistrationUIState(
     project,
     isUserRegistered,
@@ -143,9 +143,9 @@ export default function ProjectInteractionButtons({
       maxParticipants !== null;
 
     return (
-      <AppBar className={classes.actionBar} position="fixed" elevation={0}>
-        <Toolbar className={classes.containerButtonsActionBar} variant="dense">
-          <div className={classes.leftActions}>
+      <ActionBar position="fixed" elevation={0} style={{ bottom: visibleFooterHeight }}>
+        <ActionBarToolbar variant="dense">
+          <LeftActions>
             {registrationState !== "hidden" ? (
               <RegistrationActionButton
                 registrationState={registrationState}
@@ -175,8 +175,8 @@ export default function ProjectInteractionButtons({
                 isLoggedIn={user}
               />
             )}
-          </div>
-          <div className={classes.rightActions}>
+          </LeftActions>
+          <RightActions>
             {!hasAdminPermissions && (
               <Button variant="contained" color="primary" onClick={handleClickContact}>
                 {screenSize.belowTiny ? texts.contact_short : texts.contact}
@@ -192,17 +192,17 @@ export default function ProjectInteractionButtons({
               bindLike={bindLike}
               outlined
             />
-          </div>
-        </Toolbar>
+          </RightActions>
+        </ActionBarToolbar>
         {showSeatsInfo && (
-          <Typography className={classes.seatsInfoRow} color="text.primary">
-            <span className={classes.seatsNumber}>
+          <SeatsInfoRow color="text.primary">
+            <SeatsNumber>
               {availableSeats} / {maxParticipants}{" "}
-            </span>
+            </SeatsNumber>
             {texts.seats_available}
-          </Typography>
+          </SeatsInfoRow>
         )}
-      </AppBar>
+      </ActionBar>
     );
   }
 
@@ -211,8 +211,8 @@ export default function ProjectInteractionButtons({
       {!hasAdminPermissions &&
         !messageButtonIsVisible &&
         contactProjectCreatorButtonRef?.current && (
-          <ContactCreatorButton
-            className={classes.largeScreenButton}
+          <LargeScreenContactButton
+            style={{ bottom: visibleFooterHeight + 2, right: tabContentContainerSpaceToRight }}
             creator={projectAdmin}
             handleClickContact={handleClickContact}
             explanationBackground={"#fff"}

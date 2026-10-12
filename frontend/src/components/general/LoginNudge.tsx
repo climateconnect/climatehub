@@ -1,23 +1,32 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { useRouter } from "next/router";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    loginNudge: {
-      margin: "0 auto",
-      marginTop: theme.spacing(12),
-    },
-    loginNudgeText: {
-      textAlign: "center",
-      fontSize: 35,
-    },
-  };
-});
+const NudgeContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$fullPage",
+})<{ $fullPage?: boolean }>(({ theme, $fullPage }) =>
+  $fullPage
+    ? {
+        margin: "0 auto",
+        marginTop: theme.spacing(12),
+      }
+    : {}
+);
+
+const NudgeText = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$fullPage",
+})<{ $fullPage?: boolean }>(({ $fullPage }) =>
+  $fullPage
+    ? {
+        textAlign: "center",
+        fontSize: 35,
+      }
+    : {}
+);
 
 type Props = {
   whatToDo: string;
@@ -25,7 +34,6 @@ type Props = {
   className?: string;
 };
 export default function LoginNudge({ whatToDo, fullPage, className }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "general", locale: locale });
 
@@ -39,8 +47,8 @@ export default function LoginNudge({ whatToDo, fullPage, className }: Props) {
   const signupHref = "/signup";
 
   return (
-    <div className={`${fullPage && classes.loginNudge} ${className}`}>
-      <Typography className={fullPage ? classes.loginNudgeText : undefined}>
+    <NudgeContainer $fullPage={fullPage} className={className}>
+      <NudgeText $fullPage={fullPage}>
         {texts.please}{" "}
         <AppLink underline="always" color="primary" href={signinHref}>
           {texts.log_in}
@@ -50,7 +58,7 @@ export default function LoginNudge({ whatToDo, fullPage, className }: Props) {
           {texts.sign_up}
         </AppLink>{" "}
         {whatToDo}.
-      </Typography>
-    </div>
+      </NudgeText>
+    </NudgeContainer>
   );
 }

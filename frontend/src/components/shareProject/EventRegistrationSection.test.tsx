@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import EventRegistrationSection from "./EventRegistrationSection";
@@ -65,15 +64,13 @@ function renderSection({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContext as any}>
-          <EventRegistrationSection
-            projectData={project}
-            handleSetProjectData={handleSetProjectData}
-            errors={errors}
-          />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={defaultContext as any}>
+        <EventRegistrationSection
+          projectData={project}
+          handleSetProjectData={handleSetProjectData}
+          errors={errors}
+        />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

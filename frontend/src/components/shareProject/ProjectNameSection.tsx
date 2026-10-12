@@ -3,39 +3,32 @@ import { TextField } from "@mui/material";
 import getTexts from "../../../public/texts/texts";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import UserContext from "../context/UserContext";
-import { makeStyles } from "@mui/styles";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginBottom: theme.spacing(5),
-    display: "flex",
-    justifyContent: "center",
-  },
-  textField: {
-    width: "100%",
-    maxWidth: 800,
-  },
-  resize: {
+const Root = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(5),
+  display: "flex",
+  justifyContent: "center",
+}));
+
+const NameField = styled(TextField)({
+  width: "100%",
+  maxWidth: 800,
+  "& .MuiInputBase-input": {
     fontSize: 20,
-  },
-  input: {
     fontWeight: 600,
   },
-  inputLabel: {
-    "&:not(.MuiInputLabel-shrink)": {
-      fontSize: 20,
-    },
+  "& .MuiInputLabel-root:not(.MuiInputLabel-shrink)": {
+    fontSize: 20,
   },
-}));
+});
 
 export default function ProjectNameSection({ projectData, handleSetProjectData }) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const projectTypeTexts = getProjectTypeTexts(texts);
   const theme = useTheme();
-  const classes = useStyles();
 
   const onChangeName = (e) => {
     handleSetProjectData({
@@ -46,25 +39,14 @@ export default function ProjectNameSection({ projectData, handleSetProjectData }
   const color = getBackgroundContrastColor(theme);
 
   return (
-    <div className={classes.root}>
-      <TextField
+    <Root>
+      <NameField
         label={projectTypeTexts.name[projectData.project_type?.type_id]}
-        className={classes.textField}
         required
         color={color}
-        InputProps={{
-          classes: {
-            input: `${classes.resize} ${classes.input}`,
-          },
-        }}
-        InputLabelProps={{
-          classes: {
-            root: classes.inputLabel,
-          },
-        }}
         value={projectData.name}
         onChange={onChangeName}
       />
-    </div>
+    </Root>
   );
 }

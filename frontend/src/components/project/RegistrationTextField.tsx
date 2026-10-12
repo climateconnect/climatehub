@@ -1,32 +1,33 @@
 import React, { useContext } from "react";
 import { Box, FormHelperText, TextField, Typography } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import getTexts from "../../../public/texts/texts";
 import { RegistrationField } from "../../types";
 import UserContext from "../context/UserContext";
 
 const MAX_LENGTH = 300;
 
-const useStyles = makeStyles((theme: Theme) => ({
-  root: {
-    marginBottom: theme.spacing(2),
-  },
-  required: {
-    color: theme.palette.error.main,
-    marginLeft: theme.spacing(0.5),
-  },
-  description: {
-    color: theme.palette.text.secondary,
-    marginBottom: theme.spacing(0.5),
-  },
-  errorText: {
-    color: theme.palette.error.main,
-  },
-  counter: {
-    textAlign: "right",
-  },
+const Root = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
 }));
+
+const RequiredMark = styled("span")(({ theme }) => ({
+  color: theme.palette.error.main,
+  marginLeft: theme.spacing(0.5),
+}));
+
+const Description = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  marginBottom: theme.spacing(0.5),
+}));
+
+const ErrorText = styled(FormHelperText)(({ theme }) => ({
+  color: theme.palette.error.main,
+}));
+
+const Counter = styled(Typography)({
+  textAlign: "right",
+});
 
 type Props = {
   field: RegistrationField;
@@ -36,7 +37,6 @@ type Props = {
 };
 
 export default function RegistrationTextField({ field, value, onChange, error }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -46,20 +46,12 @@ export default function RegistrationTextField({ field, value, onChange, error }:
   const currentLength = value.length;
 
   return (
-    <Box className={classes.root}>
+    <Root>
       <Typography variant="body1" gutterBottom>
         {title}
-        {field.is_required && (
-          <span className={classes.required} aria-hidden="true">
-            {"*"}
-          </span>
-        )}
+        {field.is_required && <RequiredMark aria-hidden="true">{"*"}</RequiredMark>}
       </Typography>
-      {description && (
-        <Typography variant="body2" className={classes.description}>
-          {description}
-        </Typography>
-      )}
+      {description && <Description variant="body2">{description}</Description>}
       <TextField
         fullWidth
         size="small"
@@ -72,19 +64,11 @@ export default function RegistrationTextField({ field, value, onChange, error }:
         error={!!error}
       />
       {isMultiline && (
-        <Typography
-          variant="caption"
-          className={classes.counter}
-          color={currentLength >= MAX_LENGTH ? "error" : "textSecondary"}
-        >
+        <Counter variant="caption" color={currentLength >= MAX_LENGTH ? "error" : "textSecondary"}>
           {currentLength} / {MAX_LENGTH}
-        </Typography>
+        </Counter>
       )}
-      {error && (
-        <FormHelperText className={classes.errorText} error>
-          {error}
-        </FormHelperText>
-      )}
-    </Box>
+      {error && <ErrorText error>{error}</ErrorText>}
+    </Root>
   );
 }

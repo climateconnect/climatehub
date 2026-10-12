@@ -1,5 +1,5 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { useRouter } from "next/router";
 import React, { useContext, useState, useEffect, useRef } from "react";
 import Cookies from "universal-cookie";
@@ -26,24 +26,25 @@ import { parseOrganization } from "../../../public/lib/organizationOperations";
 import FeedbackContext from "../context/FeedbackContext";
 import ROLE_TYPES from "../../../public/data/role_types";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    textAlign: "center",
-    marginTop: theme.spacing(4),
-  },
-  alert: {
-    textAlign: "center",
-    maxWidth: 1280,
-    margin: "0 auto",
-  },
-  deleteButtonContainer: {
-    display: "flex",
-    justifyContent: "center",
-    marginTop: theme.spacing(2),
-  },
-  deleteButton: {
-    minWidth: theme.spacing(28),
-  },
+const Headline = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(4),
+})) as typeof Typography;
+
+const StyledAlert = styled(Alert)({
+  textAlign: "center",
+  maxWidth: 1280,
+  margin: "0 auto",
+});
+
+const DeleteButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  marginTop: theme.spacing(2),
+}));
+
+const DeleteButton = styled(Button)(({ theme }) => ({
+  minWidth: theme.spacing(28),
 }));
 
 export default function EditOrganizationRoot({
@@ -63,7 +64,6 @@ export default function EditOrganizationRoot({
   hubUrl,
   user_role,
 }) {
-  const classes = useStyles();
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
   const { locale, locales, user } = useContext(UserContext);
@@ -292,9 +292,8 @@ export default function EditOrganizationRoot({
               checkTranslationsRef={checkTranslationsButtonRef}
             />
             {canDeleteOrganization && (
-              <div className={classes.deleteButtonContainer}>
-                <Button
-                  className={classes.deleteButton}
+              <DeleteButtonContainer>
+                <DeleteButton
                   color="error"
                   variant="contained"
                   startIcon={<DeleteIcon />}
@@ -302,8 +301,8 @@ export default function EditOrganizationRoot({
                   aria-label={texts.delete_organization}
                 >
                   {texts.delete_organization}
-                </Button>
-              </div>
+                </DeleteButton>
+              </DeleteButtonContainer>
             )}
             <DeleteOrganizationDialog
               open={deleteDialogOpen}
@@ -324,14 +323,10 @@ export default function EditOrganizationRoot({
           </>
         ) : (
           <>
-            {errorMessage && (
-              <Alert severity="error" className={classes.alert}>
-                {errorMessage}
-              </Alert>
-            )}
-            <Typography color="primary" className={classes.headline} component="h1" variant="h4">
+            {errorMessage && <StyledAlert severity="error">{errorMessage}</StyledAlert>}
+            <Headline color="primary" component="h1" variant="h4">
               {texts.translate}
-            </Typography>
+            </Headline>
 
             <TranslateTexts
               data={editedOrganization}

@@ -4,51 +4,53 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { RegistrationFieldOption } from "../../types";
 import DatePicker from "../general/DatePicker";
 
-const useStyles = makeStyles((theme) => ({
-  optionRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1),
-    marginBottom: theme.spacing(0.75),
-    [theme.breakpoints.down("sm")]: {
-      flexDirection: "column",
-      alignItems: "stretch",
-    },
+const OptionRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+  marginBottom: theme.spacing(0.75),
+  [theme.breakpoints.down("sm")]: {
+    flexDirection: "column",
+    alignItems: "stretch",
   },
-  datetimeInput: {
-    flex: "1 1 0",
-    minWidth: 185,
-  },
-  capacityInput: {
-    flex: "1 1 0",
-    minWidth: 120,
-  },
-  actionButtons: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(0.25),
-    flexShrink: 0,
-    [theme.breakpoints.down("sm")]: {
-      justifyContent: "flex-end",
-      marginTop: theme.spacing(0.5),
-    },
-  },
-  addButton: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(0.5),
-    cursor: "pointer",
-    color: theme.palette.primary.main,
+}));
+
+const DatetimeInput = styled(DatePicker)({
+  flex: "1 1 0",
+  minWidth: 185,
+});
+
+const CapacityInput = styled(TextField)({
+  flex: "1 1 0",
+  minWidth: 120,
+});
+
+const ActionButtons = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.25),
+  flexShrink: 0,
+  [theme.breakpoints.down("sm")]: {
+    justifyContent: "flex-end",
     marginTop: theme.spacing(0.5),
-    fontSize: "0.875rem",
   },
+}));
+
+const AddButton = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.5),
+  cursor: "pointer",
+  color: theme.palette.primary.main,
+  marginTop: theme.spacing(0.5),
+  fontSize: "0.875rem",
 }));
 
 type Props = {
@@ -84,7 +86,6 @@ export default function TimeSlotFieldEditor({
   eventStartDate,
   eventEndDate,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -188,8 +189,8 @@ export default function TimeSlotFieldEditor({
         sx={{ mb: 1.5 }}
       />
       {options.map((option, index) => (
-        <Box key={option.id ?? `ts_opt_${index}`} className={classes.optionRow}>
-          <DatePicker
+        <OptionRow key={option.id ?? `ts_opt_${index}`}>
+          <DatetimeInput
             label={texts.time_slot_start_time}
             date={option.start_time ? dayjs(option.start_time) : null}
             handleChange={(value: dayjs.Dayjs | null) =>
@@ -198,9 +199,8 @@ export default function TimeSlotFieldEditor({
             enableTime
             minDate={eventStartDate ? dayjs(eventStartDate) : undefined}
             maxDate={eventEndDate ? dayjs(eventEndDate) : undefined}
-            className={classes.datetimeInput}
           />
-          <DatePicker
+          <DatetimeInput
             label={texts.time_slot_end_time}
             date={option.end_time ? dayjs(option.end_time) : null}
             handleChange={(value: dayjs.Dayjs | null) =>
@@ -215,10 +215,8 @@ export default function TimeSlotFieldEditor({
                 : undefined
             }
             maxDate={eventEndDate ? dayjs(eventEndDate) : undefined}
-            className={classes.datetimeInput}
           />
-          <TextField
-            className={classes.capacityInput}
+          <CapacityInput
             value={option.available_amount ?? ""}
             onChange={(e) => handleOptionCapacityChange(index, e.target.value)}
             label={texts.time_slot_capacity}
@@ -227,7 +225,7 @@ export default function TimeSlotFieldEditor({
             size="small"
             inputProps={{ min: 1 }}
           />
-          <Box className={classes.actionButtons}>
+          <ActionButtons>
             <Tooltip title={texts.move_field_up}>
               <span>
                 <IconButton
@@ -261,15 +259,15 @@ export default function TimeSlotFieldEditor({
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-          </Box>
-        </Box>
+          </ActionButtons>
+        </OptionRow>
       ))}
-      <Box className={classes.addButton} onClick={handleAddOption} role="button" tabIndex={0}>
+      <AddButton onClick={handleAddOption} role="button" tabIndex={0}>
         <AddIcon fontSize="small" />
         <Typography variant="body2" color="primary">
           {texts.add_option}
         </Typography>
-      </Box>
+      </AddButton>
     </Box>
   );
 }

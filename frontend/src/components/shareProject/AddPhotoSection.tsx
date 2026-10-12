@@ -1,5 +1,5 @@
 import { Button, IconButton, Theme, Tooltip, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import React, { useContext, useRef, useState } from "react";
 import {
@@ -13,40 +13,39 @@ import UserContext from "../context/UserContext";
 import UploadImageDialog from "../dialogs/UploadImageDialog";
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-const useStyles = makeStyles<Theme, { image?: string }>((theme) => {
-  return {
-    imageZoneWrapper: {
-      display: "block",
-      width: "100%",
-      position: "relative",
-    },
-    imageZone: (props) => ({
-      cursor: "pointer",
-      border: "1px dashed #000",
-      width: "100%",
-      paddingBottom: "56.25%",
-      backgroundImage: `${props.image ? `url(${props.image})` : null}`,
-      backgroundSize: "contain",
-    }),
-    photoIcon: {
-      display: "block",
-      marginBottom: theme.spacing(1),
-      margin: "0 auto",
-      cursor: "pointer",
-      fontSize: 40,
-    },
-    addPhotoWrapper: {
-      position: "absolute",
-      left: "calc(50% - 85px)",
-      top: "calc(50% - 44px)",
-    },
-    addPhotoContainer: {
-      position: "absolute",
-      left: "-50%",
-      top: "-50%",
-      width: 170,
-    },
-  };
+const ImageZoneWrapper = styled("label")({
+  display: "block",
+  width: "100%",
+  position: "relative",
+});
+
+const ImageZone = styled("div")({
+  cursor: "pointer",
+  border: "1px dashed #000",
+  width: "100%",
+  paddingBottom: "56.25%",
+  backgroundSize: "contain",
+});
+
+const PhotoIcon = styled(AddAPhotoIcon)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(1),
+  margin: "0 auto",
+  cursor: "pointer",
+  fontSize: 40,
+}));
+
+const AddPhotoWrapper = styled("div")({
+  position: "absolute",
+  left: "calc(50% - 85px)",
+  top: "calc(50% - 44px)",
+});
+
+const AddPhotoContainer = styled("div")({
+  position: "absolute",
+  left: "-50%",
+  top: "-50%",
+  width: 170,
 });
 
 export default function AddPhotoSection({
@@ -60,7 +59,6 @@ export default function AddPhotoSection({
   open,
   handleSetOpen,
 }) {
-  const classes = useStyles(projectData);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const [tempImage, setTempImage] = useState(projectData.image);
@@ -126,7 +124,7 @@ export default function AddPhotoSection({
             </IconButton>
           </Tooltip>
         </Typography>
-        <label htmlFor="photo" className={classes.imageZoneWrapper}>
+        <ImageZoneWrapper htmlFor="photo">
           <input
             type="file"
             name="photo"
@@ -136,17 +134,19 @@ export default function AddPhotoSection({
             onChange={onImageChange}
             accept=".png,.jpeg,.jpg"
           />
-          <div className={classes.imageZone}>
-            <div className={classes.addPhotoWrapper}>
-              <div className={classes.addPhotoContainer}>
-                <AddAPhotoIcon className={classes.photoIcon} />
+          <ImageZone
+            style={projectData.image ? { backgroundImage: `url(${projectData.image})` } : undefined}
+          >
+            <AddPhotoWrapper>
+              <AddPhotoContainer>
+                <PhotoIcon />
                 <Button variant="contained" color="primary" onClick={onUploadImageClick}>
                   {!projectData.image ? texts.upload_image : texts.change_image}
                 </Button>
-              </div>
-            </div>
-          </div>
-        </label>
+              </AddPhotoContainer>
+            </AddPhotoWrapper>
+          </ImageZone>
+        </ImageZoneWrapper>
       </div>
       <UploadImageDialog
         onClose={handleAvatarDialogClose}

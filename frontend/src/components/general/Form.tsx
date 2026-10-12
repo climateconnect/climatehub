@@ -8,7 +8,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, Theme } from "@mui/material/styles";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import Link from "next/link";
 import React, { Fragment, ReactElement, useState } from "react";
@@ -19,80 +19,87 @@ import LocationSearchBar from "../search/LocationSearchBar";
 import RequiredFieldsNotice from "./RequiredFieldsNotice";
 import SelectField from "./SelectField";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    maxWidth: 700,
-    margin: "0 auto",
-  },
-  blockElement: {
-    display: "block",
-    maxWidth: 700,
-    height: 56,
-    margin: "0 auto",
-    marginTop: theme.spacing(2),
-  },
-  requiredFieldsNotice: {
-    height: "auto",
-    marginBottom: theme.spacing(1),
-    marginTop: 0,
-  },
-  checkbox: {
-    display: "block",
-    margin: "0 auto",
-    marginTop: theme.spacing(1),
-    fontSize: 13,
-  },
-  checkboxLabel: {
-    display: "inline",
-  },
-  inlineBlockElement: {
-    display: "inline-block",
-  },
-  bottomMessages: {
-    textAlign: "center",
-    display: "block",
-  },
-  bottomLink: {
-    color: theme.palette.background.default_contrastText,
-  },
-  bottomMessageContainer: {
-    marginTop: theme.spacing(2),
-  },
-  percentage: {
-    textAlign: "center",
-    color: `${theme.palette.primary.main}`,
-    fontWeight: "bold",
-  },
-  progressBar: {
-    height: 5,
-    marginBottom: theme.spacing(3),
-    marginTop: theme.spacing(1),
-  },
-  centerText: {
-    textAlign: "center",
-  },
-  backButton: {
-    float: "left",
-  },
-  rightAlignedButton: {
-    float: "right",
-    marginTop: theme.spacing(4),
-  },
-  switchText: {
-    textAlign: "center",
-    position: "relative",
-  },
-  bold: {
-    fontWeight: "bold",
-  },
-  flexBlock: {
-    display: "flex",
-    justifyContent: "space-around",
-  },
-  switchTextContainer: {
-    display: "flex",
-    alignItems: "center",
-  },
+const blockElementStyles = (theme: Theme) => ({
+  display: "block",
+  maxWidth: 700,
+  height: 56,
+  margin: "0 auto",
+  marginTop: theme.spacing(2),
+});
+
+const Root = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$hasCustomClass",
+})<{ $hasCustomClass?: boolean }>(({ $hasCustomClass }) =>
+  $hasCustomClass
+    ? {}
+    : {
+        maxWidth: 700,
+        margin: "0 auto",
+      }
+);
+
+const BlockRequiredFieldsNotice = styled(RequiredFieldsNotice)(({ theme }) => ({
+  ...blockElementStyles(theme),
+  height: "auto",
+  marginBottom: theme.spacing(1),
+  marginTop: 0,
+}));
+
+const BlockSelectField = styled(SelectField)(({ theme }) => blockElementStyles(theme));
+
+const BlockLocationSearchBar = styled(LocationSearchBar)(({ theme }) => blockElementStyles(theme));
+
+const BlockTextField = styled(TextField)(({ theme }) => blockElementStyles(theme));
+
+const SubmitButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== "$alignRight",
+})<{ $alignRight?: boolean }>(({ theme, $alignRight }) =>
+  $alignRight
+    ? {
+        float: "right",
+        marginTop: theme.spacing(4),
+      }
+    : blockElementStyles(theme)
+);
+
+const CheckboxWrapper = styled("div")(({ theme }) => ({
+  display: "block",
+  margin: "0 auto",
+  marginTop: theme.spacing(1),
+  fontSize: 13,
+}));
+
+const CheckboxLabel = styled("label")({
+  display: "inline",
+});
+
+const FlexBlock = styled("div")({
+  display: "flex",
+  justifyContent: "space-around",
+});
+
+const SwitchTextContainer = styled("span")({
+  display: "flex",
+  alignItems: "center",
+});
+
+const SwitchText = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$bold",
+})<{ $bold?: boolean }>(({ $bold }) => ({
+  textAlign: "center",
+  position: "relative",
+  ...($bold && { fontWeight: "bold" }),
+}));
+
+const BottomMessage = styled("div")({
+  textAlign: "center",
+  display: "block",
+});
+
+const BottomLink = styled(Link)(({ theme }) => ({
+  textAlign: "center",
+  display: "block",
+  color: theme.palette.background.default_contrastText,
 }));
 
 //TODO throw error if "label" isn't unique
@@ -156,7 +163,6 @@ export default function Form({
   fieldClassName,
   autocomplete,
 }: Props) {
-  const classes = useStyles();
   const hasRequiredFields = fields.some((field) => !!field.required);
   const [curPercentage, setCurPercentage] = useState(percentage);
   const [values, setValues] = useState(
@@ -209,13 +215,13 @@ export default function Form({
   }
 
   return (
-    <div className={`${className ? className : classes.root}`}>
+    <Root className={className} $hasCustomClass={!!className}>
       {messages.headerMessage ? (
-        <Typography component="h2" variant="subtitle1" className={classes.centerText}>
+        <Typography component="h2" variant="subtitle1" sx={{ textAlign: "center" }}>
           {onGoBack && (
             <IconButton
               size="small"
-              className={classes.backButton}
+              sx={{ float: "left" }}
               onClick={(event) => onGoBack(event, values)}
             >
               <KeyboardBackspaceIcon />
@@ -230,7 +236,11 @@ export default function Form({
         <LinearProgress
           value={curPercentage}
           variant="determinate"
-          className={classes.progressBar}
+          sx={(theme) => ({
+            height: 5,
+            marginBottom: theme.spacing(3),
+            marginTop: theme.spacing(1),
+          })}
         />
       ) : (
         <></>
@@ -246,11 +256,7 @@ export default function Form({
             {errorMessage}
           </Typography>
         )}
-        {hasRequiredFields && (
-          <RequiredFieldsNotice
-            className={`${classes.blockElement} ${classes.requiredFieldsNotice}`}
-          />
-        )}
+        {hasRequiredFields && <BlockRequiredFieldsNotice />}
         {fields.map((field) => {
           if (
             (!field.onlyShowIfChecked || values[field.onlyShowIfChecked] === true) &&
@@ -260,7 +266,7 @@ export default function Form({
             if (field.select.addEmptyValue) options = ["", ...options];
             return (
               <Fragment key={field.key}>
-                <SelectField
+                <BlockSelectField
                   controlledValue={{ name: values[field.key] }}
                   controlled
                   // @ts-ignore - contrast is a custom color defined in theme
@@ -268,7 +274,7 @@ export default function Form({
                   required={field.required}
                   options={options}
                   label={field.label}
-                  className={`${classes.blockElement} ${fieldClassName}`}
+                  className={fieldClassName}
                   key={String(field.label) + fields.indexOf(field)}
                   onChange={() => handleValueChange(event, field.key, field.type, true)}
                 />
@@ -279,14 +285,14 @@ export default function Form({
             const options = field.multiselect.values;
             return (
               <Fragment key={field.key}>
-                <SelectField
+                <BlockSelectField
                   disabled={field.selectedValues.length === field.maxOptions}
                   multiple={field.multiple}
                   required={field.required}
                   options={options}
                   color="contrast"
                   label={field.label}
-                  className={`${classes.blockElement} ${fieldClassName}`}
+                  className={fieldClassName}
                   key={String(field.label) + fields.indexOf(field)}
                   onChange={(event) => {
                     // we first check if we are reached limit of selected values
@@ -309,34 +315,32 @@ export default function Form({
             );
           } else if (field.type === "checkbox") {
             return (
-              <div className={classes.checkbox} key={field.key}>
+              <CheckboxWrapper key={field.key}>
                 <Checkbox
                   id={"checkbox" + field.key}
                   checked={values[field.key]}
                   required={field.required}
-                  className={classes.inlineBlockElement}
+                  sx={{ display: "inline-block" }}
                   size="small"
                   onBlur={handleBlur}
                   onChange={(event) => handleValueChange(event, field.key, field.type)}
                   // @ts-ignore - contrast is a custom color defined in theme
                   color="contrast"
                 />
-                <label className={classes.checkboxLabel} htmlFor={"checkbox" + field.key}>
-                  {field.label}
-                </label>
-              </div>
+                <CheckboxLabel htmlFor={"checkbox" + field.key}>{field.label}</CheckboxLabel>
+              </CheckboxWrapper>
             );
           } else if (field.type === "switch") {
             return (
-              <div className={classes.flexBlock} key={field.key}>
-                <span className={classes.switchTextContainer}>
-                  <Typography
-                    className={`${classes.switchText} ${!values[field.key] && classes.bold}`}
+              <FlexBlock key={field.key}>
+                <SwitchTextContainer>
+                  <SwitchText
+                    $bold={!values[field.key]}
                     color={values[field.key] ? "secondary" : "contrast"}
                   >
                     {field.falseLabel}
-                  </Typography>
-                </span>
+                  </SwitchText>
+                </SwitchTextContainer>
                 <Switch
                   id={"checkbox" + field.key}
                   checked={values[field.key]}
@@ -347,19 +351,19 @@ export default function Form({
                   inputProps={{ "aria-label": "secondary checkbox" }}
                   onChange={(event) => handleValueChange(event, field.key, field.type)}
                 />
-                <span className={classes.switchTextContainer}>
-                  <Typography
-                    className={`${classes.switchText} ${values[field.key] && classes.bold}`}
+                <SwitchTextContainer>
+                  <SwitchText
+                    $bold={!!values[field.key]}
                     color={values[field.key] ? "constrast" : "secondary"}
                   >
                     {field.trueLabel}
-                  </Typography>
-                </span>
-              </div>
+                  </SwitchText>
+                </SwitchTextContainer>
+              </FlexBlock>
             );
           } else if (field.type === "location") {
             return (
-              <LocationSearchBar
+              <BlockLocationSearchBar
                 key={field.key}
                 label={field.label}
                 required={field.required}
@@ -369,7 +373,7 @@ export default function Form({
                 locationInputRef={field.ref}
                 handleSetOpen={field.handleSetLocationOptionsOpen}
                 open={field.locationOptionsOpen}
-                className={`${classes.blockElement} ${fieldClassName}`}
+                className={fieldClassName}
               />
             );
           } else if (
@@ -397,7 +401,7 @@ export default function Form({
           } else if (!field.onlyShowIfChecked || values[field.onlyShowIfChecked] === true) {
             return (
               <Fragment key={field.key}>
-                <TextField
+                <BlockTextField
                   required={field.required}
                   fullWidth
                   autoFocus={field === fields[0]}
@@ -405,7 +409,7 @@ export default function Form({
                   type={field.type}
                   variant="outlined"
                   value={values[field.key]}
-                  className={`${classes.blockElement} ${fieldClassName}`}
+                  className={fieldClassName}
                   onBlur={handleBlur}
                   onChange={() => handleValueChange(event, field.key, field.type)}
                   // @ts-ignore - contrast is a custom color defined in theme
@@ -416,37 +420,24 @@ export default function Form({
             );
           }
         })}
-        <Button
+        <SubmitButton
           fullWidth={!alignButtonsRight}
           variant="contained"
           type="submit"
           color="primary"
-          className={`${alignButtonsRight ? classes.rightAlignedButton : classes.blockElement}`}
+          $alignRight={alignButtonsRight}
         >
           {messages.submitMessage}
-        </Button>
+        </SubmitButton>
       </form>
       {messages.bottomMessage || bottomLink ? (
-        <Container className={classes.bottomMessageContainer}>
-          {messages.bottomMessage ? (
-            <div className={classes.bottomMessages}>{messages.bottomMessage}</div>
-          ) : (
-            <></>
-          )}
-          {bottomLink ? (
-            <Link
-              href={bottomLink.href}
-              className={`${classes.bottomMessages} ${classes.bottomLink}`}
-            >
-              {bottomLink.text}
-            </Link>
-          ) : (
-            <></>
-          )}
+        <Container sx={(theme) => ({ marginTop: theme.spacing(2) })}>
+          {messages.bottomMessage ? <BottomMessage>{messages.bottomMessage}</BottomMessage> : <></>}
+          {bottomLink ? <BottomLink href={bottomLink.href}>{bottomLink.text}</BottomLink> : <></>}
         </Container>
       ) : (
         <></>
       )}
-    </div>
+    </Root>
   );
 }

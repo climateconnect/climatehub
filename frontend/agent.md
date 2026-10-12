@@ -42,7 +42,7 @@
 
 ### Material-UI v5
 - Use `@mui/material` imports
-- Use `styled()` from `@mui/styles` or `@emotion/styled` for styling
+- Style with `styled()` from `@mui/material/styles` or the `sx` prop. `@mui/styles` (`makeStyles`/`withStyles`) was removed (ESLint blocks it; history in `doc/spec/MIGRATION_MUI_STYLE_PLAN.md`). Put continuously changing values (scroll, sizes) in an inline `style`, not in `styled()` props
 - Use theme breakpoints for responsive design
 - Access theme with `useTheme()` hook
 

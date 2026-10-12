@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
@@ -62,37 +62,41 @@ type EventRegistration = {
   field_answers: RegistrationFieldAnswer[];
 };
 
-const useStyles = makeStyles((theme) => ({
-  settingsGrid: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: theme.spacing(3),
-    marginBottom: theme.spacing(3),
-  },
-  settingItem: {
-    minWidth: 180,
-  },
-  settingLabel: {
-    color: theme.palette.text.secondary,
-    fontSize: "0.75rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    marginBottom: theme.spacing(0.5),
-  },
-  settingValue: {
-    fontWeight: 500,
-    fontSize: "1rem",
-  },
-  sectionTitle: {
-    fontWeight: "bold",
-    marginBottom: theme.spacing(2),
-  },
-  editButton: {
-    marginBottom: theme.spacing(4),
-  },
-  listSection: {
-    marginTop: theme.spacing(2),
-  },
+const SettingsGrid = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+}));
+
+const SettingItem = styled("div")({
+  minWidth: 180,
+});
+
+const SettingLabel = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  fontSize: "0.75rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  marginBottom: theme.spacing(0.5),
+}));
+
+const SettingValue = styled(Typography)({
+  fontWeight: 500,
+  fontSize: "1rem",
+});
+
+const SectionTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: "bold",
+  marginBottom: theme.spacing(2),
+})) as typeof Typography;
+
+const EditButton = styled(Button)(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+}));
+
+const ListSection = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(2),
 }));
 
 type Props = {
@@ -209,7 +213,6 @@ export default function ProjectRegistrationsContent({
   eventRegistration,
   onEventRegistrationUpdated,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -398,27 +401,25 @@ export default function ProjectRegistrationsContent({
   return (
     <>
       {/* Registration settings summary */}
-      <Box className={classes.settingsGrid}>
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>{texts.max_participants}</Typography>
-          <Typography className={classes.settingValue}>
-            {eventRegistration.max_participants ?? "—"}
-          </Typography>
-        </Box>
+      <SettingsGrid>
+        <SettingItem>
+          <SettingLabel>{texts.max_participants}</SettingLabel>
+          <SettingValue>{eventRegistration.max_participants ?? "—"}</SettingValue>
+        </SettingItem>
 
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>{texts.registration_end_date}</Typography>
-          <Typography className={classes.settingValue}>
+        <SettingItem>
+          <SettingLabel>{texts.registration_end_date}</SettingLabel>
+          <SettingValue>
             {eventRegistration.registration_end_date
               ? dayjs(eventRegistration.registration_end_date)
                   .locale(locale)
                   .format("DD MMM YYYY, HH:mm")
               : "—"}
-          </Typography>
-        </Box>
+          </SettingValue>
+        </SettingItem>
 
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>{texts.registration_status}</Typography>
+        <SettingItem>
+          <SettingLabel>{texts.registration_status}</SettingLabel>
           <Chip
             size="small"
             label={statusConfig.label}
@@ -426,27 +427,26 @@ export default function ProjectRegistrationsContent({
             icon={<StatusIcon fontSize="small" />}
             sx={{ fontWeight: 600 }}
           />
-        </Box>
-      </Box>
+        </SettingItem>
+      </SettingsGrid>
 
       {!isEventEnded && (
-        <Button
+        <EditButton
           variant="outlined"
           color="primary"
           startIcon={<SettingsIcon />}
-          className={classes.editButton}
           onClick={() => setEditModalOpen(true)}
           aria-label={texts.edit_registration_settings}
         >
           {texts.edit_registration_settings}
-        </Button>
+        </EditButton>
       )}
 
       {/* Registered guests list */}
-      <Box className={classes.listSection}>
-        <Typography variant="h6" component="h2" className={classes.sectionTitle}>
+      <ListSection>
+        <SectionTitle variant="h6" component="h2">
           {texts.registered_guests}
-        </Typography>
+        </SectionTitle>
 
         {loadingParticipants && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 2 }}>
@@ -737,7 +737,7 @@ export default function ProjectRegistrationsContent({
             </Menu>
           </>
         )}
-      </Box>
+      </ListSection>
 
       {!isEventEnded && (
         <EditEventRegistrationModal

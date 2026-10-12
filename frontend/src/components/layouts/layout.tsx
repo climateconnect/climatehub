@@ -1,5 +1,5 @@
-import { Container, Theme, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Container, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import Alert from "@mui/material/Alert";
 import React, { useEffect, useState } from "react";
 import { getParams } from "../../../public/lib/generalOperations";
@@ -15,26 +15,20 @@ import LayoutWrapper from "./LayoutWrapper";
 // @ts-ignore
 import { DevLinkProvider } from "../../../devlink/DevLinkProvider";
 
-interface StyleProps {
-  customTheme_default_contrastText?: string;
-  donationCampaignRunning?: boolean;
-}
-
-const useStyles = makeStyles<Theme, StyleProps>((theme) => {
-  return {
-    mainHeading: (props) => ({
-      textAlign: "center",
-      margin: `${theme.spacing(4)} 0`,
-      color: props.customTheme_default_contrastText
-        ? props.customTheme_default_contrastText
-        : theme.palette.background.default_contrastText,
-    }),
-    alert: () => ({
-      width: "100%",
-      zIndex: 100,
-    }),
-  };
+const StyledAlert = styled(Alert)({
+  width: "100%",
+  zIndex: 100,
 });
+
+const MainHeading = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== "$contrastTextColor",
+})<{ $contrastTextColor?: string; component?: React.ElementType }>(
+  ({ theme, $contrastTextColor }) => ({
+    textAlign: "center",
+    margin: `${theme.spacing(4)} 0`,
+    color: $contrastTextColor ? $contrastTextColor : theme.palette.background.default_contrastText,
+  })
+);
 
 export default function Layout({
   title,
@@ -48,10 +42,6 @@ export default function Layout({
   customTheme,
   hubUrl,
 }: any) {
-  const classes = useStyles({
-    donationCampaignRunning: !!process.env.DONATION_CAMPAIGN_RUNNING,
-    customTheme_default_contrastText: customTheme?.palette?.background?.default_contrastText,
-  });
   const [hideAlertMessage, setHideAlertMessage] = useState(false);
   const [initialMessageType, setInitialMessageType] = useState(null as string | null);
   const [initialMessage, setInitialMessage] = useState("");
@@ -78,8 +68,7 @@ export default function Layout({
         ) : (
           <>
             {(message || initialMessage) && !(hideAlertMessage === message) && (
-              <Alert
-                className={classes.alert}
+              <StyledAlert
                 severity={
                   messageType ? messageType : initialMessageType ? initialMessageType : "success"
                 }
@@ -88,14 +77,18 @@ export default function Layout({
                 }}
               >
                 {getMessageFromUrl(message ? message : initialMessage)}
-              </Alert>
+              </StyledAlert>
             )}
             <Container maxWidth="lg" component="main">
               <Container maxWidth="sm">
                 {!hideHeadline && (
-                  <Typography component="h1" variant="h5" className={classes.mainHeading}>
+                  <MainHeading
+                    component="h1"
+                    variant="h5"
+                    $contrastTextColor={customTheme?.palette?.background?.default_contrastText}
+                  >
                     {title}
-                  </Typography>
+                  </MainHeading>
                 )}
               </Container>
               {children}

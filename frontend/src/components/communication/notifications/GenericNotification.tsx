@@ -7,7 +7,7 @@ import {
   ListItemText,
   Theme,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, SxProps } from "@mui/material/styles";
 import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import { getImageUrl } from "../../../../public/lib/imageOperations";
@@ -16,45 +16,31 @@ import { StyledMenuItem } from "./Notification";
 import CloseIcon from "@mui/icons-material/Close";
 import Cookies from "universal-cookie";
 
-const useStyles = makeStyles<Theme, {}>((theme) => {
-  return {
-    messageSender: {
-      fontWeight: 600,
-      width: "90%",
-      whiteSpace: "normal",
-      overflow: "hidden",
-      WebkitBoxOrient: "vertical",
-      display: "-webkit-box",
-      wordBreak: "break-word",
-      color: theme.palette.background.default_contrastText,
-    },
-    listItemText: {
-      whiteSpace: "normal",
-    },
-    goToInboxText: {
-      textAlign: "center",
-      display: "block",
-      marginTop: theme.spacing(1),
-    },
-    notificationText: {
-      width: "90%",
-      whiteSpace: "normal",
-      overflow: "hidden",
-      WebkitBoxOrient: "vertical",
-      display: "-webkit-box",
-      WebkitLineClamp: 1,
-      wordBreak: "break-word",
-    },
-    deleteIcon: {
-      position: "absolute",
-      right: 0,
-    },
-    content: {
-      display: "flex",
-      alignItems: "center",
-    },
-  };
+const Content = styled("div")({
+  display: "flex",
+  alignItems: "center",
 });
+
+const messageSenderSx: SxProps<Theme> = (theme) => ({
+  fontWeight: 600,
+  width: "90%",
+  whiteSpace: "normal",
+  overflow: "hidden",
+  WebkitBoxOrient: "vertical",
+  display: "-webkit-box",
+  wordBreak: "break-word",
+  color: theme.palette.background.default_contrastText,
+});
+
+const notificationTextSx: SxProps<Theme> = {
+  width: "90%",
+  whiteSpace: "normal",
+  overflow: "hidden",
+  WebkitBoxOrient: "vertical",
+  display: "-webkit-box",
+  WebkitLineClamp: 1,
+  wordBreak: "break-word",
+};
 
 type Props = {
   link: any;
@@ -76,7 +62,6 @@ export default function GenericNotification({
   const { locale, setNotificationsRead, refreshNotifications, hideNotification } = useContext(
     UserContext
   );
-  const classes = useStyles();
 
   const deleteNotification = async () => {
     hideNotification(notification.id);
@@ -87,7 +72,7 @@ export default function GenericNotification({
   return (
     <StyledMenuItem>
       <Link href={getLocalePrefix(locale) + link} underline="none">
-        <div className={classes.content}>
+        <Content>
           {avatar ? (
             <ListItemAvatar>
               <Avatar alt={avatar.alt} src={getImageUrl(avatar.image)} />
@@ -101,15 +86,15 @@ export default function GenericNotification({
             primary={primaryText}
             secondary={secondaryText}
             primaryTypographyProps={{
-              className: classes.messageSender,
+              sx: messageSenderSx,
             }}
             secondaryTypographyProps={{
-              className: classes.notificationText,
+              sx: notificationTextSx,
             }}
           />
-        </div>
+        </Content>
       </Link>
-      <IconButton onClick={deleteNotification} className={classes.deleteIcon} size="large">
+      <IconButton onClick={deleteNotification} sx={{ position: "absolute", right: 0 }} size="large">
         <CloseIcon />
       </IconButton>
     </StyledMenuItem>

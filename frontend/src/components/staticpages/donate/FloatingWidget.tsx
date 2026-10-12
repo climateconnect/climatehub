@@ -1,48 +1,43 @@
 import { Container } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useState } from "react";
 import BottomOfPage from "../../hooks/BottomOfPage";
 import ElementOnScreen from "../../hooks/ElementOnScreen";
 import ElementSpaceToTop from "../../hooks/ElementSpaceToTop";
 import DonationGoal from "./DonationGoal";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    twingle: {
-      width: "100%",
-      height: "100%",
-      border: 0,
-    },
-    twingleContainer: {
-      position: "absolute",
-      top: 110,
-      right: theme.spacing(8),
-      width: 400,
-      height: 660,
-      maxHeight: "95vh",
-      [theme.breakpoints.down("lg")]: {
-        right: theme.spacing(2),
-      },
-      zIndex: 2,
-    },
-    twingleContainerFixed: {
-      position: "fixed",
-      bottom: 10,
-      top: "auto",
-    },
-    twingleContainerHidden: {
-      visibility: "hidden",
-    },
-    twingleContainerAtBottom: {
-      position: "absolute",
-      bottom: -20,
-      top: "auto",
-    },
-  };
+const TwingleFrame = styled("iframe")({
+  width: "100%",
+  height: "100%",
+  border: 0,
 });
 
+const TwingleContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isFixed" && prop !== "$isAtBottom",
+})<{ $isFixed?: boolean; $isAtBottom?: boolean }>(({ theme, $isFixed, $isAtBottom }) => ({
+  position: "absolute",
+  top: 110,
+  right: theme.spacing(8),
+  width: 400,
+  height: 660,
+  maxHeight: "95vh",
+  [theme.breakpoints.down("lg")]: {
+    right: theme.spacing(2),
+  },
+  zIndex: 2,
+  ...($isFixed && {
+    position: "fixed",
+    bottom: 10,
+    top: "auto",
+  }),
+  ...($isAtBottom && {
+    position: "absolute",
+    bottom: -20,
+    top: "auto",
+  }),
+}));
+
 export default function FloatingWidget({ goal_name, current_amount, goal_amount }) {
-  const classes = useStyles();
   const [el, setEl] = useState<HTMLDivElement | null>(null);
   const [isFixed, setIsFixed] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
@@ -55,10 +50,9 @@ export default function FloatingWidget({ goal_name, current_amount, goal_amount 
   if (!atBottomOfPage && isAtBottom) setIsAtBottom(false);
   return (
     <Container maxWidth="xl" /*TODO(undefined) className={classes.twingleWrapper}*/>
-      <div
-        className={`${classes.twingleContainer} ${isFixed && classes.twingleContainerFixed} ${
-          isAtBottom && classes.twingleContainerAtBottom
-        }`}
+      <TwingleContainer
+        $isFixed={isFixed}
+        $isAtBottom={isAtBottom}
         ref={(node) => {
           if (node) {
             setEl(node);
@@ -74,11 +68,8 @@ export default function FloatingWidget({ goal_name, current_amount, goal_amount 
             isInWidget
           />
         )}
-        <iframe
-          className={classes.twingle}
-          src="https://spenden.twingle.de/climate-connect-gug-haftungsbeschrankt/climate-connect/tw5ee1f393e9a58/widget"
-        />
-      </div>
+        <TwingleFrame src="https://spenden.twingle.de/climate-connect-gug-haftungsbeschrankt/climate-connect/tw5ee1f393e9a58/widget" />
+      </TwingleContainer>
     </Container>
   );
 }

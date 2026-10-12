@@ -9,7 +9,7 @@ import {
   Tooltip,
   Theme,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import _ from "lodash";
 import React, { useContext, useEffect, useState } from "react";
 import { apiRequest } from "../../../public/lib/apiOperations";
@@ -23,93 +23,102 @@ import SaveIcon from "@mui/icons-material/Save";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import ProjectDescriptionEditor from "../editProject/ProjectDescriptionEditor";
 
-const useStyles = makeStyles<Theme, { visibleFooterHeight?: number }>((theme) => ({
-  root: {
-    marginTop: theme.spacing(2),
-  },
-  explanation: {
-    margin: "0 auto",
-    textAlign: "center",
-  },
-  sectionHeader: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginTop: theme.spacing(1.5),
-    overflowWrap: "break-word",
-  },
-  divider: {
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-  },
-  translationBlocksHeader: {
-    marginTop: theme.spacing(3),
-  },
-  translationBlock: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing(2),
+const RootContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+}));
 
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "column",
-      alignItems: "center",
-      border: `1px solid ${theme.palette.grey[500]}`,
-      borderRadius: 15,
-      padding: theme.spacing(1),
-    },
-  },
-  translationBlockElement: {
-    [theme.breakpoints.up("md")]: {
-      flexGrow: 0.48,
-      flexBasis: 400,
-    },
-    [theme.breakpoints.down("md")]: {
-      flexGrow: 0.48,
-      width: "100%",
-    },
-  },
-  topButtonRow: {
-    display: "inline-flex",
-    alignItems: "flex-start",
-    width: "100%",
-    justifyContent: "center",
-    marginTop: theme.spacing(2),
-    [theme.breakpoints.down("md")]: {
-      marginTop: theme.spacing(0),
-    },
-  },
-  translateButton: {
-    marginRight: theme.spacing(1),
-    marginLeft: theme.spacing(1),
-    [theme.breakpoints.down("md")]: {
-      minWidth: 100,
-    },
-    width: 265,
-  },
-  translationLoader: {
-    color: "white",
-  },
-  submitOptions: {
-    display: "flex",
+const Explanation = styled(Typography)({
+  margin: "0 auto",
+  textAlign: "center",
+});
+
+const SectionHeader = styled(Typography)(({ theme }) => ({
+  fontSize: 22,
+  fontWeight: "bold",
+  marginTop: theme.spacing(1.5),
+  overflowWrap: "break-word",
+}));
+
+const TranslationBlocksHeader = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(3),
+}));
+
+const TranslationBlockWrapper = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  marginBottom: theme.spacing(2),
+
+  [theme.breakpoints.down("md")]: {
     flexDirection: "column",
-  },
-  saveAsDraftButton: {
-    marginTop: theme.spacing(1),
-  },
-  actionBar: (props) => ({
-    backgroundColor: "#ECECEC",
-    top: "auto",
-    bottom: props.visibleFooterHeight,
-    boxShadow: "-3px -3px 6px #00000029",
-    zIndex: 1,
-  }),
-  containerButtonsActionBar: {
-    display: "flex",
-    justifyContent: "space-around",
-  },
-  backButton: {
-    border: `1px solid #000000`,
+    alignItems: "center",
+    border: `1px solid ${theme.palette.grey[500]}`,
+    borderRadius: 15,
+    padding: theme.spacing(1),
   },
 }));
+
+const TranslationBlockElementWrapper = styled("div")(({ theme }) => ({
+  [theme.breakpoints.up("md")]: {
+    flexGrow: 0.48,
+    flexBasis: 400,
+  },
+  [theme.breakpoints.down("md")]: {
+    flexGrow: 0.48,
+    width: "100%",
+  },
+}));
+
+const TopButtonRow = styled("div")(({ theme }) => ({
+  display: "inline-flex",
+  alignItems: "flex-start",
+  width: "100%",
+  justifyContent: "center",
+  marginTop: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
+    marginTop: theme.spacing(0),
+  },
+}));
+
+const StyledTranslateButton = styled(Button)(({ theme }) => ({
+  marginRight: theme.spacing(1),
+  marginLeft: theme.spacing(1),
+  [theme.breakpoints.down("md")]: {
+    minWidth: 100,
+  },
+  width: 265,
+}));
+
+const TranslationLoader = styled(CircularProgress)({
+  color: "white",
+});
+
+const SubmitOptions = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+});
+
+const SaveAsDraftButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const ActionBar = styled(AppBar, {
+  shouldForwardProp: (prop) => prop !== "$visibleFooterHeight",
+})<{ $visibleFooterHeight?: number }>(({ $visibleFooterHeight }) => ({
+  backgroundColor: "#ECECEC",
+  top: "auto",
+  bottom: $visibleFooterHeight,
+  boxShadow: "-3px -3px 6px #00000029",
+  zIndex: 1,
+}));
+
+const ContainerButtonsActionBar = styled(Toolbar)({
+  display: "flex",
+  justifyContent: "space-around",
+});
+
+const StyledBackButton = styled(Button)({
+  border: `1px solid #000000`,
+});
 
 type Props = {
   data?;
@@ -150,7 +159,6 @@ export default function TranslateTexts({
   organization,
 }: Props) {
   const visibleFooterHeight = VisibleFooterHeight({});
-  const classes = useStyles({ visibleFooterHeight: visibleFooterHeight });
   const { locale } = useContext(UserContext);
   //For the organization page, we need to retrieve the organization name to get the german text.
   //Therefore we pass organization even it this might not make sense in most cases.
@@ -278,11 +286,9 @@ export default function TranslateTexts({
     if (confirmed) await automaticallyTranslateTexts(true);
   };
   return (
-    <Container className={classes.root}>
+    <RootContainer>
       <form onSubmit={onSubmit}>
-        <Typography className={classes.explanation} color="secondary">
-          {introTextKey && localeTexts[introTextKey]}
-        </Typography>
+        <Explanation color="secondary">{introTextKey && localeTexts[introTextKey]}</Explanation>
 
         <TranslationActionButtonBar
           belowSmall={belowSmall}
@@ -296,7 +302,7 @@ export default function TranslateTexts({
           saveAsDraft={saveAsDraft}
           visibleFooterHeight={visibleFooterHeight}
         />
-        <div className={classes.translationBlocksHeader}>
+        <TranslationBlocksHeader>
           {textsToTranslate.map((textObj, index) => {
             const effectiveDataKey = textObj.dataKey || textObj.textKey;
             if (textObj.isArray) {
@@ -337,7 +343,7 @@ export default function TranslateTexts({
                 />
               );
           })}
-        </div>
+        </TranslationBlocksHeader>
       </form>
       <ConfirmDialog
         onClose={onConfirmDialogClose}
@@ -347,7 +353,7 @@ export default function TranslateTexts({
         text={texts.confirm_overwrite_all_texts}
         title={texts.confirm_overwrite_all_texts_headline}
       />
-    </Container>
+    </RootContainer>
   );
 }
 
@@ -370,7 +376,6 @@ function TranslationBlock({
   showCharacterCounter,
   richText,
 }: any) {
-  const classes = useStyles({});
   const flatDataKey = dataKey.includes(".")
     ? dataKey.split(".")[dataKey.split(".").length - 1]
     : dataKey;
@@ -396,31 +401,25 @@ function TranslationBlock({
       : translations[targetLanguage][flatDataKey]);
 
   return (
-    <div className={classes.translationBlock}>
+    <TranslationBlockWrapper>
       {richText ? (
         <>
-          <div className={classes.translationBlockElement}>
-            {!noHeadline && (
-              <Typography color="primary" className={classes.sectionHeader}>
-                {texts[headlineTextKey]}
-              </Typography>
-            )}
+          <TranslationBlockElementWrapper>
+            {!noHeadline && <SectionHeader color="primary">{texts[headlineTextKey]}</SectionHeader>}
             <ProjectDescriptionEditor
               descriptionHtml={originalContent || ""}
               onChange={(html) => changeOriginalText(html, dataKey)}
             />
-          </div>
-          <div className={classes.translationBlockElement}>
+          </TranslationBlockElementWrapper>
+          <TranslationBlockElementWrapper>
             {!noHeadline && (
-              <Typography color="primary" className={classes.sectionHeader}>
-                {targetLanguageTexts[headlineTextKey]}
-              </Typography>
+              <SectionHeader color="primary">{targetLanguageTexts[headlineTextKey]}</SectionHeader>
             )}
             <ProjectDescriptionEditor
               descriptionHtml={translationContent || ""}
               onChange={(html) => handleTranslationChange(html, dataKey, indexInArray)}
             />
-          </div>
+          </TranslationBlockElementWrapper>
         </>
       ) : (
         <>
@@ -450,7 +449,7 @@ function TranslationBlock({
           />
         </>
       )}
-    </div>
+    </TranslationBlockWrapper>
   );
 }
 
@@ -464,15 +463,9 @@ function TranslationBlockElement({
   maxCharacters,
   characterText,
 }) {
-  const classes = useStyles({});
-
   return (
-    <div className={classes.translationBlockElement}>
-      {!noHeadline && (
-        <Typography color="primary" className={classes.sectionHeader}>
-          {headline}
-        </Typography>
-      )}
+    <TranslationBlockElementWrapper>
+      {!noHeadline && <SectionHeader color="primary">{headline}</SectionHeader>}
 
       <TextField
         rows={rows}
@@ -488,7 +481,7 @@ function TranslationBlockElement({
         value={content}
         onChange={handleContentChange}
       />
-    </div>
+    </TranslationBlockElementWrapper>
   );
 }
 
@@ -504,12 +497,10 @@ function TranslationActionButtonBar({
   saveAsDraft,
   visibleFooterHeight,
 }) {
-  const classes = useStyles({ visibleFooterHeight: visibleFooterHeight });
-
   return (
     <>
       {!belowSmall ? (
-        <div className={classes.topButtonRow}>
+        <TopButtonRow>
           <BackButton
             goToPreviousStep={goToPreviousStep}
             label={{ label: localeTexts.back }}
@@ -520,7 +511,7 @@ function TranslationActionButtonBar({
             waitingForTranslation={waitingForTranslation}
             label={localeTexts.automatically_translate}
           />
-          <div className={classes.submitOptions}>
+          <SubmitOptions>
             <SaveButtons
               loadingSubmit={loadingSubmit}
               loadingSubmitDraft={loadingSubmitDraft}
@@ -528,13 +519,13 @@ function TranslationActionButtonBar({
               label={{ label: submitButtonText }}
               saveAsDraft={saveAsDraft}
             />
-          </div>
-        </div>
+          </SubmitOptions>
+        </TopButtonRow>
       ) : (
-        <AppBar className={classes.actionBar} position="fixed" elevation={0}>
-          <Toolbar className={classes.containerButtonsActionBar} variant="dense">
+        <ActionBar $visibleFooterHeight={visibleFooterHeight} position="fixed" elevation={0}>
+          <ContainerButtonsActionBar variant="dense">
             {" "}
-            <div className={classes.topButtonRow}>
+            <TopButtonRow>
               <BackButton
                 goToPreviousStep={goToPreviousStep}
                 label={{ icon: KeyboardBackspaceIcon }}
@@ -545,7 +536,7 @@ function TranslationActionButtonBar({
                 waitingForTranslation={waitingForTranslation}
                 label={localeTexts.translate}
               />
-              <div className={classes.submitOptions}>
+              <SubmitOptions>
                 <SaveButtons
                   loadingSubmit={loadingSubmit}
                   loadingSubmitDraft={loadingSubmitDraft}
@@ -553,19 +544,18 @@ function TranslationActionButtonBar({
                   label={{ icon: SaveIcon }}
                   saveAsDraft={saveAsDraft}
                 />
-              </div>
-            </div>
-          </Toolbar>
-        </AppBar>
+              </SubmitOptions>
+            </TopButtonRow>
+          </ContainerButtonsActionBar>
+        </ActionBar>
       )}
     </>
   );
 }
 
 function BackButton({ goToPreviousStep, label, localeTexts }) {
-  const classes = useStyles({});
   return (
-    <Button onClick={goToPreviousStep} className={classes.backButton} variant="contained">
+    <StyledBackButton onClick={goToPreviousStep} variant="contained">
       {label.icon ? (
         <Tooltip arrow placement="top" title={localeTexts.back}>
           <label.icon />
@@ -573,31 +563,24 @@ function BackButton({ goToPreviousStep, label, localeTexts }) {
       ) : (
         label.label
       )}
-    </Button>
+    </StyledBackButton>
   );
 }
 
 function TranslateButton({ automaticallyTranslateTexts, waitingForTranslation, label }) {
-  const classes = useStyles({});
   return (
-    <Button
+    <StyledTranslateButton
       variant="contained"
       color="primary"
-      className={classes.translateButton}
       onClick={() => automaticallyTranslateTexts()}
       disabled={waitingForTranslation}
     >
-      {waitingForTranslation ? (
-        <CircularProgress className={classes.translationLoader} size={23} />
-      ) : (
-        label
-      )}
-    </Button>
+      {waitingForTranslation ? <TranslationLoader size={23} /> : label}
+    </StyledTranslateButton>
   );
 }
 
 function SaveButtons({ loadingSubmit, loadingSubmitDraft, localeTexts, label, saveAsDraft }) {
-  const classes = useStyles({});
   return (
     <>
       <Button
@@ -607,7 +590,7 @@ function SaveButtons({ loadingSubmit, loadingSubmitDraft, localeTexts, label, sa
         disabled={loadingSubmit || loadingSubmitDraft}
       >
         {loadingSubmit ? (
-          <CircularProgress className={classes.translationLoader} size={23} />
+          <TranslationLoader size={23} />
         ) : label ? (
           label.icon ? (
             <Tooltip arrow placement="top" title={localeTexts.save}>
@@ -621,18 +604,13 @@ function SaveButtons({ loadingSubmit, loadingSubmitDraft, localeTexts, label, sa
         )}
       </Button>
       {saveAsDraft && (
-        <Button
+        <SaveAsDraftButton
           variant="contained"
           disabled={loadingSubmit || loadingSubmitDraft}
           onClick={saveAsDraft}
-          className={classes.saveAsDraftButton}
         >
-          {loadingSubmitDraft ? (
-            <CircularProgress className={classes.translationLoader} size={23} />
-          ) : (
-            localeTexts.save_as_draft
-          )}
-        </Button>
+          {loadingSubmitDraft ? <TranslationLoader size={23} /> : localeTexts.save_as_draft}
+        </SaveAsDraftButton>
       )}
     </>
   );
