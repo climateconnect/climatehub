@@ -103,6 +103,9 @@ export async function convertToJPGWithAspectRatio(file): Promise<string> {
         1
       );
     };
+    image.onerror = function () {
+      reject(new Error("Failed to load image: file may be corrupt or truncated"));
+    };
     image.src = URL.createObjectURL(file);
   });
 }
