@@ -1,4 +1,7 @@
+from html import unescape
+
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 from climateconnect_api.models import Role
 from organization.utility.project import add_project_member, is_part_of_project
@@ -8,6 +11,14 @@ from organization.utility import MembershipTarget, RequestStatus
 import logging
 
 logger = logging.getLogger(__name__)
+
+# API-level limit; the DB column allows 4096 so this can be raised without a migration.
+MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH = 500
+
+
+def sanitize_membership_request_message(message: str) -> str:
+    """Reduce a user supplied message to trimmed plain text (real HTML tags removed)."""
+    return unescape(strip_tags(message.replace("\r\n", "\n"))).strip()
 
 
 class MembershipRequestsManager:

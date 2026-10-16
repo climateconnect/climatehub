@@ -44,6 +44,7 @@ from climateconnect_api.utility.translation import (
     edit_translations,
 )
 from climateconnect_main.utility.general import get_image_from_data_url
+from feature_toggles.utility import is_feature_enabled_for_current_environment
 from hubs.models.hub import Hub
 from location.models import Location
 from location.utility import get_location, get_location_with_range
@@ -125,7 +126,11 @@ from organization.utility.project import (
     get_project_translations,
     get_similar_projects,
 )
-from organization.utility.requests import MembershipRequestsManager
+from organization.utility.requests import (
+    MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH,
+    MembershipRequestsManager,
+    sanitize_membership_request_message,
+)
 from organization.utility.sector import (
     create_context_for_hub_specific_sector,
     sanitize_sector_inputs,
@@ -1815,7 +1820,12 @@ class RequestJoinProject(RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, user_slug, url_slug):
-        required_params = ["user_availability", "message"]
+        confirmation_enabled = is_feature_enabled_for_current_environment(
+            "PROJECT_JOIN_REQUEST_CONFIRMATION"
+        )
+        required_params = ["user_availability"]
+        if not confirmation_enabled:
+            required_params.append("message")
         missing_param = any([param not in request.data for param in required_params])
         if missing_param:
             return Response(
@@ -1846,13 +1856,31 @@ class RequestJoinProject(RetrieveUpdateAPIView):
             id=request.data["user_availability"]
         ).first()
 
+        message = request.data.get("message", "")
+        if confirmation_enabled:
+            if message is None:
+                message = ""
+            if not isinstance(message, str):
+                return Response(
+                    {"message": "message must be a string"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            message = sanitize_membership_request_message(message)
+            if len(message) > MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH:
+                return Response(
+                    {
+                        "message": f"The message must not be longer than {MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH} characters"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         request_manager = MembershipRequestsManager(
             user=user,
             membership_target=MembershipTarget.PROJECT,
             user_availability=user_availability,
             project=project,
             organization=None,
-            message=request.data["message"],
+            message=message,
         )
 
         exists = request_manager.duplicate_request

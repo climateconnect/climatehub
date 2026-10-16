@@ -220,7 +220,7 @@ This document provides comprehensive documentation of the main domain entities i
 
 **Summary**: Join requests for projects and organizations.
 
-**Description**: Handles the workflow for users requesting to join projects or organizations. Tracks request status (pending, approved, rejected), proposed availability commitment, and optional introduction message. Used to manage team growth and vet new members.
+**Description**: Handles the workflow for users requesting to join projects or organizations. Tracks request status (pending, approved, rejected), proposed availability commitment, and optional introduction message (`message`: optional plain user text, capped at 500 characters at the API level while the column allows 4096). Used to manage team growth and vet new members.
 
 **Relationships**:
 - **ForeignKey**: `User`, `Project` (nullable), `Organization` (nullable), `Availability`

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.text import Truncator
 
 from organization.models import (
     Comment,
@@ -232,11 +233,16 @@ class MembershipRequestsAdmin(admin.ModelAdmin):
         "target_organization",
         "request_status",
         "requested_at",
+        "short_message",
     )
     list_filter = ("target_membership_type", "request_status", "requested_at")
     list_select_related = ("user", "target_project", "target_organization")
     ordering = ("-requested_at",)
     raw_id_fields = ("user", "target_project", "target_organization")
+
+    @admin.display(description="Message")
+    def short_message(self, obj):
+        return Truncator(obj.message or "").chars(60)
 
 
 admin.site.register(MembershipRequests, MembershipRequestsAdmin)
