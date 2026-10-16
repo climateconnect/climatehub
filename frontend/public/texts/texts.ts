@@ -110,7 +110,12 @@ export default function getTexts<P extends Page>({
     landing_page: getLandingPageTexts({ classes: classes, isNarrowScreen: isNarrowScreen }),
     navigation: navigation_texts,
     notification: getNotificationTexts({ idea: idea, project: project }),
-    organization: getOrganizationTexts({ organization: organization, locale: locale }),
+    organization: getOrganizationTexts({
+      organization: organization,
+      locale: locale,
+      user: user,
+      hubName: hubName,
+    }),
     profile: getProfileTexts({ profile: profile, locale: locale, hubName: hubName }),
     project: getProjectTexts({
       project: project,

@@ -48,7 +48,7 @@ export async function getServerSideProps(ctx) {
   ] = await Promise.all([
     getProjectByIdIfExists(projectUrl, auth_token, ctx.locale),
     getMembersByProject(projectUrl, auth_token, ctx.locale),
-    getUserOrganizations(auth_token, ctx.locale),
+    getUserOrganizations(auth_token, ctx.locale, true),
     getProjectTypeOptions(ctx.locale),
     getHubTheme(hubUrl),
     getSectorOptions(ctx.locale),

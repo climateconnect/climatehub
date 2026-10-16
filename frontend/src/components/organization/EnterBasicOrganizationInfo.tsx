@@ -60,6 +60,8 @@ export default function EnterBasicOrganizationInfo({
   locationOptionsOpen,
   handleSetLocationOptionsOpen,
   tagOptions,
+  handleSaveAsDraft,
+  loadingSubmitDraft,
 }) {
   const classes = useStyles();
   const { locale } = useContext(UserContext);
@@ -159,6 +161,7 @@ export default function EnterBasicOrganizationInfo({
 
   const messages = {
     submitMessage: texts.next_step,
+    secondarySubmitMessage: texts.save_as_draft,
   };
 
   return (
@@ -174,6 +177,17 @@ export default function EnterBasicOrganizationInfo({
             types: convertTypeNamesToObject(selectedTypes, tagOptions),
           })
         }
+        onSecondarySubmit={
+          handleSaveAsDraft &&
+          ((values) =>
+            handleSaveAsDraft({
+              ...values,
+              parentOrganization: parentOrganization,
+              types: convertTypeNamesToObject(selectedTypes, tagOptions),
+            }))
+        }
+        loadingSecondarySubmit={loadingSubmitDraft}
+        secondarySubmitEnabledField="organizationname"
         errorMessage={errorMessage}
       />
     </div>

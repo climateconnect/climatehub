@@ -572,6 +572,66 @@ class TestListMemberProfilesAPIViewPost(APITestCase):
         self.assertEqual(len(results), 3)
 
 
+class TestListMemberOrganizationsViewDraftFiltering(APITestCase):
+    """
+    A draft organisation must not leak through a user's public
+    "organizations" listing to anyone other than the user themselves,
+    mirroring how ListMemberProjectsView already hides draft projects from
+    other viewers.
+    """
+
+    def setUp(self):
+        from climateconnect_api.models import Role
+        from organization.models import Organization, OrganizationMember
+
+        self.profile = _create_verified_member("org_member", None, "org-member")
+        self.other_user = User.objects.create_user(
+            username="other_viewer", password="testpassword"
+        )
+        role = Role.objects.create(name="Admin", role_type=Role.ALL_TYPE)
+
+        self.draft_org = Organization.objects.create(
+            name="Draft Org", url_slug="draft-org", is_draft=True
+        )
+        self.published_org = Organization.objects.create(
+            name="Published Org", url_slug="published-org", is_draft=False
+        )
+        OrganizationMember.objects.create(
+            user=self.profile.user, organization=self.draft_org, role=role
+        )
+        OrganizationMember.objects.create(
+            user=self.profile.user, organization=self.published_org, role=role
+        )
+
+        self.url = reverse(
+            "get-organizations-of-member-api",
+            kwargs={"url_slug": self.profile.url_slug},
+        )
+
+    @tag("organizations", "draft")
+    def test_owner_sees_own_draft_organization(self):
+        self.client.login(username="org_member", password="testpassword")
+        response = self.client.get(self.url)
+        slugs = [r["organization"]["url_slug"] for r in response.json()["results"]]
+        self.assertIn("draft-org", slugs)
+        self.assertIn("published-org", slugs)
+
+    @tag("organizations", "draft")
+    def test_other_viewer_does_not_see_draft_organization(self):
+        self.client.login(username="other_viewer", password="testpassword")
+        response = self.client.get(self.url)
+        slugs = [r["organization"]["url_slug"] for r in response.json()["results"]]
+        self.assertNotIn("draft-org", slugs)
+        self.assertIn("published-org", slugs)
+
+    @tag("organizations", "draft")
+    def test_anonymous_viewer_does_not_see_draft_organization(self):
+        response = self.client.get(self.url)
+        slugs = [r["organization"]["url_slug"] for r in response.json()["results"]]
+        self.assertNotIn("draft-org", slugs)
+        self.assertIn("published-org", slugs)
+
+
 _counter_login = 0
 
 

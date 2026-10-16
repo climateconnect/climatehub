@@ -211,6 +211,9 @@ export default function EditAccountPage({
   type,
   checkTranslationsRef,
   sectorsTitle,
+  secondarySubmitMessage,
+  onSecondarySubmit,
+  loadingSecondarySubmit,
 }: any) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "account", locale: locale });
@@ -820,6 +823,17 @@ export default function EditAccountPage({
                   ref={checkTranslationsRef}
                 >
                   {texts.check_translations}
+                </Button>
+              )}
+              {onSecondarySubmit && !!editedAccount.name?.trim() && (
+                <Button
+                  type="button"
+                  variant="contained"
+                  color="grey"
+                  onClick={() => onSecondarySubmit(editedAccount)}
+                  disabled={loadingSecondarySubmit || loadingSubmit}
+                >
+                  {loadingSecondarySubmit ? <ButtonLoader /> : secondarySubmitMessage}
                 </Button>
               )}
             </div>

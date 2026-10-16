@@ -184,6 +184,7 @@ export type Organization = {
   name: string;
   thumbnail_image: string;
   url_slug: string;
+  is_draft?: boolean;
 };
 
 export type CcLocale = "en" | "de";
