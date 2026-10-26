@@ -8,7 +8,21 @@ import ResponsiveImage, {
   HERO_SOURCES,
   resolveVariantUrl,
 } from "./ResponsiveImage";
+import { getImageUrl } from "../../../public/lib/imageOperations";
 import { ImageVariants } from "../../types";
+
+// getImageUrl's behaviour depends on ENVIRONMENT and API_URL, which come from a
+// gitignored .env locally and are absent in CI — so a test asserting its real
+// output passes on one and fails on the other. Mock it as identity: the URLs
+// below are already absolute, and the one test that cares about the wiring
+// asserts the call instead of the result.
+jest.mock("../../../public/lib/imageOperations", () => ({
+  getImageUrl: jest.fn((url?: string) => url),
+}));
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -161,22 +175,17 @@ describe("resolveVariantUrl", () => {
     expect(resolveVariantUrl(noThumb, CARD_SOURCES, ORIGINAL)).toBe(FULL_VARIANTS.image["600"]);
   });
 
-  it("routes a relative variant path through getImageUrl", () => {
+  it("routes the variant URL through getImageUrl, not just the fallback", () => {
     // Local dev storage returns "/media/..."; without getImageUrl the browser
-    // would resolve that against the frontend origin and 404.
+    // resolves that against the frontend origin (:3000) instead of the backend
+    // and 404s. Azure returns absolute URLs, which getImageUrl passes through.
     const relative: ImageVariants = {
       image: { "1200": "/media/projects/12/a3f9_1200.webp" },
     };
 
-    const resolved = resolveVariantUrl(relative, HERO_SOURCES, ORIGINAL);
+    resolveVariantUrl(relative, HERO_SOURCES, ORIGINAL);
 
-    expect(resolved).toBe(`${process.env.API_URL}/media/projects/12/a3f9_1200.webp`);
-  });
-
-  it("leaves an absolute variant URL untouched", () => {
-    expect(resolveVariantUrl(FULL_VARIANTS, HERO_SOURCES, ORIGINAL)).toBe(
-      FULL_VARIANTS.image["1200"]
-    );
+    expect(getImageUrl).toHaveBeenCalledWith("/media/projects/12/a3f9_1200.webp");
   });
 
   it("picks the banner size matching the viewport", () => {

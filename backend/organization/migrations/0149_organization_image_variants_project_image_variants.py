@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organization", "0147_alter_membershiprequests_options"),
+        ("organization", "0148_merge_20260928_0612"),
     ]
 
     operations = [
