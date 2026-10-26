@@ -32,6 +32,9 @@ export type RegistrationField = {
 
 export type EventRegistrationData = {
   max_participants: number | null;
+  /** Max. seats one registration may book (registrant + guests). Backend default 1. */
+  max_seats_per_registration?: number;
+  /** Seats left: max_participants minus seats booked by active registrations. */
   available_seats: number | null;
   registration_end_date: string | null; // ISO 8601 string from API
   status: "open" | "closed" | "full" | "ended";
@@ -147,6 +150,7 @@ export type Project = {
   // Event registration fields (UI state for the create/edit form)
   registrationEnabled?: boolean;
   max_participants?: number | null;
+  max_seats_per_registration?: number | null;
   registration_end_date?: Dayjs | null;
   notify_admins?: boolean;
   registration_fields?: RegistrationField[];
@@ -170,6 +174,8 @@ export type MyEventRegistration = {
   registered_at: string;
   cancelled_at: string | null;
   cancellation_reason?: string | null;
+  /** Seats booked by this registration (registrant + guests). Backend default 1. */
+  number_of_seats?: number;
   field_answers: RegistrationFieldAnswer[];
 };
 

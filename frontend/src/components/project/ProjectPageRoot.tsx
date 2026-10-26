@@ -209,21 +209,23 @@ export default function ProjectPageRoot({
     setModifyRegistrationModalOpen(true);
   };
   const handleCancelRegistrationSuccess = () => {
+    // Cancelling frees every seat of the registration.
+    const freedSeats = myEventRegistration?.number_of_seats ?? 1;
     setIsUserRegistered(false);
     setModifyRegistrationModalOpen(false);
     setCancelRegistrationModalOpen(false);
     setMyEventRegistration(null);
     setCurrentEventRegistration((prev) =>
       prev && prev.available_seats != null
-        ? { ...prev, available_seats: prev.available_seats + 1 }
+        ? { ...prev, available_seats: prev.available_seats + freedSeats }
         : prev
     );
   };
-  const handleRegistrationSuccess = () => {
+  const handleRegistrationSuccess = (numberOfSeats: number) => {
     setIsUserRegistered(true);
     setCurrentEventRegistration((prev) =>
       prev && prev.available_seats != null
-        ? { ...prev, available_seats: prev.available_seats - 1 }
+        ? { ...prev, available_seats: Math.max(0, prev.available_seats - numberOfSeats) }
         : prev
     );
   };
@@ -858,6 +860,7 @@ export default function ProjectPageRoot({
           registration={myEventRegistration}
           title={texts.registration_answers_modal_title_self as string}
           fields={currentEventRegistration?.fields ?? []}
+          maxSeatsPerRegistration={currentEventRegistration?.max_seats_per_registration}
           event={{
             name: project.name,
             start_date: project.start_date,

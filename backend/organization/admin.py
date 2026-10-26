@@ -284,6 +284,7 @@ class EventRegistrationConfigAdmin(admin.ModelAdmin):
     list_display = (
         "project",
         "max_participants",
+        "max_seats_per_registration",
         "registration_end_date",
         "status",
         "created_at",
@@ -307,6 +308,7 @@ class EventRegistrationAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "get_event_name",
+        "number_of_seats",
         "registered_at",
     )
     list_filter = ("registered_at",)

@@ -30,6 +30,7 @@ const useStyles = makeStyles((theme) => ({
 
 type RegistrationErrors = {
   max_participants?: string;
+  max_seats_per_registration?: string;
   registration_end_date?: string;
 };
 
@@ -56,6 +57,11 @@ export default function EventRegistrationSection({
   const handleMaxParticipantsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === "" ? null : Number(e.target.value);
     handleSetProjectData({ max_participants: value });
+  };
+
+  const handleMaxSeatsPerRegistrationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value === "" ? null : Number(e.target.value);
+    handleSetProjectData({ max_seats_per_registration: value });
   };
 
   const handleRegistrationEndDateChange = (value: Dayjs) => {
@@ -88,6 +94,21 @@ export default function EventRegistrationSection({
             error={!!errors.max_participants}
             helperText={errors.max_participants}
             required
+          />
+        </Box>
+        {/* Wider to fit the long German label "Max. Anzahl Teilnehmende pro Anmeldung". */}
+        <Box sx={{ width: { xs: "100%", md: 320 } }}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            color={backgroundContrastColor}
+            type="number"
+            label={texts.max_seats_per_registration}
+            value={projectData.max_seats_per_registration ?? ""}
+            onChange={handleMaxSeatsPerRegistrationChange}
+            inputProps={{ min: 1, step: 1 }}
+            error={!!errors.max_seats_per_registration}
+            helperText={errors.max_seats_per_registration}
           />
         </Box>
         <Box sx={{ width: { xs: "100%", md: 240 } }}>

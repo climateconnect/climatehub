@@ -155,7 +155,7 @@ describe("EditEventRegistrationModal", () => {
   describe("rendering", () => {
     it("pre-fills max_participants from eventRegistration", () => {
       renderModal({ eventRegistration: makeRegistration({ max_participants: 42 }) });
-      expect(screen.getByRole("spinbutton")).toHaveValue(42);
+      expect(screen.getByRole("spinbutton", { name: /max\. number of guests/i })).toHaveValue(42);
     });
 
     it("shows the switch as ON when status is open", () => {
@@ -228,7 +228,9 @@ describe("EditEventRegistrationModal", () => {
       const checkbox = getStatusSwitch();
       fireEvent.click(checkbox); // → closed
       // Raise max above 30 (current participant count)
-      fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "31" } });
+      fireEvent.change(screen.getByRole("spinbutton", { name: /max\. number of guests/i }), {
+        target: { value: "31" },
+      });
       // Now switching to open should work
       fireEvent.click(checkbox);
       expect(screen.getByText(/registration is open/i)).toBeInTheDocument();
@@ -249,7 +251,9 @@ describe("EditEventRegistrationModal", () => {
 
     it("shows an error when max_participants is less than 1", async () => {
       renderModal();
-      fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "0" } });
+      fireEvent.change(screen.getByRole("spinbutton", { name: /max\. number of guests/i }), {
+        target: { value: "0" },
+      });
       fireEvent.click(screen.getByRole("button", { name: /save/i }));
       await waitFor(() => {
         expect(screen.getByText(/must be greater than 0/i)).toBeInTheDocument();
@@ -328,7 +332,9 @@ describe("EditEventRegistrationModal", () => {
         project: draftProject,
         eventRegistration: makeRegistration({ max_participants: null, is_draft: true }),
       });
-      fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "0" } });
+      fireEvent.change(screen.getByRole("spinbutton", { name: /max\. number of guests/i }), {
+        target: { value: "0" },
+      });
       fireEvent.click(screen.getByRole("button", { name: /publish registration/i }));
       await waitFor(() => {
         expect(screen.getByText(/must be greater than 0/i)).toBeInTheDocument();
@@ -513,6 +519,68 @@ describe("EditEventRegistrationModal", () => {
       );
       // Field is still present in the list
       expect(screen.getByTestId("registration-field-list")).toBeInTheDocument();
+    });
+  });
+
+  // ── Max. seats per registration ───────────────────────────────────────────
+
+  describe("max seats per registration", () => {
+    const seatsInput = () =>
+      screen.getByRole("spinbutton", { name: /max\. seats per registration/i });
+
+    it("pre-fills from eventRegistration", () => {
+      renderModal({ eventRegistration: makeRegistration({ max_seats_per_registration: 4 }) });
+      expect(seatsInput()).toHaveValue(4);
+    });
+
+    it("defaults to 1 for payloads without the field", () => {
+      renderModal();
+      expect(seatsInput()).toHaveValue(1);
+    });
+
+    it("sends max_seats_per_registration in the PATCH payload", async () => {
+      renderModal();
+      fireEvent.change(seatsInput(), { target: { value: "3" } });
+      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      await waitFor(() => expect(mockApiRequest).toHaveBeenCalledTimes(1));
+      expect(mockApiRequest.mock.calls[0][0].payload.max_seats_per_registration).toBe(3);
+    });
+
+    it("omits the field when left empty so the stored value is preserved", async () => {
+      renderModal({ eventRegistration: makeRegistration({ max_seats_per_registration: 4 }) });
+      fireEvent.change(seatsInput(), { target: { value: "" } });
+      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      await waitFor(() => expect(mockApiRequest).toHaveBeenCalledTimes(1));
+      expect(mockApiRequest.mock.calls[0][0].payload).not.toHaveProperty(
+        "max_seats_per_registration"
+      );
+    });
+
+    it.each(["0", "-1", "1.5"])("rejects %s without calling the API", async (value) => {
+      renderModal();
+      fireEvent.change(seatsInput(), { target: { value } });
+      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      await waitFor(() => {
+        expect(
+          screen.getByText("Max. seats per registration must be at least 1")
+        ).toBeInTheDocument();
+      });
+      expect(mockApiRequest).not.toHaveBeenCalled();
+    });
+
+    it("shows a field-level error returned by the API", async () => {
+      mockApiRequest.mockRejectedValueOnce({
+        response: {
+          data: {
+            max_seats_per_registration: ["Ensure this value is greater than or equal to 1."],
+          },
+        },
+      });
+      renderModal();
+      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      await waitFor(() => {
+        expect(screen.getByText(/greater than or equal to 1/i)).toBeInTheDocument();
+      });
     });
   });
 });

@@ -48,6 +48,13 @@ const useStyles = makeStyles((theme) => ({
       width: "100%",
     },
   },
+  // Fits the long German label "Max. Anzahl Teilnehmende pro Anmeldung".
+  wideField: {
+    width: 320,
+    [theme.breakpoints.down("sm")]: {
+      width: "100%",
+    },
+  },
   errorText: {
     color: theme.palette.error.main,
     fontSize: "0.75rem",
@@ -71,6 +78,7 @@ const useStyles = makeStyles((theme) => ({
 
 type FormErrors = {
   max_participants?: string;
+  max_seats_per_registration?: string;
   registration_end_date?: string;
   status?: string;
   general?: string;
@@ -106,6 +114,7 @@ export default function EditEventRegistrationModal({
   const token = new Cookies().get("auth_token");
 
   const [maxParticipants, setMaxParticipants] = useState<string>("");
+  const [maxSeatsPerRegistration, setMaxSeatsPerRegistration] = useState<string>("1");
   const [registrationEndDate, setRegistrationEndDate] = useState<Dayjs | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<"open" | "closed">("open");
   const [notifyAdmins, setNotifyAdmins] = useState<boolean>(true);
@@ -133,6 +142,7 @@ export default function EditEventRegistrationModal({
       setMaxParticipants(
         eventRegistration.max_participants != null ? String(eventRegistration.max_participants) : ""
       );
+      setMaxSeatsPerRegistration(String(eventRegistration.max_seats_per_registration ?? 1));
       setRegistrationEndDate(
         eventRegistration.registration_end_date
           ? dayjs(eventRegistration.registration_end_date)
@@ -150,7 +160,7 @@ export default function EditEventRegistrationModal({
   const isStatusEnded = backendStatus === "ended";
   const isStatusFull = backendStatus === "full";
 
-  // Participant count derived from the backend values (not the form field, which may have changed)
+  // Booked seats derived from the backend values (not the form field, which may have changed)
   const participantCount =
     eventRegistration.max_participants != null && eventRegistration.available_seats != null
       ? eventRegistration.max_participants - eventRegistration.available_seats
@@ -177,6 +187,14 @@ export default function EditEventRegistrationModal({
         : hasParticipants && (isNaN(parsedMax) || parsedMax < 1)
     ) {
       newErrors.max_participants = texts.max_participants_must_be_greater_than_0;
+    }
+
+    // Optional (never required at publish); when given it must be a whole number ≥ 1.
+    if (maxSeatsPerRegistration !== "") {
+      const parsedSeats = Number(maxSeatsPerRegistration);
+      if (!Number.isInteger(parsedSeats) || parsedSeats < 1) {
+        newErrors.max_seats_per_registration = texts.max_seats_per_registration_must_be_at_least_1;
+      }
     }
 
     const hasEndDate = registrationEndDate !== null;
@@ -271,6 +289,10 @@ export default function EditEventRegistrationModal({
     if (maxParticipants !== "") {
       payload.max_participants = parseInt(maxParticipants, 10);
     }
+    // Left empty → not sent, so the stored value is preserved.
+    if (maxSeatsPerRegistration !== "") {
+      payload.max_seats_per_registration = Number(maxSeatsPerRegistration);
+    }
     if (registrationEndDate !== null) {
       payload.registration_end_date = registrationEndDate.toISOString();
     }
@@ -314,6 +336,11 @@ export default function EditEventRegistrationModal({
           apiErrors.max_participants = Array.isArray(data.max_participants)
             ? data.max_participants[0]
             : data.max_participants;
+        }
+        if (data.max_seats_per_registration) {
+          apiErrors.max_seats_per_registration = Array.isArray(data.max_seats_per_registration)
+            ? data.max_seats_per_registration[0]
+            : data.max_seats_per_registration;
         }
         if (data.registration_end_date) {
           apiErrors.registration_end_date = Array.isArray(data.registration_end_date)
@@ -403,6 +430,20 @@ export default function EditEventRegistrationModal({
                 helperText={errors.max_participants}
                 required
                 aria-label={texts.max_participants}
+              />
+            </Box>
+            <Box className={classes.wideField}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                type="number"
+                label={texts.max_seats_per_registration}
+                value={maxSeatsPerRegistration}
+                onChange={(e) => setMaxSeatsPerRegistration(e.target.value)}
+                inputProps={{ min: 1, step: 1 }}
+                error={!!errors.max_seats_per_registration}
+                helperText={errors.max_seats_per_registration}
+                aria-label={texts.max_seats_per_registration}
               />
             </Box>
             <Box className={classes.field}>

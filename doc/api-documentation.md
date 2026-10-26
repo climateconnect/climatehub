@@ -381,7 +381,7 @@ curl -X POST http://localhost:8000/api/auth/verify-token \
 | `/api/projects/{slug}/` | GET | No | Get project details |
 | `/api/projects/{slug}/` | PATCH | Yes | Update a project |
 | `/api/projects/{slug}/members/` | GET | No | List project members |
-| `/api/projects/{slug}/registrations/` | POST | Yes | Register authenticated user for event |
+| `/api/projects/{slug}/registrations/` | POST | Yes | Register authenticated user for event (books 1..N seats) |
 | `/api/projects/{slug}/registration-config/` | PATCH | Yes | Update event registration settings (organiser only) |
 | `/api/projects/{slug}/registrations/` | GET | Yes | List all registrations for an event (organiser/admin only) |
 | `/api/projects/{slug}/registrations/` | DELETE | Yes | Cancel own registration (member self-cancellation) |
@@ -440,6 +440,7 @@ Event-type projects expose an optional nested `registration_config` object on al
 {
   "registration_config": {
     "max_participants": 100,
+    "max_seats_per_registration": 2,
     "registration_end_date": "2026-06-01T23:59:00Z",
     "status": "open",
     "available_seats": 42,
@@ -505,13 +506,14 @@ Event-type projects expose an optional nested `registration_config` object on al
   }
 }
 ```
-`available_seats` is `null` when `max_participants` is `null` (unlimited capacity). `fields` is only present in the detail response (not in list responses). `remaining_amount` is computed as `available_amount - booked_count` and only present for inventory options.
+`max_seats_per_registration` (default 1) caps how many seats one registration may book. `available_seats` (seats left) is `max_participants` minus the sum of `number_of_seats` over active registrations, and is `null` when `max_participants` is `null` (unlimited capacity). `fields` is only present in the detail response (not in list responses). `remaining_amount` is computed as `available_amount - booked_count` and only present for inventory options.
 
 **Response shape — list** (`GET /api/projects/`):
 ```json
 {
   "registration_config": {
     "max_participants": 100,
+    "max_seats_per_registration": 2,
     "registration_end_date": "2026-06-01T23:59:00Z",
     "status": "open",
     "available_seats": null,
@@ -519,7 +521,7 @@ Event-type projects expose an optional nested `registration_config` object on al
   }
 }
 ```
-`available_seats` is always `null` in list responses to avoid a `COUNT(*)` query per row. `fields` is omitted from list responses.
+`available_seats` is always `null` in list responses to avoid a per-row capacity aggregation. `fields` is omitted from list responses.
 
 Returns `null` when registration is not enabled.
 
@@ -528,6 +530,7 @@ Returns `null` when registration is not enabled.
 {
   "registration_config": {
     "max_participants": 100,
+    "max_seats_per_registration": 2,
     "registration_end_date": "2026-06-01T23:59:00Z",
     "status": "closed"
   }
@@ -540,6 +543,7 @@ Omitting the `registration_config` key entirely on `PATCH` leaves existing setti
 |---|---|
 | Only allowed for `project_type = event` | Always |
 | `max_participants` must be > 0 | Always (when value is provided) |
+| `max_seats_per_registration` must be ≥ 1 when provided (default 1) | Always (optional) |
 | `registration_end_date` must be ≤ event `end_date` | Always (when both are present) |
 | Both fields are required | On publish (`is_draft=false`) only |
 | Both fields are optional / nullable | When saving as draft (`is_draft=true`) |
@@ -563,7 +567,7 @@ Effective "accepting signups?" check: `status == "open" AND now() < registration
 
 #### POST `/api/projects/{slug}/registrations/` — Register for an event
 
-Registers the authenticated user as a participant for an event that has `EventRegistrationConfig` enabled. Optionally includes answers to custom registration fields.
+Registers the authenticated user as a participant for an event that has `EventRegistrationConfig` enabled. The registration books 1..N seats (`number_of_seats`, default 1 = the registrant alone; the rest are their guests). Optionally includes answers to custom registration fields — filled once for the whole party.
 
 **Authentication**: Required (401 if unauthenticated)
 
@@ -572,6 +576,7 @@ Registers the authenticated user as a participant for an event that has `EventRe
 **Request body** (all fields optional):
 ```json
 {
+  "number_of_seats": 2,
   "answers": [
     { "field": 1, "value_boolean": true },
     { "field": 2, "value_option": 11 },
@@ -588,7 +593,7 @@ Registers the authenticated user as a participant for an event that has `EventRe
 | `value_option` | integer | `option_select`, `inventory`, `time_slot_select` | The `id` of the selected `RegistrationFieldOption` |
 | `value_number` | integer | `inventory` | Quantity; must be ≥ 1 and ≤ `max_amount_per_guest` for the selected option |
 
-**Validation**: per-field type validation (checkbox requires `value_boolean`, option_select/time_slot_select require `value_option`, inventory requires `value_option` + `value_number`). Required fields are enforced. Inventory quantity must not exceed `max_amount_per_guest` or `remaining_amount`. Previous answers are replaced atomically on re-registration.
+**Validation**: per-field type validation (checkbox requires `value_boolean`, option_select/time_slot_select require `value_option`, inventory requires `value_option` + `value_number`). Required fields are enforced. Inventory quantity must not exceed `max_amount_per_guest` or `remaining_amount`. Previous answers are replaced atomically on re-registration. Seat rules: `number_of_seats` must be ≥ 1, within the event's `max_seats_per_registration`, and within the seats left at submit time — otherwise the request is refused with 400 naming how many seats are left, and nothing is saved. A time slot is taken once per registration whatever the seat count; inventory limits apply per registration.
 
 **Success responses**:
 | Status | Condition |
@@ -603,9 +608,17 @@ Registers the authenticated user as a participant for an event that has `EventRe
 | 400 Bad Request | `registration_end_date` has passed |
 | 400 Bad Request | Project has no `EventRegistrationConfig` record |
 | 400 Bad Request | Custom field validation failed (missing required field, invalid option, quantity exceeded) |
+| 400 Bad Request | `number_of_seats` exceeds the per-registration maximum or the remaining seats (message names how many seats are left); nothing is saved |
 | 401 Unauthorized | Request is not authenticated |
 | 403 Forbidden | Registration was cancelled by an admin — member may not self-re-register |
 | 404 Not Found | `{slug}` does not match any project |
+
+Seat refusal bodies (machine-readable count alongside the English `message`, so clients can localise):
+```json
+{ "message": "Only 2 seats left for this event.", "available_seats": 2 }
+{ "message": "You can book at most 3 seats per registration.", "max_seats_per_registration": 3 }
+```
+An invalid value (`0`, negative, non-integer) returns the standard field error `{"number_of_seats": ["..."]}`.
 
 **Response body** (both 200 and 201):
 ```json
@@ -614,9 +627,9 @@ Registers the authenticated user as a participant for an event that has `EventRe
   "available_seats": 41
 }
 ```
-`available_seats` is `null` for unlimited-capacity events (`max_participants = null`). Only active (non-cancelled) registrations count against capacity.
+`available_seats` is `null` for unlimited-capacity events (`max_participants = null`). Only active (non-cancelled) registrations count against capacity, each weighted by its `number_of_seats`.
 
-**Race-condition safety**: The `EventRegistrationConfig` row is locked with `SELECT FOR UPDATE` inside `@transaction.atomic`. Concurrent last-seat registrations are serialised — at most `max_participants` `EventRegistration` rows are ever active at the same time.
+**Race-condition safety**: The `EventRegistrationConfig` row is locked with `SELECT FOR UPDATE` inside `@transaction.atomic`. Concurrent last-seat registrations are serialised — the booked seats (sum of `number_of_seats` over active registrations) never exceed `max_participants`, whatever the seat count per registration.
 
 **FULL promotion**: When a registration fills the last seat, `EventRegistrationConfig.status` is atomically updated to `"full"` in the same transaction, so subsequent registrations are rejected immediately (no extra COUNT query needed on the hot path).
 
@@ -624,7 +637,7 @@ Registers the authenticated user as a participant for an event that has `EventRe
 
 #### DELETE `/api/projects/{slug}/registrations/` — Cancel own registration (issue #1850)
 
-Allows the authenticated member to cancel their own registration for an upcoming event. This is a **soft delete** — the `EventRegistration` row is kept and `cancelled_at` / `cancelled_by` are set. The member may re-register later (unless an admin cancels their re-registration).
+Allows the authenticated member to cancel their own registration for an upcoming event. This is a **soft delete** — the `EventRegistration` row is kept and `cancelled_at` / `cancelled_by` are set; the row keeps its `number_of_seats` for display while all its seats are freed for capacity. The member may re-register later (unless an admin cancels their re-registration).
 
 **Authentication**: Required (401 if unauthenticated).
 
@@ -685,7 +698,8 @@ Allows an event organiser (or team admin) to update `max_participants`, `registr
 **Editable fields**:
 | Field | Type | Notes |
 |---|---|---|
-| `max_participants` | Positive integer or `null` | Must be ≥ 1 and ≥ current participant count; `null` = unlimited |
+| `max_participants` | Positive integer or `null` | Must be ≥ 1 and ≥ current booked seats (sum of `number_of_seats` over active registrations); `null` = unlimited |
+| `max_seats_per_registration` | Positive integer | Optional, ≥ 1 (default 1). Omitted → stored value kept. Lowering it never changes existing registrations |
 | `registration_end_date` | ISO 8601 datetime | Must be > `now()` and ≤ event `end_date` |
 | `status` | `"open"` or `"closed"` | Organiser may manually open or close registration; `"full"` and `"ended"` are system-managed and are rejected with 400 |
 | `notify_admins` | boolean | Whether team admins receive notification emails on registration changes |
@@ -808,6 +822,7 @@ Intended for organisers / team admins to review their guest list and manage canc
     "user_last_name": "Smith",
     "user_url_slug": "alice-smith",
     "user_thumbnail_image": "https://.../thumb_alice.jpg",
+    "number_of_seats": 2,
     "registered_at": "2026-05-10T14:23:00Z",
     "cancelled_at": null,
     "field_answers": [
@@ -823,6 +838,7 @@ Intended for organisers / team admins to review their guest list and manage canc
     "user_last_name": "Jones",
     "user_url_slug": "bob-jones",
     "user_thumbnail_image": null,
+    "number_of_seats": 1,
     "registered_at": "2026-05-11T09:00:00Z",
     "cancelled_at": "2026-05-15T10:30:00Z",
     "field_answers": []
@@ -832,6 +848,7 @@ Intended for organisers / team admins to review their guest list and manage canc
 - `id` — the `EventRegistration` primary key, used for admin-cancellation (`PATCH /registrations/{id}/`).
 - `cancelled_at` — `null` for active registrations; ISO 8601 timestamp for cancelled ones.
 - `user_thumbnail_image` is `null` when the participant has no profile image.
+- `number_of_seats` — seats booked by this registration (kept on cancelled rows for display; counts toward capacity only while active).
 - `field_answers` — array of custom field responses, sorted by field order. Each entry contains `field` (field ID), `value_boolean`, `value_option` (option ID), and `value_number`. Only the value relevant to the field type is non-null.
 
 **Error responses**:

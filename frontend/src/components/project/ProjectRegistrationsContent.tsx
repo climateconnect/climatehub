@@ -41,6 +41,7 @@ import { apiRequest, getLocalePrefix } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import { EventRegistrationData, Project, RegistrationFieldAnswer } from "../../types";
 import { resolveAnswerToStrings } from "../../utils/resolveRegistrationFieldAnswer";
+import { sumActiveSeats } from "../../utils/eventRegistrationHelpers";
 import UserContext from "../context/UserContext";
 import CancelGuestRegistrationModal, { RegistrationInfo } from "./CancelGuestRegistrationModal";
 import EditEventRegistrationModal from "./EditEventRegistrationModal";
@@ -58,6 +59,8 @@ type EventRegistration = {
   /** null = active registration; ISO string = cancelled */
   cancelled_at: string | null;
   cancellation_reason: string | null;
+  /** Seats booked (registrant + guests); kept on cancelled rows. */
+  number_of_seats: number;
   /** Custom-field answers (Phase 4a). Empty array if none. */
   field_answers: RegistrationFieldAnswer[];
 };
@@ -163,6 +166,8 @@ type FooterProps = {
   total: number;
   active: number;
   cancelled: number;
+  /** Seats booked by active registrations; only shown when set. */
+  seatsBookedLabel?: string;
   guestsLabel: string;
   activeLabel: string;
   cancelledLabel: string;
@@ -172,6 +177,7 @@ function RegistrationsFooter({
   total,
   active,
   cancelled,
+  seatsBookedLabel,
   guestsLabel,
   activeLabel,
   cancelledLabel,
@@ -194,6 +200,15 @@ function RegistrationsFooter({
             size="small"
             label={`${cancelled} ${cancelledLabel}`}
             color="default"
+            variant="outlined"
+            sx={{ height: 20, fontSize: "0.7rem" }}
+          />
+        )}
+        {seatsBookedLabel && (
+          <Chip
+            size="small"
+            label={seatsBookedLabel}
+            color="primary"
             variant="outlined"
             sx={{ height: 20, fontSize: "0.7rem" }}
           />
@@ -243,8 +258,9 @@ export default function ProjectRegistrationsContent({
             ...p,
             // Fall back to index if backend id is missing (defensive)
             id: p.id ?? idx,
-            // Tolerate older payloads that don't include answers.
+            // Tolerate older payloads that don't include answers or seats.
             field_answers: p.field_answers ?? [],
+            number_of_seats: p.number_of_seats ?? 1,
           })
         );
         setParticipants(rows);
@@ -262,6 +278,8 @@ export default function ProjectRegistrationsContent({
   /** Called by CancelGuestRegistrationModal after a successful 204. */
   const handleCancelled = (registrationId: number) => {
     const cancelledAt = new Date().toISOString();
+    // Cancelling frees every seat of the registration.
+    const freedSeats = participants.find((row) => row.id === registrationId)?.number_of_seats ?? 1;
 
     setParticipants((prev) =>
       prev.map((row) => (row.id === registrationId ? { ...row, cancelled_at: cancelledAt } : row))
@@ -269,7 +287,7 @@ export default function ProjectRegistrationsContent({
 
     // Optimistically update available_seats and revert FULL → OPEN in the parent
     if (eventRegistration) {
-      const newAvailableSeats = (eventRegistration.available_seats ?? 0) + 1;
+      const newAvailableSeats = (eventRegistration.available_seats ?? 0) + freedSeats;
       const newStatus = eventRegistration.status === "full" ? "open" : eventRegistration.status;
       onEventRegistrationUpdated({
         ...eventRegistration,
@@ -395,6 +413,12 @@ export default function ProjectRegistrationsContent({
     }
   }
 
+  // Seat counts only matter once the organiser allows guests (or a registration
+  // still holds several seats from an earlier, higher setting).
+  const maxSeatsPerRegistration = eventRegistration.max_seats_per_registration ?? 1;
+  const showSeats = maxSeatsPerRegistration > 1 || participants.some((p) => p.number_of_seats > 1);
+  const activeSeats = sumActiveSeats(participants);
+
   return (
     <>
       {/* Registration settings summary */}
@@ -404,6 +428,13 @@ export default function ProjectRegistrationsContent({
           <Typography className={classes.settingValue}>
             {eventRegistration.max_participants ?? "—"}
           </Typography>
+        </Box>
+
+        <Box className={classes.settingItem}>
+          <Typography className={classes.settingLabel}>
+            {texts.max_seats_per_registration}
+          </Typography>
+          <Typography className={classes.settingValue}>{maxSeatsPerRegistration}</Typography>
         </Box>
 
         <Box className={classes.settingItem}>
@@ -527,6 +558,20 @@ export default function ProjectRegistrationsContent({
                       >
                         {params.value}
                       </Link>
+                    ),
+                  },
+                  {
+                    field: "number_of_seats",
+                    headerName: texts.seats_column as string,
+                    type: "number",
+                    width: 90,
+                    renderCell: (params) => (
+                      <Typography
+                        variant="body2"
+                        sx={{ color: params.row.cancelled_at ? "text.disabled" : undefined }}
+                      >
+                        {params.value}
+                      </Typography>
                     ),
                   },
                   {
@@ -657,6 +702,7 @@ export default function ProjectRegistrationsContent({
               initialState={{
                 columns: {
                   columnVisibilityModel: {
+                    number_of_seats: showSeats,
                     registered_at_iso: false,
                     cancelled_at_iso: false,
                     cancellation_reason: false,
@@ -691,18 +737,30 @@ export default function ProjectRegistrationsContent({
                   csvFields: [
                     "user_first_name",
                     "user_last_name",
+                    "number_of_seats",
                     "registered_at_iso",
                     "cancelled_at",
                     "cancelled_at_iso",
                     "cancellation_reason",
                     ...customFieldColumnNames,
                   ],
-                  printFields: ["user_first_name", "user_last_name", ...customFieldColumnNames],
+                  printFields: [
+                    "user_first_name",
+                    "user_last_name",
+                    "number_of_seats",
+                    ...customFieldColumnNames,
+                  ],
                 } as ToolbarProps,
                 footer: {
                   total: participants.length,
                   active: participants.filter((p) => !p.cancelled_at).length,
                   cancelled: participants.filter((p) => !!p.cancelled_at).length,
+                  seatsBookedLabel: showSeats
+                    ? (activeSeats === 1
+                        ? texts.seats_booked_one
+                        : texts.seats_booked_other
+                      ).replace("{count}", String(activeSeats))
+                    : undefined,
                   guestsLabel: texts.registered_guests as string,
                   activeLabel: texts.registration_status_active as string,
                   cancelledLabel: texts.registration_status_cancelled as string,
@@ -777,6 +835,7 @@ export default function ProjectRegistrationsContent({
             : ""
         )}
         fields={eventRegistration.fields ?? []}
+        maxSeatsPerRegistration={eventRegistration.max_seats_per_registration}
         event={{
           name: project.name,
           start_date: project.start_date,
