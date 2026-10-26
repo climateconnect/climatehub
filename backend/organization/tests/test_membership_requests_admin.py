@@ -85,6 +85,14 @@ class TestMembershipRequestsAdminChangelist(MembershipRequestsAdminBase):
             f"Membership request by {self.requester.username} to join {self.project.name}",
         )
 
+    def test_change_page_renders_with_decided_by(self):
+        request = self._create_request(
+            status=RequestStatus.APPROVED, decided_by=self.admin_user
+        )
+        url = reverse("admin:organization_membershiprequests_change", args=[request.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertEqual(self._changelist().status_code, 200)
+
     def test_changelist_shows_requested_columns(self):
         self._create_request(target=MembershipTarget.PROJECT)
         response = self._changelist()
