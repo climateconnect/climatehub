@@ -172,7 +172,9 @@ describe("resolveVariantUrl", () => {
 
   it("falls back to the 600px image for cards on rows with no thumbnail", () => {
     const noThumb: ImageVariants = { image: FULL_VARIANTS.image };
-    expect(resolveVariantUrl(noThumb, THUMBNAIL_SOURCES, ORIGINAL)).toBe(FULL_VARIANTS.image["600"]);
+    expect(resolveVariantUrl(noThumb, THUMBNAIL_SOURCES, ORIGINAL)).toBe(
+      FULL_VARIANTS.image["600"]
+    );
   });
 
   it("routes the variant URL through getImageUrl, not just the fallback", () => {
