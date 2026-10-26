@@ -38,6 +38,10 @@ The backend has no connection management beyond Django's defaults, worker concur
   - default 2 (concurrency = CPU count; 2 pool children confirmed on production 2026-10-26)
   - masters 0–2
 - `active_connections` on 2026-10-25/26: typically 12–26, one spike to **79 at 08:05 UTC** (DB CPU ~61 %) that no beat schedule explains; 0 failed connections. The server-wide limit was not reached.
+- Process memory on the production slot (`ps` RSS, 2026-10-26; RSS counts memory shared after the `--preload` fork once per process, so the sum overstates the real total):
+  - gunicorn master 149 MB; the 4 workers 384, 400, 434 and 508 MB (about 1.9 GB in total)
+  - Celery, all 9 processes: 99–177 MB each (about 1.3 GB in total)
+  - The workers start near the master's size, mostly shared memory, and grow with the requests they serve.
 
 ## Candidates
 
@@ -56,6 +60,13 @@ Each candidate is independent. Pick them up as separate tasks when needed.
 | F9 | **Locked DB beat scheduler** | A second beat (misconfigured `RUN_CELERY`, swap overlap, container cutover) fires everything twice | `django_celery_beat` is installed but unused; a DB scheduler plus a single-beat lock gives protection in code |
 | F10 | **Re-enable the paused reminder emails** | `schedule_automated_reminder_for_user_notifications` returns early, so users get no reminders | Precondition: #2352 shipped and its AC-7 verified. Consider F7-style throttling for its fan-out. |
 | F11 | **Verify the lost event registration emails** | Hypothesis: task stealing by slot2 running other code | Check worker logs / Sentry for the affected tasks. Also consider retry/alerting for failed email tasks, and late acknowledgement: with the default early ack, in-flight tasks are lost on every restart. |
+| F12 | **Gunicorn worker memory** | Production workers grow to 400–500 MB each (see Baseline) and are only replaced on a restart | 1) Measure the real, unshared memory per process (PSS; command below). 2) Recycle workers with `--max-requests 1000 --max-requests-jitter 100` in both startup scripts. 3) Only if a running slot2's workers turn out to grow: a separate sticky worker-count setting for slot2. Deliberately left out of #2352, which only changes Celery. |
+
+F12, PSS per Celery and gunicorn process (read-only, in the slot's SSH shell):
+
+```sh
+for p in $(pgrep -f 'gunicorn|celery'); do printf '%s ' "$p"; awk '/^Pss:/{printf "%d MB\n", $2/1024}' /proc/$p/smaps_rollup; done
+```
 
 ## Acceptance criteria (for this backlog doc)
 
@@ -71,3 +82,4 @@ Each candidate is independent. Pick them up as separate tasks when needed.
 ## Log
 
 - 2026-10-26: Created from the #2352 decisions. Candidates F1–F11 recorded; none scheduled. The detailed DB baseline was moved here from the #2352 spec, and the late-ack note was added to F11.
+- 2026-10-26: F12 (gunicorn worker memory) added, with the production memory baseline. Kept out of #2352 at the user's request: one change at a time.

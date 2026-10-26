@@ -10,6 +10,11 @@ set -u
 
 die() { echo "FATAL(start_backend): $*" >&2; exit 1; }
 
+# Decide up front whether this slot runs Celery (RUN_CELERY, issue #2352), so the
+# "RUN_CELERY: celery=..." line is in the log before the slow installs below.
+[ -r backend/run_celery.sh ] || die "backend/run_celery.sh not found (cwd=$(pwd))"
+. ./backend/run_celery.sh
+
 # ---------------------------------------------------------------------------
 # System (spatial) dependencies
 #
@@ -113,13 +118,21 @@ python -c "from django.contrib.gis.gdal.libgdal import GDAL_VERSION; print('GDAL
 
 # Start server
 gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 4 -k uvicorn.workers.UvicornWorker &
+GUNICORN_PID=$!
 
-# Worker for the `lookup` queue. CELERY_TASK_ROUTES routes
-# location.tasks.fetch_autocomplete there, so without this worker nothing
-# consumes location autocomplete jobs and every lookup falls back to the
-# slow inline path in LocationAutocompleteView.
-celery -A climateconnect_main worker -Q lookup -c 4 -l INFO &
+if [ "$RUN_CELERY_ENABLED" = 1 ]; then
+  # Worker for the `lookup` queue. CELERY_TASK_ROUTES routes
+  # location.tasks.fetch_autocomplete there, so without this worker nothing
+  # consumes location autocomplete jobs and every lookup falls back to the
+  # slow inline path in LocationAutocompleteView.
+  celery -A climateconnect_main worker -Q lookup -c 4 -l INFO &
 
-# Default worker (+ embedded beat). Stays in the foreground so the container
-# lives and dies with it, as before.
-celery -A climateconnect_main worker -B -l INFO
+  # Default worker (+ embedded beat). Stays in the foreground so the container
+  # lives and dies with it, as before.
+  celery -A climateconnect_main worker -B -l INFO
+else
+  # RUN_CELERY=false (slot2): no Celery worker and no beat, because the broker
+  # and the DB are shared with production. The container lives and dies with
+  # the web server instead.
+  wait "$GUNICORN_PID"
+fi

@@ -222,7 +222,7 @@ Frontend configuration that is embedded at build time today (including secrets) 
 **1. `RUN_CELERY` parity (required, part of #2352, AC-9 there)**
 - `docker/backend-entrypoint.sh` honours `RUN_CELERY` with the semantics of #2352:
   - `true`: the full process set.
-  - `false`: the web server with 1 worker as the main process; no Celery worker and no beat.
+  - `false`: the web server (unchanged, 4 workers) as the main process; no Celery worker and no beat.
   - values are case-insensitive and trimmed (`False` = `false`).
   - **missing, or an unknown value: run Celery.** An unknown value also logs a warning.
   - It prints the same `RUN_CELERY: celery=...` startup line ("Startup log line" in the #2352 spec).
