@@ -134,23 +134,20 @@ function RegistrationsToolbar({
 }: ToolbarProps) {
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   return (
-    // Desktop: one row. Mobile: search + email on the first row, export on the second
+    // Desktop: one row. Mobile: full-width search, then email + export together in one row
     <GridToolbarContainer
       sx={{
         display: "flex",
-        // Mobile: stretch so search and email button share the same height, even if the label wraps
-        alignItems: { xs: "stretch", sm: "center" },
+        alignItems: "center",
         flexWrap: { xs: "wrap", sm: "nowrap" },
         gap: 1,
-        // No side padding on mobile to leave room for the email button label
         px: { xs: 0, sm: 1 },
         py: 1,
       }}
     >
       <TextField
         size="small"
-        // Mobile shows only the search icon; the input keeps its accessible name via aria-label
-        placeholder={isNarrowScreen ? undefined : placeholder}
+        placeholder={placeholder}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         InputProps={{
@@ -161,26 +158,16 @@ function RegistrationsToolbar({
           ),
         }}
         inputProps={{ "aria-label": placeholder }}
-        sx={
-          isNarrowScreen
-            ? {
-                // Mobile: collapse to the search icon so the email button gets the space;
-                // expand while typing or when a search is active
-                flex: "0 0 auto",
-                width: search ? 140 : 48,
-                transition: "width 150ms ease-in-out",
-                "&:focus-within": { width: 140 },
-                "& .MuiInputBase-root": { pl: 1.5, height: "100%" },
-                "& .MuiInputBase-input": { pr: 1 },
-              }
-            : { flex: 1, maxWidth: 360 }
-        }
+        sx={{
+          flex: { xs: "1 0 100%", sm: 1 },
+          maxWidth: { sm: 360 },
+          "& .MuiInputBase-root": { minHeight: (theme: Theme) => theme.spacing(5) },
+        }}
       />
-      {/* Spacer only on wider screens; on mobile the field takes the free space */}
+      {/* Spacer only on wider screens */}
       <Box sx={{ flex: 1, display: { xs: "none", sm: "block" } }} />
       {onOpenEmailModal && (
         <Button
-          // Same size as the "Edit registration settings" button on larger screens
           size={isNarrowScreen ? "small" : "medium"}
           variant="outlined"
           startIcon={
@@ -188,19 +175,17 @@ function RegistrationsToolbar({
           }
           onClick={onOpenEmailModal}
           aria-label={emailGuestsLabel}
-          // Mobile: button takes the free space next to the search icon. To keep the long
-          // (German) label on one line: no uppercase, font scales with viewport, tight icon gap.
+          // Mobile: keep the (long German) label on one line; it gets the free space next to export
           sx={{
-            // flex-basis 0 keeps the button on the search row instead of wrapping
-            flex: { xs: "1 1 0", sm: "0 0 auto" },
+            // Natural width; only shrinks when the row is too narrow
+            flex: "0 1 auto",
             minWidth: 0,
             whiteSpace: "nowrap",
-            // Match the small TextField height (40px)
-            minHeight: { xs: 40, sm: undefined },
-            px: { xs: 1, sm: undefined },
-            fontSize: { xs: "min(0.875rem, 3.3vw)", sm: undefined },
+            fontSize: { xs: "0.8125rem", sm: undefined },
             textTransform: { xs: "none", sm: undefined },
-            letterSpacing: { xs: 0, sm: undefined },
+            // Same height as the search field, taken from the theme
+            minHeight: (theme: Theme) => (isNarrowScreen ? theme.spacing(5) : undefined),
+            px: { xs: 1, sm: undefined },
             "& .MuiButton-startIcon": {
               ml: { xs: 0, sm: undefined },
               mr: { xs: 0.5, sm: undefined },
@@ -210,8 +195,7 @@ function RegistrationsToolbar({
           {emailGuestsLabel}
         </Button>
       )}
-      {/* Full-width wrapper on mobile puts export on its own row */}
-      <Box sx={{ flex: { xs: "1 0 100%", sm: "0 0 auto" } }}>
+      <Box sx={{ flex: "0 0 auto", display: "flex" }}>
         <GridToolbarExport
           csvOptions={{ fileName: csvFileName, fields: csvFields }}
           printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
