@@ -141,6 +141,12 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/waerme",
+        destination:
+          "https://climatehub.org/de/projects/warmepumpen-in-mehrfamilienhausern-besichtigen?hub=em",
+        permanent: true,
+      },
+      {
         source: "/hubs/prio1",
         destination: "/hubs/prio1/browse",
         permanent: false,
