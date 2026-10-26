@@ -5,7 +5,7 @@ import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
-import { getImageUrl } from "./../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 
 const useStyles = makeStyles<Theme, { showBorder: boolean }>((theme) => ({
   orgName: {
@@ -111,7 +111,11 @@ function Content({ organization, size, onDelete, doNotShowName, inline }) {
   const classes = useStyles({ showBorder: doNotShowName });
   const avatarProps = {
     alt: texts.organizations_logo,
-    src: getImageUrl(organization.thumbnail_image),
+    src: resolveVariantUrl(
+      organization.image_variants,
+      THUMBNAIL_SOURCES,
+      organization.thumbnail_image
+    ),
     className: `${(size === "tiny" || size === "small") && classes.smallAvatar} ${
       size === "medium" && classes.mediumAvatar
     }`,

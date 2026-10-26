@@ -22,6 +22,7 @@ import FollowersDialog from "../dialogs/FollowersDialog";
 import {
   BACKGROUND_SOURCES,
   BACKGROUND_SOURCES_SMALL,
+  THUMBNAIL_SOURCES,
   resolveVariantUrl,
 } from "../general/ResponsiveImage";
 import { useLongPress } from "use-long-press";
@@ -482,6 +483,14 @@ export default function AccountPage({
       )
     : default_background;
 
+  // The avatar renders at ~142px, but `account.image` is the uploader's
+  // full-size crop — commonly well over 1000px. Prefer the thumbnail's WebP.
+  const avatarUrl = resolveVariantUrl(
+    account.image_variants,
+    THUMBNAIL_SOURCES,
+    account.thumbnail_image || account.image
+  );
+
   return (
     <Container maxWidth="lg" className={classes.noPadding}>
       <div
@@ -520,10 +529,10 @@ export default function AccountPage({
           <div className={classes.avatarContainer}>
             {account.badges?.length > 0 ? (
               <ProfileBadge badge={account.badges[0]}>
-                <UserAvatar mode={"read"} imageUrl={account.image} alternativeText={account.name} />
+                <UserAvatar mode={"read"} imageUrl={avatarUrl} alternativeText={account.name} />
               </ProfileBadge>
             ) : (
-              <UserAvatar mode={"read"} imageUrl={account.image} alternativeText={account.name} />
+              <UserAvatar mode={"read"} imageUrl={avatarUrl} alternativeText={account.name} />
             )}
           </div>
           <Typography variant="h5" className={classes.name}>

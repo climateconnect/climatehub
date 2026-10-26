@@ -288,6 +288,14 @@ def generate_and_store_variants(instance, field_names=None):
 
         field_file = getattr(instance, field_name)
         if not field_file:
+            # The field was cleared. cleanup_orphaned_variants already deleted
+            # the files and popped the entry, but that pop is only persisted if
+            # the save wrote image_variants — a save(update_fields=["image"])
+            # would drop it, leaving the API serving URLs for deleted files.
+            # The task re-reads from the database, so make it authoritative.
+            if instance.image_variants.get(field_name):
+                instance.image_variants.pop(field_name, None)
+                changed = True
             continue
 
         widths = config[field_name]["widths"]

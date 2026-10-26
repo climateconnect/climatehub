@@ -43,14 +43,17 @@ export const BACKGROUND_SOURCES_SMALL: VariantSource[] = [
 ];
 
 /**
- * Card/preview surfaces are fed `thumbnail_image` by the listing serializers
- * (see `get_image` in `organization/serializers/project.py`), so the
- * format-only thumbnail WebP is the right variant — the 600px variant of the
- * full image would be a *bigger* download than today's 290x160 thumbnail. The
- * `image` entry is the fallback for rows that have no thumbnail, where the
- * serializer falls back to the full image too.
+ * Any surface small enough to be served by the thumbnail: project/organization
+ * cards, and the avatars on organization and profile detail pages.
+ *
+ * Both want the format-only thumbnail WebP. For cards the 600px variant of the
+ * full image would be a *larger* download than the 290x160 thumbnail they are
+ * already fed; for detail-page avatars the `image` field holds the uploader's
+ * full-size crop (1859px for a 142px slot is typical), so the thumbnail has to
+ * be asked for explicitly. The `image` entry is the fallback for rows with no
+ * thumbnail.
  */
-export const CARD_SOURCES: VariantSource[] = [
+export const THUMBNAIL_SOURCES: VariantSource[] = [
   { field: "thumbnail_image", key: "webp" },
   { field: "image", key: "600" },
 ];
@@ -120,9 +123,9 @@ export interface ResponsiveImageProps {
  * a plain `<img>` with the original URL when they do not — so legacy rows that
  * were never backfilled keep working.
  *
- * Use it for the large image surfaces (project detail hero, headers). Small
- * avatar renders stay on `getImageUrl()`, where a variant would not pay for
- * itself.
+ * Use it for the large image surfaces (project detail hero, headers). Surfaces
+ * that want a single URL rather than a `<picture>` — CSS backgrounds, CardMedia,
+ * avatars — use {@link resolveVariantUrl} directly.
  */
 export default function ResponsiveImage({
   src,

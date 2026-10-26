@@ -2,7 +2,7 @@ import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
-import { CARD_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import getTexts from "../../../public/texts/texts";
 import { getProjectTypes } from "../../../public/data/projectTypes";
 import UserContext from "../context/UserContext";
@@ -143,7 +143,7 @@ export default function ProjectPreview({
     ? `/editProject/${project.url_slug}`
     : `/projects/${project.url_slug}`;
 
-  const cardImageUrl = resolveVariantUrl(project.image_variants, CARD_SOURCES, project.image);
+  const cardImageUrl = resolveVariantUrl(project.image_variants, THUMBNAIL_SOURCES, project.image);
 
   return (
     <AppLink

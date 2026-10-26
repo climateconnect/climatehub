@@ -32,12 +32,20 @@ from organization.utility.sector import (
 
 
 class OrganizationStubSerializer(serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     location = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = ("id", "name", "url_slug", "thumbnail_image", "location")
+        fields = (
+            "id",
+            "name",
+            "url_slug",
+            "thumbnail_image",
+            "image_variants",
+            "location",
+        )
 
     def get_name(self, obj):
         return get_organization_name(obj, get_language())
@@ -232,6 +240,7 @@ class EditOrganizationSerializer(OrganizationSerializer):
 
 
 class OrganizationCardSerializer(serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     sectors = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -247,6 +256,7 @@ class OrganizationCardSerializer(serializers.ModelSerializer):
             "name",
             "url_slug",
             "thumbnail_image",
+            "image_variants",
             "location",
             "types",
             "sectors",

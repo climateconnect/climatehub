@@ -4,7 +4,7 @@ import "@testing-library/jest-dom";
 import ResponsiveImage, {
   BACKGROUND_SOURCES,
   BACKGROUND_SOURCES_SMALL,
-  CARD_SOURCES,
+  THUMBNAIL_SOURCES,
   HERO_SOURCES,
   resolveVariantUrl,
 } from "./ResponsiveImage";
@@ -103,7 +103,7 @@ describe("ResponsiveImage", () => {
       <ResponsiveImage
         src={ORIGINAL}
         variants={FULL_VARIANTS}
-        sources={CARD_SOURCES}
+        sources={THUMBNAIL_SOURCES}
         alt="A card"
       />
     );
@@ -165,14 +165,14 @@ describe("resolveVariantUrl", () => {
   });
 
   it("prefers the thumbnail WebP for cards, not the larger 600px image", () => {
-    expect(resolveVariantUrl(FULL_VARIANTS, CARD_SOURCES, ORIGINAL)).toBe(
+    expect(resolveVariantUrl(FULL_VARIANTS, THUMBNAIL_SOURCES, ORIGINAL)).toBe(
       FULL_VARIANTS.thumbnail_image.webp
     );
   });
 
   it("falls back to the 600px image for cards on rows with no thumbnail", () => {
     const noThumb: ImageVariants = { image: FULL_VARIANTS.image };
-    expect(resolveVariantUrl(noThumb, CARD_SOURCES, ORIGINAL)).toBe(FULL_VARIANTS.image["600"]);
+    expect(resolveVariantUrl(noThumb, THUMBNAIL_SOURCES, ORIGINAL)).toBe(FULL_VARIANTS.image["600"]);
   });
 
   it("routes the variant URL through getImageUrl, not just the fallback", () => {

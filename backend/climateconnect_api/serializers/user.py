@@ -272,6 +272,7 @@ class UserProfileMinimalSerializer(serializers.ModelSerializer):
 
 
 class UserProfileStubSerializer(serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     id = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
@@ -286,6 +287,7 @@ class UserProfileStubSerializer(serializers.ModelSerializer):
             "last_name",
             "url_slug",
             "thumbnail_image",
+            "image_variants",
             "location",
             "badges",
         )

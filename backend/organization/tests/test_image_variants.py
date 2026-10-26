@@ -9,7 +9,6 @@ Covers acceptance criteria:
   - Backfill command is idempotent and re-runnable.
 """
 
-
 import shutil
 import tempfile
 from base64 import b64encode
@@ -25,7 +24,6 @@ from rest_framework.test import APITestCase
 from climateconnect_api.models import Language, UserProfile
 from organization.models import Organization, Project
 from django.core.management import call_command
-
 
 # ---------------------------------------------------------------------------
 # Test media root
@@ -73,8 +71,7 @@ class TempMediaRootMixin:
 # ---------------------------------------------------------------------------
 
 
-def make_test_image(width=2000, height=1000, mode="RGB", color="red",
-                    format="PNG"):
+def make_test_image(width=2000, height=1000, mode="RGB", color="red", format="PNG"):
     """Return a ``ContentFile`` containing a test image of the given size."""
     img = Image.new(mode, (width, height), color)
     buf = BytesIO()
@@ -130,7 +127,9 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
         """Variant should be in WebP format."""
         from climateconnect_main.utility.images import generate_webp_variant
 
-        content_file = make_test_image(width=2000, height=1000, mode="RGB", color="green")
+        content_file = make_test_image(
+            width=2000, height=1000, mode="RGB", color="green"
+        )
         self.project.image.save("test.png", content_file, save=True)
 
         variant = generate_webp_variant(self.project.image, max_width=1200)
@@ -156,7 +155,9 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
         """A large image should be resized to max_width."""
         from climateconnect_main.utility.images import generate_webp_variant
 
-        content_file = make_test_image(width=4000, height=2000, mode="RGB", color="blue")
+        content_file = make_test_image(
+            width=4000, height=2000, mode="RGB", color="blue"
+        )
         self.project.image.save("large.png", content_file, save=True)
 
         variant = generate_webp_variant(self.project.image, max_width=1200)
@@ -199,7 +200,9 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
         """Function must work when storage raises on .path (AzureStorage)."""
         from climateconnect_main.utility.images import generate_webp_variant
 
-        content_file = make_test_image(width=2000, height=1000, mode="RGB", color="yellow")
+        content_file = make_test_image(
+            width=2000, height=1000, mode="RGB", color="yellow"
+        )
         self.project.image.save("test.png", content_file, save=True)
 
         type(self.project.image).path
@@ -375,9 +378,7 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
         urls = build_variant_urls(self.project)
         storage = self.project.image.storage
 
-        self.assertEqual(
-            set(urls["image"]), set(self.project.image_variants["image"])
-        )
+        self.assertEqual(set(urls["image"]), set(self.project.image_variants["image"]))
         for key, url in urls["image"].items():
             self.assertEqual(
                 url, storage.url(self.project.image_variants["image"][key])
@@ -412,6 +413,38 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
         second = self.project.image_variants["image"]
 
         self.assertEqual(first, second)
+
+    def test_clearing_a_field_drops_its_variant_entry(self):
+        """An emptied image field must not leave URLs to deleted files.
+
+        ``cleanup_orphaned_variants`` pops the entry in ``pre_save``, but that
+        pop is lost on a ``save(update_fields=[...])`` that omits
+        ``image_variants``. The Celery task re-reads from the database, so it
+        is the authoritative place to reconcile.
+        """
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
+        self.project.image.save("test.png", content, save=True)
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        self.assertIn("image", self.project.image_variants)
+
+        self.project.image = ""
+        self.project.save(update_fields=["image"])
+
+        # The in-memory instance was already popped by cleanup_orphaned_variants;
+        # the row in the database is what still holds the stale entry. Re-fetch
+        # the way the Celery task does.
+        stale = Project.objects.get(pk=self.project.pk)
+        self.assertIn("image", stale.image_variants, "precondition: DB row is stale")
+
+        generate_and_store_variants(stale, field_names=["image"])
+        self.project.refresh_from_db()
+
+        self.assertNotIn("image", self.project.image_variants)
 
     def test_has_all_variants(self):
         """``has_all_variants`` gates the backfill's skip logic."""
@@ -502,9 +535,14 @@ class TestImageVariantsSerialization(TempMediaRootMixin, APITestCase):
             PersonalProfileSerializer,
             UserProfileMinimalSerializer,
             UserProfileSerializer,
+            UserProfileStubSerializer,
         )
         from climateconnect_main.utility.image_variants import ImageVariantsField
-        from organization.serializers.organization import OrganizationSerializer
+        from organization.serializers.organization import (
+            OrganizationCardSerializer,
+            OrganizationSerializer,
+            OrganizationStubSerializer,
+        )
         from organization.serializers.project import (
             ProjectMinimalSerializer,
             ProjectSerializer,
@@ -516,9 +554,12 @@ class TestImageVariantsSerialization(TempMediaRootMixin, APITestCase):
             ProjectMinimalSerializer,
             ProjectStubSerializer,
             OrganizationSerializer,
+            OrganizationStubSerializer,
+            OrganizationCardSerializer,
             PersonalProfileSerializer,
             UserProfileSerializer,
             UserProfileMinimalSerializer,
+            UserProfileStubSerializer,
         ):
             field = serializer_class().fields["image_variants"]
             self.assertIsInstance(
@@ -676,9 +717,7 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
         call_command("backfill_image_variants", "--sleep", "0")
         project.refresh_from_db()
 
-        self.assertEqual(
-            set(first_variants.keys()), set(project.image_variants.keys())
-        )
+        self.assertEqual(set(first_variants.keys()), set(project.image_variants.keys()))
         self.assertIn("image", project.image_variants)
         self.assertIn("1200", project.image_variants["image"])
 
@@ -834,6 +873,61 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
 
 
 # ---------------------------------------------------------------------------
+# Members-list cache invalidation
+# ---------------------------------------------------------------------------
+
+
+class TestMemberListCacheInvalidation(TempMediaRootMixin, APITestCase):
+    """Changing an avatar must refresh the cached /api/members/ pages.
+
+    ``ListMemberProfilesView`` is wrapped in ``cache_page`` with a two-day TTL
+    and ``remove_cache_keys`` only fires on profile *creation*, so without the
+    receiver in ``climateconnect_api.signals`` a new avatar stays invisible in
+    the members list for up to two days.
+    """
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        # Tests run on LocMemCache, which has no keys()/delete_many(), so the
+        # real invalidation path short-circuits. Patch the cache the signal
+        # module uses, mirroring climateconnect_api/tests/test_registered_event_slugs.py.
+        self.cache_patcher = mock_patch("climateconnect_api.signals.cache")
+        self.mock_cache = self.cache_patcher.start()
+        self.addCleanup(self.cache_patcher.stop)
+        self.mock_cache.keys.return_value = ["LIST_MEMBERS.page1"]
+
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+        user = User.objects.create_user(username="cache_user", password="pw")
+        self.profile = UserProfile.objects.get_or_create(
+            user=user, defaults={"url_slug": "cache-user"}
+        )[0]
+        self.mock_cache.reset_mock()
+
+    def test_image_change_invalidates(self):
+        content = make_test_image(width=400, height=400, mode="RGB", color="red")
+        self.profile.image.save("avatar.png", content, save=True)
+
+        self.mock_cache.delete_many.assert_called_once_with(["LIST_MEMBERS.page1"])
+
+    def test_variant_write_invalidates(self):
+        """The Celery task writing image_variants must also refresh the list."""
+        self.profile.save(update_fields=["image_variants"])
+
+        self.mock_cache.delete_many.assert_called_once_with(["LIST_MEMBERS.page1"])
+
+    def test_unrelated_save_does_not_invalidate(self):
+        """A save that touches no image field must not thrash the cache."""
+        self.profile.url_slug = "cache-user-renamed"
+        self.profile.save()
+
+        self.mock_cache.delete_many.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
 # Orphan cleanup tests
 # ---------------------------------------------------------------------------
 
@@ -874,9 +968,7 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         old_name = self.project.image.name  # e.g. "projects/1/old_image.png"
         config = IMAGE_VARIANT_CONFIGS["Project"]
         widths = config["image"]["widths"]
-        old_variant_paths = [
-            _variant_filename(old_name, w) for w in widths
-        ]
+        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
         # Confirm the files exist on storage before the replace
         for path in old_variant_paths:
             self.assertTrue(
@@ -886,7 +978,9 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
 
         # Replace the image
         with self.captureOnCommitCallbacks(execute=True):
-            content2 = make_test_image(width=2000, height=1000, mode="RGB", color="blue")
+            content2 = make_test_image(
+                width=2000, height=1000, mode="RGB", color="blue"
+            )
             self.project.image.save("new_image.png", content2, save=True)
 
         # Old variant files should be gone
@@ -922,9 +1016,7 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         config = IMAGE_VARIANT_CONFIGS["Project"]
         widths = config["image"]["widths"]
 
-        old_variant_paths = [
-            _variant_filename(old_name, w) for w in widths
-        ]
+        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
 
         with self.captureOnCommitCallbacks(execute=True):
             self.project.name = "Updated Name"
@@ -954,9 +1046,7 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
 
         config = IMAGE_VARIANT_CONFIGS["Project"]
         widths = config["image"]["widths"]
-        old_variant_paths = [
-            _variant_filename(old_name, w) for w in widths
-        ]
+        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
 
         with self.captureOnCommitCallbacks(execute=True):
             self.project.image.delete(save=True)
@@ -984,8 +1074,12 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         def raising_delete(name):
             raise RuntimeError("Azure storage error")
 
-        with mock_patch.object(self.project.image.storage, "delete", side_effect=raising_delete):
-            content2 = make_test_image(width=2000, height=1000, mode="RGB", color="blue")
+        with mock_patch.object(
+            self.project.image.storage, "delete", side_effect=raising_delete
+        ):
+            content2 = make_test_image(
+                width=2000, height=1000, mode="RGB", color="blue"
+            )
             self.project.image.save("new_image2.png", content2, save=True)
 
         # Files still exist because delete was mocked to fail

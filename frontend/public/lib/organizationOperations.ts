@@ -8,6 +8,7 @@ export function parseOrganization(organization, editMode: boolean = false) {
     background_image: getImageUrl(organization.background_image),
     name: organization.name,
     image: getImageUrl(organization.image),
+    thumbnail_image: getImageUrl(organization.thumbnail_image),
     image_variants: organization.image_variants,
     types: organization.types.map((t) => ({ ...t.organization_tag, key: t.organization_tag.id })),
     language: organization.language,
