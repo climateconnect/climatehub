@@ -19,6 +19,7 @@ import { getDateTime, getDateTimeRange } from "../../../public/lib/dateOperation
 import getTexts from "../../../public/texts/texts";
 import { RegistrationField, RegistrationFieldAnswer } from "../../types";
 import { findOption, formatTimeRange } from "../../utils/resolveRegistrationFieldAnswer";
+import { formatSeatCount } from "../../utils/eventRegistrationHelpers";
 import UserContext from "../context/UserContext";
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -85,6 +86,8 @@ export type ViewRegistrationAnswersModalRegistration = {
   user_last_name: string;
   cancelled_at: string | null;
   cancellation_reason?: string | null;
+  /** Seats booked (registrant + guests); absent on older payloads = 1. */
+  number_of_seats?: number;
   field_answers: RegistrationFieldAnswer[];
 };
 
@@ -100,6 +103,12 @@ type Props = {
    * titles, descriptions, options and field order for the answers.
    */
   fields: RegistrationField[];
+  /**
+   * The event's ``max_seats_per_registration``. The seat count is shown when it
+   * is above 1 or the registration holds several seats; single-seat events
+   * keep today's view.
+   */
+  maxSeatsPerRegistration?: number;
   /**
    * Optional event metadata to display under the dialog title — matches the
    * subheader shown in the registration modal (event name and date/time range).
@@ -141,6 +150,7 @@ export default function ViewRegistrationAnswersModal({
   registration,
   title,
   fields,
+  maxSeatsPerRegistration,
   event,
   cancelAction,
 }: Props) {
@@ -158,6 +168,12 @@ export default function ViewRegistrationAnswersModal({
       : event?.start_date
       ? getDateTime(event.start_date)
       : null;
+
+  const numberOfSeats = registration.number_of_seats ?? 1;
+  const showSeats = numberOfSeats > 1 || (maxSeatsPerRegistration ?? 1) > 1;
+  // More than one seat is a conscious choice and counts as an answer;
+  // the default of 1 does not, so "no answers" can still apply.
+  const seatsCountAsAnswer = showSeats && numberOfSeats > 1;
 
   const sortedFields = [...fields].sort((a, b) => a.order - b.order);
   const answersByFieldId = new Map<number, RegistrationFieldAnswer>();
@@ -203,10 +219,23 @@ export default function ViewRegistrationAnswersModal({
           </Alert>
         )}
 
+        {showSeats && (
+          <Box className={classes.fieldBlock}>
+            <Typography variant="body1" className={classes.optionFieldTitle}>
+              {texts.number_of_seats_label as string}
+            </Typography>
+            <Typography variant="body2" className={classes.optionAnswer}>
+              {formatSeatCount(numberOfSeats, texts)}
+            </Typography>
+          </Box>
+        )}
+
         {sortedFields.length === 0 ? null : registration.field_answers.length === 0 ? (
-          <Typography variant="body2" className={classes.emptyState}>
-            {texts.no_registration_answers}
-          </Typography>
+          seatsCountAsAnswer ? null : (
+            <Typography variant="body2" className={classes.emptyState}>
+              {texts.no_registration_answers}
+            </Typography>
+          )
         ) : (
           sortedFields.map((field) => {
             if (field.id == null) return null;

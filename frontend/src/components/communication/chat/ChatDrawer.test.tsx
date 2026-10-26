@@ -127,23 +127,30 @@ function drawerTree({
   contextTerm = 'the project "Test Project"',
   contactRole = "Contact person",
   chatSocket = null,
+  socketConnectionState = undefined,
+  origin = undefined,
 }: {
   open?: boolean;
   onClose?: jest.Mock;
   contextTerm?: string;
   contactRole?: string;
   chatSocket?: any;
+  socketConnectionState?: string;
+  origin?: { type: "project"; urlSlug: string; id: number };
 } = {}) {
   return (
     <ThemeProvider theme={theme}>
       <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={{ ...defaultContextValue, chatSocket } as any}>
+        <UserContext.Provider
+          value={{ ...defaultContextValue, chatSocket, socketConnectionState } as any}
+        >
           <ChatDrawer
             open={open}
             onClose={onClose}
             contactPerson={contactPerson}
             contextTerm={contextTerm}
             contactRole={contactRole}
+            origin={origin}
           />
         </UserContext.Provider>
       </StylesThemeProvider>
@@ -300,6 +307,53 @@ describe("ChatDrawer", () => {
         expect(sendCall![0].method).toBe("post");
       });
       await waitFor(() => expect(screen.getByText("Is the event accessible?")).toBeInTheDocument());
+    });
+
+    it("includes the project origin slug in the POST payload when origin is set", async () => {
+      renderDrawer({ origin: { type: "project", urlSlug: "test-project", id: 7 } });
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await waitFor(() => {
+        const sendCall = mockApiRequest.mock.calls.find(
+          (call: any[]) => call[0].url === "/api/chat/chat-1/send_message/"
+        );
+        expect(sendCall![0].payload.origin_project_url_slug).toBe("test-project");
+      });
+    });
+
+    it("omits the origin slug when no origin is set", async () => {
+      renderDrawer();
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await waitFor(() => {
+        const sendCall = mockApiRequest.mock.calls.find(
+          (call: any[]) => call[0].url === "/api/chat/chat-1/send_message/"
+        );
+        expect(sendCall![0].payload).not.toHaveProperty("origin_project_url_slug");
+      });
+    });
+
+    it("includes the project origin slug in the socket payload when origin is set", async () => {
+      const chatSocket: any = { onmessage: jest.fn(), send: jest.fn() };
+      renderDrawer({
+        chatSocket,
+        socketConnectionState: "connected",
+        origin: { type: "project", urlSlug: "test-project", id: 7 },
+      });
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await waitFor(() => expect(chatSocket.send).toHaveBeenCalled());
+      expect(JSON.parse(chatSocket.send.mock.calls[0][0])).toEqual({
+        message: "Hello",
+        chat_uuid: "chat-1",
+        origin_project_url_slug: "test-project",
+      });
     });
 
     it("shows an inline error when sending fails", async () => {

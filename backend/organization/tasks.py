@@ -203,9 +203,15 @@ def notify_admins_of_registration_change(
         change_type:   ``"registered"`` or ``"cancelled"``.
     """
     from climateconnect_api.models import Role
-    from organization.models.event_registration import EventRegistrationConfig
+    from organization.models.event_registration import (
+        EventRegistration,
+        EventRegistrationConfig,
+    )
     from organization.models.project import Project
-    from organization.utility.email import send_admin_event_notification
+    from organization.utility.email import (
+        send_admin_event_notification,
+        should_show_seats,
+    )
 
     # ── 1. Look up project ────────────────────────────────────────────────────
     try:
@@ -253,6 +259,16 @@ def notify_admins_of_registration_change(
         )
         return
 
+    # ── 3a. Seat count of the guest's registration (only for multi-seat events) ─
+    number_of_seats = None
+    registration = (
+        EventRegistration.objects.select_related("registration_config")
+        .filter(registration_config=rc, user=guest_user)
+        .first()
+    )
+    if registration is not None and should_show_seats(registration):
+        number_of_seats = registration.number_of_seats
+
     # ── 4. Fetch all team admins (organiser + write-access project members) ───
     # ProjectMember.user has related_name="project_member_user" (see organization/models/members.py)
     admin_users = User.objects.select_related("user_profile__location").filter(
@@ -276,6 +292,7 @@ def notify_admins_of_registration_change(
                 project=project,
                 guest_user=guest_user,
                 change_type=change_type,
+                number_of_seats=number_of_seats,
             )
             logger.info(
                 "[AdminNotification] Sent %s notification to admin %s for project %s",

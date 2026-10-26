@@ -1,5 +1,7 @@
 import json
+import logging
 from django.utils import timezone
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from chat_messages.models import (
     Message,
@@ -8,11 +10,16 @@ from chat_messages.models import (
     MessageReceiver,
 )
 from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError
+from chat_messages.utility.message_origin import resolve_project_origin
 from chat_messages.utility.notification import create_chat_message_notification
 from climateconnect_api.utility.notification import (
     create_user_notification,
     create_email_notification,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class DirectMessageConsumer(AsyncWebsocketConsumer):
@@ -39,7 +46,12 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         chat_uuid = text_data_json["chat_uuid"]
         self.user = self.scope["user"]
         # Send message to room group
-        message_object = await self.new_message(chat_uuid, self.user, message)
+        message_object = await self.new_message(
+            chat_uuid,
+            self.user,
+            message,
+            text_data_json.get("origin_project_url_slug"),
+        )
         for receiver in message_object["receivers"]:
             await self.channel_layer.group_send(
                 "user-" + str(receiver.id),
@@ -51,7 +63,10 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 },
             )
 
-    async def new_message(self, chat_uuid, user, message_content):
+    @database_sync_to_async
+    def new_message(
+        self, chat_uuid, user, message_content, origin_project_url_slug=None
+    ):
         try:
             chat = MessageParticipants.objects.get(chat_uuid=chat_uuid)
         except MessageParticipants.DoesNotExist:
@@ -60,12 +75,27 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         receiver_user_ids = Participant.objects.filter(
             chat=chat, is_active=True
         ).values_list("user", flat=True)
-        receiver_users = User.objects.filter(id__in=receiver_user_ids)
+        receiver_users = list(User.objects.filter(id__in=receiver_user_ids))
+        origin_type, origin_id = "", None
+        if origin_project_url_slug:
+            try:
+                origin_type, origin_id = resolve_project_origin(
+                    user, chat, origin_project_url_slug
+                )
+            except ValidationError:
+                # No clean error path on a socket; keep the message, drop the origin.
+                logger.warning(
+                    "Ignoring invalid message origin %s for chat %s",
+                    origin_project_url_slug,
+                    chat_uuid,
+                )
         message = Message.objects.create(
             content=message_content,
             sender=user,
             message_participant=chat,
             sent_at=timezone.now(),
+            origin_type=origin_type,
+            origin_id=origin_id,
         )
         chat.last_message_at = timezone.now()
         chat.save()

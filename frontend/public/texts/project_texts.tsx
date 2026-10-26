@@ -1396,6 +1396,14 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "Max. number of guests",
       de: "Max. Anzahl Teilnehmende",
     },
+    max_seats_per_registration: {
+      en: "Max. seats per registration",
+      de: "Max. Anzahl Teilnehmende pro Anmeldung",
+    },
+    max_seats_per_registration_must_be_at_least_1: {
+      en: "Max. seats per registration must be at least 1",
+      de: "Die max. Anzahl Teilnehmende pro Anmeldung muss mindestens 1 sein",
+    },
     max_participants_must_be_greater_than_0: {
       en: "Maximum number of guests must be greater than 0",
       de: "Die maximale Anzahl an Teilnehmenden muss größer als 0 sein",
@@ -1956,6 +1964,42 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
     seats_available: {
       en: "Seats available",
       de: "Verfügbare Plätze",
+    },
+    how_many_seats: {
+      en: "How many seats?",
+      de: "Wie viele Plätze?",
+    },
+    seat_count_one: {
+      en: "{count} seat",
+      de: "{count} Platz",
+    },
+    seat_count_other: {
+      en: "{count} seats",
+      de: "{count} Plätze",
+    },
+    number_of_seats_label: {
+      en: "Number of seats",
+      de: "Anzahl Plätze",
+    },
+    seats_column: {
+      en: "Seats",
+      de: "Plätze",
+    },
+    seats_booked_one: {
+      en: "{count} seat booked",
+      de: "{count} Platz gebucht",
+    },
+    seats_booked_other: {
+      en: "{count} seats booked",
+      de: "{count} Plätze gebucht",
+    },
+    not_enough_seats_left_one: {
+      en: "Only {count} seat is left. Please choose fewer seats.",
+      de: "Nur noch {count} Platz ist frei. Bitte wähle weniger Plätze.",
+    },
+    not_enough_seats_left_other: {
+      en: "Only {count} seats are left. Please choose fewer seats.",
+      de: "Nur noch {count} Plätze sind frei. Bitte wähle weniger Plätze.",
     },
     already_registered: {
       en: "Registered ✓",

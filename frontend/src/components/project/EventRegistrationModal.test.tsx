@@ -821,3 +821,104 @@ describe("EventRegistrationModal – custom fields", () => {
     });
   });
 });
+
+// ── Seat count selector ─────────────────────────────────────────────────────
+
+describe("EventRegistrationModal – seat count selector", () => {
+  function makeSeatsProject(maxSeats: number | undefined, availableSeats: number | null) {
+    return makeProject({
+      registration_config: {
+        max_participants: availableSeats == null ? null : 50,
+        max_seats_per_registration: maxSeats,
+        available_seats: availableSeats,
+        registration_end_date: null,
+        status: "open",
+        notify_admins: true,
+        is_draft: false,
+        registration_enabled: true,
+        fields: [],
+        last_guest_email_sent_at: null,
+      },
+    });
+  }
+
+  function openSeatSelect() {
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: /how many seats\?/i }));
+    return screen.getAllByRole("option").map((o) => o.textContent);
+  }
+
+  it("is hidden when the per-registration maximum is 1", () => {
+    renderModal({ user: AUTHENTICATED_USER, project: makeSeatsProject(1, 10) });
+    expect(screen.queryByRole("combobox", { name: /how many seats\?/i })).not.toBeInTheDocument();
+  });
+
+  it("is hidden when the maximum is absent (older payloads)", () => {
+    renderModal({ user: AUTHENTICATED_USER, project: makeSeatsProject(undefined, 10) });
+    expect(screen.queryByRole("combobox", { name: /how many seats\?/i })).not.toBeInTheDocument();
+  });
+
+  it("does not send number_of_seats when the selector is hidden", async () => {
+    mockApiRequest.mockResolvedValueOnce({ status: 201 });
+    const onRegistrationSuccess = jest.fn();
+    renderModal({
+      user: AUTHENTICATED_USER,
+      project: makeSeatsProject(1, 10),
+      onRegistrationSuccess,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /confirm registration/i }));
+    await waitFor(() => expect(onRegistrationSuccess).toHaveBeenCalledWith(1));
+    expect(mockApiRequest.mock.calls[0][0].payload).not.toHaveProperty("number_of_seats");
+  });
+
+  it("defaults to 1 seat and offers up to the maximum with plural copy", () => {
+    renderModal({ user: AUTHENTICATED_USER, project: makeSeatsProject(3, 10) });
+    expect(screen.getByRole("combobox", { name: /how many seats\?/i })).toHaveTextContent("1 seat");
+    expect(openSeatSelect()).toEqual(["1 seat", "2 seats", "3 seats"]);
+  });
+
+  it("is capped by the seats left", () => {
+    renderModal({ user: AUTHENTICATED_USER, project: makeSeatsProject(5, 2) });
+    expect(openSeatSelect()).toEqual(["1 seat", "2 seats"]);
+  });
+
+  it("is capped by the maximum alone for unlimited-capacity events", () => {
+    renderModal({ user: AUTHENTICATED_USER, project: makeSeatsProject(4, null) });
+    expect(openSeatSelect()).toHaveLength(4);
+  });
+
+  it("sends the chosen number_of_seats and reports it on success", async () => {
+    mockApiRequest.mockResolvedValueOnce({ status: 201 });
+    const onRegistrationSuccess = jest.fn();
+    renderModal({
+      user: AUTHENTICATED_USER,
+      project: makeSeatsProject(3, 10),
+      onRegistrationSuccess,
+    });
+    openSeatSelect();
+    fireEvent.click(screen.getByRole("option", { name: "3 seats" }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm registration/i }));
+
+    await waitFor(() => expect(onRegistrationSuccess).toHaveBeenCalledWith(3));
+    expect(mockApiRequest.mock.calls[0][0].payload).toEqual(
+      expect.objectContaining({ number_of_seats: 3 })
+    );
+  });
+
+  it("stays on the form, names the seats left and lowers the cap on refusal", async () => {
+    mockApiRequest.mockRejectedValueOnce({
+      response: { data: { message: "Only 1 seat left for this event.", available_seats: 1 } },
+    });
+    renderModal({ user: AUTHENTICATED_USER, project: makeSeatsProject(3, 10) });
+    openSeatSelect();
+    fireEvent.click(screen.getByRole("option", { name: "3 seats" }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm registration/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Only 1 seat is left. Please choose fewer seats.")
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /confirm registration/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /how many seats\?/i })).toHaveTextContent("1 seat");
+  });
+});

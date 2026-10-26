@@ -69,8 +69,10 @@ function renderModal({
   registration = makeRegistration(),
   fields = [] as RegistrationField[],
   cancelAction,
+  maxSeatsPerRegistration,
   title = "Registration answers from Jane Doe",
 }: {
+  maxSeatsPerRegistration?: number;
   open?: boolean;
   onClose?: jest.Mock;
   registration?: ViewRegistrationAnswersModalRegistration | null;
@@ -88,6 +90,7 @@ function renderModal({
             registration={registration}
             title={title}
             fields={fields}
+            maxSeatsPerRegistration={maxSeatsPerRegistration}
             cancelAction={cancelAction}
           />
         </UserContext.Provider>
@@ -550,6 +553,81 @@ describe("ViewRegistrationAnswersModal", () => {
       fireEvent.click(closeBtn!);
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(onCancelClick).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("number of seats", () => {
+    it("shows the seat count when the event allows several seats", () => {
+      renderModal({
+        registration: makeRegistration({ number_of_seats: 3 }),
+        maxSeatsPerRegistration: 4,
+      });
+      expect(screen.getByText("Number of seats")).toBeInTheDocument();
+      expect(screen.getByText("3 seats")).toBeInTheDocument();
+    });
+
+    it("uses singular copy for one seat", () => {
+      renderModal({
+        registration: makeRegistration({ number_of_seats: 1 }),
+        maxSeatsPerRegistration: 2,
+      });
+      expect(screen.getByText("1 seat")).toBeInTheDocument();
+    });
+
+    it("shows the seat count for a multi-seat registration even after the maximum was lowered", () => {
+      renderModal({
+        registration: makeRegistration({ number_of_seats: 2 }),
+        maxSeatsPerRegistration: 1,
+      });
+      expect(screen.getByText("2 seats")).toBeInTheDocument();
+    });
+
+    it("keeps showing the seat count on cancelled registrations", () => {
+      renderModal({
+        registration: makeRegistration({
+          number_of_seats: 2,
+          cancelled_at: "2026-10-02T10:00:00.000Z",
+        }),
+        maxSeatsPerRegistration: 3,
+      });
+      expect(screen.getByText("2 seats")).toBeInTheDocument();
+    });
+
+    it("is hidden for single-seat events", () => {
+      renderModal({
+        registration: makeRegistration({ number_of_seats: 1 }),
+        maxSeatsPerRegistration: 1,
+      });
+      expect(screen.queryByText("Number of seats")).not.toBeInTheDocument();
+    });
+
+    it("is hidden for older payloads without seat data", () => {
+      renderModal({ registration: makeRegistration() });
+      expect(screen.queryByText("Number of seats")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("empty state with seat count", () => {
+    const fields = [makeCheckboxField()];
+
+    it("does not say 'no answers' when several seats were chosen", () => {
+      renderModal({
+        registration: makeRegistration({ number_of_seats: 3 }),
+        maxSeatsPerRegistration: 4,
+        fields,
+      });
+      expect(screen.getByText("3 seats")).toBeInTheDocument();
+      expect(screen.queryByText(/no answers submitted/i)).not.toBeInTheDocument();
+    });
+
+    it("still says 'no answers' when only the default single seat was booked", () => {
+      renderModal({
+        registration: makeRegistration({ number_of_seats: 1 }),
+        maxSeatsPerRegistration: 4,
+        fields,
+      });
+      expect(screen.getByText("1 seat")).toBeInTheDocument();
+      expect(screen.getByText(/no answers submitted/i)).toBeInTheDocument();
     });
   });
 });
