@@ -7,12 +7,15 @@
 **Related specs**:
 - `doc/spec/20260414_1315_frontend_deploy_artifact_scope.md` — deploy only the relevant app directory (Phase 1 of this task; **COMPLETED** — each workflow now ships only its own service)
 - `doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md` — the Celery `lookup` worker must stay exactly one process (relevant when containerizing the backend startup script)
+- `doc/spec/20261026_1130_issue_2352_no_celery_on_backend_slot2.md` — issue #2352: the slot-sticky `RUN_CELERY` setting. It must carry over to the container backend; see "Celery topology and migrations after #2352" below.
 
 **Related files**:
 - `.github/workflows/master_climate-backend-appservice(slot2).yml` — production backend deploy workflow
 - `.github/workflows/master_climateconnect-frontend-appservice(slot2).yml` — production frontend deploy workflow
 - `backend/start_backend.sh` — production backend startup script (installs system packages + Python deps on every cold start)
 - `docker/backend.Dockerfile`, `docker/frontend.Dockerfile` — dev-only Dockerfiles (not production-ready)
+- `docker/backend-entrypoint.sh` — the backend image's start command (`CMD`). It is a **separate script** from `backend/start_backend.sh` that starts the same three processes and also runs `migrate` (see "Celery topology and migrations after #2352")
+- `.github/workflows/backend-container-build.yml` — builds and pushes the backend image; can optionally deploy it to `climate-backend-container` slot2
 - `frontend/next.config.js` — embeds build-time env vars into the client bundle
 - `frontend/package.json` — `devlink-sync` script (Webflow export) that runs before `yarn build`
 
@@ -112,7 +115,10 @@ Frontend configuration that is embedded at build time today (including secrets) 
 - **AC-2B.1**: A manually-triggered workflow builds a backend container image and pushes it to the container registry, tagged with the commit SHA.
 - **AC-2B.2**: The image contains only backend code — no frontend source, docs, or workflows.
 - **AC-2B.3**: The image starts on an isolated App Service and serves the API using only runtime-provided environment variables (no baked-in secrets).
-- **AC-2B.4**: Backend runtime contract verified: API serves requests, database migrations run safely, both Celery workloads run (default worker with beat; exactly one `lookup` queue worker), WebSockets work.
+- **AC-2B.4**: Backend runtime contract verified: API serves requests, database migrations run safely, both Celery workloads run (default worker with beat; exactly one `lookup` queue worker), WebSockets work. *(Amended by #2352; see AC-2B.4a/b. The Celery part must not be verified on a second backend that shares the production broker while production's Celery runs.)*
+  - **AC-2B.4a**: Against the shared production DB and broker, the validation target runs with `RUN_CELERY=false`. The API, admin, WebSockets, `/ping/` and `/api/version/` work, and no Celery process runs.
+  - **AC-2B.4b**: The Celery topology with `RUN_CELERY=true` (default worker with beat; exactly one `lookup` worker) is verified in one of two ways. Either (i) against its **own broker and a non-production DB**, or (ii) at the Phase 3B cutover, where the container backend becomes the **only** backend with `RUN_CELERY=true` (AC-3B.9). An own broker alone is not enough while the DB is shared: its beat would still run every periodic task against the production DB a second time.
+  - **AC-2B.4c**: `migrate` does not run on container start. Migrations run as the explicit per-release step (see "Celery topology and migrations after #2352").
 - **AC-2B.5**: Cold-start time is measured and is faster than the current zip + on-server install path.
 - **AC-2B.6**: The existing production workflows are unchanged and continue to deploy successfully.
 - **AC-2B.7**: Registry images are not publicly accessible (or contain nothing sensitive — see constraints).
@@ -127,6 +133,8 @@ Frontend configuration that is embedded at build time today (including secrets) 
 - **AC-3B.6**: Every production release on the new backend is traceable to an immutable, tagged image in the registry.
 - **AC-3B.7**: A push to `master` results in the new backend image serving production traffic with no manual steps.
 - **AC-3B.8**: Promotion happens only after automated health verification; if verification fails, promotion is aborted and the previous image keeps serving.
+- **AC-3B.9** *(#2352)*: Across all backends and slots that share the broker, **exactly one** instance runs with `RUN_CELERY=true` at any time; the only exception is a slot swap's restart overlap. During parallel running this is the old zip backend's production slot. The cutover flips it as an explicit, documented step. After that, the container app's production slot has `true`, and its slot2 and the old backend have `false`.
+- **AC-3B.10** *(#2352)*: `RUN_CELERY` is a deployment slot setting (sticky) on `climate-backend-container`, so a swap there needs no manual Celery step.
 
 ### Phase 2F (frontend image)
 
@@ -155,7 +163,7 @@ Frontend configuration that is embedded at build time today (including secrets) 
 - **No production availability regression during the migration.** The current zip-based path remains the fallback until Phase 4 is verified.
 - **Public repository**: the GitHub repository is public, so GitHub Container Registry images are public by default. Until Phase 5 removes sensitive values from the frontend build output, images must either be made private in the registry or be pushed to a private registry.
 - **Single shared production database**: both slots use the same database. Schema changes must remain coordinated across slots, and per-release changes must be additive-only so that old code keeps running during rollout and rollback.
-- **Celery process model must be preserved**: exactly one `lookup` queue worker process (see `doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md`), plus the default worker with beat. Containerization must not change this topology.
+- **Celery process model must be preserved**: exactly one `lookup` queue worker process (see `doc/spec/20260720_1400_locationiq_rate_limited_queue_design.md`), plus the default worker with beat. Containerization must not change this topology. Since #2352, the topology runs **only where `RUN_CELERY=true`**, and system-wide (per shared broker and DB) exactly one instance has it (AC-3B.9).
 - **The frontend build requires the Webflow devlink export** (`yarn devlink-sync`) before `yarn build`, which needs Webflow credentials at build time.
 - **Cost discipline**: prefer free options (GitHub Container Registry). A paid service (e.g. Azure Container Registry, ~$5/month) only as a fallback if private images are not possible with GHCR.
 - **Azure app settings remain the source of runtime secrets**; images must not require secrets at build time except for the frontend build-time values listed above (which Phase 5 eliminates).
@@ -187,7 +195,7 @@ Frontend configuration that is embedded at build time today (including secrets) 
 ### Database migrations
 
 - Today, migrations are run manually against the shared production database before the swap.
-- In the container pipeline, one canonical mechanism should be chosen. Running migrations as an automated step **before** promotion preserves the current ordering and is safest with a shared database; running migrations in each container's startup command risks two slots migrating concurrently. (Suggestion, not a requirement — for Archie to decide.)
+- In the container pipeline, one canonical mechanism should be chosen. Running migrations as an automated step **before** promotion preserves the current ordering and is safest with a shared database; running migrations in each container's startup command risks two slots migrating concurrently. (Suggestion, not a requirement — for Archie to decide.) **Archie, 2026-10-26: recommended. Remove `migrate` from container start and run it as an explicit per-release step; see "Celery topology and migrations after #2352".**
 - Keep migrations additive-only per release (add columns/tables/indexes; defer drops and renames to a later release) so rollback to an old image stays safe.
 
 ### Downtime expectations
@@ -200,9 +208,54 @@ Frontend configuration that is embedded at build time today (including secrets) 
 - Tagging images with the commit SHA (plus a stable moving alias) gives the registry a full release history — closing the gap that the missing release branches leave.
 - Rollback becomes "point the slot at the previous tag and restart" — no CI rebuild required.
 
+### Celery topology and migrations after #2352 (added 2026-10-26)
+
+> Origin: issue [#2352](https://github.com/climateconnect/climatehub/issues/2352), spec `doc/spec/20261026_1130_issue_2352_no_celery_on_backend_slot2.md`. #2352 stops Celery on the zip backend's slot2 with a slot-sticky `RUN_CELERY` setting. The container backend must get the same behaviour so that the cutover does not bring the problem back.
+
+**What the container actually runs (verified read-only 2026-10-26)**
+- `docker/backend.Dockerfile` copies `docker/backend-entrypoint.sh` to `/app/entrypoint.sh` and sets it as `CMD`.
+- Both slots of `climate-backend-container` have an **empty startup command**, so the image `CMD` runs. That is the entrypoint script, **not** `backend/start_backend.sh`. The latter is also inside the image (via `COPY backend/`) but is unused there.
+- The two scripts start the same three processes (gunicorn with 4 workers, one `lookup` worker, the default worker with beat). The entrypoint additionally runs `migrate --noinput` first, under `set -e`.
+- `climate-backend-container` (production slot and slot2) is configured with the production app settings, so it uses the **same broker and DB** as the live backend. Both slots are Stopped. No sticky setting names were found.
+- Consequence: whenever the container backend ran next to the live backend, it was a second full consumer and beat on production's queues, the same mechanism as #2352. It also migrated the production DB on every start.
+
+**1. `RUN_CELERY` parity (required, part of #2352, AC-9 there)**
+- `docker/backend-entrypoint.sh` honours `RUN_CELERY` with the semantics of #2352:
+  - `true`: the full process set.
+  - `false`: the web server with 1 worker as the main process; no Celery worker and no beat.
+  - values are case-insensitive and trimmed (`False` = `false`).
+  - **missing, or an unknown value: run Celery.** An unknown value also logs a warning.
+  - It prints the same `RUN_CELERY: celery=...` startup line ("Startup log line" in the #2352 spec).
+- On `climate-backend-container`, `RUN_CELERY` is a deployment slot setting (sticky). slot2 is always `false`. The production slot is `false` while the old backend is live and `true` from the cutover on (AC-3B.9, AC-3B.10).
+- A missing value means "run Celery", so set the value **explicitly** on both container slots before they are started again.
+- Operating and checking it: use the runbook in the #2352 spec with `APP=climate-backend-container` (steps 1–4 and 7). In the container, the slim image may lack `ps`; use the `/proc` fallback from step 4b.
+
+**2. Phase 2B validation (resolves the AC-2B.4 conflict)**
+- A validation target that shares the production DB and broker runs with `RUN_CELERY=false` (AC-2B.4a).
+- The Celery topology is verified either against its own broker **and** a non-production DB, or at the cutover (AC-2B.4b). Its own broker alone does not help, because beat would still run the periodic tasks (token cleanup, rankings, audit cleanup) a second time against the production DB.
+
+**3. Phase 3B parallel running and cutover**
+- Exactly one backend has `RUN_CELERY=true` at any time (AC-3B.9). While both backends run in parallel, that is the old zip backend's production slot.
+- Cutover order (recommended): first set the old backend's production slot to `false`, then set the container production slot to `true`.
+  - During the short gap, tasks wait in the broker and are not lost. A beat tick inside the gap is skipped.
+  - The reverse order would mean an overlap with two consumers, two beats and two `lookup` workers.
+  - Avoid schedule ticks and 02:00–03:15 UTC for the flip.
+- Changing an app setting restarts that slot; plan the flip as one maintenance step. Verify each side with runbook steps 2 and 4 of the #2352 spec.
+- Rollback (frontend points back to the old hostname) does not move Celery by itself. Celery may stay on the container backend only as long as that backend keeps running. If it is stopped or the rollback is because of a background-task bug, flip `RUN_CELERY` back, again "off first": first set the container backend to `false`, then the old backend to `true`.
+
+**4. `migrate` on container start (decision needed before the next start against the production DB)**
+- Recommendation: **remove `migrate` from the container start.** Run migrations as **one explicit step per release before promotion**: a CI job or a one-off run of the same image, executed once against production. This keeps today's "migrate before swap" order.
+- Reasons:
+  - Django takes no migration lock. The two restarts of a swap, or several instances, can migrate at the same time. With `set -e` a failed duplicate DDL crashes the container, which means a crash loop or an aborted swap.
+  - Every start of the standby slot or a validation target migrates production before anyone has decided to release.
+  - Do not gate `migrate` on `RUN_CELERY`. That setting is Celery-only, and slot2 (`false`) is exactly where a release lands first.
+- If start-time migration is wanted for convenience, put it behind its own setting that defaults to **off**, and enable it on at most one running instance.
+- **This must be settled before the image is started against the production DB again.** That includes any further Phase 2B run (`backend-container-build.yml` with `deploy_verify`) and the rollout.
+- Additive-only migrations per release (above) remain required either way.
+
 ### Open questions for Archie
 
-- Where migrations run in the container pipeline (CI step vs startup vs one-off job).
+- Where migrations run in the container pipeline (CI step vs startup vs one-off job). *Recommendation recorded (2026-10-26): not at startup; see "Celery topology and migrations after #2352".*
 - The backend has **no health endpoint today** (no `health` route found in any `urls.py`) — automated promotion (AC-4.2) needs one, or an equivalent verification mechanism.
 - Whether slot-specific configuration (e.g. `FEATURE_TOGGLE_ENVIRONMENT=staging` on the staging slot) carries over cleanly to the container setup.
 - Whether the Celery workloads should eventually be split into separate containers (out of scope for this task; topology must be preserved for now).
@@ -257,3 +310,4 @@ With a container-based deployment, the image owner chooses both the Python versi
 - 2026-08-26 11:38 UTC — Task created from the CI/CD improvement discussion. Current workflows inspected; phased plan agreed: start with the existing artifact-scope spec (quick win), then containerize with a manually-triggered parallel workflow before touching production.
 - 2026-09-09 13:15 UTC — Phase 1 confirmed completed (each workflow now ships only its own service). Incident case study added; phases restructured to separate backend and frontend cutover paths; Phase 1 removed from spec.
 - 2026-09-09 11:00 UTC — Production incident on 2026-09-08/09: Debian 11 EOL broke both slots’ cold starts. Incident case study and Python’version-to-Debian coupling analysis added to AI Agent Insights. Problem Statement strengthened with standby-slot rollback risk (3b) and cold-start-as-live-dependency observation. File reference corrected (`backend/start_backend.sh`).
+- 2026-10-26 — Archie (from #2352, user decision): added "Celery topology and migrations after #2352" (`RUN_CELERY` parity, Phase 2B validation without Celery, one Celery backend at a time in Phase 3B, `migrate` out of container start), AC-2B.4a–c and AC-3B.9/3B.10, with cross-references to the #2352 runbook. Verified read-only: the image `CMD` is `docker/backend-entrypoint.sh`, not `start_backend.sh`.
