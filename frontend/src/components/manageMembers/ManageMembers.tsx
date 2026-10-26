@@ -1,6 +1,5 @@
-import { IconButton } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import MemberSearchOption from "../search/MemberSearchOption";
 import React, { useContext } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
 import { getRoleWeight } from "../../../public/lib/manageMembers";
@@ -56,16 +55,9 @@ export default function ManageMembers({
   const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "organization", locale: locale });
-  const renderSearchOption = ({ key, ...props }, option) => {
-    return (
-      <li key={key} {...props}>
-        <IconButton size="large">
-          <AddCircleOutlineIcon />
-        </IconButton>
-        {option.first_name + " " + option.last_name}
-      </li>
-    );
-  };
+  const renderSearchOption = (props, option) => (
+    <MemberSearchOption key={props.key} liProps={props} option={option} />
+  );
 
   const handleAddMember = (member) => {
     setCurrentMembers([
