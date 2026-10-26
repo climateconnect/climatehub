@@ -243,7 +243,8 @@ class MembershipRequestsAdmin(admin.ModelAdmin):
         "decided_by",
     )
     ordering = ("-requested_at",)
-    raw_id_fields = ("user", "target_project", "target_organization", "decided_by")
+    raw_id_fields = ("user", "target_project", "target_organization")
+    readonly_fields = ("decided_by",)
 
 
 admin.site.register(MembershipRequests, MembershipRequestsAdmin)

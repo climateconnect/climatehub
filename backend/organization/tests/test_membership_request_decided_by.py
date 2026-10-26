@@ -67,12 +67,33 @@ class TestMembershipRequestDecidedBy(APITestCase):
         self.assertIsNotNone(self.join_request.rejected_at)
         self.assertEqual(self.join_request.request_status, RequestStatus.REJECTED.value)
 
-    def test_second_admin_is_recorded(self):
+    def test_each_request_records_the_admin_who_acted(self):
+        other_requester = User.objects.create_user(username="other", password="pw")
+        other_request = MembershipRequests.objects.create(
+            user=other_requester,
+            target_membership_type=MembershipTarget.PROJECT.value,
+            target_project=self.project,
+            availability=self.availability,
+            requested_at=timezone.now(),
+            request_status=RequestStatus.PENDING.value,
+        )
         self.client.force_authenticate(self.admin)
         self._post("reject")
+        self.client.force_authenticate(self.creator)
+        self.client.post(
+            reverse(
+                "organization:request-membership-action-entity",
+                kwargs={
+                    "url_slug": self.project.url_slug,
+                    "request_action": "approve",
+                    "request_id": other_request.id,
+                },
+            )
+        )
         self.join_request.refresh_from_db()
+        other_request.refresh_from_db()
         self.assertEqual(self.join_request.decided_by, self.admin)
-        self.assertNotEqual(self.join_request.decided_by, self.creator)
+        self.assertEqual(other_request.decided_by, self.creator)
 
     def test_pending_request_has_no_decider(self):
         self.assertIsNone(self.join_request.decided_by)
