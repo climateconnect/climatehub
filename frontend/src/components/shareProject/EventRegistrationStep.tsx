@@ -52,6 +52,7 @@ export default function EventRegistrationStep({
       handleSetProjectData({
         registrationEnabled: false,
         max_participants: null,
+        max_seats_per_registration: 1,
         registration_end_date: null,
       });
     } else {

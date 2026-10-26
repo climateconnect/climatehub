@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import ListAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -25,6 +25,7 @@ from chat_messages.serializers.message import (
     MessageSerializer,
     UpdateParticipateSerializer,
 )
+from chat_messages.utility.message_origin import resolve_project_origin
 from chat_messages.utility.chat_setup import (
     check_can_start_chat,
     get_or_create_private_chat,
@@ -408,6 +409,17 @@ class SendChatMessage(APIView):
         except Participant.DoesNotExist:
             raise NotFound("You are not a participant of this chat.")
         if chat:
+            origin_type, origin_id = "", None
+            origin_slug = request.data.get("origin_project_url_slug")
+            if origin_slug:
+                try:
+                    origin_type, origin_id = resolve_project_origin(
+                        user, chat, origin_slug
+                    )
+                except ValidationError as e:
+                    return Response(
+                        {"detail": e.detail[0]}, status=status.HTTP_400_BAD_REQUEST
+                    )
             # Check if this is a first message and restrict sending a message
             # if its a cold-message.
             message_count = Message.objects.filter(message_participant=chat).count()
@@ -434,6 +446,8 @@ class SendChatMessage(APIView):
                 sender=user,
                 message_participant=chat,
                 sent_at=timezone.now(),
+                origin_type=origin_type,
+                origin_id=origin_id,
             )
             chat.last_message_at = timezone.now()
             chat.save()

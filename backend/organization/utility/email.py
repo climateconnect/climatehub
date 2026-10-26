@@ -945,6 +945,40 @@ def generate_timeslot_ics_attachments(project, lang_code, registration):
     return attachments
 
 
+def format_seats(number_of_seats: int, lang_code: str) -> str:
+    """Return "1 seat" / "2 seats" (EN) or "1 Platz" / "2 Plätze" (DE)."""
+    if lang_code == "de":
+        word = "Platz" if number_of_seats == 1 else "Plätze"
+    else:
+        word = "seat" if number_of_seats == 1 else "seats"
+    return f"{number_of_seats} {word}"
+
+
+def should_show_seats(registration) -> bool:
+    """Whether seat-count wording belongs in registration emails.
+
+    Events that only allow one seat per registration keep today's copy; the
+    count is shown once the organiser allows guests (or the registration holds
+    several seats from an earlier, higher setting).
+    """
+    return (
+        registration.number_of_seats > 1
+        or registration.registration_config.max_seats_per_registration > 1
+    )
+
+
+def _build_seats_html(registration, lang_code) -> str:
+    """HTML paragraph naming the seats booked, or "" for single-seat events."""
+    if not should_show_seats(registration):
+        return ""
+    seats = format_seats(registration.number_of_seats, lang_code)
+    text = f"Du hast {seats} gebucht." if lang_code == "de" else f"You booked {seats}."
+    return (
+        f'<p style="margin-top: 20px; font-weight: bold; color: #55575d;">'
+        f"{html_module.escape(text)}</p>"
+    )
+
+
 def send_event_registration_confirmation_to_user(user, project, registration):
     """
     Send a registration confirmation email to a user who just registered for an event.
@@ -959,8 +993,10 @@ def send_event_registration_confirmation_to_user(user, project, registration):
         - ``StartDate``         — localised start date with resolved timezone
         - ``OrganiserName``     — localised organisation name, or user's full name / username
         - ``LocationName``      — ``"Online"`` / location name / empty string
-        - ``FieldAnswersHtml``  — pre-rendered HTML of the guest's custom field answers
-          (empty string if no custom fields or no answers)
+        - ``FieldAnswersHtml``  — pre-rendered HTML of the number of seats booked
+          (only when the event allows more than one seat per registration)
+          followed by the guest's custom field answers (empty string if there
+          is nothing to show)
 
     **Required env variables**:
         ``EVENT_REGISTRATION_CONFIRMATION_TEMPLATE_ID``    — Mailjet template ID (EN)
@@ -979,6 +1015,7 @@ def send_event_registration_confirmation_to_user(user, project, registration):
                 "project_parent__parent_user__user_profile",
             )``.
         registration: ``EventRegistration`` instance. Must be fetched with
+            ``select_related("registration_config")`` and
             ``prefetch_related("field_answers__field", "field_answers__value_option")``.
     """
     lang_code = get_user_lang_code(user)
@@ -992,7 +1029,9 @@ def send_event_registration_confirmation_to_user(user, project, registration):
         "de": f"Du bist für {get_project_name(project, 'de')} angemeldet!",
     }
 
-    field_answers_html = _build_field_answers_html(registration, lang_code, display_tz)
+    field_answers_html = _build_seats_html(
+        registration, lang_code
+    ) + _build_field_answers_html(registration, lang_code, display_tz)
 
     variables = {
         "FirstName": user.first_name or user.username,
@@ -1030,7 +1069,9 @@ def send_event_registration_confirmation_to_user(user, project, registration):
     )
 
 
-def send_admin_event_notification(admin_user, project, guest_user, change_type: str):
+def send_admin_event_notification(
+    admin_user, project, guest_user, change_type: str, number_of_seats=None
+):
     """
     Send a single admin notification email when a member registers or self-cancels.
 
@@ -1058,8 +1099,16 @@ def send_admin_event_notification(admin_user, project, guest_user, change_type: 
                      translation prefetch chain to avoid N+1.
         guest_user:  Django ``User`` instance of the member who registered or cancelled.
         change_type: ``"registered"`` or ``"cancelled"``.
+        number_of_seats: seats of the registration, appended to the body as
+                     "(3 seats)" / "(3 Plätze)".  ``None`` (single-seat events)
+                     keeps the copy without a seat count.
     """
     lang_code = get_user_lang_code(admin_user)
+    seats_suffix = {"en": "", "de": ""}
+    if number_of_seats is not None:
+        seats_suffix = {
+            lang: f" ({format_seats(number_of_seats, lang)})" for lang in ("en", "de")
+        }
     event_title = get_project_name(project, lang_code)
     guest_name = (
         f"{guest_user.first_name} {guest_user.last_name}".strip() or guest_user.username
@@ -1072,11 +1121,11 @@ def send_admin_event_notification(admin_user, project, guest_user, change_type: 
         }
         bodies_by_language = {
             "en": (
-                f"{guest_name} has just registered for \"{get_project_name(project, 'en')}\". "
+                f"{guest_name} has just registered for \"{get_project_name(project, 'en')}\"{seats_suffix['en']}. "
                 "View the updated registrations list."
             ),
             "de": (
-                f"{guest_name} hat sich soeben für \"{get_project_name(project, 'de')}\" angemeldet. "
+                f"{guest_name} hat sich soeben für \"{get_project_name(project, 'de')}\" angemeldet{seats_suffix['de']}. "
                 "Sieh dir die aktualisierte Anmeldeliste an."
             ),
         }
@@ -1087,11 +1136,11 @@ def send_admin_event_notification(admin_user, project, guest_user, change_type: 
         }
         bodies_by_language = {
             "en": (
-                f"{guest_name} has just cancelled their registration for \"{get_project_name(project, 'en')}\". "
+                f"{guest_name} has just cancelled their registration for \"{get_project_name(project, 'en')}\"{seats_suffix['en']}. "
                 "View the updated registrations list."
             ),
             "de": (
-                f"{guest_name} hat soeben seine/ihre Anmeldung für \"{get_project_name(project, 'de')}\" storniert. "
+                f"{guest_name} hat soeben seine/ihre Anmeldung für \"{get_project_name(project, 'de')}\" storniert{seats_suffix['de']}. "
                 "Sieh dir die aktualisierte Anmeldeliste an."
             ),
         }

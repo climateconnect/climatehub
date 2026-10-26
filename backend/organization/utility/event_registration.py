@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 from django.db.models import Sum
 
@@ -10,6 +10,29 @@ from organization.models.event_registration import (
 from organization.models.registration_field import (
     RegistrationFieldType,
 )
+
+
+def get_booked_seats(rc: EventRegistrationConfig) -> int:
+    """Return the seats booked by active registrations of ``rc``.
+
+    Single source of truth for capacity: every site that compares against
+    ``max_participants`` must use this (or ``get_available_seats``) so that
+    all numbers agree.  Cancelled registrations never hold seats.
+    """
+    return (
+        EventRegistration.objects.filter(
+            registration_config=rc,
+            cancelled_at__isnull=True,
+        ).aggregate(booked=Sum("number_of_seats"))["booked"]
+        or 0
+    )
+
+
+def get_available_seats(rc: EventRegistrationConfig) -> Optional[int]:
+    """Return seats left, or ``None`` for unlimited-capacity events."""
+    if rc.max_participants is None:
+        return None
+    return max(0, rc.max_participants - get_booked_seats(rc))
 
 
 def _is_option_sold_out(field, option):
@@ -85,11 +108,7 @@ def evaluate_registration_status(
     """
     max_participants_full = False
     if rc.max_participants is not None:
-        active_count = EventRegistration.objects.filter(
-            registration_config=rc,
-            cancelled_at__isnull=True,
-        ).count()
-        if active_count >= rc.max_participants:
+        if get_booked_seats(rc) >= rc.max_participants:
             max_participants_full = True
 
     if max_participants_full:

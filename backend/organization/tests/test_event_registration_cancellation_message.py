@@ -285,7 +285,7 @@ class TestEventRegistrationOriginEndpoint(APITestCase):
 
     def _origin_url(self, registration_id):
         return reverse(
-            "organization:event-registration-origin",
+            "chat_messages:event-registration-origin",
             kwargs={"registration_id": registration_id},
         )
 

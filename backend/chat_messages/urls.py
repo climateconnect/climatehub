@@ -1,6 +1,6 @@
 from django.urls import path
 
-from chat_messages.views import message_views
+from chat_messages.views import message_origin_views, message_views
 
 app_name = "chat_messages"
 urlpatterns = [
@@ -57,5 +57,15 @@ urlpatterns = [
     ),
     path(
         "chat/", message_views.GetSearchedChat.as_view(), name="get-searched-chats-api"
+    ),
+    path(
+        "event-registration-origin/<int:registration_id>/",
+        message_origin_views.EventRegistrationOriginView.as_view(),
+        name="event-registration-origin",
+    ),
+    path(
+        "project-origin/<int:project_id>/",
+        message_origin_views.ProjectOriginView.as_view(),
+        name="project-origin",
     ),
 ]
