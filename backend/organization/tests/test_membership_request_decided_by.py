@@ -13,7 +13,7 @@ class TestMembershipRequestDecidedBy(APITestCase):
     def setUp(self):
         self.admin_role = Role.objects.create(name="Admin", role_type=Role.ALL_TYPE)
         self.member_role = Role.objects.create(
-            name="Member_decided", role_type=Role.READ_ONLY_TYPE
+            name="Member", role_type=Role.READ_ONLY_TYPE
         )
         self.creator = User.objects.create_user(username="creator", password="pw")
         self.admin = User.objects.create_user(username="admin2", password="pw")
