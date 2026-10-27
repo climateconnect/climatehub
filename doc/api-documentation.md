@@ -956,6 +956,61 @@ When `is_test=true`, the subject is prefixed with `[TEST] ` so the organiser can
 | `/api/my_profile/` | GET | Yes | Get your own profile |
 | `/api/edit_profile/` | POST | Yes | Update your profile |
 
+### Responsive image variants (`image_variants`)
+
+Project, organization, and member responses carry an **`image_variants`** object
+alongside `image`: pre-generated, resized WebP renditions of the entity's
+images. Serve these instead of `image` where you can — the originals are stored
+at upload resolution and are often several times larger than any surface needs.
+
+**Shape** — keyed by image field, then by variant:
+
+```json
+{
+  "image": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9.jpeg",
+  "image_variants": {
+    "image": {
+      "1200": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9_1200.webp",
+      "600": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9_600.webp"
+    },
+    "thumbnail_image": {
+      "webp": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9_thumb_webp.webp"
+    }
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `"1200"` / `"600"` | WebP resized to that width (never upscaled, so a narrow original yields a smaller file at its own width) |
+| `"webp"` | Format-only WebP conversion, used for `thumbnail_image`, which is already small |
+
+**Which fields appear**
+
+| Serializer | Image fields present |
+|---|---|
+| `ProjectSerializer`, `ProjectMinimalSerializer`, `ProjectStubSerializer` | `image`, `thumbnail_image` |
+| `OrganizationSerializer` | `image`, `thumbnail_image`, `background_image` |
+| `PersonalProfileSerializer`, `UserProfileSerializer`, `UserProfileMinimalSerializer` | `image`, `thumbnail_image`, `background_image` |
+
+**Consuming it safely**
+
+- **Always keep a fallback to `image`.** Any key may be absent: rows created
+  before this feature have `image_variants: {}`, a row whose variants are still
+  being generated is briefly incomplete, and an undecodable upload never gets
+  variants at all. Treat a missing key as "use the original".
+- **Read-only.** The field is computed; it is ignored on POST/PATCH. Variants
+  are regenerated automatically when you upload a new image.
+- **Eventually consistent.** Generation runs in a Celery task after the save
+  commits, so the response to the request that uploaded an image will usually
+  still show the old or empty variant map.
+- **Cards and previews** are already fed `thumbnail_image` through the `image`
+  field, so the right variant there is `thumbnail_image.webp` — the 600px
+  rendition of the full image would be a *larger* download than the thumbnail.
+
+The frontend does this through `ResponsiveImage` /
+`resolveVariantUrl` (`frontend/src/components/general/ResponsiveImage.tsx`).
+
 ### Hubs
 
 | Endpoint | Method | Auth Required | Description |

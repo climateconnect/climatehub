@@ -1,7 +1,7 @@
 import React from "react";
 import { Avatar, Box, Chip, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 
 const useStyles = makeStyles((theme) => {
   return {
@@ -49,7 +49,11 @@ export default function OrganizationPreviewHeader({ organization }) {
       <Avatar
         alt={organization.name}
         //TODO(unused) size="large"
-        src={getImageUrl(organization.thumbnail_image)}
+        src={resolveVariantUrl(
+          organization.image_variants,
+          THUMBNAIL_SOURCES,
+          organization.thumbnail_image
+        )}
         className={classes.media}
         component="div"
       />

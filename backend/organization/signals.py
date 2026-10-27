@@ -2,11 +2,18 @@
 Django signals for maintaining parent/child project relationships.
 
 This module contains signals that keep the has_children denormalized flag
-synchronized with the actual child_projects relationships.
+synchronized with the actual child_projects relationships, plus image-variant
+generation dispatch for ``Project`` and ``Organization`` image fields.
 """
 
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
+
+from climateconnect_main.utility.image_variants import (
+    capture_image_field_changes,
+    cleanup_orphaned_variants,
+    dispatch_image_variant_task,
+)
 
 
 @receiver(pre_save, sender="organization.Project")
@@ -81,3 +88,39 @@ def update_parent_has_children_on_delete(sender, instance, **kwargs):
             sender.objects.filter(pk=instance.parent_project.pk).update(
                 has_children=remaining_children
             )
+
+
+# ---------------------------------------------------------------------------
+# Image-variant generation dispatch for Project and Organization
+# ---------------------------------------------------------------------------
+
+@receiver(pre_save, sender="organization.Project")
+def _capture_project_image_changes(sender, instance, **kwargs):
+    capture_image_field_changes(sender, instance, **kwargs)
+
+
+@receiver(pre_save, sender="organization.Project")
+def _cleanup_project_orphaned_variants(sender, instance, **kwargs):
+    """Delete old variant files before the image is replaced (post-capture)."""
+    cleanup_orphaned_variants(sender, instance, **kwargs)
+
+
+@receiver(post_save, sender="organization.Project")
+def _dispatch_project_image_variants(sender, instance, created, **kwargs):
+    dispatch_image_variant_task(sender, instance, created, **kwargs)
+
+
+@receiver(pre_save, sender="organization.Organization")
+def _capture_organization_image_changes(sender, instance, **kwargs):
+    capture_image_field_changes(sender, instance, **kwargs)
+
+
+@receiver(pre_save, sender="organization.Organization")
+def _cleanup_organization_orphaned_variants(sender, instance, **kwargs):
+    """Delete old variant files before the image is replaced (post-capture)."""
+    cleanup_orphaned_variants(sender, instance, **kwargs)
+
+
+@receiver(post_save, sender="organization.Organization")
+def _dispatch_organization_image_variants(sender, instance, created, **kwargs):
+    dispatch_image_variant_task(sender, instance, created, **kwargs)

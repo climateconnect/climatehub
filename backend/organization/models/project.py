@@ -51,6 +51,18 @@ class Project(models.Model):
         upload_to=project_image_path,
     )
 
+    image_variants = models.JSONField(
+        help_text="Map of generated WebP variants, keyed by image field and "
+        "then by variant. Values are storage-relative paths, resolved to URLs "
+        "by ImageVariantsField. "
+        'e.g. {"image": {"1200": "<path>", "600": "<path>"}, '
+        '"thumbnail_image": {"webp": "<path>"}}',
+        verbose_name="Image variants",
+        null=True,
+        blank=True,
+        default=dict,
+    )
+
     # Deprecated: project status is no longer used. The column is kept (nullable,
     # no default) so existing rows and the ProjectStatus table stay intact.
     status = models.ForeignKey(

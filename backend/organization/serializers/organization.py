@@ -2,6 +2,7 @@ from django.utils.translation import get_language
 from rest_framework import serializers
 
 from climateconnect_api.models.role import Role
+from climateconnect_main.utility.image_variants import ImageVariantsField
 from climateconnect_api.models.user import UserProfile
 from climateconnect_api.serializers.role import RoleSerializer
 from climateconnect_api.serializers.user import UserProfileStubSerializer
@@ -31,12 +32,20 @@ from organization.utility.sector import (
 
 
 class OrganizationStubSerializer(serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     location = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = ("id", "name", "url_slug", "thumbnail_image", "location")
+        fields = (
+            "id",
+            "name",
+            "url_slug",
+            "thumbnail_image",
+            "image_variants",
+            "location",
+        )
 
     def get_name(self, obj):
         return get_organization_name(obj, get_language())
@@ -50,6 +59,7 @@ class OrganizationStubSerializer(serializers.ModelSerializer):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     sectors = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
     parent_organization = serializers.SerializerMethodField()
@@ -73,6 +83,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "name",
             "url_slug",
             "image",
+            "image_variants",
             "background_image",
             "parent_organization",
             "child_organizations",
@@ -229,6 +240,7 @@ class EditOrganizationSerializer(OrganizationSerializer):
 
 
 class OrganizationCardSerializer(serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     sectors = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -244,6 +256,7 @@ class OrganizationCardSerializer(serializers.ModelSerializer):
             "name",
             "url_slug",
             "thumbnail_image",
+            "image_variants",
             "location",
             "types",
             "sectors",

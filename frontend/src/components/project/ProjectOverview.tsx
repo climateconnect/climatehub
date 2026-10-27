@@ -11,7 +11,7 @@ import PlaceIcon from "@mui/icons-material/Place";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 // Relative imports
-import { getImageUrl } from "./../../../public/lib/imageOperations";
+import ResponsiveImage from "../general/ResponsiveImage";
 import { getParams } from "../../../public/lib/generalOperations";
 import { getDateTimeRange } from "../../../public/lib/dateOperations";
 import ContactCreatorButton from "./Buttons/ContactCreatorButton";
@@ -402,9 +402,10 @@ function SmallScreenOverview({
             hubUrl={hubUrl}
           />
         </div>
-        <img
+        <ResponsiveImage
           className={classes.fullWidthImage}
-          src={getImageUrl(project.image)}
+          src={project.image}
+          variants={project.image_variants}
           alt={texts.project_image_of_project + " " + project.name}
         />
       </div>
@@ -458,9 +459,11 @@ function LargeScreenOverview({
         </Typography>
       </div>
       <div className={classes.flexContainer}>
-        <img
+        <ResponsiveImage
           className={classes.inlineImage}
-          src={getImageUrl(project.image)}
+          src={project.image}
+          variants={project.image_variants}
+          sizes="(min-width: 900px) 550px, 100vw"
           alt={texts.project_image_of_project + " " + project.name}
         />
         <div className={classes.inlineProjectInfo}>

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
 
 from climateconnect_api.models import UserProfile
+from climateconnect_main.utility.image_variants import ImageVariantsField
 from climateconnect_api.models.role import Role
 from climateconnect_api.serializers.common import (
     AvailabilitySerializer,
@@ -68,6 +69,7 @@ class _LocationNameMixin:
 
 
 class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     name = serializers.SerializerMethodField()
     short_description = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
@@ -101,6 +103,7 @@ class ProjectSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "name",
             "url_slug",
             "image",
+            "image_variants",
             "start_date",
             "end_date",
             "short_description",
@@ -357,6 +360,7 @@ class ProjectParentsSerializer(serializers.ModelSerializer):
 
 
 class ProjectMinimalSerializer(_LocationNameMixin, serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     project_parents = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
@@ -367,6 +371,7 @@ class ProjectMinimalSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "name",
             "url_slug",
             "image",
+            "image_variants",
             "location",
             "project_parents",
             "is_draft",
@@ -389,6 +394,7 @@ class ProjectMinimalSerializer(_LocationNameMixin, serializers.ModelSerializer):
 
 
 class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
+    image_variants = ImageVariantsField()
     project_parents = serializers.SerializerMethodField()
     sectors = serializers.SerializerMethodField()
     project_type = SerializerMethodField()
@@ -408,6 +414,7 @@ class ProjectStubSerializer(_LocationNameMixin, serializers.ModelSerializer):
             "name",
             "url_slug",
             "image",
+            "image_variants",
             "location",
             "project_type",
             "project_parents",

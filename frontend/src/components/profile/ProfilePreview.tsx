@@ -1,7 +1,7 @@
 import { Avatar, Button, Tooltip, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import AppLink from "../general/AppLink";
@@ -76,7 +76,7 @@ export default function ProfilePreview({ profile, allowMessage, showAdditionalIn
   const avatarProps = {
     alt: profile.name,
     size: "large",
-    src: getImageUrl(profile.thumbnail_image),
+    src: resolveVariantUrl(profile.image_variants, THUMBNAIL_SOURCES, profile.thumbnail_image),
     className: classes.avatar,
   };
   return (

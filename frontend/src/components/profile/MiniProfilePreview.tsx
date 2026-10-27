@@ -2,7 +2,7 @@ import { Avatar, IconButton, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import ClearIcon from "@mui/icons-material/Clear";
 import React from "react";
-import { getImageUrl } from "./../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import AppLink from "../general/AppLink";
 import ProfileBadge from "./ProfileBadge";
 
@@ -96,7 +96,7 @@ function Content({ profile, avatarClassName, size, title }) {
   const classes = useStyles();
 
   const avatarProps = {
-    src: getImageUrl(profile.thumbnail_image),
+    src: resolveVariantUrl(profile.image_variants, THUMBNAIL_SOURCES, profile.thumbnail_image),
     className: `${size === "small" && classes.smallAvatar} ${
       size === "medium" && classes.mediumAvatar
     } ${avatarClassName}`,

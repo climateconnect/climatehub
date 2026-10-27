@@ -452,3 +452,61 @@ def send_cancellation_chat_message(
             exc,
         )
         raise self.retry(exc=exc)
+
+
+@app.task(bind=True, max_retries=3, default_retry_delay=60)
+def generate_image_variants(self, app_label, model_name, pk, field_names):
+    """Generate resized WebP variants for image fields on a model instance.
+
+    Dispatched asynchronously (via ``transaction.on_commit``) whenever an
+    image field on ``Project``, ``Organization``, or ``UserProfile`` changes.
+
+    The task re-fetches the instance from the database so it always operates
+    on committed data.  All errors are caught and logged — a variant-
+    generation failure never propagates to the caller and never rolls back
+    the original save.
+
+    Args:
+        app_label: Django app label of the model (e.g. ``"organization"``).
+        model_name: Model class name (e.g. ``"Project"``).
+        pk: Primary key of the instance.
+        field_names: List of image field names that changed.
+    """
+    from django.apps import apps
+
+    from climateconnect_main.utility.image_variants import (
+        IMAGE_VARIANT_CONFIGS,
+        generate_and_store_variants,
+    )
+
+    if model_name not in IMAGE_VARIANT_CONFIGS:
+        logger.info(
+            "[ImageVariants] No variant config for %s.%s — skipping",
+            app_label,
+            model_name,
+        )
+        return
+
+    model = apps.get_model(app_label, model_name)
+
+    try:
+        instance = model.objects.get(pk=pk)
+    except model.DoesNotExist:
+        logger.warning(
+            "[ImageVariants] Instance not found: %s.%s pk=%s",
+            app_label,
+            model_name,
+            pk,
+        )
+        return
+
+    try:
+        generate_and_store_variants(instance, field_names=field_names)
+    except Exception as exc:  # noqa: BLE001 — never break the task chain
+        logger.error(
+            "[ImageVariants] Failed to generate variants for %s.%s pk=%s: %s",
+            app_label,
+            model_name,
+            pk,
+            exc,
+        )

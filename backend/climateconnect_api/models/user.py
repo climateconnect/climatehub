@@ -71,6 +71,19 @@ class UserProfile(models.Model):
         blank=True,
     )
 
+    image_variants = models.JSONField(
+        help_text="Map of generated WebP variants, keyed by image field and "
+        "then by variant. Values are storage-relative paths, resolved to URLs "
+        "by ImageVariantsField. "
+        'e.g. {"image": {"1200": "<path>", "600": "<path>"}, '
+        '"thumbnail_image": {"webp": "<path>"}, '
+        '"background_image": {"1200": "<path>", "600": "<path>"}}',
+        verbose_name="Image variants",
+        null=True,
+        blank=True,
+        default=dict,
+    )
+
     # Field not in use. Keeping temporarily for backwards compatibility
     country = models.CharField(
         help_text="User's country",

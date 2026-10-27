@@ -492,6 +492,62 @@ const response = await apiRequest({
 - Uploaded files automatically sent to Azure
 - URLs generated for frontend access
 
+#### Responsive WebP image variants
+
+`Project`, `Organization`, and `UserProfile` images are uploaded at whatever
+resolution the uploader's crop produced, which is far larger than any surface
+renders. Rather than serve those bytes, the backend generates resized WebP
+**variants** at upload time and the frontend picks the smallest one that fits.
+
+**How it fits together**
+
+```
+Upload (data URL) ──► ImageField ──► post_save signal
+                                          │
+                                          │ transaction.on_commit
+                                          ▼
+                         organization.tasks.generate_image_variants  (Celery)
+                                          │
+                                          ▼
+                    climateconnect_main.utility.images.generate_webp_variant
+                                          │
+                     storage.save(...)    ▼     image_variants = {paths}
+                                   Azure Blob Storage
+```
+
+| Concern | Where |
+|---|---|
+| Pillow encode/resize | `climateconnect_main/utility/images.py` |
+| Orchestration, change detection, cleanup | `climateconnect_main/utility/image_variants.py` |
+| Celery task | `organization/tasks.py` → `generate_image_variants` |
+| Signal wiring | `organization/signals.py`, `climateconnect_api/signals.py` |
+| Backfill | `manage.py backfill_image_variants` |
+| Frontend consumption | `frontend/src/components/general/ResponsiveImage.tsx` |
+
+**Widths** (`IMAGE_VARIANT_CONFIGS`): `image` and `background_image` get 1200px
+and 600px WebP at quality 80; `thumbnail_image` gets a format-only WebP
+conversion, since the frontend already caps it at 290x160 on upload.
+
+**Constraints that shaped this design**
+
+- **Never touch `FieldFile.path`.** It raises `NotImplementedError` on
+  `AzureStorage`, so everything goes through `FieldFile.open()`, `ContentFile`,
+  and `storage.save()`. An earlier attempt at this feature used `.path` and was
+  a silent no-op in every environment except a local dev filesystem.
+- **Never break a save.** Variant generation runs in a Celery task, and both
+  the task and the Pillow helper catch and log their errors. A corrupt or
+  undecodable upload leaves the entity saved with its original image.
+- **Never re-encode on an unrelated save.** A `pre_save` receiver records which
+  image fields actually changed; `post_save` dispatches only for those, so a
+  ranking-cache update does not queue image work.
+- **`image_variants` stores storage-relative paths, not URLs.** URLs are built
+  per-request by `ImageVariantsField` (see `build_variant_urls`), so changing
+  the storage account or putting a CDN in front does not invalidate every row.
+
+**Legacy rows** have no variants and never will unless backfilled. Every read
+path falls back to the stored original, so an un-backfilled row renders exactly
+as it did before.
+
 ---
 
 ## Infrastructure & DevOps
@@ -865,7 +921,8 @@ Most tasks use the default queue. One task is routed to a dedicated queue via
 2. **Data Processing**
    - Bulk imports/exports
    - Report generation
-   - Image processing/compression
+   - Image processing/compression — `generate_image_variants` builds the
+     resized WebP variants described under *Storage: Azure Blob Storage*
 
 3. **Scheduled Tasks (Celery Beat)**
    - Periodic cleanup jobs
