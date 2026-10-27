@@ -187,6 +187,10 @@
     "en": "This message is about the event {project_name}",
     "de": "Diese Nachricht betrifft die Veranstaltung {project_name}"
   },
+  "chat_message_origin_organization": {
+    "en": "This message is about the organization {organization_name}",
+    "de": "Diese Nachricht betrifft die Organisation {organization_name}"
+  },
   "close_chat": {
     "en": "Close chat",
     "de": "Chat schließen"

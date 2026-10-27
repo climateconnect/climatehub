@@ -85,3 +85,31 @@ describe("Message project origin chip", () => {
     expect(screen.getByText(/This message is about the registration for/)).toBeInTheDocument();
   });
 });
+
+describe("Message organization origin chip", () => {
+  const organizationOrigin = () => {
+    mockApiRequest.mockResolvedValue({
+      data: { organization_name: "Green Org", organization_url_slug: "green-org" },
+    });
+    return { origin_type: "organization", origin_id: nextId++ };
+  };
+
+  it("renders the chip linking to the organization", async () => {
+    renderMessage(organizationOrigin());
+    await waitFor(() => expect(screen.getByText("Green Org")).toBeInTheDocument());
+    expect(screen.getByText(/This message is about the organization/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Green Org" })).toHaveAttribute(
+      "href",
+      "/organizations/green-org"
+    );
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringMatching(/^\/api\/organization-origin\/\d+\/$/) })
+    );
+  });
+
+  it("renders German wording", async () => {
+    renderMessage(organizationOrigin(), "de");
+    await waitFor(() => expect(screen.getByText("Green Org")).toBeInTheDocument());
+    expect(screen.getByText(/Diese Nachricht betrifft die Organisation/)).toBeInTheDocument();
+  });
+});
