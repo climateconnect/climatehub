@@ -44,7 +44,15 @@ const TabsContainerWithoutPadding = styled(Container)(({ theme }) => ({
   justifyContent: "space-between",
   alignItems: "center",
   borderBottom: `1px solid ${theme.palette.grey[500]}`,
+  // Never let the tab bar widen the page; overflowing tabs scroll inside the bar
+  overflow: "hidden",
 }));
+
+// Allow the tabs to shrink inside the flex container so the scrollable variant kicks in
+const TabsWrapper = styled("div")({
+  flex: 1,
+  minWidth: 0,
+});
 
 const TabContentContainer = styled(Container)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -60,10 +68,14 @@ const DialogText = styled("span")({
 const StyledTab = styled(Tab)(({ theme }) => ({
   paddingLeft: theme.spacing(2),
   paddingRight: theme.spacing(2),
-  width: 145,
+  // Size to the label (e.g. "Registrations • 12") instead of a fixed width that cuts it off
+  minWidth: 145,
+  maxWidth: "none",
   whiteSpace: "nowrap",
-  [theme.breakpoints.down("sm")]: {
-    width: 125,
+  [theme.breakpoints.down("md")]: {
+    minWidth: 0,
+    paddingLeft: theme.spacing(1.5),
+    paddingRight: theme.spacing(1.5),
   },
   "&.Mui-selected": {
     color: theme.palette.background.default_contrastText,
@@ -664,9 +676,11 @@ export default function ProjectPageRoot({
       />
 
       <TabsContainerWithoutPadding disableGutters>
-        <div ref={projectTabsRef}>
+        <TabsWrapper ref={projectTabsRef}>
           <StyledTabs
-            variant={screenSize.belowSmall ? "fullWidth" : "standard"}
+            variant={screenSize.belowSmall ? "scrollable" : "standard"}
+            scrollButtons={screenSize.belowSmall ? "auto" : false}
+            allowScrollButtonsMobile
             value={tabValue}
             onChange={handleTabChange}
           >
@@ -675,7 +689,7 @@ export default function ProjectPageRoot({
             <StyledTab label={teamTabLabel()} />
             <StyledTab label={discussionTabLabel()} />
           </StyledTabs>
-        </div>
+        </TabsWrapper>
 
         {!screenSize.belowSmall && (
           <ActionButtonsGroup>

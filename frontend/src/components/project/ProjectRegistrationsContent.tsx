@@ -6,12 +6,15 @@ import {
   Chip,
   CircularProgress,
   IconButton,
+  InputAdornment,
   Link,
   Menu,
   MenuItem,
   TextField,
+  Theme,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -133,35 +136,75 @@ function RegistrationsToolbar({
   csvFields,
   printFields,
 }: ToolbarProps) {
+  const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   return (
-    <GridToolbarContainer sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}>
+    // Desktop: one row. Mobile: full-width search, then email + export together in one row
+    <GridToolbarContainer
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: { xs: "wrap", sm: "nowrap" },
+        gap: 1,
+        px: { xs: 0, sm: 1 },
+        py: 1,
+      }}
+    >
       <TextField
         size="small"
         placeholder={placeholder}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         InputProps={{
-          startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: "text.secondary" }} />,
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+            </InputAdornment>
+          ),
         }}
-        aria-label={placeholder}
-        sx={{ flex: 1, maxWidth: 360 }}
+        inputProps={{ "aria-label": placeholder }}
+        sx={{
+          flex: { xs: "1 0 100%", sm: 1 },
+          maxWidth: { sm: 360 },
+          "& .MuiInputBase-root": { minHeight: (theme: Theme) => theme.spacing(5) },
+        }}
       />
-      <Box sx={{ flex: 1 }} />
+      {/* Spacer only on wider screens */}
+      <Box sx={{ flex: 1, display: { xs: "none", sm: "block" } }} />
       {onOpenEmailModal && (
         <Button
-          size="small"
+          size={isNarrowScreen ? "small" : "medium"}
           variant="outlined"
-          startIcon={<EmailOutlinedIcon fontSize="small" />}
+          startIcon={
+            isNarrowScreen ? <EmailOutlinedIcon fontSize="small" /> : <EmailOutlinedIcon />
+          }
           onClick={onOpenEmailModal}
           aria-label={emailGuestsLabel}
+          // Mobile: keep the (long German) label on one line; it gets the free space next to export
+          sx={{
+            // Natural width; only shrinks when the row is too narrow
+            flex: "0 1 auto",
+            minWidth: 0,
+            whiteSpace: "nowrap",
+            fontSize: { xs: "0.8125rem", sm: undefined },
+            textTransform: { xs: "none", sm: undefined },
+            // Same height as the search field, taken from the theme
+            minHeight: (theme: Theme) => (isNarrowScreen ? theme.spacing(5) : undefined),
+            px: { xs: 1, sm: undefined },
+            "& .MuiButton-startIcon": {
+              ml: { xs: 0, sm: undefined },
+              mr: { xs: 0.5, sm: undefined },
+            },
+          }}
         >
           {emailGuestsLabel}
         </Button>
       )}
-      <GridToolbarExport
-        csvOptions={{ fileName: csvFileName, fields: csvFields }}
-        printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
-      />
+      <Box sx={{ flex: "0 0 auto", display: "flex" }}>
+        <GridToolbarExport
+          csvOptions={{ fileName: csvFileName, fields: csvFields }}
+          printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
+        />
+      </Box>
     </GridToolbarContainer>
   );
 }

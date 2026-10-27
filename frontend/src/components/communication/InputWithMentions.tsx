@@ -3,6 +3,7 @@ import { ClassNames } from "@emotion/react";
 import React, { useContext } from "react";
 import { Mention, MentionsInput } from "react-mentions";
 import { apiRequest } from "../../../public/lib/apiOperations";
+import MiniProfilePreview from "../profile/MiniProfilePreview";
 import UserContext from "../context/UserContext";
 
 const InputWithMentionsBox = styled("div")(({ theme }) => ({
@@ -44,6 +45,17 @@ const StyledMentionsInput = styled(MentionsInput)(({ theme }) => ({
   },
 }));
 
+type MentionSuggestion = {
+  first_name: string;
+  last_name: string;
+  thumbnail_image?: string | null;
+  location?: string | null;
+};
+
+export const renderMentionSuggestion = (suggestion: MentionSuggestion) => (
+  <MiniProfilePreview profile={suggestion} nolink size="medium" title={suggestion.location} />
+);
+
 export default function InputWithMentions({ baseUrl, value, onChange, placeholder, onKeyDown }) {
   const { locale } = useContext(UserContext);
 
@@ -56,10 +68,13 @@ export default function InputWithMentions({ baseUrl, value, onChange, placeholde
       locale: locale,
     })
       .then((response) => {
-        console.log(response.data.results);
         return response.data.results.map((user) => ({
           display: user.first_name + " " + user.last_name,
           id: user.url_slug,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          thumbnail_image: user.thumbnail_image,
+          location: user.location,
         }));
       })
       .then(callback)
@@ -86,6 +101,7 @@ export default function InputWithMentions({ baseUrl, value, onChange, placeholde
                 trigger="@"
                 markup={`@@@____id__^^____display__@@@^^^`}
                 data={lookupUsers}
+                renderSuggestion={renderMentionSuggestion}
                 /*TODO(unused) allowSpaceInQuery */
               />
             </StyledMentionsInput>

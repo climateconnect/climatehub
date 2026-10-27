@@ -1,5 +1,5 @@
-import { Container, IconButton } from "@mui/material";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import { Container } from "@mui/material";
+import MemberSearchOption from "../search/MemberSearchOption";
 import React, { useContext } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
 import getTexts from "../../../public/texts/texts";
@@ -106,16 +106,9 @@ export default function AddTeam({
     });
   };
 
-  const renderSearchOption = ({ key, ...props }, option) => {
-    return (
-      <li key={key} {...props}>
-        <IconButton size="large">
-          <AddCircleOutlineIcon />
-        </IconButton>
-        {option.first_name + " " + option.last_name}
-      </li>
-    );
-  };
+  const renderSearchOption = (props, option) => (
+    <MemberSearchOption key={props.key} liProps={props} option={option} />
+  );
 
   const backgroundContrastColor = getBackgroundContrastColor(theme);
 
