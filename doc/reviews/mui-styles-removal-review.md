@@ -188,8 +188,8 @@ The newsletter box's `&:after` pseudo-element used `content: " ''"`, with a spac
 
 | #   | Finding                             | Status               | Notes                                                                                                                                                                                                  |
 | --- | ----------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | TranslateTexts scroll prop          | **Fixed**            | `ActionBar` is static again and gets `style={{ bottom: visibleFooterHeight }}`, like `ProjectInteractionButtons`.                                                                                      |
-| 2   | `VisibleFooterHeight` returns `NaN` | **Fixed**            | Uses `parseInt(theme.spacing(8), 10)`. This changes behaviour: see new finding 10.                                                                                                                     |
+| 1   | TranslateTexts scroll prop          | **Fixed**            | `ActionBar` is static again. Since `25b028c92` it no longer has a scroll-driven `bottom` at all (see finding 10).                                                                                      |
+| 2   | `VisibleFooterHeight` returns `NaN` | **Obsolete**         | First fixed with `parseInt`, then the hook was deleted in `25b028c92` (see finding 10).                                                                                                                |
 | 3   | GenericDialog close button          | **Fixed**            | New `CloseButtonRight` (`grey[500]`) and `className={closeButtonRightStyle}`. The caller's emotion class (HubSupportersDialog) still wins, because emotion merges it after the component's own styles. |
 | 4   | `-theme.spacing(1)`                 | **Partly fixed**     | Fixed in `ProfileRoot.tsx` and `AccountPage.tsx`. Still missing in `pages/organizations/[organizationUrl].tsx` (`innerIconStyles`); see new finding 11.                                                |
 | 5   | Outdated "still on makeStyles"      | Open (follow-up)     | Comments still in `EventCardWide.tsx:24` and `ShareProject.tsx:14`.                                                                                                                                    |
@@ -220,6 +220,90 @@ With the hook fixed, the fixed mobile action bars on the project page and on the
 
 **Recommendation:** check on a phone (project page, edit project, edit organisation) that the bar ends up just above the footer. Optionally add `[]` / `[footerHeightProp]` as dependencies of the effect and clamp the value to `[0, footerHeight]`. This can be a follow-up.
 
+**Visual check (2026-10-27):** confirmed. The bar now gets pushed up when the footer comes into view. On master the bar never moved and covered the footer, so the imprint and the other footer links were not reachable on these pages (they were not reachable at the time of the first review either).
+
+#### Update: developer fix `25b028c92` ("fixed footer movment when scroll to the bottom")
+
+The reviewer's proposal was to keep the mobile bar pinned to the bottom of the screen and give the footer extra space underneath it, so the footer (imprint etc.) scrolls into view above the bar. The commit follows that idea:
+
+- `VisibleFooterHeight.ts` is deleted. `ProjectInteractionButtons` and `TranslateTexts` set `bottom: 0` on their bars and no longer re-render on scroll. This also resolves the two side effects above.
+- `Footer.tsx`: below `md` (900px), the absolutely positioned footer gets `marginBottom: theme.spacing(8)` (64px).
+- `WideLayout.tsx`: below `md`, the main content's bottom margin goes from 48px to 112px. `layout.tsx`: below `md`, `main` gets a 64px bottom margin.
+- The desktop floating contact card on the project page is now fixed at `bottom: 2`.
+
+Checks after the commit: `yarn check-types` passes · ESLint 0 errors · Jest **1001/1001 tests in 73 suites pass**.
+
+The direction is right, and removing the scroll-tracking hook is a clear simplification. Two problems remain with how the space is reserved:
+
+1. **[Medium] The space is added on every page, not only pages with a bar.** The margins sit in the shared `Footer`, `WideLayout` and `layout`. Below 900px, every page using them now gets a 64px empty strip under the footer and 64px more gap above it. That covers about 25 pages with no bottom bar (home, browse, login, profiles, …). Pages built with Webflow/devlink don't use this footer and are not affected.
+2. **[Low] A fixed 64px does not match the bars.** Their heights differ:
+
+   - the project bar is 8px padding + 48px dense toolbar = 56px; with the "x / y seats available" row on events with registration it is about 80px, so roughly the bottom 16px of the footer stays hidden there;
+   - the translation bar is about 48px;
+   - the create-project previous/next bar (`NavigationButtons`) has yet another height.
+
+   These heights come from reading the code, not from measuring in the browser.
+
+The desktop contact card at `bottom: 2` covers the bottom-right corner of the footer at the end of the page. That is not new: on master the card never moved either.
+
+#### Recommendation: the bar publishes its own height as a CSS variable
+
+No new layout props are wanted (there are already too many). Instead, each bar measures itself and writes its height to a CSS variable on `<html>` while it is mounted. The footer and the main content read the variable. Pages without a bar never set it, so the fallback is 0.
+
+```ts
+// src/components/hooks/useBottomBarSpace.ts
+// Publishes the height of a fixed bottom bar as --bottom-bar-height while it is mounted
+export default function useBottomBarSpace<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(([entry]) =>
+      root.style.setProperty(
+        "--bottom-bar-height",
+        `${entry.borderBoxSize[0].blockSize}px`
+      )
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--bottom-bar-height");
+    };
+  }, []);
+  return ref;
+}
+```
+
+- **Bars:** one line each, e.g. `<ActionBar ref={useBottomBarSpace()} …>`.
+- **`Footer`:** `marginBottom: "var(--bottom-bar-height, 0px)"` instead of the fixed 64px below `md`.
+- **`WideLayout` / `layout`:** `marginBottom: calc(<normal spacing> + var(--bottom-bar-height, 0px))` instead of the fixed 112px / 64px below `md`.
+
+What this solves:
+
+- **Real heights:** every bar reports its actual height, including the seats row and the create-project navigation. Nothing is hard-coded.
+- **No breakpoints in the footer:** a bar that is not rendered, or hidden with `display: none`, reports 0. The bars already decide at which widths they appear.
+- **Pages without a bar look like master again:** the variable is unset there, so the margin is 0.
+- **No props through the layouts:** the bar and the footer only share the variable name.
+
+Where to use it. These are the bottom bars found in the code:
+
+- `ProjectInteractionButtons` (project page, below `md`)
+- `TranslateTexts` (translation step of the edit/create flows, below `md`)
+- `NavigationButtons` in its `$sticky` and `$fixedOnMobile` modes (create project and the other step flows)
+- `MobilePageNav` (browse, events, members, organisations, hub pages)
+- to check: `ContactAmbassadorButton` on hub pages, and the inbox (it uses `FixedHeightLayout`, whose footer is not absolutely positioned)
+
+Known limits, acceptable for now:
+
+- **Two bars at once:** the last one to update the variable wins. If that really happens anywhere, e.g. `MobilePageNav` together with the ambassador button, put the hook on their shared container.
+- **First paint:** the variable is set only after hydration. The footer is at the end of the page, so the jump is not visible.
+- **Desktop contact card:** it is a floating corner card rather than a full-width bar. Leave it out.
+
+#### Follow-up (separate issue): let the layout own the mobile bottom bar
+
+The cleaner long-term design is a layout that owns the mobile bottom bar. Pages would hand their bar to the layout, which places it and reserves its space. That would remove the per-component mobile special cases (`$fixedOnMobile`, `$sticky`, the individual fixed `AppBar`s) that clutter the frontend today. It is out of scope for the `@mui/styles` removal. The `useBottomBarSpace` call sites then list exactly which components have to move, and the hook can be deleted once the refactor is done.
+
 ### 11. [CLEANUP · downgraded after visual check] Organisation page icons still lack the −8px margin
 
 **File:** `frontend/pages/organizations/[organizationUrl].tsx:52` (`innerIconStyles`, used by `ShareProjectInnerIcon` and `ManageMembersInnerIcon`)
@@ -234,17 +318,18 @@ Master had the same `marginLeft: -theme.spacing(1)` rule here. The branch droppe
 
 ## Recommended next steps
 
-| #   | Finding                               | Recommendation                                                               |
-| --- | ------------------------------------- | ---------------------------------------------------------------------------- |
-| 1–3 | Scroll prop, `NaN` hook, close button | Fixed (re-review 2026-10-27)                                                 |
-| 4   | `-theme.spacing(1)`                   | Fixed in two of three places; no visible difference (see finding 11)         |
-| 5–8 | Cleanup                               | Follow-up PR is fine                                                         |
-| 9   | Unquoted `content` in LargeFooter     | Fixed                                                                        |
-| 10  | Action bars now move on scroll        | Check on a phone before merge; the effect deps / clamping can be a follow-up |
-| 11  | Organisation page icon margin         | Cleanup only; checked visually, no noticeable difference                     |
+| #   | Finding                               | Recommendation                                                                                                                                      |
+| --- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1–3 | Scroll prop, `NaN` hook, close button | Fixed (re-review 2026-10-27)                                                                                                                        |
+| 4   | `-theme.spacing(1)`                   | Fixed in two of three places; no visible difference (see finding 11)                                                                                |
+| 5–8 | Cleanup                               | Follow-up PR is fine                                                                                                                                |
+| 9   | Unquoted `content` in LargeFooter     | Fixed                                                                                                                                               |
+| 10  | Bottom bars vs footer                 | Before merge: replace the global 64px / 112px margins from `25b028c92` with the `--bottom-bar-height` variable. Layout refactor as a separate issue |
+| 11  | Organisation page icon margin         | Cleanup only; checked visually, no noticeable difference                                                                                            |
 
 ## Verification notes
 
 - Findings 1, 2, 3 and 4 were reproduced or confirmed by reading the code in the main session. `theme.spacing(8) === "64px"` was confirmed by running it in Jest.
 - Findings 5–8 were confirmed by reading the cited code. The suggested fixes have not been prototyped.
 - Finding 9 was reported from manual testing and has been fixed. Findings 1–3 were fixed in `75550de3f`, and finding 4 partly (see the re-review).
+- Finding 10 was checked visually by the reviewer. The bar heights and the affected pages in the update for `25b028c92` come from reading the code. The `useBottomBarSpace` hook has not been prototyped.
