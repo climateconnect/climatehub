@@ -3,10 +3,10 @@ import makeStyles from "@mui/styles/makeStyles";
 import AutoCompleteSearchBar from "../../../../src/components/search/AutoCompleteSearchBar";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../../../src/components/context/UserContext";
-import { TextField, Button, IconButton } from "@mui/material";
+import { TextField, Button } from "@mui/material";
 import { apiRequest } from "../../../../public/lib/apiOperations";
 import MiniProfilePreview from "../../profile/MiniProfilePreview";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import MemberSearchOption from "../../search/MemberSearchOption";
 import Cookies from "universal-cookie";
 import { useRouter } from "next/router";
 
@@ -54,16 +54,9 @@ export default function UserSearchField({ cancelUserSearch, setErrorMessage }) {
   };
   const getUsersToFilterOut = () => [user, ...newChatMembers];
 
-  const renderSearchOption = ({ key, ...props }, option) => {
-    return (
-      <li key={key} {...props}>
-        <IconButton size="large">
-          <AddCircleOutlineIcon />
-        </IconButton>
-        {option.first_name + " " + option.last_name}
-      </li>
-    );
-  };
+  const renderSearchOption = (props, option) => (
+    <MemberSearchOption key={props.key} liProps={props} option={option} />
+  );
   const handleRemoveMember = (member) => {
     setNewChatMembers([...newChatMembers.filter((m) => m.id !== member.id)]);
   };

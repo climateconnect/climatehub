@@ -844,12 +844,15 @@ Most tasks use the default queue. One task is routed to a dedicated queue via
 > Locally, `docker-compose.yml` defines a `celery-lookup` service, and `make celery` starts a
 > `lookup` worker next to the default one, so a developer running the standard commands gets a
 > working platform. `make celery_lookup` starts only the `lookup` worker, for when you are working
-> on autocomplete itself. On staging and production `start_backend.sh` starts the `lookup` worker as
-> a second background process alongside gunicorn and the default worker in the same App Service
-> container.
+> on autocomplete itself. On Azure, `start_backend.sh` starts the `lookup` worker as a second
+> background process alongside gunicorn and the default worker, but **only where `RUN_CELERY` is
+> `true`**: the production slot. `slot2` has the slot-sticky `RUN_CELERY=false` and runs no Celery
+> at all, because it shares the broker and the DB with production (see `RUN_CELERY` in
+> `doc/environment-variables.md`).
 >
 > **`fetch_autocomplete`'s rate limit is per worker process.** Two workers consuming `lookup` means
-> 2×2 req/s to LocationIQ, so exactly one `lookup` worker per deployment. Do not scale that service
+> 2×2 req/s to LocationIQ, so exactly one `lookup` worker per broker, across all slots and backends
+> that share it. Do not scale that service
 > (or the App Service instance count) without replacing `rate_limit` with a distributed limiter.
 
 **Use Cases**:
