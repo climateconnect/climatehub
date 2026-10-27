@@ -3,7 +3,7 @@
 **Branch:** `migrate-away-from-mui-style`
 **Issue:** [#2290](https://github.com/climateconnect/climatehub/issues/2290)
 **Reviewed against:** `master` (after merging `origin/master` at `c27b56f3c` into the branch, merge commit `3cfb7eef6`)
-**Date:** 2026-10-21
+**Date:** 2026-10-21 · **Re-reviewed:** 2026-10-27 (see [Re-review](#re-review-2026-10-27))
 **Reviewer:** Claude (code-review agent, forked, effort: high; findings re-verified in the main session)
 
 ---
@@ -178,19 +178,71 @@ The newsletter box's `&:after` pseudo-element used `content: " ''"`, with a spac
 
 ---
 
+## Re-review (2026-10-27)
+
+**Scope:** the developer's fix commit `75550de3f` ("fixed review.md points") and the four `master` merges since the first review (`7d4412e86`, `01c71ba0b`, `902c825e8`, `6d9059dcc`).
+
+**Checks:** `yarn check-types` passes · `eslint src pages public`: 0 errors, 3 `import/no-named-as-default` warnings that are not related to this branch (`CharacterCount`) · Prettier clean on all changed files · Jest **999/999 tests in 73 suites pass** · no `@mui/styles` left in `src`, `pages`, `public`, `package.json` or `yarn.lock`. The ESLint `no-restricted-imports` guard is in place.
+
+### Status of the findings
+
+| #   | Finding                             | Status               | Notes                                                                                                                                                                                                  |
+| --- | ----------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | TranslateTexts scroll prop          | **Fixed**            | `ActionBar` is static again and gets `style={{ bottom: visibleFooterHeight }}`, like `ProjectInteractionButtons`.                                                                                      |
+| 2   | `VisibleFooterHeight` returns `NaN` | **Fixed**            | Uses `parseInt(theme.spacing(8), 10)`. This changes behaviour: see new finding 10.                                                                                                                     |
+| 3   | GenericDialog close button          | **Fixed**            | New `CloseButtonRight` (`grey[500]`) and `className={closeButtonRightStyle}`. The caller's emotion class (HubSupportersDialog) still wins, because emotion merges it after the component's own styles. |
+| 4   | `-theme.spacing(1)`                 | **Partly fixed**     | Fixed in `ProfileRoot.tsx` and `AccountPage.tsx`. Still missing in `pages/organizations/[organizationUrl].tsx` (`innerIconStyles`); see new finding 11.                                                |
+| 5   | Outdated "still on makeStyles"      | Open (follow-up)     | Comments still in `EventCardWide.tsx:24` and `ShareProject.tsx:14`.                                                                                                                                    |
+| 6   | Duplicated transient-prop filter    | Open (follow-up)     | The merges added more copies, e.g. `notTransient` in `chat/Message.tsx`.                                                                                                                               |
+| 7   | `<ClassNames>` + `&&` hack          | Open (follow-up)     | Unchanged in `HubSupportersDialog.tsx:132`.                                                                                                                                                            |
+| 8   | Footer hand-kept forward-prop list  | Open (follow-up)     | Unchanged in `Footer.tsx:15`.                                                                                                                                                                          |
+| 9   | Unquoted `content` in LargeFooter   | Fixed (first review) |                                                                                                                                                                                                        |
+
+### Merges with `master` since the first review
+
+The conflicts were resolved in the same way as before: the branch's `styled()` version was kept and master's additions were rewritten in it. Checked file by file with `git show --cc`:
+
+- `7d4412e86`: chat message origin (`ChatDrawer`, `Message`). The origin box was carried over as `OriginBox` (renamed so it does not clash with the imported `OriginContext` type), and the icon size moved from CSS to `width`/`height` attributes. `StylesThemeProvider` was removed from `ChatDrawer.test.tsx` and the new `Message.test.tsx`.
+- `902c825e8`: guest seats. Added `WideField` (EditEventRegistrationModal), `SeatSelector` (EventRegistrationModal), the seats setting in `ProjectRegistrationsContent`, and the seats block in `ViewRegistrationAnswersModal`, all in `styled()`. Every class that master's `EventRegistrationModal` used has a styled counterpart. `StylesThemeProvider` was removed from three test files.
+- `6d9059dcc`: member search option (`InputWithMentions`, `ManageMembers`, `AddTeam`) and the scrollable project tabs (`ProjectPageRoot`: `overflow: hidden` on the bar, new `TabsWrapper`, label-sized `StyledTab`). `StylesThemeProvider` was removed from the new `MemberSearchOption.test.tsx` and `InputWithMentions.test.tsx`; their TODO about `MiniProfilePreview` still using `makeStyles` no longer applied.
+- `01c71ba0b`: merged without conflicts and brought no `@mui/styles` usage.
+
+No styles were lost and no `$` props leak in these resolutions.
+
+### 10. [BEHAVIOUR · Low · new, caused by the finding 2 fix] Mobile action bars now move, and the page re-renders on scroll
+
+**Files:** `frontend/src/components/hooks/VisibleFooterHeight.ts`; callers `ProjectPageRoot.tsx:131`, `TranslateTexts.tsx:158`
+
+With the hook fixed, the fixed mobile action bars on the project page and on the translate/edit pages now rise by up to 64px when the user scrolls to the bottom. Before, they never moved, on master as well. That is the intended behaviour, but nobody has seen it yet. Two side effects:
+
+- **Re-renders:** with `NaN`, `setVisibleFooterHeight(NaN)` was a no-op (`Object.is(NaN, NaN)`). Now every animation frame inside the bottom 64px sets a new value and re-renders the whole `ProjectPageRoot` / `TranslateTexts` tree. The hook's `useEffect` also has no dependency array, so it removes and re-adds the scroll listener after every one of those renders. Both are small, but they are new costs on a large component.
+- **Assumed footer height:** the hook assumes the visible footer is 64px. On iOS, rubber-band overscroll at the bottom makes `scrollYInverted` negative, so for a moment the bar sits higher than 64px.
+
+**Recommendation:** check on a phone (project page, edit project, edit organisation) that the bar ends up just above the footer. Optionally add `[]` / `[footerHeightProp]` as dependencies of the effect and clamp the value to `[0, footerHeight]`. This can be a follow-up.
+
+### 11. [BUG · Low · inconsistency after the finding 4 fix] Organisation page icons still lack the −8px margin
+
+**File:** `frontend/pages/organizations/[organizationUrl].tsx:52` (`innerIconStyles`, used by `ShareProjectInnerIcon` and `ManageMembersInnerIcon`)
+
+Master had the same `marginLeft: -theme.spacing(1)` rule here. The branch dropped it, and the fix only touched the two other copies. The "share a project" icon on the profile page now sits 8px further left than the same button on the organisation page.
+
+**Fix:** add `marginLeft: theme.spacing(-1)` to `innerIconStyles`. Check all three pages visually; the first review's note that the icons shift by 8px still applies, and the shift has not been checked visually yet.
+
+---
+
 ## Recommended next steps
 
-| #   | Finding                             | Recommendation                                                                                                                               |
-| --- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | TranslateTexts scroll prop          | Fix before merge (small change)                                                                                                              |
-| 2   | `VisibleFooterHeight` returns `NaN` | Fix together with 1, ideally as a separate commit, since it changes behaviour that also exists on master (the action bars will start moving) |
-| 3   | GenericDialog close button          | Fix before merge (small change)                                                                                                              |
-| 4   | `-theme.spacing(1)`                 | Fix and check visually (icons shift by 8px)                                                                                                  |
-| 5–8 | Cleanup                             | Follow-up PR is fine                                                                                                                         |
-| 9   | Unquoted `content` in LargeFooter   | Fixed                                                                                                                                        |
+| #   | Finding                               | Recommendation                                                               |
+| --- | ------------------------------------- | ---------------------------------------------------------------------------- |
+| 1–3 | Scroll prop, `NaN` hook, close button | Fixed (re-review 2026-10-27)                                                 |
+| 4   | `-theme.spacing(1)`                   | Fixed in two of three places; finish with finding 11                         |
+| 5–8 | Cleanup                               | Follow-up PR is fine                                                         |
+| 9   | Unquoted `content` in LargeFooter     | Fixed                                                                        |
+| 10  | Action bars now move on scroll        | Check on a phone before merge; the effect deps / clamping can be a follow-up |
+| 11  | Organisation page icon margin         | Fix before merge (one line) and check the three pages visually               |
 
 ## Verification notes
 
 - Findings 1, 2, 3 and 4 were reproduced or confirmed by reading the code in the main session. `theme.spacing(8) === "64px"` was confirmed by running it in Jest.
 - Findings 5–8 were confirmed by reading the cited code. The suggested fixes have not been prototyped.
-- Finding 9 was reported from manual testing and has been fixed. Findings 1–8 have not been fixed on the branch yet.
+- Finding 9 was reported from manual testing and has been fixed. Findings 1–3 were fixed in `75550de3f`, and finding 4 partly (see the re-review).
