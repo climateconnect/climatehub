@@ -717,6 +717,13 @@ class CreateProjectView(APIView):
     def post(self, request):
         if "parent_organization" in request.data:
             organization = check_organization(int(request.data["parent_organization"]))
+            if organization and organization.is_draft:
+                return Response(
+                    {
+                        "message": "A draft organization can not be a parent organization."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         else:
             organization = None
 
@@ -1220,6 +1227,19 @@ class ProjectAPIView(APIView):
                         {
                             "parent_organization": [
                                 "Organization not found for the provided id."
+                            ]
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if (
+                    organization.is_draft
+                    and project_parents.parent_organization_id != organization.id
+                ):
+                    return Response(
+                        {
+                            "parent_organization": [
+                                "A draft organization can not be a parent organization."
                             ]
                         },
                         status=status.HTTP_400_BAD_REQUEST,
@@ -1963,10 +1983,10 @@ class ManageJoinProjectView(RetrieveUpdateDestroyAPIView):
                 )
 
             if request_action == "approve":
-                request_manager.approve_request()
+                request_manager.approve_request(decided_by=request.user)
                 create_project_join_request_approval_notification(request_id=request_id)
             elif request_action == "reject":
-                request_manager.reject_request()
+                request_manager.reject_request(decided_by=request.user)
             else:
                 raise NotImplementedError(
                     f"membership request action <{request_action}> is not implemented"

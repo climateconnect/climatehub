@@ -226,19 +226,27 @@ class MembershipRequestsAdmin(admin.ModelAdmin):
         "target_project__url_slug",
         "target_organization__name",
         "target_organization__url_slug",
+        "decided_by__username",
     )
     list_display = (
         "user",
         "target_project",
         "target_organization",
         "request_status",
+        "decided_by",
         "requested_at",
         "short_message",
     )
     list_filter = ("target_membership_type", "request_status", "requested_at")
-    list_select_related = ("user", "target_project", "target_organization")
+    list_select_related = (
+        "user",
+        "target_project",
+        "target_organization",
+        "decided_by",
+    )
     ordering = ("-requested_at",)
     raw_id_fields = ("user", "target_project", "target_organization")
+    readonly_fields = ("decided_by",)
 
     @admin.display(description="Message")
     def short_message(self, obj):
@@ -290,6 +298,7 @@ class EventRegistrationConfigAdmin(admin.ModelAdmin):
     list_display = (
         "project",
         "max_participants",
+        "max_seats_per_registration",
         "registration_end_date",
         "status",
         "created_at",
@@ -313,6 +322,7 @@ class EventRegistrationAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "get_event_name",
+        "number_of_seats",
         "registered_at",
     )
     list_filter = ("registered_at",)

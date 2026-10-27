@@ -1,22 +1,35 @@
 import { HubData, LinkedHub, LocaleType } from "../../src/types";
 import { apiRequest } from "./apiOperations";
 
-const getHubData = async (url_slug: string, locale: LocaleType): Promise<HubData | null> => {
+type HubDataResult = {
+  hubData: HubData | null;
+  // true only when the API answered 404, i.e. the hub really does not exist.
+  // Other failures (5xx, timeout, network) leave this false.
+  notFound: boolean;
+};
+
+const getHubDataResult = async (url_slug: string, locale: LocaleType): Promise<HubDataResult> => {
   try {
     const resp = await apiRequest({
       method: "get",
       url: `/api/hubs/${url_slug}/`,
       locale: locale,
     });
-    return resp.data;
+    return { hubData: resp.data, notFound: false };
   } catch (err: any) {
+    if (err?.response?.status === 404) {
+      return { hubData: null, notFound: true };
+    }
     if (err.response && err.response.data) {
       console.log(err.response.data);
       console.error("Error in getHubData!: " + err.response?.data?.detail || err.message || err);
     }
-    return null;
+    return { hubData: null, notFound: false };
   }
 };
+
+const getHubData = async (url_slug: string, locale: LocaleType): Promise<HubData | null> =>
+  (await getHubDataResult(url_slug, locale)).hubData;
 
 const getHubAmbassadorData = async (url_slug, locale) => {
   try {
@@ -118,4 +131,10 @@ const getLinkedHubsData = async (url_slug: string) => {
   }
 };
 
-export { getHubData, getHubAmbassadorData, getHubSupportersData, getLinkedHubsData };
+export {
+  getHubData,
+  getHubDataResult,
+  getHubAmbassadorData,
+  getHubSupportersData,
+  getLinkedHubsData,
+};

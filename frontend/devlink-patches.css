@@ -10,12 +10,17 @@
  *    export correctly scopes its CSS, so this no longer leaks out.
  *    Restoring it globally to avoid visual regressions.
  *
+ * Scope roots use an attribute selector ([class*="wf-devlink-"]) instead of
+ * the concrete scope class (.wf-devlink-<hash>): the hash is regenerated on
+ * every devlink sync (see devlink/devlinkScope.ts), and a hardcoded hash here
+ * silently stops matching — breaking the main content container layout.
+ *
  * If Webflow fixes (1) upstream, the scoped block can be removed.
  * If the app is updated to not rely on (2), the img rule can be removed.
  */
 
 /* 1. Missing w-layout-blockcontainer (scoped) */
-@scope (.wf-devlink-a48d6d37b4950a21d6458e42fa364bf3) {
+@scope ([class*="wf-devlink-"]) {
   .w-layout-blockcontainer {
     margin-left: auto;
     margin-right: auto;
@@ -24,7 +29,7 @@
 }
 
 @media screen and (max-width: 991px) {
-  @scope (.wf-devlink-a48d6d37b4950a21d6458e42fa364bf3) {
+  @scope ([class*="wf-devlink-"]) {
     .w-layout-blockcontainer {
       max-width: 728px;
     }
@@ -32,7 +37,7 @@
 }
 
 @media screen and (max-width: 767px) {
-  @scope (.wf-devlink-a48d6d37b4950a21d6458e42fa364bf3) {
+  @scope ([class*="wf-devlink-"]) {
     .w-layout-blockcontainer {
       max-width: none;
     }

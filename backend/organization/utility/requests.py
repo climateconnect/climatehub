@@ -131,8 +131,9 @@ class MembershipRequestsManager:
 
         return request_obj
 
-    def approve_request(self):
+    def approve_request(self, decided_by):
         self.membership_request.request_status = RequestStatus.APPROVED.value
+        self.membership_request.decided_by = decided_by
         self.membership_request.approved_at = timezone.now()
 
         # create a record in ProjectMember
@@ -157,7 +158,8 @@ class MembershipRequestsManager:
         print(f"User {self.user} is approved for project: {self.project}")
         self.membership_request.save()
 
-    def reject_request(self):
+    def reject_request(self, decided_by):
         self.membership_request.request_status = RequestStatus.REJECTED.value
+        self.membership_request.decided_by = decided_by
         self.membership_request.rejected_at = timezone.now()
         self.membership_request.save()

@@ -34,7 +34,7 @@ export async function getServerSideProps(ctx) {
     { featureToggles, environment },
   ] = await Promise.all([
     getAvailabilityOptions(auth_token, ctx.locale),
-    getUserOrganizations(auth_token, ctx.locale),
+    getUserOrganizations(auth_token, ctx.locale, true),
     getRolesOptions(auth_token, ctx.locale),
     getProjectTypeOptions(ctx.locale),
     getHubTheme(hubUrl),

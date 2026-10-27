@@ -16,6 +16,7 @@ import React, { Fragment, ReactElement, useState } from "react";
 // Relative imports
 import AutoCompleteSearchBar from "../search/AutoCompleteSearchBar";
 import LocationSearchBar from "../search/LocationSearchBar";
+import ButtonLoader from "./ButtonLoader";
 import RequiredFieldsNotice from "./RequiredFieldsNotice";
 import SelectField from "./SelectField";
 
@@ -126,6 +127,7 @@ type Props = {
     submitMessage: string | ReactElement;
     headerMessage?: string | ReactElement;
     bottomMessage?: string | ReactElement;
+    secondarySubmitMessage?: string | ReactElement;
   };
   bottomLink?: { text: string; href: string };
   formAction?: { href: string; method: string; action?: any };
@@ -133,6 +135,16 @@ type Props = {
   percentage?: number;
   // eslint-disable-next-line no-unused-vars
   onSubmit: (...args: any[]) => void;
+  // A secondary action rendered as a plain (non-submit) button next to the
+  // main submit button. Since it isn't type="submit" it bypasses native
+  // required-field validation - e.g. for "save as draft" actions that
+  // intentionally skip the fields required by the main onSubmit.
+  // eslint-disable-next-line no-unused-vars
+  onSecondarySubmit?: (values: any) => void;
+  loadingSecondarySubmit?: boolean;
+  // Key of a field that must have a non-empty value before the secondary
+  // button is shown at all - e.g. "save as draft" still needs a name.
+  secondarySubmitEnabledField?: string;
   errorMessage?: ReactElement | string | null;
   className?: string;
   alignButtonsRight?: boolean;
@@ -149,6 +161,9 @@ export default function Form({
   usePercentage,
   percentage,
   onSubmit,
+  onSecondarySubmit,
+  loadingSecondarySubmit,
+  secondarySubmitEnabledField,
   errorMessage,
   onGoBack,
   alignButtonsRight,
@@ -425,6 +440,21 @@ export default function Form({
         >
           {messages.submitMessage}
         </Button>
+        {onSecondarySubmit &&
+          (!secondarySubmitEnabledField ||
+            !!String(values[secondarySubmitEnabledField] ?? "").trim()) && (
+            <Button
+              fullWidth={!alignButtonsRight}
+              variant="contained"
+              type="button"
+              color="grey"
+              className={`${alignButtonsRight ? classes.rightAlignedButton : classes.blockElement}`}
+              onClick={() => onSecondarySubmit(values)}
+              disabled={loadingSecondarySubmit}
+            >
+              {loadingSecondarySubmit ? <ButtonLoader /> : messages.secondarySubmitMessage}
+            </Button>
+          )}
       </form>
       {messages.bottomMessage || bottomLink ? (
         <Container className={classes.bottomMessageContainer}>

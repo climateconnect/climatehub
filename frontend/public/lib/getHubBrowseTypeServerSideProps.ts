@@ -2,10 +2,12 @@ import { GetServerSidePropsContext } from "next";
 import { getOrganizationTagsOptions, getSkillsOptions, getSectorOptions } from "./getOptions";
 import { getLocationFilteredBy } from "./locationOperations";
 import { extractHubUrlsFromContext, getAllHubs } from "./hubOperations";
-import { getHubData, getLinkedHubsData } from "./getHubData";
+import { getHubDataResult, getLinkedHubsData } from "./getHubData";
 import getHubTheme from "../../src/themes/fetchHubTheme";
 import isLocationHubLikeHub from "./isLocationHubLikeHub";
 import { LocaleType } from "../../src/types";
+import { appHref } from "./appLink";
+import { getBrowsePathForType, getHubBrowsePathForType } from "./urlOperations";
 
 export async function getHubBrowseTypeServerSideProps(
   ctx: GetServerSidePropsContext,
@@ -21,7 +23,7 @@ export async function getHubBrowseTypeServerSideProps(
   if (subHub) hubUrl = subHub;
 
   const [
-    hubData,
+    hubDataResult,
     organization_types,
     skills,
     location_filtered_by,
@@ -30,7 +32,7 @@ export async function getHubBrowseTypeServerSideProps(
     linkedHubs,
     sectorOptions,
   ] = await Promise.all([
-    getHubData(hubUrl, locale),
+    getHubDataResult(hubUrl, locale),
     getOrganizationTagsOptions(locale),
     getSkillsOptions(locale),
     getLocationFilteredBy(ctx.query, locale),
@@ -39,6 +41,27 @@ export async function getHubBrowseTypeServerSideProps(
     getLinkedHubsData(hubUrl),
     getSectorOptions(locale, hubUrl),
   ]);
+
+  const { hubData, notFound } = hubDataResult;
+
+  // Only redirect when the API confirmed the hub does not exist (404). On other
+  // failures (5xx, timeout) render the page as before instead of leaving the hub.
+  if (notFound) {
+    // Unknown sub-hub: stay in the parent hub unless the parent is unknown too.
+    // If the parent lookup fails for another reason, still go to the parent hub;
+    // that page redirects again if the parent turns out not to exist.
+    const parentNotFound = subHub ? (await getHubDataResult(parentHubUrl, locale)).notFound : true;
+    const destination = parentNotFound
+      ? getBrowsePathForType(internalType)
+      : getHubBrowsePathForType(internalType, parentHubUrl);
+    return {
+      redirect: {
+        destination: appHref(destination, { locale }),
+        // a hub with this slug may be created later
+        permanent: false,
+      },
+    };
+  }
 
   const filterChoices: any = {};
   if (internalType === "projects" || internalType === "organizations") {

@@ -117,7 +117,7 @@ class IdeaView(APIView):
             except Organization.DoesNotExist:
                 organization = None
 
-            if organization:
+            if organization and not organization.is_draft:
                 idea.organization = organization
 
         idea.save()
