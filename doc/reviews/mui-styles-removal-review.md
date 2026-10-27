@@ -220,13 +220,15 @@ With the hook fixed, the fixed mobile action bars on the project page and on the
 
 **Recommendation:** check on a phone (project page, edit project, edit organisation) that the bar ends up just above the footer. Optionally add `[]` / `[footerHeightProp]` as dependencies of the effect and clamp the value to `[0, footerHeight]`. This can be a follow-up.
 
-### 11. [BUG · Low · inconsistency after the finding 4 fix] Organisation page icons still lack the −8px margin
+### 11. [CLEANUP · downgraded after visual check] Organisation page icons still lack the −8px margin
 
 **File:** `frontend/pages/organizations/[organizationUrl].tsx:52` (`innerIconStyles`, used by `ShareProjectInnerIcon` and `ManageMembersInnerIcon`)
 
 Master had the same `marginLeft: -theme.spacing(1)` rule here. The branch dropped it, and the fix only touched the two other copies. The "share a project" icon on the profile page now sits 8px further left than the same button on the organisation page.
 
-**Fix:** add `marginLeft: theme.spacing(-1)` to `innerIconStyles`. Check all three pages visually; the first review's note that the icons shift by 8px still applies, and the shift has not been checked visually yet.
+**Fix:** add `marginLeft: theme.spacing(-1)` to `innerIconStyles`, only to keep the three copies consistent.
+
+**Visual check (2026-10-27):** the buttons were compared on the old and new versions of the profile and organisation pages. No noticeable difference, and the icons and spacing look fine on both. This is a code consistency point only and does not block the merge.
 
 ---
 
@@ -235,11 +237,11 @@ Master had the same `marginLeft: -theme.spacing(1)` rule here. The branch droppe
 | #   | Finding                               | Recommendation                                                               |
 | --- | ------------------------------------- | ---------------------------------------------------------------------------- |
 | 1–3 | Scroll prop, `NaN` hook, close button | Fixed (re-review 2026-10-27)                                                 |
-| 4   | `-theme.spacing(1)`                   | Fixed in two of three places; finish with finding 11                         |
+| 4   | `-theme.spacing(1)`                   | Fixed in two of three places; no visible difference (see finding 11)         |
 | 5–8 | Cleanup                               | Follow-up PR is fine                                                         |
 | 9   | Unquoted `content` in LargeFooter     | Fixed                                                                        |
 | 10  | Action bars now move on scroll        | Check on a phone before merge; the effect deps / clamping can be a follow-up |
-| 11  | Organisation page icon margin         | Fix before merge (one line) and check the three pages visually               |
+| 11  | Organisation page icon margin         | Cleanup only; checked visually, no noticeable difference                     |
 
 ## Verification notes
 
