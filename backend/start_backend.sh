@@ -96,16 +96,30 @@ echo "start_backend: spatial libraries OK"
 # Oryx has already created and activated the virtualenv named "antenv" and put
 # it on PATH/PYTHONPATH. pdm detects it ("Inside an active virtualenv ...,
 # reusing it") and installs into it, so there is no venv to activate here.
+#
+# pdm itself must NOT be installed into antenv: `pdm install` synchronizes
+# antenv while pdm's own runtime (unearth -> requests) imports from that same
+# venv. When the sync replaces `requests` mid-run, an installer thread can
+# catch it half-written ("cannot import name 'Session' from 'requests'
+# (unknown location)"), Python caches the broken module in sys.modules, and
+# every remaining package install fails in one burst -> container exit 1
+# (observed 2026-10-27 07:28 UTC on slot2). So pdm gets its own throwaway
+# tool venv; it still installs the project into antenv, because that is the
+# active venv (VIRTUAL_ENV) and always wins over the venv pdm itself lives in.
 # ---------------------------------------------------------------------------
-# Newer Debian bases mark the system Python as externally managed (PEP 668),
-# where a plain `pip install` is refused; the fallback keeps this working if
-# the App Service image is ever rolled forward.
-pip install --quiet pdm \
-  || pip install --quiet --break-system-packages pdm \
-  || die "pip install pdm failed"
+PDM_TOOL_VENV=/tmp/pdm-tool
+rm -rf "$PDM_TOOL_VENV"
+python -m venv "$PDM_TOOL_VENV" || die "could not create pdm tool venv at $PDM_TOOL_VENV"
+"$PDM_TOOL_VENV/bin/pip" install --quiet pdm || die "pip install pdm failed"
 
 cd backend || die "backend/ not found (cwd=$(pwd))"
-pdm install || die "pdm install failed"
+# Belt and braces: one retry on failure. The sync hits the network, and a
+# fresh pdm process starts with a clean sys.modules, so a transient hiccup
+# (or any other mid-run import race) recovers instead of failing the boot.
+"$PDM_TOOL_VENV/bin/pdm" install || {
+  echo "WARN(start_backend): pdm install failed, retrying once" >&2
+  "$PDM_TOOL_VENV/bin/pdm" install
+} || die "pdm install failed"
 
 # Smoke-test the spatial stack with the interpreter that will actually serve
 # traffic, so a broken GDAL/GEOS never reaches gunicorn.
