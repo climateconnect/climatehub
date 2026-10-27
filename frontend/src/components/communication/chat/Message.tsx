@@ -1,6 +1,8 @@
 import { Box, CircularProgress, Link, Tooltip, Typography } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useEffect, useState } from "react";
+// Same organization icon as in MobilePageNav
+import Groups2Icon from "@mui/icons-material/Groups2";
 import Cookies from "universal-cookie";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import { getDateTime } from "../../../../public/lib/dateOperations";
@@ -104,12 +106,16 @@ export default function Message({ message, classes, isPrivateChat }) {
     originTemplate = texts[textKey] as string;
     originName = originContext.project_name;
     originHref = `${getLocalePrefix(locale)}/projects/${originContext.project_url_slug}`;
+  } else if (originContext?.type === "organization") {
+    originTemplate = texts.chat_message_origin_organization as string;
+    originName = originContext.organization_name;
+    originHref = `${getLocalePrefix(locale)}/organizations/${originContext.organization_url_slug}`;
   }
   const originIconId =
     originContext?.type === "project"
       ? PROJECT_TYPE_ORIGIN_ICON_IDS[originContext.project_type] ?? PROJECT_TYPE_ORIGIN_ICON_IDS.PR
       : PROJECT_TYPE_ORIGIN_ICON_IDS.EV;
-  const originParts = originTemplate.split(/\{(?:event_name|project_name)\}/);
+  const originParts = originTemplate.split(/\{(?:event_name|project_name|organization_name)\}/);
 
   return (
     <div
@@ -136,11 +142,20 @@ export default function Message({ message, classes, isPrivateChat }) {
         <MessageContent content={message.content} received={received} />
         {originContext && (
           <Box className={ownClasses.originContext}>
-            <img
-              src={`/images/project_types/${originIconId}.png`}
-              alt=""
-              className={ownClasses.originContextIcon}
-            />
+            {originContext.type === "organization" ? (
+              <Groups2Icon
+                sx={(theme) => ({
+                  fontSize: 16,
+                  color: received ? "inherit" : theme.palette.text.primary,
+                })}
+              />
+            ) : (
+              <img
+                src={`/images/project_types/${originIconId}.png`}
+                alt=""
+                className={ownClasses.originContextIcon}
+              />
+            )}
             <Typography
               variant="caption"
               className={ownClasses.originContextText}
