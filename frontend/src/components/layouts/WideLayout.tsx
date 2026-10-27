@@ -20,6 +20,9 @@ const Main = styled(Container, {
     padding: 0,
     marginTop: $isStaticPage ? 0 : -16,
     marginBottom: $noSpaceBottom ? 0 : theme.spacing(6),
+    [theme.breakpoints.down("md")]: {
+      marginBottom: $noSpaceBottom ? 0 : theme.spacing(14),
+    },
   })
 );
 

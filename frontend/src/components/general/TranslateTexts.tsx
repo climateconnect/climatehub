@@ -18,7 +18,6 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import VisibleFooterHeight from "../hooks/VisibleFooterHeight";
 import SaveIcon from "@mui/icons-material/Save";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import ProjectDescriptionEditor from "../editProject/ProjectDescriptionEditor";
@@ -104,6 +103,7 @@ const SaveAsDraftButton = styled(Button)(({ theme }) => ({
 const ActionBar = styled(AppBar)({
   backgroundColor: "#ECECEC",
   top: "auto",
+  bottom: 0,
   boxShadow: "-3px -3px 6px #00000029",
   zIndex: 1,
 });
@@ -155,7 +155,6 @@ export default function TranslateTexts({
   loadingSubmitDraft,
   organization,
 }: Props) {
-  const visibleFooterHeight = VisibleFooterHeight({});
   const { locale } = useContext(UserContext);
   //For the organization page, we need to retrieve the organization name to get the german text.
   //Therefore we pass organization even it this might not make sense in most cases.
@@ -297,7 +296,6 @@ export default function TranslateTexts({
           loadingSubmitDraft={loadingSubmitDraft}
           submitButtonText={submitButtonText}
           saveAsDraft={saveAsDraft}
-          visibleFooterHeight={visibleFooterHeight}
         />
         <TranslationBlocksHeader>
           {textsToTranslate.map((textObj, index) => {
@@ -492,7 +490,6 @@ function TranslationActionButtonBar({
   loadingSubmitDraft,
   submitButtonText,
   saveAsDraft,
-  visibleFooterHeight,
 }) {
   return (
     <>
@@ -519,7 +516,7 @@ function TranslationActionButtonBar({
           </SubmitOptions>
         </TopButtonRow>
       ) : (
-        <ActionBar style={{ bottom: visibleFooterHeight }} position="fixed" elevation={0}>
+        <ActionBar position="fixed" elevation={0}>
           <ContainerButtonsActionBar variant="dense">
             {" "}
             <TopButtonRow>

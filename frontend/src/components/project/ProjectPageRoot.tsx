@@ -14,7 +14,6 @@ import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import ElementOnScreen from "../hooks/ElementOnScreen";
 import ElementSpaceToRight from "../hooks/ElementSpaceToRight";
-import VisibleFooterHeight from "../hooks/VisibleFooterHeight";
 import ProjectInteractionButtons from "./Buttons/ProjectInteractionButtons";
 import ProjectCommentsContent from "./ProjectCommentsContent";
 import ProjectContent from "./ProjectContent";
@@ -128,7 +127,6 @@ export default function ProjectPageRoot({
 }) {
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
-  const visibleFooterHeight = VisibleFooterHeight({});
   const tabContentRef = useRef(null);
   const tabContentContainerSpaceToRight = ElementSpaceToRight({ el: tabContentRef.current });
   const { locale, pathName, user, ReactGA } = useContext(UserContext);
@@ -710,7 +708,6 @@ export default function ProjectPageRoot({
           handleClickContact={handleClickContact}
           hasAdminPermissions={hasAdminPermissions}
           texts={texts}
-          visibleFooterHeight={visibleFooterHeight}
           isUserFollowing={isUserFollowing}
           isUserLiking={isUserLiking}
           handleToggleFollowProject={handleToggleFollowProject}

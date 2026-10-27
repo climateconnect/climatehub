@@ -40,6 +40,9 @@ const FooterRoot = styled("footer", {
       : {
           position: "absolute",
           bottom: 0,
+          [theme.breakpoints.down("md")]: {
+            marginBottom: theme.spacing(8),
+          },
         })),
   ...(!noSpacingTop && {
     marginTop: theme.spacing(2),

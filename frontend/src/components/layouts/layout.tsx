@@ -79,7 +79,13 @@ export default function Layout({
                 {getMessageFromUrl(message ? message : initialMessage)}
               </StyledAlert>
             )}
-            <Container maxWidth="lg" component="main">
+            <Container
+              maxWidth="lg"
+              component="main"
+              sx={(theme) => ({
+                [theme.breakpoints.down("md")]: { marginBottom: theme.spacing(8) },
+              })}
+            >
               <Container maxWidth="sm">
                 {!hideHeadline && (
                   <MainHeading

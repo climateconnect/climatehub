@@ -14,7 +14,6 @@ interface ProjectInteractionButtonsProps {
   hasAdminPermissions: boolean;
   messageButtonIsVisible: boolean;
   contactProjectCreatorButtonRef: React.RefObject<HTMLElement> | null;
-  visibleFooterHeight: number;
   tabContentContainerSpaceToRight: number;
   project: Project;
   isUserFollowing: boolean;
@@ -55,6 +54,7 @@ const LargeScreenContactButton = styled(ContactCreatorButton, { shouldForwardPro
 const ActionBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: "#ECECEC",
   top: "auto",
+  bottom: 0,
   boxShadow: "-3px -3px 6px #00000029",
   zIndex: 101,
   paddingTop: theme.spacing(1),
@@ -100,7 +100,6 @@ export default function ProjectInteractionButtons({
   hasAdminPermissions,
   messageButtonIsVisible,
   contactProjectCreatorButtonRef,
-  visibleFooterHeight,
   tabContentContainerSpaceToRight,
   project,
   isUserFollowing,
@@ -143,7 +142,7 @@ export default function ProjectInteractionButtons({
       maxParticipants !== null;
 
     return (
-      <ActionBar position="fixed" elevation={0} style={{ bottom: visibleFooterHeight }}>
+      <ActionBar position="fixed" elevation={0}>
         <ActionBarToolbar variant="dense">
           <LeftActions>
             {registrationState !== "hidden" ? (
@@ -212,7 +211,7 @@ export default function ProjectInteractionButtons({
         !messageButtonIsVisible &&
         contactProjectCreatorButtonRef?.current && (
           <LargeScreenContactButton
-            style={{ bottom: visibleFooterHeight + 2, right: tabContentContainerSpaceToRight }}
+            style={{ bottom: 2, right: tabContentContainerSpaceToRight }}
             creator={projectAdmin}
             handleClickContact={handleClickContact}
             explanationBackground={"#fff"}
