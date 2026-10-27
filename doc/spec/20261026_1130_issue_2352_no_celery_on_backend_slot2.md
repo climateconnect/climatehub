@@ -1,6 +1,6 @@
 # Backend slot2: no Celery on the standby slot (`RUN_CELERY`)
 
-**Status**: DRAFT (decisions and system impact done; runbook added; no open decisions)
+**Status**: IMPLEMENTATION (code and docs done; Azure configuration and verification pending)
 **Type**: DevOps / runtime configuration
 **Date created**: 2026-10-26
 
@@ -8,6 +8,7 @@
 
 **Touches**:
 - `backend/start_backend.sh`: startup script of the live App Service (zip deployment, code mode)
+- `backend/run_celery.sh` (new): shared POSIX helper, sourced by both scripts below. Parses `RUN_CELERY`, sets `RUN_CELERY_ENABLED`, prints the startup log line.
 - `docker/backend-entrypoint.sh`: the start command (`CMD`) of the backend container image. It is a separate script from `start_backend.sh` but starts the same processes.
 - Azure App Service `climate-backend-appservice` (resource group `climate-connect-backend`), production slot and `slot2`. The same setting is also needed on `climate-backend-container` (see the container spec).
 - `doc/environment-variables.md`, `doc/architecture.md` (AC-10)
@@ -45,7 +46,7 @@ slot2 must keep Django running, because the maintainer uses its admin and API be
 **DB connections (goal, not the incident cause).** A DB connection problem on 2026-10-26 is still under investigation and is **not** attributed to slot2 (F1/F2 in the follow-up doc). Reducing slot2's connections is still a goal:
 - There is no pooling and no `CONN_MAX_AGE`: one connection per request or task.
 - Worst case per slot in full mode is ~30–32 connections (web ~24, `lookup` 4, default 2, masters 0–2). Both slots: ~60–64.
-- With this task, slot2 has 1 web worker and no Celery (≤ ~6 connections, ~0 when idle). Both slots then total **~36–38** worst case, and periodic and fanned-out tasks no longer run twice against the DB.
+- With this task, slot2 runs only the web server and no Celery (≤ ~24 connections under load, ~0 when idle, which is its normal state). Both slots then total **~54–56** worst case, and periodic and fanned-out tasks no longer run twice against the DB.
 
 ### Why it matters
 
@@ -57,7 +58,7 @@ slot2 must keep Django running, because the maintainer uses its admin and API be
 
 | Option | Verdict |
 |---|---|
-| **A1: slot-sticky `RUN_CELERY`; with `false`, no Celery and 1 gunicorn worker** | **Chosen** |
+| **A1: slot-sticky `RUN_CELERY`; with `false`, no Celery; the web server unchanged** | **Chosen** |
 | A2: placeholder HTTP process instead of Django on slot2 | Rejected: admin and API must work on slot2 |
 | B: lower Celery concurrency on slot2 | Rejected: still consumes and schedules |
 | C: stop slot2 permanently | Rejected: deploys fail while it is stopped. Kept as the normal state between deployments. |
@@ -69,7 +70,7 @@ slot2 must keep Django running, because the maintainer uses its admin and API be
 
 | # | Question | Decision |
 |---|---|---|
-| Q1 | Django on slot2? | Keep it running with **1 gunicorn worker**. The admin and API must keep working. |
+| Q1 | Django on slot2? | Keep it running **unchanged** (gunicorn with 4 workers, as on production). The admin and API must keep working. An idle Django uses few resources; the task is about Celery only. A 1-worker gunicorn was dropped during implementation: it would need its own sticky setting and was never asked for. |
 | Q2 | Setting missing | **Run Celery.** Production must never run without Celery by mistake. |
 | Q3 | Unknown value | **Treat as `true` and log a warning.** |
 | Q4 | Name and values | **`RUN_CELERY=true\|false`**, Celery only. Production `true`, slot2 `false`, both deployment slot settings (sticky). |
@@ -88,7 +89,7 @@ slot2 must keep Django running, because the maintainer uses its admin and API be
 - **`RUN_CELERY=true`** (production; also when the setting is missing, and for unknown values with a warning): exactly today's process set.
 - **`RUN_CELERY=false`** (slot2):
   - dependency installation as today
-  - the web server with **1 worker**, so the Django admin, the API, `/ping/` and `/api/version/` work
+  - the web server **as today** (gunicorn, 4 workers), so the Django admin, the API, `/ping/` and `/api/version/` work
   - **no** Celery worker on any queue and **no** beat
   - the container stays alive on the web server process
 - The setting is defined on both slots and is sticky. A swap restarts both slots, and each comes up with its own value with no extra step.
@@ -100,10 +101,10 @@ Both scripts print **exactly one** line that starts with `RUN_CELERY: celery=`, 
 
 | Situation | Line |
 |---|---|
-| `true` | `RUN_CELERY: celery=on (value 'true') gunicorn_workers=4` |
-| `false` | `RUN_CELERY: celery=off (value 'false') gunicorn_workers=1` |
-| missing | `RUN_CELERY: celery=on (not set, default) gunicorn_workers=4` |
-| unknown, e.g. `yes` | `RUN_CELERY: celery=on (unknown value 'yes', treated as true) gunicorn_workers=4` |
+| `true` | `RUN_CELERY: celery=on (value 'true')` |
+| `false` | `RUN_CELERY: celery=off (value 'false')` |
+| missing | `RUN_CELERY: celery=on (not set, default)` |
+| unknown, e.g. `yes` | `RUN_CELERY: celery=on (unknown value 'yes', treated as true)` |
 
 An unknown value also prints a warning line on stderr that starts with `WARN(RUN_CELERY):`. The runbook greps for `RUN_CELERY: celery=`.
 
@@ -118,7 +119,7 @@ An unknown value also prints a warning line on stderr that starts with `WARN(RUN
 
 **slot2 (`RUN_CELERY=false`)**
 - **AC-1**: After a cold start, slot2 runs no Celery worker (neither default nor `lookup`) and no beat. Checked with runbook step 4.
-- **AC-2**: slot2 runs the web server with 1 worker. Once started, it accepts a deployment from the existing workflow. The Django admin (login plus browsing an object list), the API, `GET /ping/` and `GET /api/version/` work, and `/api/version/` shows the newly deployed SHA. Checked with runbook step 5.
+- **AC-2**: slot2 runs the web server as today. Once started, it accepts a deployment from the existing workflow. The Django admin (login plus browsing an object list), the API, `GET /ping/` and `GET /api/version/` work, and `/api/version/` shows the newly deployed SHA. Checked with runbook step 5.
 - **AC-3**: slot2 uses clearly less memory than today. Before/after numbers are recorded in the log of this spec.
 
 **Production (`RUN_CELERY=true`)**
@@ -130,7 +131,7 @@ An unknown value also prints a warning line on stderr that starts with `WARN(RUN
 - **AC-7**: Outside the swap overlap, each periodic task fires once per schedule. For example, `cleanup_login_tokens` (every 30 minutes) appears in production's log only.
 
 **Database connections**
-- **AC-8**: While slot2 runs with `RUN_CELERY=false`, no Celery process on slot2 holds a DB connection. The DB's connection list or the `active_connections` metric shows production's processes plus at most slot2's single web worker. Before/after numbers, including one daily ranking run at 02:00 UTC, are recorded in the log of this spec.
+- **AC-8**: While slot2 runs with `RUN_CELERY=false`, no Celery process on slot2 holds a DB connection. The DB's connection list or the `active_connections` metric shows production's processes plus at most slot2's web workers. Before/after numbers, including one daily ranking run at 02:00 UTC, are recorded in the log of this spec.
 
 **Parity and docs**
 - **AC-9**: `docker/backend-entrypoint.sh` behaves the same for `RUN_CELERY`, including the log line. Local `docker-compose` setups are unaffected.
@@ -243,8 +244,8 @@ az webapp log tail -g $RG -n $APP              | grep --line-buffered 'RUN_CELER
 ```
 
 `log tail` only shows new output, so start it before (re)starting the slot. Alternatively, download the logs afterwards with `az webapp log download -g $RG -n $APP --slot slot2 --log-file slot2-logs.zip` and grep the unzipped files. Expected:
-- slot2: `RUN_CELERY: celery=off (value 'false') gunicorn_workers=1`
-- production: `RUN_CELERY: celery=on (value 'true') gunicorn_workers=4`
+- slot2: `RUN_CELERY: celery=off (value 'false')`
+- production: `RUN_CELERY: celery=on (value 'true')`
 - No `WARN(RUN_CELERY):` line on either slot.
 
 The same output is in the slot's SSH shell (step 4b), under `/home/LogFiles` (confirmed on production on 2026-10-26). This also works after the fact:
@@ -269,11 +270,12 @@ If `ps` is missing, use this instead:
 for p in /proc/[0-9]*; do tr '\0' ' ' < $p/cmdline; echo; done | grep -E '[c]elery|[g]unicorn'
 ```
 
-Expected on **slot2**: only gunicorn, 2 lines (master and 1 worker), with `-w 1`. **No line containing `celery`.**
+Expected on **slot2**: only gunicorn, 5 lines (master and 4 workers), as on production. **No line containing `celery`.**
 
 ```
- 1234     1 ... gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 1 -k uvicorn.workers.UvicornWorker
- 1240  1234 ... gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 1 -k uvicorn.workers.UvicornWorker
+ 1234   980 ... gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 4 -k uvicorn.workers.UvicornWorker
+ 1240  1234 ... gunicorn --preload --bind=0.0.0.0 climateconnect_main.asgi:application -w 4 -k uvicorn.workers.UvicornWorker
+ ... (3 more workers with parent 1234)
 ```
 
 Expected on **production**:
@@ -303,8 +305,8 @@ The `sha` must match the merged commit (compare with `git rev-parse --short HEAD
 
 Run this a few minutes after the swap has completed (both slots restarted):
 
-- [ ] Production log shows `RUN_CELERY: celery=on (value 'true') gunicorn_workers=4` (step 4a).
-- [ ] slot2 log shows `RUN_CELERY: celery=off (value 'false') gunicorn_workers=1`.
+- [ ] Production log shows `RUN_CELERY: celery=on (value 'true')` (step 4a).
+- [ ] slot2 log shows `RUN_CELERY: celery=off (value 'false')`.
 - [ ] Production process list shows both Celery workers and beat; slot2 shows no `celery` (step 4b).
 - [ ] `curl -s https://$PROD_HOST/api/version/` shows the new SHA.
 - [ ] Over the next ~15 minutes, production's log has no `Reclaiming abandoned LocationIQ lookup` warnings. A stream of them means no `lookup` worker is running.
@@ -353,7 +355,7 @@ The container image runs `docker/backend-entrypoint.sh` (its `CMD`; both `climat
 
 | | Production (`RUN_CELERY=true`) | slot2 (`RUN_CELERY=false`) |
 |---|---|---|
-| Web server | gunicorn, 4 workers | gunicorn, 1 worker (the main process) |
+| Web server | gunicorn, 4 workers | gunicorn, 4 workers (the main process) |
 | `lookup` worker | 1 process (`-c 4`) | none |
 | Default worker and beat | 1 worker with embedded beat | none |
 | Broker, DB, channel layer | shared | shared, used only as a producer |
@@ -375,7 +377,7 @@ Between steps 1 and 3 (minutes; with "swap with preview", until the swap is comp
 - REST API: no change (`/ping/` and `/api/version/` are reused).
 - Celery tasks, queues, routes, beat schedule: no change; only the number of consumers changes.
 - Data model and events: no change.
-- New configuration: the `RUN_CELERY` app setting. Local `docker-compose` is unaffected: its Celery services override the image command, and an unset value means today's behaviour.
+- New configuration: the `RUN_CELERY` app setting. Local development is unaffected: `runserver` and `make celery` don't use the startup scripts, the compose `celery` / `celery-lookup` services override the image command, and an unset value means today's behaviour wherever the entrypoint does run.
 
 ### Risks and mitigations
 
@@ -396,3 +398,5 @@ Between steps 1 and 3 (minutes; with "swap with preview", until the swap is comp
 
 - 2026-10-26: Created from issue #2352. Startup scripts, workflows and Azure configuration investigated read-only (no sticky settings; shared broker, DB and `ENVIRONMENT`; slot2 runs the full Celery topology). Connection budget documented. User decisions Q1–Q11 recorded. Follow-ups moved to `20261026_1150_db_connection_and_celery_robustness_followups.md`.
 - 2026-10-26: Archie: System impact added (no `doc/mosy/` change). Container spec updated; LocationIQ spec left as is. Startup log line contract and runbook added. Spec trimmed to the relevant content. Case-insensitive values decided (Q12); no open decisions.
+- 2026-10-26: Implemented on branch `improve-slot2-operation`: `backend/run_celery.sh` (new), `backend/start_backend.sh` (sources the helper before the installs, so the log line appears early; standby runs gunicorn in the foreground), `docker/backend-entrypoint.sh` (same helper; standby `exec`s gunicorn; `migrate` unchanged), `doc/environment-variables.md`, `doc/architecture.md`. Helper tested with sh, bash and dash for unset, empty, `true`/`True`/`TRUE`, ` false `/`False`/`FALSE`/`false` and `yes`; the process sections of both scripts were run with stubbed `gunicorn`/`celery`/`python`. Open: AC-1 to AC-8 and AC-10's Azure configuration need the deployed code (runbook steps 1–6).
+- 2026-10-26: Scope correction (user): `RUN_CELERY` controls Celery only. The 1-worker gunicorn on slot2 is removed; gunicorn stays at 4 workers on every slot, and the startup log line no longer has `gunicorn_workers=`. Spec, runbook, docs and helper updated.
