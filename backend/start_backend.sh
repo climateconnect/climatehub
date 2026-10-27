@@ -96,16 +96,38 @@ echo "start_backend: spatial libraries OK"
 # Oryx has already created and activated the virtualenv named "antenv" and put
 # it on PATH/PYTHONPATH. pdm detects it ("Inside an active virtualenv ...,
 # reusing it") and installs into it, so there is no venv to activate here.
+#
+# pdm itself must NOT be installed into antenv: `pdm install` synchronizes
+# antenv while pdm's own runtime (unearth -> requests) imports from that same
+# venv. When the sync replaces `requests` mid-run, an installer thread can
+# catch it half-written ("cannot import name 'Session' from 'requests'
+# (unknown location)"), Python caches the broken module in sys.modules, and
+# every remaining package install fails in one burst -> container exit 1
+# (observed 2026-10-27 07:28 UTC on slot2). So pdm goes into a throwaway
+# tool dir outside antenv and is run via `python -m pdm` with PYTHONPATH
+# pointing there -- pdm then imports its own runtime from the tool dir and
+# still installs the project into antenv (the active venv wins).
+#
+# Do NOT use `python -m venv` for the tool dir: on the App Service image the
+# created venv's bin/python is a dangling symlink and venv dies with
+# "Error: [Errno 2] No such file or directory: '<venv>/bin/python'" while
+# bootstrapping pip (observed 2026-10-27 08:01 UTC on slot2). `pip install
+# --target` has no interpreter-symlink or ensurepip machinery at all.
 # ---------------------------------------------------------------------------
-# Newer Debian bases mark the system Python as externally managed (PEP 668),
-# where a plain `pip install` is refused; the fallback keeps this working if
-# the App Service image is ever rolled forward.
-pip install --quiet pdm \
-  || pip install --quiet --break-system-packages pdm \
-  || die "pip install pdm failed"
+PDM_TOOL_DIR=/tmp/pdm-tool
+rm -rf "$PDM_TOOL_DIR"
+pip install --quiet --target "$PDM_TOOL_DIR" pdm \
+  || die "pip install pdm (into $PDM_TOOL_DIR) failed"
+[ -e "$PDM_TOOL_DIR/pdm/__init__.py" ] || die "pdm not found in $PDM_TOOL_DIR after install"
 
 cd backend || die "backend/ not found (cwd=$(pwd))"
-pdm install || die "pdm install failed"
+# Belt and braces: one retry on failure. The sync hits the network, and a
+# fresh pdm process starts with a clean sys.modules, so a transient hiccup
+# (or any other mid-run import race) recovers instead of failing the boot.
+PYTHONPATH="$PDM_TOOL_DIR" python -m pdm install || {
+  echo "WARN(start_backend): pdm install failed, retrying once" >&2
+  PYTHONPATH="$PDM_TOOL_DIR" python -m pdm install
+} || die "pdm install failed"
 
 # Smoke-test the spatial stack with the interpreter that will actually serve
 # traffic, so a broken GDAL/GEOS never reaches gunicorn.
