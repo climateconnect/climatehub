@@ -77,7 +77,7 @@
    - No other participants are added to the chat.
    - If the organization is deleted, the resolver returns 404 and the chip is omitted; messages are untouched.
 
-## 7. Event Registration Flow (multiple seats per registration, introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
+## 8. Event Registration Flow (multiple seats per registration, introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
 - **Actor**: Member (registrant)
 - **Trigger**: Member opens the registration dialog on an event with registration enabled
 - **Actions**:
@@ -91,7 +91,7 @@
    - A time slot is taken once per registration; inventory `max_amount_per_guest` stays a limit per registration.
    - Changing the seat count is done by cancelling and registering again.
 
-## 8. Event Registration Cancellation Flow (introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
+## 9. Event Registration Cancellation Flow (introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
 - **Actor**: Member (self-cancel) or Organiser / Team Admin (guest cancellation)
 - **Trigger**: Cancel action on the registration dialog or the attendee list
 - **Actions**:

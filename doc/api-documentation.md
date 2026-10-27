@@ -290,7 +290,7 @@ ClimateConnect API supports two authentication methods:
 - `GET /api/my_profile/` - Your profile
 - `POST /api/projects/` - Create project
 - `PUT /api/projects/{slug}/` - Update project
-- `POST /api/send_message/` - Send chat message.
+- `POST /api/send_message/` - Send chat message
 - `GET /api/notifications/` - Your notifications
 - Most `POST`, `PUT`, `PATCH`, `DELETE` operations
 
