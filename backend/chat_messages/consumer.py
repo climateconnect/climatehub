@@ -11,13 +11,14 @@ from chat_messages.models import (
 )
 from django.contrib.auth.models import User
 from rest_framework.exceptions import ValidationError
-from chat_messages.utility.message_origin import resolve_project_origin
+from chat_messages.utility.message_origin import (
+    resolve_message_origin,
+)
 from chat_messages.utility.notification import create_chat_message_notification
 from climateconnect_api.utility.notification import (
     create_user_notification,
     create_email_notification,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         # Send message to room group
         message_object = await self.new_message(
-            chat_uuid,
-            self.user,
-            message,
-            text_data_json.get("origin_project_url_slug"),
+            chat_uuid, self.user, message, text_data_json
         )
         for receiver in message_object["receivers"]:
             await self.channel_layer.group_send(
@@ -64,31 +62,22 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
             )
 
     @database_sync_to_async
-    def new_message(
-        self, chat_uuid, user, message_content, origin_project_url_slug=None
-    ):
+    def new_message(self, chat_uuid, user, message_content, data=None):
         try:
             chat = MessageParticipants.objects.get(chat_uuid=chat_uuid)
         except MessageParticipants.DoesNotExist:
             chat = None
+        origin_type, origin_id = "", None
+        try:
+            origin_type, origin_id = resolve_message_origin(user, chat, data or {})
+        except ValidationError:
+            # No clean error path on a socket; keep the message, drop the origin.
+            logger.warning("Ignoring invalid message origin for chat %s", chat_uuid)
         # Only select active participant IDs
         receiver_user_ids = Participant.objects.filter(
             chat=chat, is_active=True
         ).values_list("user", flat=True)
         receiver_users = list(User.objects.filter(id__in=receiver_user_ids))
-        origin_type, origin_id = "", None
-        if origin_project_url_slug:
-            try:
-                origin_type, origin_id = resolve_project_origin(
-                    user, chat, origin_project_url_slug
-                )
-            except ValidationError:
-                # No clean error path on a socket; keep the message, drop the origin.
-                logger.warning(
-                    "Ignoring invalid message origin %s for chat %s",
-                    origin_project_url_slug,
-                    chat_uuid,
-                )
         message = Message.objects.create(
             content=message_content,
             sender=user,

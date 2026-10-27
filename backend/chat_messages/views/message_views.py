@@ -25,11 +25,13 @@ from chat_messages.serializers.message import (
     MessageSerializer,
     UpdateParticipateSerializer,
 )
-from chat_messages.utility.message_origin import resolve_project_origin
 from chat_messages.utility.chat_setup import (
     check_can_start_chat,
     get_or_create_private_chat,
     set_read,
+)
+from chat_messages.utility.message_origin import (
+    resolve_message_origin,
 )
 from chat_messages.utility.notification import create_chat_message_notification
 from climateconnect_api.models import Role, UserProfile
@@ -409,17 +411,14 @@ class SendChatMessage(APIView):
         except Participant.DoesNotExist:
             raise NotFound("You are not a participant of this chat.")
         if chat:
-            origin_type, origin_id = "", None
-            origin_slug = request.data.get("origin_project_url_slug")
-            if origin_slug:
-                try:
-                    origin_type, origin_id = resolve_project_origin(
-                        user, chat, origin_slug
-                    )
-                except ValidationError as e:
-                    return Response(
-                        {"detail": e.detail[0]}, status=status.HTTP_400_BAD_REQUEST
-                    )
+            try:
+                origin_type, origin_id = resolve_message_origin(
+                    user, chat, request.data
+                )
+            except ValidationError as e:
+                return Response(
+                    {"detail": e.detail[0]}, status=status.HTTP_400_BAD_REQUEST
+                )
             # Check if this is a first message and restrict sending a message
             # if its a cold-message.
             message_count = Message.objects.filter(message_participant=chat).count()
