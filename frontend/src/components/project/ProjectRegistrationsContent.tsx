@@ -6,12 +6,15 @@ import {
   Chip,
   CircularProgress,
   IconButton,
+  InputAdornment,
   Link,
   Menu,
   MenuItem,
   TextField,
+  Theme,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import makeStyles from "@mui/styles/makeStyles";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -41,6 +44,7 @@ import { apiRequest, getLocalePrefix } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import { EventRegistrationData, Project, RegistrationFieldAnswer } from "../../types";
 import { resolveAnswerToStrings } from "../../utils/resolveRegistrationFieldAnswer";
+import { sumActiveSeats } from "../../utils/eventRegistrationHelpers";
 import UserContext from "../context/UserContext";
 import CancelGuestRegistrationModal, { RegistrationInfo } from "./CancelGuestRegistrationModal";
 import EditEventRegistrationModal from "./EditEventRegistrationModal";
@@ -58,6 +62,8 @@ type EventRegistration = {
   /** null = active registration; ISO string = cancelled */
   cancelled_at: string | null;
   cancellation_reason: string | null;
+  /** Seats booked (registrant + guests); kept on cancelled rows. */
+  number_of_seats: number;
   /** Custom-field answers (Phase 4a). Empty array if none. */
   field_answers: RegistrationFieldAnswer[];
 };
@@ -126,35 +132,75 @@ function RegistrationsToolbar({
   csvFields,
   printFields,
 }: ToolbarProps) {
+  const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   return (
-    <GridToolbarContainer sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}>
+    // Desktop: one row. Mobile: full-width search, then email + export together in one row
+    <GridToolbarContainer
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: { xs: "wrap", sm: "nowrap" },
+        gap: 1,
+        px: { xs: 0, sm: 1 },
+        py: 1,
+      }}
+    >
       <TextField
         size="small"
         placeholder={placeholder}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         InputProps={{
-          startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: "text.secondary" }} />,
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+            </InputAdornment>
+          ),
         }}
-        aria-label={placeholder}
-        sx={{ flex: 1, maxWidth: 360 }}
+        inputProps={{ "aria-label": placeholder }}
+        sx={{
+          flex: { xs: "1 0 100%", sm: 1 },
+          maxWidth: { sm: 360 },
+          "& .MuiInputBase-root": { minHeight: (theme: Theme) => theme.spacing(5) },
+        }}
       />
-      <Box sx={{ flex: 1 }} />
+      {/* Spacer only on wider screens */}
+      <Box sx={{ flex: 1, display: { xs: "none", sm: "block" } }} />
       {onOpenEmailModal && (
         <Button
-          size="small"
+          size={isNarrowScreen ? "small" : "medium"}
           variant="outlined"
-          startIcon={<EmailOutlinedIcon fontSize="small" />}
+          startIcon={
+            isNarrowScreen ? <EmailOutlinedIcon fontSize="small" /> : <EmailOutlinedIcon />
+          }
           onClick={onOpenEmailModal}
           aria-label={emailGuestsLabel}
+          // Mobile: keep the (long German) label on one line; it gets the free space next to export
+          sx={{
+            // Natural width; only shrinks when the row is too narrow
+            flex: "0 1 auto",
+            minWidth: 0,
+            whiteSpace: "nowrap",
+            fontSize: { xs: "0.8125rem", sm: undefined },
+            textTransform: { xs: "none", sm: undefined },
+            // Same height as the search field, taken from the theme
+            minHeight: (theme: Theme) => (isNarrowScreen ? theme.spacing(5) : undefined),
+            px: { xs: 1, sm: undefined },
+            "& .MuiButton-startIcon": {
+              ml: { xs: 0, sm: undefined },
+              mr: { xs: 0.5, sm: undefined },
+            },
+          }}
         >
           {emailGuestsLabel}
         </Button>
       )}
-      <GridToolbarExport
-        csvOptions={{ fileName: csvFileName, fields: csvFields }}
-        printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
-      />
+      <Box sx={{ flex: "0 0 auto", display: "flex" }}>
+        <GridToolbarExport
+          csvOptions={{ fileName: csvFileName, fields: csvFields }}
+          printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
+        />
+      </Box>
     </GridToolbarContainer>
   );
 }
@@ -163,6 +209,8 @@ type FooterProps = {
   total: number;
   active: number;
   cancelled: number;
+  /** Seats booked by active registrations; only shown when set. */
+  seatsBookedLabel?: string;
   guestsLabel: string;
   activeLabel: string;
   cancelledLabel: string;
@@ -172,6 +220,7 @@ function RegistrationsFooter({
   total,
   active,
   cancelled,
+  seatsBookedLabel,
   guestsLabel,
   activeLabel,
   cancelledLabel,
@@ -194,6 +243,15 @@ function RegistrationsFooter({
             size="small"
             label={`${cancelled} ${cancelledLabel}`}
             color="default"
+            variant="outlined"
+            sx={{ height: 20, fontSize: "0.7rem" }}
+          />
+        )}
+        {seatsBookedLabel && (
+          <Chip
+            size="small"
+            label={seatsBookedLabel}
+            color="primary"
             variant="outlined"
             sx={{ height: 20, fontSize: "0.7rem" }}
           />
@@ -243,8 +301,9 @@ export default function ProjectRegistrationsContent({
             ...p,
             // Fall back to index if backend id is missing (defensive)
             id: p.id ?? idx,
-            // Tolerate older payloads that don't include answers.
+            // Tolerate older payloads that don't include answers or seats.
             field_answers: p.field_answers ?? [],
+            number_of_seats: p.number_of_seats ?? 1,
           })
         );
         setParticipants(rows);
@@ -262,6 +321,8 @@ export default function ProjectRegistrationsContent({
   /** Called by CancelGuestRegistrationModal after a successful 204. */
   const handleCancelled = (registrationId: number) => {
     const cancelledAt = new Date().toISOString();
+    // Cancelling frees every seat of the registration.
+    const freedSeats = participants.find((row) => row.id === registrationId)?.number_of_seats ?? 1;
 
     setParticipants((prev) =>
       prev.map((row) => (row.id === registrationId ? { ...row, cancelled_at: cancelledAt } : row))
@@ -269,7 +330,7 @@ export default function ProjectRegistrationsContent({
 
     // Optimistically update available_seats and revert FULL → OPEN in the parent
     if (eventRegistration) {
-      const newAvailableSeats = (eventRegistration.available_seats ?? 0) + 1;
+      const newAvailableSeats = (eventRegistration.available_seats ?? 0) + freedSeats;
       const newStatus = eventRegistration.status === "full" ? "open" : eventRegistration.status;
       onEventRegistrationUpdated({
         ...eventRegistration,
@@ -395,6 +456,12 @@ export default function ProjectRegistrationsContent({
     }
   }
 
+  // Seat counts only matter once the organiser allows guests (or a registration
+  // still holds several seats from an earlier, higher setting).
+  const maxSeatsPerRegistration = eventRegistration.max_seats_per_registration ?? 1;
+  const showSeats = maxSeatsPerRegistration > 1 || participants.some((p) => p.number_of_seats > 1);
+  const activeSeats = sumActiveSeats(participants);
+
   return (
     <>
       {/* Registration settings summary */}
@@ -404,6 +471,13 @@ export default function ProjectRegistrationsContent({
           <Typography className={classes.settingValue}>
             {eventRegistration.max_participants ?? "—"}
           </Typography>
+        </Box>
+
+        <Box className={classes.settingItem}>
+          <Typography className={classes.settingLabel}>
+            {texts.max_seats_per_registration}
+          </Typography>
+          <Typography className={classes.settingValue}>{maxSeatsPerRegistration}</Typography>
         </Box>
 
         <Box className={classes.settingItem}>
@@ -527,6 +601,20 @@ export default function ProjectRegistrationsContent({
                       >
                         {params.value}
                       </Link>
+                    ),
+                  },
+                  {
+                    field: "number_of_seats",
+                    headerName: texts.seats_column as string,
+                    type: "number",
+                    width: 90,
+                    renderCell: (params) => (
+                      <Typography
+                        variant="body2"
+                        sx={{ color: params.row.cancelled_at ? "text.disabled" : undefined }}
+                      >
+                        {params.value}
+                      </Typography>
                     ),
                   },
                   {
@@ -657,6 +745,7 @@ export default function ProjectRegistrationsContent({
               initialState={{
                 columns: {
                   columnVisibilityModel: {
+                    number_of_seats: showSeats,
                     registered_at_iso: false,
                     cancelled_at_iso: false,
                     cancellation_reason: false,
@@ -691,18 +780,30 @@ export default function ProjectRegistrationsContent({
                   csvFields: [
                     "user_first_name",
                     "user_last_name",
+                    "number_of_seats",
                     "registered_at_iso",
                     "cancelled_at",
                     "cancelled_at_iso",
                     "cancellation_reason",
                     ...customFieldColumnNames,
                   ],
-                  printFields: ["user_first_name", "user_last_name", ...customFieldColumnNames],
+                  printFields: [
+                    "user_first_name",
+                    "user_last_name",
+                    "number_of_seats",
+                    ...customFieldColumnNames,
+                  ],
                 } as ToolbarProps,
                 footer: {
                   total: participants.length,
                   active: participants.filter((p) => !p.cancelled_at).length,
                   cancelled: participants.filter((p) => !!p.cancelled_at).length,
+                  seatsBookedLabel: showSeats
+                    ? (activeSeats === 1
+                        ? texts.seats_booked_one
+                        : texts.seats_booked_other
+                      ).replace("{count}", String(activeSeats))
+                    : undefined,
                   guestsLabel: texts.registered_guests as string,
                   activeLabel: texts.registration_status_active as string,
                   cancelledLabel: texts.registration_status_cancelled as string,
@@ -777,6 +878,7 @@ export default function ProjectRegistrationsContent({
             : ""
         )}
         fields={eventRegistration.fields ?? []}
+        maxSeatsPerRegistration={eventRegistration.max_seats_per_registration}
         event={{
           name: project.name,
           start_date: project.start_date,

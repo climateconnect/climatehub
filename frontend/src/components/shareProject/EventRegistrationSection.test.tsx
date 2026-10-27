@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
@@ -96,7 +96,9 @@ describe("EventRegistrationSection", () => {
   describe("core registration settings", () => {
     it("renders max participants and registration end date inputs", () => {
       renderSection();
-      expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+      expect(
+        screen.getByRole("spinbutton", { name: /max\. number of guests/i })
+      ).toBeInTheDocument();
       expect(screen.getByRole("textbox", { name: /end of registration/i })).toBeInTheDocument();
     });
 
@@ -136,6 +138,44 @@ describe("EventRegistrationSection", () => {
       renderSection({ project });
       expect(screen.getByText(/single choice/i)).toBeInTheDocument();
       expect(screen.getByDisplayValue("Meal preference?")).toBeInTheDocument();
+    });
+  });
+
+  // ── Max. seats per registration ───────────────────────────────────────────
+
+  describe("max seats per registration", () => {
+    const seatsInput = () =>
+      screen.getByRole("spinbutton", { name: /max\. seats per registration/i });
+
+    it("renders the value from projectData", () => {
+      renderSection({ project: makeProject({ max_seats_per_registration: 3 }) });
+      expect(seatsInput()).toHaveValue(3);
+    });
+
+    it("is not required", () => {
+      renderSection();
+      expect(seatsInput()).not.toBeRequired();
+    });
+
+    it("reports a numeric change and clears to null", () => {
+      const handleSetProjectData = jest.fn();
+      renderSection({
+        project: makeProject({ max_seats_per_registration: 1 }),
+        handleSetProjectData,
+      });
+      fireEvent.change(seatsInput(), { target: { value: "4" } });
+      expect(handleSetProjectData).toHaveBeenLastCalledWith({ max_seats_per_registration: 4 });
+      fireEvent.change(seatsInput(), { target: { value: "" } });
+      expect(handleSetProjectData).toHaveBeenLastCalledWith({ max_seats_per_registration: null });
+    });
+
+    it("shows a validation error passed in by the parent", () => {
+      renderSection({
+        errors: { max_seats_per_registration: "Max. seats per registration must be at least 1" },
+      });
+      expect(
+        screen.getByText("Max. seats per registration must be at least 1")
+      ).toBeInTheDocument();
     });
   });
 });

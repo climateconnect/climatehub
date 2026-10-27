@@ -47,7 +47,10 @@ from organization.utility.email import (
     send_guest_cancellation_notification,
     send_organizer_message_to_guest,
 )
-from organization.utility.event_registration import evaluate_registration_status
+from organization.utility.event_registration import (
+    evaluate_registration_status,
+    get_available_seats,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +63,9 @@ class EventRegistrationsView(APIView):
     POST behaviour:
         - 201 Created  — first-time registration or re-registration after self-cancellation.
         - 200 OK       — idempotent; user already has an active registration.
-        - 400 Bad Request — registration is closed, full, or deadline has passed.
+        - 400 Bad Request — registration is closed, full, or deadline has passed;
+          or ``number_of_seats`` exceeds the per-registration maximum or the
+          seats left (response names the remaining seats; nothing is saved).
         - 401 Unauthorized — unauthenticated request.
         - 403 Forbidden — user's registration was cancelled by an admin; cannot re-register.
         - 404 Not Found — project or registration_config does not exist.
@@ -114,7 +119,7 @@ class EventRegistrationsView(APIView):
                 return Response(
                     {
                         "registered": True,
-                        "available_seats": self._compute_available_seats(rc),
+                        "available_seats": get_available_seats(rc),
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -180,6 +185,34 @@ class EventRegistrationsView(APIView):
         normalized_answers = submission_serializer.validated_data.get(
             "normalized_answers", []
         )
+        number_of_seats = submission_serializer.validated_data["number_of_seats"]
+
+        # ── 6b. Seat-count gate (inside the lock, before any write) ──────────
+        # Absent number_of_seats defaults to 1 (backward compatible).
+        if number_of_seats > rc.max_seats_per_registration:
+            max_seats = rc.max_seats_per_registration
+            return Response(
+                {
+                    "message": (
+                        f"You can book at most {max_seats} "
+                        f"seat{'s' if max_seats != 1 else ''} per registration."
+                    ),
+                    "max_seats_per_registration": max_seats,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        seats_left = get_available_seats(rc)
+        if seats_left is not None and number_of_seats > seats_left:
+            return Response(
+                {
+                    "message": (
+                        f"Only {seats_left} seat{'s' if seats_left != 1 else ''} "
+                        f"left for this event."
+                    ),
+                    "available_seats": seats_left,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # ── 6a. Per-option capacity enforcement for inventory & time slot answers ─
         inventory_answers = [
@@ -248,26 +281,25 @@ class EventRegistrationsView(APIView):
         # ── 7. Create or re-activate EventRegistration ───────────────────────
         registration = existing
         if existing is not None:
-            # Re-registration: reset soft-delete fields on the existing row.
+            # Re-registration: reset soft-delete fields on the existing row and
+            # replace the seat count of the former registration.
             existing.cancelled_at = None
             existing.cancelled_by = None
-            existing.save(update_fields=["cancelled_at", "cancelled_by"])
+            existing.number_of_seats = number_of_seats
+            existing.save(
+                update_fields=["cancelled_at", "cancelled_by", "number_of_seats"]
+            )
         else:
             registration = EventRegistration.objects.create(
                 user=request.user,
                 registration_config=rc,
+                number_of_seats=number_of_seats,
             )
 
         sync_registration_answers(registration, normalized_answers)
 
         # ── 8. Update status to FULL if last seat was just taken ─────────────
-        available_seats = None
-        if rc.max_participants is not None:
-            new_count = EventRegistration.objects.filter(
-                registration_config=rc,
-                cancelled_at__isnull=True,
-            ).count()
-            available_seats = max(0, rc.max_participants - new_count)
+        available_seats = get_available_seats(rc)
 
         # Check all capacity conditions (max_participants + required fields).
         suggested_status = evaluate_registration_status(rc)
@@ -314,20 +346,6 @@ class EventRegistrationsView(APIView):
             {"registered": True, "available_seats": available_seats},
             status=status.HTTP_201_CREATED,
         )
-
-    @staticmethod
-    def _compute_available_seats(rc: EventRegistrationConfig):
-        """Return remaining seats or None for unlimited-capacity events.
-
-        Only active (non-cancelled) registrations count against capacity.
-        """
-        if rc.max_participants is None:
-            return None
-        count = EventRegistration.objects.filter(
-            registration_config=rc,
-            cancelled_at__isnull=True,
-        ).count()
-        return max(0, rc.max_participants - count)
 
     def get(self, request, url_slug):
         # ── 1. Look up project ──────────────────────────────────────────────
@@ -557,6 +575,7 @@ class EditRegistrationConfigView(APIView):
 
     Editable fields (PATCH):
         - max_participants  (positive integer or null for unlimited)
+        - max_seats_per_registration  (positive integer, default 1)
         - registration_end_date  (datetime)
         - status  ("open" or "closed" only — "full" and "ended" are system-managed)
         - registration_enabled  (boolean — disable/enable registration)
