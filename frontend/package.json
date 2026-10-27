@@ -31,7 +31,7 @@
     "@mui/x-data-grid": "^7.29.13",
     "@mui/x-date-pickers": "^7.29.4",
     "@next/bundle-analyzer": "^15.5.23",
-    "@sentry/nextjs": "^10.57.0",
+    "@sentry/nextjs": "^10.75.2",
     "@svgr/webpack": "^8.1.0",
     "@tiptap/core": "3.30.5",
     "@tiptap/extension-character-count": "3.30.5",
