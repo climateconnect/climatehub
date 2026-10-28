@@ -9,10 +9,6 @@ from organization.models import Project
 from organization.models.members import MembershipRequests
 from organization.utility.requests import MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH
 
-TOGGLE_PATH = (
-    "organization.views.project_views.is_feature_enabled_for_current_environment"
-)
-
 
 @tag("project_join_request_message")
 class ProjectJoinRequestMessageTest(TestCase):
@@ -31,9 +27,9 @@ class ProjectJoinRequestMessageTest(TestCase):
             kwargs={"url_slug": "p-slug", "user_slug": "joiner-slug"},
         )
 
-    def _post(self, data, toggle=True):
+    def _post(self, data):
         data = {"user_availability": self.availability.id, **data}
-        with patch(TOGGLE_PATH, return_value=toggle), patch(
+        with patch(
             "organization.views.project_views.get_project_admin_creators",
             return_value=[],
         ), patch(
@@ -48,9 +44,25 @@ class ProjectJoinRequestMessageTest(TestCase):
         self.assertEqual(self._post({"message": "Hi there"}).status_code, 200)
         self.assertEqual(self._stored(), "Hi there")
 
-    def test_html_stripped(self):
-        self._post({"message": "  <b>Hi</b> <script>x</script> I <3 climate "})
-        self.assertEqual(self._stored(), "Hi x I <3 climate")
+    def test_html_rejected(self):
+        for message in [
+            "<b>Hi</b>",
+            "<script>x</script>",
+            "<<script>script>alert(1)<</script>/script>",
+        ]:
+            with self.subTest(message=message):
+                self.assertEqual(self._post({"message": message}).status_code, 400)
+        self.assertFalse(MembershipRequests.objects.exists())
+
+    def test_plain_text_with_special_characters_stored_unchanged(self):
+        message = 'I <3 climate & Tom &amp; Jerry "quoted"\nnew line 🌍'
+        self.assertEqual(self._post({"message": f"  {message} "}).status_code, 200)
+        self.assertEqual(self._stored(), message)
+
+    def test_entity_encoded_html_stored_as_inert_text(self):
+        message = "&lt;script&gt;alert(1)&lt;/script&gt;"
+        self.assertEqual(self._post({"message": message}).status_code, 200)
+        self.assertEqual(self._stored(), message)
 
     def test_max_length_accepted_and_exceeded_rejected(self):
         n = MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH
@@ -60,25 +72,11 @@ class ProjectJoinRequestMessageTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(MembershipRequests.objects.exists())
 
-    def test_tags_do_not_count_towards_length(self):
-        n = MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH
-        self.assertEqual(
-            self._post({"message": "<b>" + "a" * n + "</b>"}).status_code, 200
-        )
-
-    def test_empty_and_missing_message_accepted_with_toggle(self):
+    def test_empty_and_missing_message_accepted(self):
         self.assertEqual(self._post({"message": ""}).status_code, 200)
         MembershipRequests.objects.all().delete()
         self.assertEqual(self._post({}).status_code, 200)
         self.assertEqual(self._stored(), "")
-
-    def test_missing_message_rejected_without_toggle(self):
-        self.assertEqual(self._post({}, toggle=False).status_code, 400)
-
-    def test_toggle_off_keeps_legacy_behaviour(self):
-        long = "<b>" + "a" * 600 + "</b>"
-        self.assertEqual(self._post({"message": long}, toggle=False).status_code, 200)
-        self.assertEqual(self._stored(), long)
 
     def test_duplicate_request_rejected(self):
         self._post({"message": "one"})

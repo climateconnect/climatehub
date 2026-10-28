@@ -8,8 +8,7 @@ def create_toggle(apps, schema_editor):
         defaults={
             "description": (
                 "Shows a confirmation dialog with an optional message when "
-                "requesting to join a project, and validates the message "
-                "(plain text, max 500 characters) in the backend."
+                "requesting to join a project."
             ),
             "production_is_active": False,
             "staging_is_active": True,

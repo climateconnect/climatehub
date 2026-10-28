@@ -80,12 +80,13 @@ export default function JoinButton({
 
   const { locale, user } = useContext(UserContext);
   const texts = getTexts({ locale: locale, page: "project" });
-  const { isEnabled } = useFeatureToggles();
+  const { isEnabled, isLoading: togglesLoading } = useFeatureToggles();
   const useConfirmation = !!user && isEnabled("PROJECT_JOIN_REQUEST_CONFIRMATION", false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleClick = () => {
-    if (requestedToJoin) return;
+    // Don't fall back to the legacy immediate send before the toggles are known.
+    if (requestedToJoin || (user && togglesLoading)) return;
     if (useConfirmation) {
       setDialogOpen(true);
     } else {

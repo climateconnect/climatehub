@@ -12,7 +12,7 @@ Feature toggle: `PROJECT_JOIN_REQUEST_CONFIRMATION` (spec `doc/spec/20261012_100
 6. "Request already exists to join project": same as success (feedback, button switches to "Requested", dialog closes).
 7. Any other error: error feedback is shown and the dialog stays open so the user can retry.
 
-The backend re-sanitizes the message and rejects more than 500 characters with `400`.
+The backend always (independent of the toggle) treats `message` as optional, rejects messages containing HTML and messages longer than 500 characters with `400`.
 
 ## Toggle off, or logged-out user
 

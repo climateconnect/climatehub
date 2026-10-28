@@ -1,9 +1,9 @@
 from html import unescape
 
 from django.utils import timezone
-from django.utils.html import strip_tags
 
 from climateconnect_api.models import Role
+from climateconnect_api.utility.html import sanitize_html
 from organization.utility.project import add_project_member, is_part_of_project
 from organization.utility.organization import add_organization_member
 from organization.models.members import MembershipRequests
@@ -16,9 +16,15 @@ logger = logging.getLogger(__name__)
 MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH = 500
 
 
-def sanitize_membership_request_message(message: str) -> str:
-    """Reduce a user supplied message to trimmed plain text (real HTML tags removed)."""
-    return unescape(strip_tags(message.replace("\r\n", "\n"))).strip()
+def is_plain_text(message: str) -> bool:
+    """True if the message contains no HTML markup.
+
+    bleach (empty allowlist) escapes its output, so entities are decoded on both
+    sides before comparing. Entity-encoded text such as ``&lt;script&gt;`` stays
+    inert because the original is stored without being decoded.
+    """
+    cleaned = sanitize_html(message, allowed_tags=[], allowed_attributes={})
+    return unescape(cleaned) == unescape(message)
 
 
 class MembershipRequestsManager:

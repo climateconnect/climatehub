@@ -44,7 +44,6 @@ from climateconnect_api.utility.translation import (
     edit_translations,
 )
 from climateconnect_main.utility.general import get_image_from_data_url
-from feature_toggles.utility import is_feature_enabled_for_current_environment
 from hubs.models.hub import Hub
 from location.models import Location
 from location.utility import get_location, get_location_with_range
@@ -129,7 +128,7 @@ from organization.utility.project import (
 from organization.utility.requests import (
     MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH,
     MembershipRequestsManager,
-    sanitize_membership_request_message,
+    is_plain_text,
 )
 from organization.utility.sector import (
     create_context_for_hub_specific_sector,
@@ -1840,12 +1839,7 @@ class RequestJoinProject(RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, user_slug, url_slug):
-        confirmation_enabled = is_feature_enabled_for_current_environment(
-            "PROJECT_JOIN_REQUEST_CONFIRMATION"
-        )
         required_params = ["user_availability"]
-        if not confirmation_enabled:
-            required_params.append("message")
         missing_param = any([param not in request.data for param in required_params])
         if missing_param:
             return Response(
@@ -1877,22 +1871,26 @@ class RequestJoinProject(RetrieveUpdateAPIView):
         ).first()
 
         message = request.data.get("message", "")
-        if confirmation_enabled:
-            if message is None:
-                message = ""
-            if not isinstance(message, str):
-                return Response(
-                    {"message": "message must be a string"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            message = sanitize_membership_request_message(message)
-            if len(message) > MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH:
-                return Response(
-                    {
-                        "message": f"The message must not be longer than {MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH} characters"
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        if message is None:
+            message = ""
+        if not isinstance(message, str):
+            return Response(
+                {"message": "message must be a string"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        message = message.replace("\r\n", "\n").strip()
+        if not is_plain_text(message):
+            return Response(
+                {"message": "The message must be plain text without HTML"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(message) > MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH:
+            return Response(
+                {
+                    "message": f"The message must not be longer than {MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH} characters"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         request_manager = MembershipRequestsManager(
             user=user,

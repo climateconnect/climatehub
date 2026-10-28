@@ -1183,11 +1183,9 @@ July 13, 2026 - Changed validation to allow up to 15 custom fields.
 
 Body: `{ "user_availability": <id>, "message": <string> }`
 
-With feature toggle `PROJECT_JOIN_REQUEST_CONFIRMATION` on:
-- `message` is optional (a missing key is treated as empty), plain text only: HTML tags are stripped, entities decoded, whitespace trimmed.
-- The sanitized message must be at most 500 characters, otherwise `400` with a `message` error (not truncated).
+- `message` is optional (a missing or `null` value is treated as empty) and trimmed.
+- It must be plain text: a message containing HTML markup returns `400` with a `message` error. Entity-encoded text (e.g. `&lt;b&gt;`) is stored as-is and never decoded.
+- The message must be at most 500 characters, otherwise `400` with a `message` error (not truncated).
 - A non-string `message` returns `400`.
-
-With the toggle off, `message` is required (`400` if missing) and stored as before without the 500 limit or sanitization.
 
 A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is not returned by the API.

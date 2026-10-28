@@ -53,22 +53,22 @@ The join-request feature was never fully completed; this is the first of three s
 ### AC-2: Backend validation and storage
 
 - **AC-2.1** `message` is stored on `MembershipRequests.message` (no schema change).
-- **AC-2.2** The backend sanitizes `message` to plain text (strip HTML tags, decode/normalize whitespace, trim) before storing. Frontend sanitization is not trusted.
-- **AC-2.3** Messages longer than 500 characters (after sanitization) are rejected with HTTP 400 and a clear `message`; they are not silently truncated. Validation lives in a serializer or the manager, not in `full_clean()` (DRF does not call it).
-- **AC-2.4** `message` may be empty. With the toggle on, a missing `message` key is treated as an empty message; with the toggle off, a missing key keeps returning 400 as today.
+- **AC-2.2** The backend trims `message` and rejects it with HTTP 400 if it contains HTML markup (checked with `sanitize_html` and an empty allowlist; entity-encoded text is stored as inert text, never decoded). Frontend sanitization is not trusted.
+- **AC-2.3** Messages longer than 500 characters (after trimming) are rejected with HTTP 400 and a clear `message`; they are not silently truncated. Validation lives in a serializer or the manager, not in `full_clean()` (DRF does not call it).
+- **AC-2.4** `message` may be empty. A missing or `null` `message` is treated as an empty message (backend, independent of the toggle).
 - **AC-2.5** Duplicate-request handling, availability handling and notification creation are unchanged.
 - **AC-2.6** The 500 limit is a constant shared by validation and tests (e.g. `MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH`), distinct from the 4096 column limit.
 
 ### AC-3: Feature toggle
 
 - **AC-3.1** A new toggle `PROJECT_JOIN_REQUEST_CONFIRMATION` gates the new behaviour.
-- **AC-3.2** Toggle **off**: join button behaves exactly as today (immediate send, default message); backend accepts the old payload and does not enforce the new 500 limit/sanitization differently than today.
-- **AC-3.3** Toggle **on**: modal flow (AC-1) and backend validation (AC-2) apply.
-- **AC-3.4** Frontend reads the toggle via `useFeatureToggles().isEnabled(...)` (default `false` while loading); backend uses `is_feature_enabled(...)`.
+- **AC-3.2** Toggle **off**: join button behaves exactly as today (immediate send, default message); the frontend sends the old default message.
+- **AC-3.3** Toggle **on**: modal flow (AC-1) applies. Backend validation (AC-2) always applies.
+- **AC-3.4** Frontend reads the toggle via `useFeatureToggles().isEnabled(...)` (default `false` while loading). The backend does not use the toggle.
 
 ### AC-4: Tests
 
-- **AC-4.1** Backend (`organization/tests/`): message stored; HTML stripped; 500 chars accepted, 501 rejected; empty message accepted; duplicate request still 4xx; toggle off keeps legacy behaviour.
+- **AC-4.1** Backend (`organization/tests/`): message stored; HTML rejected, entity-encoded text stored inertly; 500 chars accepted, 501 rejected; empty message accepted; duplicate request still 4xx.
 - **AC-4.2** Frontend (jest): click opens modal and sends nothing; Cancel sends nothing; Send posts the entered message; counter/limit; button disabled while sending; error keeps modal open; toggle off → legacy immediate send.
 
 ### AC-5: Documentation
@@ -102,9 +102,9 @@ The join-request feature was never fully completed; this is the first of three s
 
 None. Resolved decisions:
 
-- **Missing `message` key**: accepted as empty when the toggle is on; stays a 400 when off.
+- **Missing `message` key**: accepted as empty (no toggle in the backend).
 - **Toggle**: `PROJECT_JOIN_REQUEST_CONFIRMATION`, shared with later "Join Requests v2" steps if they must ship together.
-- **Plain text**: strip only real HTML tags; keep stray `<` / `>` characters (e.g. "I <3 climate").
+- **Plain text**: messages with HTML markup are rejected; stray `<` / `>` characters (e.g. "I <3 climate") are kept.
 
 ---
 
