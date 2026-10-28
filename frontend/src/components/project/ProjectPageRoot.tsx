@@ -360,7 +360,7 @@ export default function ProjectPageRoot({
    * Calls backend, sending a request to join this project based
    * on user token stored in cookies.
    */
-  const handleSendProjectJoinRequest = async () => {
+  const handleSendProjectJoinRequest = async (message?: string): Promise<boolean> => {
     // Get the actual project name from the URL, removing any query params
     // and projects/ prefix. For example,
     // "/projects/Anotherproject6?projectId=Anotherproject6" -> "Anotherproject6"
@@ -375,7 +375,8 @@ export default function ProjectPageRoot({
         method: "post",
         url: `/api/projects/${strippedProjectName}/request_membership/${user.url_slug}/`,
         payload: {
-          message: "Would like to join the project!",
+          // Without a message (legacy flow, toggle off) keep sending the old default text
+          message: message ?? "Would like to join the project!",
           // TODO: currently, we default user's availability to 4. In
           // the future, we could consider customizing this option
           user_availability: "4",
@@ -390,6 +391,7 @@ export default function ProjectPageRoot({
         success: true,
       });
       handleJoinRequest(true);
+      return true;
     } catch (error) {
       showFeedbackMessage({
         message: error?.response?.data?.message,
@@ -397,7 +399,9 @@ export default function ProjectPageRoot({
       });
       if (error?.response?.data?.message === "Request already exists to join project") {
         handleJoinRequest(true);
+        return true;
       }
+      return false;
     }
   };
 

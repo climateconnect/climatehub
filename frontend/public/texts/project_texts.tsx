@@ -1302,6 +1302,24 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "Only project admins can view join requests.",
       de: "Nur Projektadministratoren können sehen, wer mitmachen möchte.",
     },
+    join_request_dialog_title: {
+      en: "Join request",
+      de: "Beitrittsanfrage",
+    },
+    join_request_dialog_explanation: {
+      en:
+        "It is great you want to join this project. Optionally you can include a message to the project administrators.",
+      de:
+        "Schön, dass du bei diesem Projekt mitmachen möchtest. Optional kannst du den Projektadministrator*innen eine Nachricht hinterlassen.",
+    },
+    join_request_message_label: {
+      en: "Message to project administrators (optional)",
+      de: "Nachricht an die Projektadministrator*innen (optional)",
+    },
+    send_join_request: {
+      en: "Send join request",
+      de: "Anfrage senden",
+    },
     your_request_has_been_sent: {
       en: "We notified the project owner that you would like to join this project.",
       de: "Die Projektverantwortlichen wurden benachrichtigt, dass du gerne mitmachen möchtest.",

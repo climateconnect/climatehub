@@ -1175,3 +1175,17 @@ If you encounter issues or have questions about the API:
 **Last Updated**:  
 July 13, 2026 - Changed validation to allow up to 15 custom fields.
 
+
+
+## Project join request
+
+`POST /api/projects/<url_slug>/request_membership/<user_slug>/` (authenticated; `user_slug` must match the caller)
+
+Body: `{ "user_availability": <id>, "message": <string> }`
+
+- `message` is optional (a missing or `null` value is treated as empty) and trimmed.
+- It must be plain text: a message containing HTML markup returns `400` with a `message` error. Entity-encoded text (e.g. `&lt;b&gt;`) is stored as-is and never decoded.
+- The message must be at most 500 characters, otherwise `400` with a `message` error (not truncated).
+- A non-string `message` returns `400`.
+
+A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is not returned by the API.

@@ -125,7 +125,11 @@ from organization.utility.project import (
     get_project_translations,
     get_similar_projects,
 )
-from organization.utility.requests import MembershipRequestsManager
+from organization.utility.requests import (
+    MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH,
+    MembershipRequestsManager,
+    is_plain_text,
+)
 from organization.utility.sector import (
     create_context_for_hub_specific_sector,
     sanitize_sector_inputs,
@@ -1835,7 +1839,7 @@ class RequestJoinProject(RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, user_slug, url_slug):
-        required_params = ["user_availability", "message"]
+        required_params = ["user_availability"]
         missing_param = any([param not in request.data for param in required_params])
         if missing_param:
             return Response(
@@ -1866,13 +1870,35 @@ class RequestJoinProject(RetrieveUpdateAPIView):
             id=request.data["user_availability"]
         ).first()
 
+        message = request.data.get("message", "")
+        if message is None:
+            message = ""
+        if not isinstance(message, str):
+            return Response(
+                {"message": "message must be a string"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        message = message.replace("\r\n", "\n").strip()
+        if not is_plain_text(message):
+            return Response(
+                {"message": "The message must be plain text without HTML"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(message) > MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH:
+            return Response(
+                {
+                    "message": f"The message must not be longer than {MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH} characters"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         request_manager = MembershipRequestsManager(
             user=user,
             membership_target=MembershipTarget.PROJECT,
             user_availability=user_availability,
             project=project,
             organization=None,
-            message=request.data["message"],
+            message=message,
         )
 
         exists = request_manager.duplicate_request
