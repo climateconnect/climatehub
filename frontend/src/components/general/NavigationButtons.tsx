@@ -4,6 +4,7 @@ import React, { MouseEventHandler, useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import useBottomBarSpace from "../hooks/useBottomBarSpace";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 
@@ -135,6 +136,7 @@ export default function NavigationButtons({
   fixedOnMobile,
   sticky,
 }: Args) {
+  const barRef = useBottomBarSpace<HTMLDivElement>();
   const [open, setOpen] = useState(false);
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
   const isMobileScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
@@ -175,6 +177,7 @@ export default function NavigationButtons({
 
   return (
     <NavigationButtonWrapper
+      ref={barRef}
       className={className}
       $position={position}
       $fixedOnMobile={fixedOnMobile}

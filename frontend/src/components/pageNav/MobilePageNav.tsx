@@ -11,6 +11,7 @@ import UserContext from "../context/UserContext";
 import AppLink from "../general/AppLink";
 import { usePageNavEntries } from "../../hooks/usePageNavEntries";
 import { BrowseEntity } from "../../types";
+import useBottomBarSpace from "../hooks/useBottomBarSpace";
 
 const Nav = styled("nav")(({ theme }) => ({
   display: "flex",
@@ -98,6 +99,7 @@ export default function MobilePageNav({
   subHubSegment?: string;
   hubAmbassador?: any;
 }) {
+  const barRef = useBottomBarSpace<HTMLDivElement>();
   const { locale } = useContext(UserContext);
   const texts = useMemo(() => getTexts({ page: "hub", locale: locale }), [locale]);
   const { browseEntries, getHref, isActive } = usePageNavEntries({
@@ -109,6 +111,7 @@ export default function MobilePageNav({
 
   return (
     <Box
+      ref={barRef}
       sx={(theme) => ({
         position: "fixed",
         bottom: 0,

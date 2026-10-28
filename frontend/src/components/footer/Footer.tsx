@@ -11,6 +11,7 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import SocialMediaButton from "../general/SocialMediaButton";
 import LargeFooter from "./LargeFooter";
+import { BOTTOM_BAR_SPACE } from "../hooks/useBottomBarSpace";
 
 const FooterRoot = styled("footer", {
   shouldForwardProp: (p) =>
@@ -40,9 +41,7 @@ const FooterRoot = styled("footer", {
       : {
           position: "absolute",
           bottom: 0,
-          [theme.breakpoints.down("md")]: {
-            marginBottom: theme.spacing(8),
-          },
+          marginBottom: BOTTOM_BAR_SPACE,
         })),
   ...(!noSpacingTop && {
     marginTop: theme.spacing(2),

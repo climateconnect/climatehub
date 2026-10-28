@@ -6,6 +6,7 @@ import FollowButton from "../../general/FollowButton";
 import LikeButton from "./LikeButton";
 import RegistrationActionButton from "./RegistrationActionButton";
 import { Project } from "../../../types";
+import useBottomBarSpace from "../../hooks/useBottomBarSpace";
 import { getRegistrationUIState } from "../../../utils/eventRegistrationHelpers";
 
 interface ProjectInteractionButtonsProps {
@@ -123,6 +124,7 @@ export default function ProjectInteractionButtons({
   onModifyRegistrationClick,
   eventRegistration,
 }: ProjectInteractionButtonsProps) {
+  const barRef = useBottomBarSpace<HTMLElement>();
   const registrationState = getRegistrationUIState(
     project,
     isUserRegistered,
@@ -142,7 +144,7 @@ export default function ProjectInteractionButtons({
       maxParticipants !== null;
 
     return (
-      <ActionBar position="fixed" elevation={0}>
+      <ActionBar ref={barRef} position="fixed" elevation={0}>
         <ActionBarToolbar variant="dense">
           <LeftActions>
             {registrationState !== "hidden" ? (

@@ -333,3 +333,7 @@ Master had the same `marginLeft: -theme.spacing(1)` rule here. The branch droppe
 - Findings 5–8 were confirmed by reading the cited code. The suggested fixes have not been prototyped.
 - Finding 9 was reported from manual testing and has been fixed. Findings 1–3 were fixed in `75550de3f`, and finding 4 partly (see the re-review).
 - Finding 10 was checked visually by the reviewer. The bar heights and the affected pages in the update for `25b028c92` come from reading the code. The `useBottomBarSpace` hook has not been prototyped.
+
+#### Update: CSS-variable solution implemented
+
+`useBottomBarSpace` (`src/components/hooks/useBottomBarSpace.ts`) is now used as a ref by `ProjectInteractionButtons`, `TranslateTexts`, `NavigationButtons` and `MobilePageNav`. It publishes the bar's measured height as `--bottom-bar-height` on `<html>` (0 when the bar is not `position: fixed` at the current width; the tallest bar wins if several are mounted). `Footer`, `WideLayout` and `layout` use `var(--bottom-bar-height, 0px)` instead of the fixed 64px / 112px, so pages without a bar look like master again. Not yet checked in the browser; `ContactAmbassadorButton` and the inbox are unchanged.

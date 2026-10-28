@@ -18,6 +18,7 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import useBottomBarSpace from "../hooks/useBottomBarSpace";
 import SaveIcon from "@mui/icons-material/Save";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import ProjectDescriptionEditor from "../editProject/ProjectDescriptionEditor";
@@ -491,6 +492,7 @@ function TranslationActionButtonBar({
   submitButtonText,
   saveAsDraft,
 }) {
+  const barRef = useBottomBarSpace<HTMLElement>();
   return (
     <>
       {!belowSmall ? (
@@ -516,7 +518,7 @@ function TranslationActionButtonBar({
           </SubmitOptions>
         </TopButtonRow>
       ) : (
-        <ActionBar position="fixed" elevation={0}>
+        <ActionBar ref={barRef} position="fixed" elevation={0}>
           <ContainerButtonsActionBar variant="dense">
             {" "}
             <TopButtonRow>

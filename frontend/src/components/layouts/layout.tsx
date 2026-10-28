@@ -9,6 +9,7 @@ import Footer from "../footer/Footer";
 import LoadingContainer from "../general/LoadingContainer";
 import Header from "../header/Header";
 import LayoutWrapper from "./LayoutWrapper";
+import { BOTTOM_BAR_SPACE } from "../hooks/useBottomBarSpace";
 //We are ignoring the "missing" devlink import because it will be there at runtime
 //You will need to run 'npx webflow devlink sync' to generate this file.
 //If you do not have access to an API key you can line out.
@@ -79,13 +80,7 @@ export default function Layout({
                 {getMessageFromUrl(message ? message : initialMessage)}
               </StyledAlert>
             )}
-            <Container
-              maxWidth="lg"
-              component="main"
-              sx={(theme) => ({
-                [theme.breakpoints.down("md")]: { marginBottom: theme.spacing(8) },
-              })}
-            >
+            <Container maxWidth="lg" component="main" sx={{ marginBottom: BOTTOM_BAR_SPACE }}>
               <Container maxWidth="sm">
                 {!hideHeadline && (
                   <MainHeading

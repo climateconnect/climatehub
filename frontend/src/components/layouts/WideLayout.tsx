@@ -12,6 +12,7 @@ import ElementSpaceToTop from "../hooks/ElementSpaceToTop";
 import DonationCampaignInformation from "../staticpages/donate/DonationCampaignInformation";
 import LayoutWrapper from "./LayoutWrapper";
 import { CustomBackground } from "../hub/CustomBackground";
+import { BOTTOM_BAR_SPACE } from "../hooks/useBottomBarSpace";
 
 const Main = styled(Container, {
   shouldForwardProp: (prop) => prop !== "$noSpaceBottom" && prop !== "$isStaticPage",
@@ -19,10 +20,7 @@ const Main = styled(Container, {
   ({ theme, $noSpaceBottom, $isStaticPage }) => ({
     padding: 0,
     marginTop: $isStaticPage ? 0 : -16,
-    marginBottom: $noSpaceBottom ? 0 : theme.spacing(6),
-    [theme.breakpoints.down("md")]: {
-      marginBottom: $noSpaceBottom ? 0 : theme.spacing(14),
-    },
+    marginBottom: $noSpaceBottom ? 0 : `calc(${theme.spacing(6)} + ${BOTTOM_BAR_SPACE})`,
   })
 );
 
