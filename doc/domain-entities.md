@@ -223,7 +223,7 @@ This document provides comprehensive documentation of the main domain entities i
 **Description**: Handles the workflow for users requesting to join projects or organizations. Tracks request status (pending, approved, rejected), proposed availability commitment, and optional introduction message. Used to manage team growth and vet new members.
 
 **Relationships**:
-- **ForeignKey**: `User`, `Project` (nullable), `Organization` (nullable), `Availability`
+- **ForeignKey**: `User`, `User` (`decided_by`, nullable: admin who approved/rejected), `Project` (nullable), `Organization` (nullable), `Availability`
 - **Referenced by**: `Notification` (notifies admins of requests)
 
 ---

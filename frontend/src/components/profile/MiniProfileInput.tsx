@@ -87,7 +87,13 @@ export default function MiniProfileInput({
   const type = typeId || "project";
   const [open, setOpen] = useState(false);
   const { locale } = useContext(UserContext);
-  const texts = getTexts({ page: "profile", locale: locale, profile: profile });
+  // Members added from the search results have no `name`/`image`, only the API fields
+  const displayName = profile.name ?? `${profile.first_name} ${profile.last_name}`;
+  const texts = getTexts({
+    page: "profile",
+    locale: locale,
+    profile: { ...profile, name: displayName },
+  });
   const theme = useTheme();
 
   useEffect(() => {
@@ -148,11 +154,11 @@ export default function MiniProfileInput({
   return (
     <div className={className}>
       <ProfileAvatar
-        alt={profile.name}
+        alt={displayName}
         /*TODO(unused) size="large" */
-        src={getImageUrl(profile.image)}
+        src={getImageUrl(profile.thumbnail_image ?? profile.image)}
       />
-      <NameText variant="h6">{profile.first_name + " " + profile.last_name}</NameText>
+      <NameText variant="h6">{displayName}</NameText>
       <FieldLabel>
         {texts.permissions}
         <Tooltip title={texts.choose_what_permissions_the_user_should_have}>

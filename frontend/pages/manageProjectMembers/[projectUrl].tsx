@@ -170,7 +170,7 @@ function parseProjectMembers(members) {
       ...member,
       member_id: m.id,
       id: member.id,
-      image: process.env.API_URL + member.image,
+      image: member.thumbnail_image,
       name: member.first_name + " " + member.last_name,
       role: m.role,
       availability: m.availability,

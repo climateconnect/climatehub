@@ -1955,10 +1955,10 @@ class ManageJoinProjectView(RetrieveUpdateDestroyAPIView):
                 )
 
             if request_action == "approve":
-                request_manager.approve_request()
+                request_manager.approve_request(decided_by=request.user)
                 create_project_join_request_approval_notification(request_id=request_id)
             elif request_action == "reject":
-                request_manager.reject_request()
+                request_manager.reject_request(decided_by=request.user)
             else:
                 raise NotImplementedError(
                     f"membership request action <{request_action}> is not implemented"
