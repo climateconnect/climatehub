@@ -241,12 +241,23 @@ const parseMembersForCreateRequest = (members) => {
 };
 
 const parseMemberForUpdateRequest = (m, project) => {
-  return {
+  const parsedMem: {
+    id: number;
+    user: number;
+    role: number;
+    role_in_project: string;
+    project: number;
+    availability?: number;
+  } = {
     id: m.member_id,
     user: m.id,
     role: m.role.id,
     role_in_project: m.role_in_project ? m.role_in_project : "",
     project: project.id,
-    availability: m.availability.id,
   };
+  // availability is optional: existing members can have none, members added from search never have one
+  if (m.availability) {
+    parsedMem.availability = m.availability.id;
+  }
+  return parsedMem;
 };

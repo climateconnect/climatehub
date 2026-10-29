@@ -78,7 +78,13 @@ export default function MiniProfileInput({
   const classes = useStyles();
   const [open, setOpen] = useState(false);
   const { locale } = useContext(UserContext);
-  const texts = getTexts({ page: "profile", locale: locale, profile: profile });
+  // Members added from the search results have no `name`/`image`, only the API fields
+  const displayName = profile.name ?? `${profile.first_name} ${profile.last_name}`;
+  const texts = getTexts({
+    page: "profile",
+    locale: locale,
+    profile: { ...profile, name: displayName },
+  });
   const theme = useTheme();
 
   useEffect(() => {
@@ -139,13 +145,13 @@ export default function MiniProfileInput({
   return (
     <div className={className}>
       <Avatar
-        alt={profile.name}
+        alt={displayName}
         /*TODO(unused) size="large" */
-        src={getImageUrl(profile.image)}
+        src={getImageUrl(profile.thumbnail_image ?? profile.image)}
         className={classes.avatar}
       />
       <Typography variant="h6" className={classes.name}>
-        {profile.first_name + " " + profile.last_name}
+        {displayName}
       </Typography>
       <Typography className={classes.fieldLabel}>
         {texts.permissions}
