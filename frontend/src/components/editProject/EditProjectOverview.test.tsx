@@ -2,7 +2,6 @@ import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
@@ -57,22 +56,20 @@ function renderEditProjectOverview(overrides: Partial<typeof baseProject> = {}) 
   const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContext as any}>
-          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
-            <EditProjectOverview
-              project={{ ...baseProject, ...overrides } as any}
-              handleSetProject={handleSetProject}
-              smallScreen={true}
-              overviewInputsRef={{ current: null }}
-              locationOptionsOpen={false}
-              handleSetLocationOptionsOpen={jest.fn()}
-              locationInputRef={{ current: null }}
-              sectorOptions={[]}
-            />
-          </FeedbackContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={defaultContext as any}>
+        <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+          <EditProjectOverview
+            project={{ ...baseProject, ...overrides } as any}
+            handleSetProject={handleSetProject}
+            smallScreen={true}
+            overviewInputsRef={{ current: null }}
+            locationOptionsOpen={false}
+            handleSetLocationOptionsOpen={jest.fn()}
+            locationInputRef={{ current: null }}
+            sectorOptions={[]}
+          />
+        </FeedbackContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
   return { ...utils, handleSetProject, showFeedbackMessage };

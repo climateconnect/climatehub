@@ -1,5 +1,5 @@
 import { Avatar, Button, Typography } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { styled } from "@mui/material/styles";
 import { redirect } from "../../../public/lib/apiOperations";
 import React, { useContext } from "react";
 import { getImageUrl } from "../../../public/lib/imageOperations";
@@ -9,48 +9,51 @@ import UserContext from "../context/UserContext";
 import Cookies from "universal-cookie";
 import { useRouter } from "next/router";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    background: "white",
-    width: 320,
-    marginLeft: "auto",
-  },
-  upperSection: {
-    padding: theme.spacing(2),
-    background: theme.palette.grey.light,
-  },
-  lowerSection: {
-    padding: theme.spacing(2),
-    display: "flex",
-    alignItems: "center",
-  },
-  headline: {
-    fontSize: 20,
-    fontWeight: 600,
-    marginBottom: theme.spacing(1),
-  },
-  avatar: {
-    marginRight: theme.spacing(2),
-    width: 65,
-    height: 65,
-  },
-  name: {
-    fontWeight: 700,
-  },
-  button: {
-    marginTop: theme.spacing(1),
+const Root = styled("div")({
+  background: "white",
+  width: 320,
+  marginLeft: "auto",
+});
+
+const UpperSection = styled("div")(({ theme }) => ({
+  padding: theme.spacing(2),
+  background: theme.palette.grey.light,
+}));
+
+const LowerSection = styled("div")(({ theme }) => ({
+  padding: theme.spacing(2),
+  display: "flex",
+  alignItems: "center",
+}));
+
+// headline + secondaryTextColor: the color rule came last in the original, so it wins
+const Headline = styled(Typography)(({ theme }) => ({
+  fontSize: 20,
+  fontWeight: 600,
+  marginBottom: theme.spacing(1),
+  color: theme.palette?.background?.default_contrastText,
+}));
+
+const AmbassadorAvatar = styled(Avatar)(({ theme }) => ({
+  marginRight: theme.spacing(2),
+  width: 65,
+  height: 65,
+}));
+
+const Name = styled(Typography)({
+  fontWeight: 700,
+});
+
+const ContactButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  borderColor: theme.palette?.background?.default_contrastText,
+  "&:hover": {
     borderColor: theme.palette?.background?.default_contrastText,
-    "&:hover": {
-      borderColor: theme.palette?.background?.default_contrastText,
-    },
   },
-  secondaryTextColor: {
-    color: theme.palette?.background?.default_contrastText,
-  },
+  color: theme.palette?.background?.default_contrastText,
 }));
 
 export default function LocalAmbassadorInfoBox({ hubAmbassador, hubData, hubSupportersExists }) {
-  const classes = useStyles();
   const { locale, user } = useContext(UserContext);
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
@@ -88,37 +91,25 @@ export default function LocalAmbassadorInfoBox({ hubAmbassador, hubData, hubSupp
   //allow for custom variables
   const ambassadorBoxText = getAmbassadorBoxText();
   return (
-    <div className={classes.root}>
+    <Root>
       {!hubSupportersExists && (
-        <div className={classes.upperSection}>
-          <Typography
-            color="primary"
-            className={`${classes.headline} ${classes.secondaryTextColor}`}
-          >
-            {texts.do_you_need_support}
-          </Typography>
+        <UpperSection>
+          <Headline color="primary">{texts.do_you_need_support}</Headline>
           <Typography>{ambassadorBoxText}</Typography>
-        </div>
+        </UpperSection>
       )}
-      <div className={classes.lowerSection}>
-        <Avatar
-          className={classes.avatar}
-          src={getImageUrl(hubAmbassador?.user?.thumbnail_image)}
-        />
+      <LowerSection>
+        <AmbassadorAvatar src={getImageUrl(hubAmbassador?.user?.thumbnail_image)} />
         <div>
-          <Typography className={classes.name}>
+          <Name>
             {hubAmbassador?.user?.first_name} {hubAmbassador?.user?.last_name}
-          </Typography>
+          </Name>
           <Typography>{hubAmbassador?.title}</Typography>
-          <Button
-            variant="outlined"
-            className={`${classes.button} ${classes.secondaryTextColor}`}
-            onClick={handleClickContact}
-          >
+          <ContactButton variant="outlined" onClick={handleClickContact}>
             {texts.send_message}
-          </Button>
+          </ContactButton>
         </div>
-      </div>
-    </div>
+      </LowerSection>
+    </Root>
   );
 }

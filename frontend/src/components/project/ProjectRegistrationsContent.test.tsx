@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import ProjectRegistrationsContent from "./ProjectRegistrationsContent";
@@ -66,15 +65,13 @@ function makeRegistration(overrides: Partial<EventRegistrationData> = {}): Event
 function renderContent(eventRegistration: EventRegistrationData) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={{ locale: "en" } as any}>
-          <ProjectRegistrationsContent
-            project={{ url_slug: "test-event", end_date: "2099-06-30T23:59:00.000Z" } as Project}
-            eventRegistration={eventRegistration}
-            onEventRegistrationUpdated={jest.fn()}
-          />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={{ locale: "en" } as any}>
+        <ProjectRegistrationsContent
+          project={{ url_slug: "test-event", end_date: "2099-06-30T23:59:00.000Z" } as Project}
+          eventRegistration={eventRegistration}
+          onEventRegistrationUpdated={jest.fn()}
+        />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

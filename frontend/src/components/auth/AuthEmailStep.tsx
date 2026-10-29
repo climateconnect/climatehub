@@ -1,3 +1,4 @@
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import { Alert, Button, CircularProgress, IconButton, TextField, Typography } from "@mui/material";
 import Close from "@mui/icons-material/Close";
@@ -6,7 +7,6 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { trackAuthEvent } from "../../utils/analytics";
 import RequiredFieldsNotice from "../general/RequiredFieldsNotice";
-import makeStyles from "@mui/styles/makeStyles";
 
 interface AuthEmailStepProps {
   onUserStatusDetermined: (
@@ -17,21 +17,20 @@ interface AuthEmailStepProps {
   showHeader?: boolean;
 }
 
-const useStyles = makeStyles((theme) => ({
-  header: {
-    color: theme.palette.background.default_contrastText,
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-      fontSize: 35,
-      fontWeight: "bold",
-    },
+const Header = styled(Typography)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    textAlign: "center",
+    fontSize: 35,
+    fontWeight: "bold",
   },
-  requiredFieldsNotice: {
-    display: "block",
-    marginBottom: theme.spacing(1),
-  },
+}));
+
+const NoticeWrapper = styled(RequiredFieldsNotice)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(1),
 }));
 
 export default function AuthEmailStep({
@@ -44,7 +43,6 @@ export default function AuthEmailStep({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const texts = getTexts({ page: "profile", locale: locale, hubName: hubUrl });
-  const classes = useStyles();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,9 +109,7 @@ export default function AuthEmailStep({
               <Close />
             </IconButton>
           </div>
-          <Typography variant="h1" className={classes.header}>
-            {texts.welcome_to_climate_connect}
-          </Typography>
+          <Header variant="h1">{texts.welcome_to_climate_connect}</Header>
         </>
       )}
 
@@ -135,7 +131,7 @@ export default function AuthEmailStep({
           disabled={isLoading}
           style={{ marginBottom: 16 }}
         />
-        <RequiredFieldsNotice className={classes.requiredFieldsNotice} />
+        <NoticeWrapper />
 
         {errorMessage && (
           <Alert severity="error" role="alert" style={{ marginBottom: 16 }}>

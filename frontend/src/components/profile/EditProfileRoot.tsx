@@ -1,5 +1,4 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import { useRouter } from "next/router";
 import React, { useContext, useState } from "react";
 import Cookies from "universal-cookie";
@@ -19,13 +18,6 @@ import UserContext from "../context/UserContext";
 import PageNotFound from "../general/PageNotFound";
 import TranslateTexts from "../general/TranslateTexts";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    textAlign: "center",
-    marginTop: theme.spacing(4),
-  },
-}));
-
 export default function EditAccountRoot({
   profile,
   user,
@@ -42,7 +34,6 @@ export default function EditAccountRoot({
   const { hubUrl } = useContext(HubContext);
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
-  const classes = useStyles();
   const [translations, setTranslations] = useState(
     initialTranslations ? getTranslationsFromObject(initialTranslations, "user_profile") : {}
   );
@@ -156,7 +147,12 @@ export default function EditAccountRoot({
           />
         ) : (
           <>
-            <Typography color="primary" className={classes.headline} component="h1" variant="h4">
+            <Typography
+              color="primary"
+              sx={(theme) => ({ textAlign: "center", marginTop: theme.spacing(4) })}
+              component="h1"
+              variant="h4"
+            >
               {texts.translate}
             </Typography>
             <TranslateTexts

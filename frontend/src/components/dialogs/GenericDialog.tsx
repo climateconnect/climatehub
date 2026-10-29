@@ -8,77 +8,80 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import { string, func, bool } from "prop-types";
 import React, { PropsWithChildren } from "react";
 import theme from "../../themes/theme";
 
-const useStyles = makeStyles<
-  Theme,
-  { fullScreen?: boolean; useApplyButton?: boolean; closeButtonRightSide?: boolean }
->((theme) => ({
-  dialog: (props) => ({
-    [theme.breakpoints.up("sm")]: {
-      padding: props.fullScreen ? 0 : theme.spacing(8),
-    },
-  }),
-  noScrollDialog: {
-    overflow: "hidden",
+const StyledDialog = styled(Dialog, {
+  shouldForwardProp: (p) => typeof p !== "string" || !p.startsWith("$"),
+})<{ $fullScreen?: boolean; $topBarFixed?: boolean }>(({ theme, $fullScreen, $topBarFixed }) => ({
+  [theme.breakpoints.up("sm")]: {
+    padding: $fullScreen ? 0 : theme.spacing(8),
   },
-  dialogContent: (props) => ({
-    padding: theme.spacing(2),
-    height: props.fullScreen ? "100%" : "auto",
-    [theme.breakpoints.down("lg")]: {
-      padding: theme.spacing(2),
-      paddingTop: 0,
-    },
-  }),
-  scrollDialogContent: {
-    height: "auto",
-    overflow: "auto",
-  },
+  ...($topBarFixed && { overflow: "hidden" }),
   // MUI's FocusTrap moves focus onto this Paper (tabIndex={-1}) whenever the
   // dialog opens. Chrome shows a focus-visible ring on it when the dialog was
   // opened via a keyboard action (e.g. pasting an image with Ctrl/Cmd+V), so
   // it needs to match the brand color instead of the browser's default blue.
-  dialogPaper: {
-    "&:focus-visible": {
-      outline: `2px solid ${theme.palette.primary.main}`,
-      outlineOffset: -2,
-    },
+  "& .MuiDialog-paper:focus-visible": {
+    outline: `2px solid ${theme.palette.primary.main}`,
+    outlineOffset: -2,
   },
-  closeButtonLeft: {
-    marginLeft: theme.spacing(-1),
-    color: theme.palette.grey[500],
+}));
+
+const StyledDialogTitle = styled(DialogTitle)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+});
+
+const DialogContentArea = styled("div", {
+  shouldForwardProp: (p) => typeof p !== "string" || !p.startsWith("$"),
+})<{ $fullScreen?: boolean; $topBarFixed?: boolean }>(({ theme, $fullScreen, $topBarFixed }) => ({
+  padding: theme.spacing(2),
+  // The dynamic JSS rule (height) used to be injected after the static scroll rule, so it won
+  height: $fullScreen ? "100%" : "auto",
+  ...($topBarFixed && { overflow: "auto" }),
+  [theme.breakpoints.down("lg")]: {
+    padding: theme.spacing(2),
+    paddingTop: 0,
   },
-  closeButtonRight: {
-    color: theme.palette.grey[500],
-  },
-  titleText: (props) => ({
-    marginLeft: props.closeButtonRightSide ? theme.spacing(-1) : theme.spacing(1),
-    marginRight: props.closeButtonRightSide ? theme.spacing(5) : theme.spacing(2),
-    fontSize: 20,
-    color: theme.palette.text.primary,
-    flex: 1,
-  }),
-  dialogTitle: (props) => ({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: props.fullScreen ? "flex-start" : "flex-start",
-  }),
-  applyButtonArea: {
-    marginLeft: "auto",
-    flexShrink: 0,
-  },
-  saveIconButton: {
-    background: theme.palette.primary.main,
-    color: "white",
-  },
-  buttomBtnContainer: {
-    textAlign: "center",
-    marginBottom: theme.spacing(2),
-  },
+}));
+
+const CloseButtonLeft = styled(IconButton)(({ theme }) => ({
+  marginLeft: theme.spacing(-1),
+  color: theme.palette.grey[500],
+}));
+
+const CloseButtonRight = styled(IconButton)(({ theme }) => ({
+  color: theme.palette.grey[500],
+}));
+
+const TitleText = styled(Typography, {
+  shouldForwardProp: (p) => typeof p !== "string" || !p.startsWith("$"),
+})<{ $closeButtonRightSide?: boolean }>(({ theme, $closeButtonRightSide }) => ({
+  marginLeft: $closeButtonRightSide ? theme.spacing(-1) : theme.spacing(1),
+  marginRight: $closeButtonRightSide ? theme.spacing(5) : theme.spacing(2),
+  fontSize: 20,
+  color: theme.palette.text.primary,
+  flex: 1,
+}));
+
+const ApplyButtonArea = styled("div")({
+  marginLeft: "auto",
+  flexShrink: 0,
+});
+
+const SaveIconButton = styled(IconButton)(({ theme }) => ({
+  background: theme.palette.primary.main,
+  color: "white",
+}));
+
+const BottomButtonContainer = styled("div")(({ theme }) => ({
+  textAlign: "center",
+  marginBottom: theme.spacing(2),
 }));
 
 type Props = PropsWithChildren<{
@@ -128,12 +131,6 @@ export default function GenericDialog({
   buttonAsLink,
   PaperProps,
 }: Props) {
-  const classes = useStyles({
-    useApplyButton,
-    fullScreen,
-    closeButtonRightSide,
-  });
-
   const isSmallScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
 
   const handleCancel = () => {
@@ -144,32 +141,34 @@ export default function GenericDialog({
     activeFilterCount !== undefined && activeFilterCount > 0 ? activeFilterCount : undefined;
 
   return (
-    <Dialog
-      className={`${classes.dialog} ${topBarFixed && classes.noScrollDialog}`}
+    <StyledDialog
+      $fullScreen={fullScreen}
+      $topBarFixed={topBarFixed}
       onClose={handleCancel}
       open={open}
       maxWidth={maxWidth ? maxWidth : "md"}
       fullScreen={fullScreen}
       classes={{
-        paper: `${classes.dialogPaper} ${paperClassName ?? ""}`.trim(),
+        paper: paperClassName,
       }}
       PaperProps={PaperProps}
       closeAfterTransition={false}
     >
-      <DialogTitle className={classes.dialogTitle}>
+      <StyledDialogTitle>
         {onClose && !closeButtonRightSide && (
-          <IconButton
+          <CloseButtonLeft
             aria-label="close"
-            className={classes.closeButtonLeft}
             onClick={() => onClose(false)}
             size={closeButtonSmall ? "small" : undefined}
           >
             <CloseIcon />
-          </IconButton>
+          </CloseButtonLeft>
         )}
-        <Typography className={`${titleTextClassName} ${classes.titleText}`}>{title}</Typography>
+        <TitleText className={titleTextClassName} $closeButtonRightSide={closeButtonRightSide}>
+          {title}
+        </TitleText>
         {useApplyButton && applyText && !showApplyAtBottom && (
-          <div className={classes.applyButtonArea}>
+          <ApplyButtonArea>
             {applyIcon && isSmallScreen ? (
               <Badge
                 badgeContent={applyBadgeContent}
@@ -177,9 +176,9 @@ export default function GenericDialog({
                 max={9}
                 aria-label={applyBadgeContent ? `${applyBadgeContent} active filters` : undefined}
               >
-                <IconButton onClick={onApply} className={classes.saveIconButton} size="large">
+                <SaveIconButton onClick={onApply} size="large">
                   <applyIcon.icon />
-                </IconButton>
+                </SaveIconButton>
               </Badge>
             ) : (
               <Badge
@@ -188,65 +187,49 @@ export default function GenericDialog({
                 max={9}
                 aria-label={applyBadgeContent ? `${applyBadgeContent} active filters` : undefined}
               >
-                <Button
-                  variant="contained"
-                  color="primary"
-                  className={classes.applyButton}
-                  onClick={onApply}
-                >
+                <Button variant="contained" color="primary" onClick={onApply}>
                   {applyText}
                 </Button>
               </Badge>
             )}
-          </div>
+          </ApplyButtonArea>
         )}
         {onClose && closeButtonRightSide && (
-          <IconButton
+          <CloseButtonRight
             aria-label="close"
-            className={`classes.closeButtonRight ${closeButtonRightStyle}`}
+            className={closeButtonRightStyle}
             onClick={() => onClose(false)}
             size={closeButtonSmall ? "small" : undefined}
           >
             <CloseIcon />
-          </IconButton>
+          </CloseButtonRight>
         )}
-      </DialogTitle>
-      <div
-        className={`${classes.dialogContent} ${
-          topBarFixed && classes.scrollDialogContent
-        } ${dialogContentClass}`}
+      </StyledDialogTitle>
+      <DialogContentArea
+        className={dialogContentClass}
+        $fullScreen={fullScreen}
+        $topBarFixed={topBarFixed}
       >
         {children}
         {useApplyButton && applyText && showApplyAtBottom && (
-          <div className={classes.buttomBtnContainer}>
+          <BottomButtonContainer>
             {applyIcon && isSmallScreen ? (
-              <IconButton className={classes.saveIconButton} size="large">
+              <SaveIconButton size="large">
                 <applyIcon.icon />
-              </IconButton>
+              </SaveIconButton>
             ) : buttonAsLink ? (
-              <Button
-                variant="contained"
-                color="primary"
-                className={classes.applyButton}
-                component="a"
-                href={buttonAsLink}
-              >
+              <Button variant="contained" color="primary" component="a" href={buttonAsLink}>
                 {applyText}
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                className={classes.applyButton}
-                onClick={onApply}
-              >
+              <Button variant="contained" color="primary" onClick={onApply}>
                 {applyText}
               </Button>
             )}
-          </div>
+          </BottomButtonContainer>
         )}
-      </div>
-    </Dialog>
+      </DialogContentArea>
+    </StyledDialog>
   );
 }
 

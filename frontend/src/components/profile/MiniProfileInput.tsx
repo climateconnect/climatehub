@@ -1,5 +1,5 @@
 import { Avatar, Button, IconButton, TextField, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import React, { useContext, useEffect, useState } from "react";
@@ -13,50 +13,60 @@ import SelectField from "../general/SelectField";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 import { useTheme } from "@emotion/react";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    name: {
-      padding: theme.spacing(1),
-      paddingBottom: 0,
-    },
-    avatar: {
-      height: theme.spacing(7),
-      width: theme.spacing(7),
-      margin: "0 auto",
-      fontSize: 50,
-    },
-    field: {
-      width: theme.spacing(34),
-      marginBottom: theme.spacing(1),
-    },
-    fieldLabel: {
-      textAlign: "left",
-      marginBottom: theme.spacing(0.5),
-      color: theme.palette.background.default_contrastText,
-    },
-    tooltip: {
-      fontSize: 16,
-    },
-    removeButton: {
-      backgroundColor: theme.palette.error.main,
-      color: "white",
-      marginTop: theme.spacing(2),
-      "&:hover": {
-        backgroundColor: theme.palette.error.main,
-      },
-    },
-    dialogText: {
-      textAlign: "center",
-    },
-    cantEdit: {
-      color: "red",
-      fontSize: 14,
-    },
-    appointCreatorButton: {
-      color: theme.palette.background.default_contrastText,
-    },
-  };
+const NameText = styled(Typography)(({ theme }) => ({
+  padding: theme.spacing(1),
+  paddingBottom: 0,
+}));
+
+const ProfileAvatar = styled(Avatar)(({ theme }) => ({
+  height: theme.spacing(7),
+  width: theme.spacing(7),
+  margin: "0 auto",
+  fontSize: 50,
+}));
+
+const fieldStyles = ({ theme }: { theme: Theme }) => ({
+  width: theme.spacing(34),
+  marginBottom: theme.spacing(1),
 });
+
+const PermissionSelectField = styled(SelectField)(fieldStyles);
+
+const RoleTextField = styled(TextField)(fieldStyles);
+
+const HoursSelectField = styled(SelectField)(fieldStyles);
+
+const FieldLabel = styled(Typography)(({ theme }) => ({
+  textAlign: "left",
+  marginBottom: theme.spacing(0.5),
+  color: theme.palette.background.default_contrastText,
+}));
+
+const TooltipIcon = styled(HelpOutlineIcon)({
+  fontSize: 16,
+});
+
+const RemoveButton = styled(Button)(({ theme }) => ({
+  backgroundColor: theme.palette.error.main,
+  color: "white",
+  marginTop: theme.spacing(2),
+  "&:hover": {
+    backgroundColor: theme.palette.error.main,
+  },
+}));
+
+const DialogText = styled(Typography)({
+  textAlign: "center",
+}) as typeof Typography;
+
+const CantEditText = styled(Typography)({
+  color: "red",
+  fontSize: 14,
+});
+
+const AppointCreatorButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
 
 export default function MiniProfileInput({
   className,
@@ -75,7 +85,6 @@ export default function MiniProfileInput({
   typeId,
 }: any) {
   const type = typeId || "project";
-  const classes = useStyles();
   const [open, setOpen] = useState(false);
   const { locale } = useContext(UserContext);
   // Members added from the search results have no `name`/`image`, only the API fields
@@ -144,28 +153,24 @@ export default function MiniProfileInput({
 
   return (
     <div className={className}>
-      <Avatar
+      <ProfileAvatar
         alt={displayName}
         /*TODO(unused) size="large" */
         src={getImageUrl(profile.thumbnail_image ?? profile.image)}
-        className={classes.avatar}
       />
-      <Typography variant="h6" className={classes.name}>
-        {displayName}
-      </Typography>
-      <Typography className={classes.fieldLabel}>
+      <NameText variant="h6">{displayName}</NameText>
+      <FieldLabel>
         {texts.permissions}
         <Tooltip title={texts.choose_what_permissions_the_user_should_have}>
           <IconButton size="large">
-            <HelpOutlineIcon className={classes.tooltip} />
+            <TooltipIcon />
           </IconButton>
         </Tooltip>
-      </Typography>
-      <SelectField
+      </FieldLabel>
+      <PermissionSelectField
         label={texts.pick_users_permissions}
         color={backgroundContrastColor}
         size="small"
-        className={classes.field}
         disabled={
           profile.edited && profile.role.role_type !== ROLE_TYPES.all_type
             ? false
@@ -178,13 +183,13 @@ export default function MiniProfileInput({
         onChange={handleChangeRolePermissions}
       />
       {allowAppointingCreator && (
-        <Button className={classes.appointCreatorButton} onClick={handleOpenConfirmCreatorDialog}>
+        <AppointCreatorButton onClick={handleOpenConfirmCreatorDialog}>
           {texts.make_this_user_the_creator}
-        </Button>
+        </AppointCreatorButton>
       )}
       {!dontPickRole && (
         <>
-          <Typography className={classes.fieldLabel}>
+          <FieldLabel>
             {isOrganization
               ? texts.role_in_organization
               : type === "idea"
@@ -204,15 +209,14 @@ export default function MiniProfileInput({
               }
             >
               <IconButton size="large">
-                <HelpOutlineIcon className={classes.tooltip} />
+                <TooltipIcon />
               </IconButton>
             </Tooltip>
-          </Typography>
-          <TextField
+          </FieldLabel>
+          <RoleTextField
             size="small"
             color={backgroundContrastColor}
             variant="outlined"
-            className={classes.field}
             label={texts.pick_or_type_users_role}
             onChange={isOrganization ? handleChangeRoleInOrganization : handleChangeRoleInProject}
             value={isOrganization ? profile.role_in_organization : profile.role_in_project}
@@ -222,7 +226,7 @@ export default function MiniProfileInput({
       )}
       {!hideHoursPerWeek && (
         <>
-          <Typography className={classes.fieldLabel}>
+          <FieldLabel>
             {texts.hours_contributed_per_week}
             <Tooltip
               title={
@@ -232,14 +236,13 @@ export default function MiniProfileInput({
               }
             >
               <IconButton size="large">
-                <HelpOutlineIcon className={classes.tooltip} />
+                <TooltipIcon />
               </IconButton>
             </Tooltip>
-          </Typography>
-          <SelectField
+          </FieldLabel>
+          <HoursSelectField
             label={texts.hours}
             size="small"
-            className={classes.field}
             options={availabilityOptions}
             onChange={handleChangeAvailability}
             defaultValue={profile.availability}
@@ -248,26 +251,19 @@ export default function MiniProfileInput({
         </>
       )}
       {editDisabled && !profile.added && (
-        <Typography color="secondary" className={classes.cantEdit}>
-          {texts.cant_edit_or_remove_member}
-        </Typography>
+        <CantEditText color="secondary">{texts.cant_edit_or_remove_member}</CantEditText>
       )}
       {onDelete && (
-        <Button
-          variant="contained"
-          startIcon={<DeleteIcon />}
-          className={classes.removeButton}
-          onClick={onDelete}
-        >
+        <RemoveButton variant="contained" startIcon={<DeleteIcon />} onClick={onDelete}>
           {texts.remove}
-        </Button>
+        </RemoveButton>
       )}
       <ConfirmDialog
         open={open}
         onClose={handleConfirmTransferCreator}
         title={texts.do_you_really_want_to_lose_creators_permissions}
         text={
-          <Typography component="div" className={classes.dialogText}>
+          <DialogText component="div">
             {isOrganization
               ? texts.there_is_always_one_org_member_with_creator_privileges
               : texts.there_is_always_one_project_member_with_creator_privileges}
@@ -280,7 +276,7 @@ export default function MiniProfileInput({
               </Typography>
             </p>
             {texts.do_you_really_want_to_do_this}
-          </Typography>
+          </DialogText>
         }
         cancelText={texts.no}
         confirmText={texts.yes}

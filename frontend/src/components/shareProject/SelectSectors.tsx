@@ -1,41 +1,15 @@
 import { Container } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import NavigationButtons from "../general/NavigationButtons";
 import ActiveSectorsSelector from "../hub/ActiveSectorsSelector";
-const useStyles = makeStyles((theme) => {
-  return {
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(8),
-      marginBottom: theme.spacing(8),
-    },
-    stepsTracker: {
-      maxWidth: 600,
-      margin: "0 auto",
-    },
-    block: {
-      marginBottom: theme.spacing(4),
-      marginTop: theme.spacing(4),
-    },
-    backButton: {
-      color: theme.palette.primary.main,
-    },
-    nextStepButton: {
-      float: "right",
-    },
-    appealText: {
-      textAlign: "center",
-      fontWeight: "bold",
-    },
-    appealBox: {
-      marginTop: theme.spacing(4),
-      marginBottom: theme.spacing(-2),
-    },
-  };
-});
+
+const Block = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+  marginTop: theme.spacing(4),
+}));
 
 export default function SelectSectors({
   project,
@@ -45,7 +19,6 @@ export default function SelectSectors({
   onSelectNewSector,
   onClickRemoveSector,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
 
@@ -64,7 +37,7 @@ export default function SelectSectors({
   //(Share Project step 2)
   return (
     <Container maxWidth="lg">
-      <div className={classes.block}>
+      <Block>
         <Container maxWidth="md">
           <ActiveSectorsSelector
             selectedSectors={project.sectors ? project.sectors : []}
@@ -74,7 +47,7 @@ export default function SelectSectors({
             onClickRemoveSector={onClickRemoveSector}
           />
         </Container>
-      </div>
+      </Block>
       <NavigationButtons
         onClickPreviousStep={onClickPreviousStep}
         onClickNextStep={onClickNextStep}

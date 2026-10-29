@@ -1,8 +1,7 @@
 import React, { useMemo } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import ProjectPreviews from "../project/ProjectPreviews";
-import makeStyles from "@mui/styles/makeStyles";
-import { Theme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import {
   compareByStartDate,
   getClassificationTimestamp,
@@ -17,13 +16,11 @@ interface WasseraktionswochenEventsProps {
 
 const DEFAULT_HUB_SLUG = "em";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  subHeader: {
-    paddingLeft: "8px",
-    fontWeight: "bold",
-    paddingBottom: theme.spacing(1),
-  },
-}));
+const SubHeader = styled(Typography)(({ theme }) => ({
+  paddingLeft: "8px",
+  fontWeight: "bold",
+  paddingBottom: theme.spacing(1),
+})) as typeof Typography;
 
 const WasseraktionswochenEvents: React.FC<WasseraktionswochenEventsProps> = ({
   projects = [],
@@ -50,22 +47,19 @@ const WasseraktionswochenEvents: React.FC<WasseraktionswochenEventsProps> = ({
     };
   }, [projects]);
 
-  const classes = useStyles();
-
   const theme = useTheme();
 
   return (
     <Box sx={{ mt: 4 }}>
       {upcoming.length > 0 && (
         <Box sx={{ mb: 6 }}>
-          <Typography
+          <SubHeader
             component="h2"
             variant="h6"
             color={theme.palette.background.default_contrastText}
-            className={classes.subHeader}
           >
             {isGerman ? "Diese Events erwarten Euch" : "Upcoming Events"}
-          </Typography>
+          </SubHeader>
           <ProjectPreviews
             projects={upcoming}
             hubUrl={hubUrl}
@@ -79,14 +73,13 @@ const WasseraktionswochenEvents: React.FC<WasseraktionswochenEventsProps> = ({
 
       {past.length > 0 && (
         <Box>
-          <Typography
+          <SubHeader
             component="h2"
             variant="h6"
             color={theme.palette.background.default_contrastText}
-            className={classes.subHeader}
           >
             {isGerman ? "Vergangene Veranstaltungen" : "Past Events"}
-          </Typography>
+          </SubHeader>
           <ProjectPreviews
             projects={past}
             hubUrl={hubUrl}

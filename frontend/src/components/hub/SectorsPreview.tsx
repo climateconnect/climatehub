@@ -1,19 +1,16 @@
 import Grid from "@mui/material/Grid";
-import makeStyles from "@mui/styles/makeStyles";
+import { Theme } from "@mui/material/styles";
 import React from "react";
 import MiniSectorPreview from "./MiniSectorPreview";
 
-const useStyles = makeStyles((theme) => ({
-  reset: {
-    margin: 0,
-    padding: 0,
-    listStyleType: "none",
-    width: "100%",
-  },
-  root: {
-    marginLeft: theme.spacing(-1),
-  },
-}));
+// reset + root: both applied to the same element; `margin: 0` came first, then `marginLeft` wins
+const sectorsGridSx = (theme: Theme) => ({
+  margin: 0,
+  padding: 0,
+  listStyleType: "none",
+  width: "100%",
+  marginLeft: theme.spacing(-1),
+});
 
 export default function SectorsPreview({
   sectors,
@@ -24,10 +21,8 @@ export default function SectorsPreview({
   onSelectNewSector,
   onClickRemoveSector,
 }) {
-  const classes = useStyles();
-
   return (
-    <Grid container component="ul" spacing={2} className={`${classes.reset} ${classes.root}`}>
+    <Grid container component="ul" spacing={2} sx={sectorsGridSx}>
       {sectors &&
         sectors.map((sector) => (
           <GridItem

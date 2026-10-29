@@ -3,21 +3,24 @@ import { apiRequest, getLocalePrefix, redirect } from "../../public/lib/apiOpera
 import getTexts from "../../public/texts/texts";
 import UserContext from "../../src/components/context/UserContext";
 import Form from "../../src/components/general/Form";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, useTheme } from "@mui/material/styles";
 import getHubTheme from "../../src/themes/fetchHubTheme";
 import WideLayout from "../../src/components/layouts/WideLayout";
 import { Link, Typography } from "@mui/material";
 import { transformThemeData } from "../../src/themes/transformThemeData";
 import theme from "../../src/themes/theme";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    marginTop: theme.spacing(8),
-    marginBottom: theme.spacing(4),
+const Headline = styled(Typography, {
+  shouldForwardProp: (prop) =>
+    prop !== "$marginTop" && prop !== "$marginBottom" && prop !== "$color",
+})<{ $marginTop: string; $marginBottom: string; $color: string }>(
+  ({ $marginTop, $marginBottom, $color }) => ({
+    marginTop: $marginTop,
+    marginBottom: $marginBottom,
     textAlign: "center",
-    color: theme.palette.text.primary,
-  },
-}));
+    color: $color,
+  })
+);
 
 export async function getServerSideProps(ctx) {
   const uuid = encodeURI(ctx.query.uuid);
@@ -37,7 +40,8 @@ export default function ResetPassword({ uuid, hubUrl, hubThemeData }) {
   const [errorMessage, setErrorMessage] = useState(null);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "settings", locale: locale });
-  const classes = useStyles();
+  // The old makeStyles hook ran above WideLayout's (hub) ThemeProvider, so keep the outer theme
+  const outerTheme = useTheme();
 
   const fields = [
     {
@@ -78,9 +82,14 @@ export default function ResetPassword({ uuid, hubUrl, hubThemeData }) {
         customTheme ? customTheme.palette.header.background : theme.palette.background.default
       }
     >
-      <Typography className={classes.headline} variant="h3">
+      <Headline
+        variant="h3"
+        $marginTop={outerTheme.spacing(8)}
+        $marginBottom={outerTheme.spacing(4)}
+        $color={outerTheme.palette.text.primary}
+      >
         {texts.set_a_new_password}
-      </Typography>
+      </Headline>
       <Form
         fields={fields}
         messages={messages}

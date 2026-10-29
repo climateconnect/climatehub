@@ -2,7 +2,6 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
@@ -39,13 +38,11 @@ function renderUserAvatar(props: Partial<React.ComponentProps<typeof UserAvatar>
   const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContext as any}>
-          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
-            <UserAvatar mode="edit" onAvatarChanged={onAvatarChanged} {...props} />
-          </FeedbackContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={defaultContext as any}>
+        <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+          <UserAvatar mode="edit" onAvatarChanged={onAvatarChanged} {...props} />
+        </FeedbackContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
   return { ...utils, onAvatarChanged, showFeedbackMessage };

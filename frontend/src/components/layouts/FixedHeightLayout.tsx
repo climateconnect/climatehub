@@ -1,4 +1,4 @@
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import Alert from "@mui/material/Alert";
 import React, { useEffect, useState } from "react";
 import { getParams } from "../../../public/lib/generalOperations";
@@ -9,21 +9,23 @@ import Header from "../header/Header";
 import LayoutWrapper from "./LayoutWrapper";
 import { useRouter } from "next/router";
 
-const useStyles = makeStyles({
-  root: {
-    margin: 0,
-    height: "calc(100vh)",
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-  },
-  noFlex: {
-    flex: "none",
-  },
+const Root = styled("div")({
+  margin: 0,
+  height: "calc(100vh)",
+  minHeight: "100vh",
+  display: "flex",
+  flexDirection: "column",
+});
+
+const NoFlexHeader = styled(Header)({
+  flex: "none",
+});
+
+const NoFlexFooter = styled(Footer)({
+  flex: "none",
 });
 
 export default function FixedHeightLayout({ children, message, messageType, title }) {
-  const classes = useStyles();
   const [initialMessageType, setInitialMessageType] = useState(null);
   const [alertOpen, setAlertOpen] = useState(true);
   const [initialMessage, setInitialMessage] = useState("");
@@ -42,11 +44,10 @@ export default function FixedHeightLayout({ children, message, messageType, titl
   }, []);
   return (
     <LayoutWrapper theme={theme} title={title} fixedHeight>
-      <div className={classes.root}>
-        <Header noSpacingBottom className={classes.noFlex} hubUrl={hubUrl} />
+      <Root>
+        <NoFlexHeader noSpacingBottom hubUrl={hubUrl} />
         {(message || initialMessage) && alertOpen && (
           <Alert
-            className={classes.alert}
             severity={
               messageType ? messageType : initialMessageType ? initialMessageType : "success"
             }
@@ -62,8 +63,8 @@ export default function FixedHeightLayout({ children, message, messageType, titl
           </Alert>
         )}
         {children}
-        <Footer noSpacingTop noAbsolutePosition className={classes.noFlex} />
-      </div>
+        <NoFlexFooter noSpacingTop noAbsolutePosition />
+      </Root>
     </LayoutWrapper>
   );
 }

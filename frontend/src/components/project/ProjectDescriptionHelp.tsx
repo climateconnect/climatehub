@@ -1,14 +1,12 @@
 import { Typography } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginBottom: theme.spacing(1),
-  },
+const Root = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(1),
 }));
 
 type Props = {
@@ -17,13 +15,12 @@ type Props = {
 
 export default function ProjectDescriptionHelp({ typeId }: Props) {
   const { locale } = useContext(UserContext);
-  const classes = useStyles();
   const texts = getTexts({ page: "project", locale: locale });
   const projectTypeTexts = getProjectTypeTexts(texts);
   const type = typeId || "project";
   return (
-    <div className={classes.root}>
+    <Root>
       <Typography>{projectTypeTexts.videoDescription[type]}</Typography>
-    </div>
+    </Root>
   );
 }

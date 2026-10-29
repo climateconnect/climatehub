@@ -1,15 +1,5 @@
-import {
-  Button,
-  Checkbox,
-  Chip,
-  Container,
-  Link,
-  TextField,
-  Theme,
-  Typography,
-} from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { alpha } from "@mui/material/styles";
+import { Button, Checkbox, Chip, Container, Link, TextField, Typography } from "@mui/material";
+import { alpha, styled, Theme } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -42,169 +32,191 @@ import useImageDrop from "../../hooks/useImageDrop";
 const DEFAULT_BACKGROUND_IMAGE = "/images/background1.jpg";
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-const useStyles = makeStyles<Theme, { background_image?: string; isDragOver?: boolean }>(
-  (theme) => ({
-    backgroundContainer: {
-      width: "100%",
-      height: 305,
-      position: "relative",
-      cursor: (props) => (!props.background_image ? "pointer" : "default"),
-      // outlineOffset stays 0 (not negative) so the ring sits flush against the
-      // edge instead of drawing a few pixels inside it, over the image itself.
-      outline: (props) => (props.isDragOver ? `3px dashed ${theme.palette.primary.main}` : "none"),
-      // Keyboard focus ring should match the project's brand color rather
-      // than the browser's default blue.
-      "&:focus-visible": {
-        outline: `3px solid ${theme.palette.primary.main}`,
-      },
-    },
-    backgroundImage: (props) => ({
-      backgroundImage: `url(${props.background_image})`,
-      backgroundPosition: "center",
-      backgroundSize: "cover",
-    }),
-    backgroundColor: {
-      backgroundColor: "#e0e0e0",
-    },
-    // Static class (declared after backgroundColor so it wins) instead of a dynamic
-    // function value: JSS may not remove the property again when the function returns undefined.
-    dragOverBackground: {
-      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-    },
-    backgroundImageButton: {
-      fontSize: "2.5rem",
-      cursor: "pointer",
-    },
-    backgroundImageButtonContainer: {
-      position: "absolute",
-      left: "calc(50% - 20px)",
-      top: "calc(50% - 20px)",
-    },
-    avatarWithInfo: {
-      textAlign: "center",
-      width: theme.spacing(40),
-      margin: "0 auto",
-      [theme.breakpoints.up("md")]: {
-        margin: 0,
-        display: "inline-block",
-        width: "auto",
-      },
-    },
-    avatarContainer: {
-      marginTop: theme.spacing(-11),
-      marginBottom: theme.spacing(2),
-      display: "flex",
-      justifyContent: "center",
-    },
-    accountInfo: {
-      padding: 0,
-      marginTop: theme.spacing(1),
-      [theme.breakpoints.up("md")]: {
-        paddingRight: theme.spacing(17),
-      },
-    },
-    infoElement: {
-      marginBottom: theme.spacing(2),
-      marginTop: theme.spacing(1),
-    },
-    marginBottom: {
-      marginBottom: theme.spacing(1),
-    },
-    name: {
-      fontWeight: "bold",
-      padding: theme.spacing(1),
-      paddingLeft: 0,
-      paddingRight: 0,
-    },
-    subtitle: {
-      color: `${theme.palette.secondary.main}`,
-      fontWeight: "bold",
-    },
-    noPadding: {
-      padding: 0,
-    },
-    infoContainer: {
-      [theme.breakpoints.up("md")]: {
-        display: "flex",
-      },
-      position: "relative",
-    },
-    marginTop: {
-      marginTop: theme.spacing(1),
-    },
-    chip: {
-      margin: theme.spacing(0.5),
-    },
-    actionButton: {
-      position: "absolute",
-      right: theme.spacing(1),
-      width: theme.spacing(18),
-      [theme.breakpoints.down("md")]: {
-        width: theme.spacing(14),
-        fontSize: 10,
-        textAlign: "center",
-      },
-    },
-    saveButton: {
-      top: theme.spacing(11.5),
-      [theme.breakpoints.up("md")]: {
-        top: theme.spacing(1),
-      },
-    },
-    cancelButton: {
-      top: theme.spacing(16.5),
-      [theme.breakpoints.up("md")]: {
-        top: theme.spacing(6.5),
-      },
-    },
-    chipArray: {
-      display: "flex",
-      flexWrap: "wrap",
-      padding: theme.spacing(0.5),
-    },
-    selectOption: {
-      width: 250,
-    },
-    dialogWidth: {
-      width: 400,
-    },
-    alert: {
-      textAlign: "center",
-      maxWidth: 1280,
-      margin: "0 auto",
-    },
-    cursorPointer: {
-      cursor: "pointer",
-    },
-    helpIcon: {
-      fontSize: 20,
-      marginTop: -2,
-    },
-    deleteMessage: {
-      display: "flex",
-      alignItems: "center",
-      flexWrap: "wrap",
-      justifyContent: "center",
-      marginTop: theme.spacing(10),
-    },
-    spaceStrings: {
-      width: 4,
-    },
-    checkTranslationsButtonAndManageMembersButtonContainer: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginTop: theme.spacing(5),
-    },
-    detailledDescriptionContainer: {
-      marginTop: theme.spacing(5),
-    },
-    requiredFieldsNotice: {
-      display: "block",
-      marginTop: theme.spacing(1),
-      marginBottom: theme.spacing(3),
-    },
-  })
-);
+const BackgroundContainer = styled("div", {
+  shouldForwardProp: (prop) => typeof prop === "string" && !prop.startsWith("$"),
+})<{ $hasImage: boolean; $isDragOver?: boolean }>(({ theme, $hasImage, $isDragOver }) => ({
+  width: "100%",
+  height: 305,
+  position: "relative",
+  cursor: !$hasImage ? "pointer" : "default",
+  ...($hasImage
+    ? { backgroundPosition: "center", backgroundSize: "cover" }
+    : { backgroundColor: "#e0e0e0" }),
+  ...($isDragOver && { backgroundColor: alpha(theme.palette.primary.main, 0.1) }),
+  // outlineOffset stays 0 (not negative) so the ring sits flush against the
+  // edge instead of drawing a few pixels inside it, over the image itself.
+  outline: $isDragOver ? `3px dashed ${theme.palette.primary.main}` : "none",
+  // Keyboard focus ring should match the project's brand color rather
+  // than the browser's default blue.
+  "&:focus-visible": {
+    outline: `3px solid ${theme.palette.primary.main}`,
+  },
+}));
+
+const BackgroundImageButton = styled(AddAPhotoIcon)({
+  fontSize: "2.5rem",
+  cursor: "pointer",
+});
+
+const RemoveBackgroundImageButton = styled(CloseIcon)({
+  fontSize: "2.5rem",
+  cursor: "pointer",
+});
+
+const BackgroundImageButtonContainer = styled("div")({
+  position: "absolute",
+  left: "calc(50% - 20px)",
+  top: "calc(50% - 20px)",
+});
+
+const AvatarWithInfo = styled(Container)(({ theme }) => ({
+  textAlign: "center",
+  width: theme.spacing(40),
+  margin: "0 auto",
+  [theme.breakpoints.up("md")]: {
+    margin: 0,
+    display: "inline-block",
+    width: "auto",
+  },
+}));
+
+const AvatarContainer = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(-11),
+  marginBottom: theme.spacing(2),
+  display: "flex",
+  justifyContent: "center",
+}));
+
+const AccountInfo = styled(Container)(({ theme }) => ({
+  padding: 0,
+  marginTop: theme.spacing(1),
+  [theme.breakpoints.up("md")]: {
+    paddingRight: theme.spacing(17),
+  },
+}));
+
+const InfoElement = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  marginTop: theme.spacing(1),
+}));
+
+const ParentOrganizationTitle = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  marginTop: theme.spacing(1),
+  color: `${theme.palette.secondary.main}`,
+  fontWeight: "bold",
+}));
+
+const StyledMiniOrganizationPreview = styled(MiniOrganizationPreview)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  marginTop: theme.spacing(1),
+}));
+
+const StyledAutoCompleteSearchBar = styled(AutoCompleteSearchBar)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const Subtitle = styled("div")(({ theme }) => ({
+  color: `${theme.palette.secondary.main}`,
+  fontWeight: "bold",
+}));
+
+const NameTextField = styled(TextField)(({ theme }) => ({
+  fontWeight: "bold",
+  padding: theme.spacing(1),
+  paddingLeft: 0,
+  paddingRight: 0,
+}));
+
+const NoPaddingContainer = styled(Container)({
+  padding: 0,
+});
+
+const InfoContainer = styled(Container)(({ theme }) => ({
+  [theme.breakpoints.up("md")]: {
+    display: "flex",
+  },
+  position: "relative",
+}));
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  margin: theme.spacing(0.5),
+}));
+
+const actionButtonStyles = (theme: Theme) => ({
+  position: "absolute" as const,
+  right: theme.spacing(1),
+  width: theme.spacing(18),
+  [theme.breakpoints.down("md")]: {
+    width: theme.spacing(14),
+    fontSize: 10,
+    textAlign: "center" as const,
+  },
+});
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  ...actionButtonStyles(theme),
+  top: theme.spacing(11.5),
+  [theme.breakpoints.up("md")]: {
+    top: theme.spacing(1),
+  },
+}));
+
+const CancelButton = styled(Button)(({ theme }) => ({
+  ...actionButtonStyles(theme),
+  top: theme.spacing(16.5),
+  [theme.breakpoints.up("md")]: {
+    top: theme.spacing(6.5),
+  },
+}));
+
+const ChipArray = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  padding: theme.spacing(0.5),
+}));
+
+const StyledSelectField = styled(SelectField)({
+  width: 250,
+});
+
+const StyledSelectDialog = styled(SelectDialog)({
+  width: 400,
+});
+
+const StyledAlert = styled(Alert)({
+  textAlign: "center",
+  maxWidth: 1280,
+  margin: "0 auto",
+});
+
+const DeleteMessage = styled(Typography)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  marginTop: theme.spacing(10),
+}));
+
+const SpaceStrings = styled("div")({
+  width: 4,
+});
+
+const CheckTranslationsButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  marginTop: theme.spacing(5),
+}));
+
+const DetailledDescriptionContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(5),
+}));
+
+const StyledRequiredFieldsNotice = styled(RequiredFieldsNotice)(({ theme }) => ({
+  display: "block",
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(3),
+}));
 
 //Generic page for editing your personal profile or organization profile
 export default function EditAccountPage({
@@ -335,24 +347,22 @@ export default function EditAccountPage({
     const handleSkillsDialogClickOpen = () => setSkillsDialogOpen(true);
 
     return (
-      <div className={classes.infoElement}>
-        <div className={classes.subtitle}>{infoEl.name}:</div>
-        <div className={classes.chipArray}>
+      <InfoElement>
+        <Subtitle>{infoEl.name}:</Subtitle>
+        <ChipArray>
           {selectedItems.map((entry) => (
-            <Chip
+            <StyledChip
               size="medium"
               color="secondary"
               label={entry.name}
               key={entry.key}
-              className={classes.chip}
               onDelete={() => handleDeleteFromInfoArray(entry)}
             />
           ))}
           {editedAccount.info[infoKey].length < infoEl.maxEntries && (
-            <Chip
+            <StyledChip
               label={texts.add}
               icon={<ControlPointIcon />}
-              className={classes.chip}
               color="primary"
               onClick={handleSkillsDialogClickOpen}
             />
@@ -367,8 +377,8 @@ export default function EditAccountPage({
             selectedItems={selectedItems}
             setSelectedItems={setSelectedItems}
           />
-        </div>
-      </div>
+        </ChipArray>
+      </InfoElement>
     );
   };
 
@@ -427,24 +437,22 @@ export default function EditAccountPage({
         return <InfoArrayDisplay key={key} infoKey={key} infoEl={i} />;
       } else if (i.type === "select") {
         return (
-          <div key={key} className={classes.infoElement}>
-            <SelectField
-              className={classes.selectOption}
+          <InfoElement key={key}>
+            <StyledSelectField
               color="contrast"
               options={i.options}
               label={i.name}
               defaultValue={{ name: i.value, key: i.value }}
               onChange={handleChange}
             />
-          </div>
+          </InfoElement>
         );
       } else if (i.type === "checkbox") {
         return (
-          <div className={classes.checkbox} key={i.key}>
+          <div key={i.key}>
             <Checkbox
               id={"checkbox" + i.key}
               checked={i.value}
-              className={classes.inlineBlockElement}
               size="small"
               onChange={(e) => handleChange({ target: { value: e.target.checked } })}
             />
@@ -462,23 +470,19 @@ export default function EditAccountPage({
           </li>
         );
         return (
-          <div className={classes.infoElement} key={i.key}>
+          <InfoElement key={i.key}>
             {i.value && (
               <>
-                <Typography className={`${classes.subtitle} ${classes.infoElement}`}>
-                  {texts.parent_organization}:
-                </Typography>
-                <MiniOrganizationPreview
+                <ParentOrganizationTitle>{texts.parent_organization}:</ParentOrganizationTitle>
+                <StyledMiniOrganizationPreview
                   organization={i.value}
                   size="tiny"
-                  className={classes.infoElement}
                   onDelete={() => handleSetParentOrganization(null)}
                 />
               </>
             )}
-            <AutoCompleteSearchBar
+            <StyledAutoCompleteSearchBar
               label={i.label}
-              className={`${classes.marginTop} ${classes.block}`}
               baseUrl={process.env.API_URL + i.baseUrl}
               freeSolo
               clearOnSelect
@@ -487,11 +491,11 @@ export default function EditAccountPage({
               getOptionLabel={(option) => option.name}
               helperText={i.helperText}
             />
-          </div>
+          </InfoElement>
         );
       } else if (i.type === "location") {
         return (
-          <div className={classes.infoElement} key={i.key}>
+          <InfoElement key={i.key}>
             <LocationSearchBar
               label={i.name}
               required
@@ -502,7 +506,7 @@ export default function EditAccountPage({
               open={i.locationOptionsOpen}
               locationInputRef={i.locationInputRef}
             />
-          </div>
+          </InfoElement>
         );
       } else if (i.type === "sectors") {
         const onSelectNewSector = (event) => {
@@ -562,7 +566,7 @@ export default function EditAccountPage({
         return (
           <Fragment key={key}>
             {!hideGetInvolvedField && (
-              <div className={classes.infoElement}>
+              <InfoElement>
                 <TextField
                   required={i.required}
                   label={i.name}
@@ -587,7 +591,7 @@ export default function EditAccountPage({
                   }
                   variant="outlined"
                 />
-              </div>
+              </InfoElement>
             )}
           </Fragment>
         );
@@ -632,8 +636,6 @@ export default function EditAccountPage({
     onFileSelected: handleBackgroundImageFile,
     onActivate: () => imageInputFileRef.current?.click(),
   });
-
-  const classes = useStyles({ background_image: editedAccount.background_image, isDragOver });
 
   const handleTypeDelete = (typeToDelete) => {
     const tempEditedAccount = { ...editedAccount };
@@ -694,10 +696,10 @@ export default function EditAccountPage({
   };
 
   return (
-    <Container maxWidth="lg" className={classes.noPadding}>
+    <NoPaddingContainer disableGutters maxWidth="lg">
       <form onSubmit={handleFormSubmit}>
         {errorMessage && (
-          <Alert severity="error" className={classes.alert}>
+          <StyledAlert severity="error">
             {editErrorMessage(
               existingName,
               errorMessage,
@@ -706,13 +708,17 @@ export default function EditAccountPage({
               organizationTexts,
               locale
             )}
-          </Alert>
+          </StyledAlert>
         )}
 
-        <div
-          className={`${classes.backgroundContainer} ${
-            editedAccount.background_image ? classes.backgroundImage : classes.backgroundColor
-          } ${isDragOver ? classes.dragOverBackground : ""}`}
+        <BackgroundContainer
+          $hasImage={!!editedAccount.background_image}
+          $isDragOver={isDragOver}
+          style={
+            editedAccount.background_image
+              ? { backgroundImage: `url(${editedAccount.background_image})` }
+              : undefined
+          }
           onClick={editedAccount.background_image ? () => void 0 : onClickBackgroundImage}
           onKeyDown={onKeyDown}
           onDragOver={onDragOver}
@@ -725,19 +731,17 @@ export default function EditAccountPage({
           data-testid="background-drop-zone"
           data-drag-over={isDragOver}
         >
-          <div className={classes.backgroundImageButtonContainer}>
-            <AddAPhotoIcon
-              className={classes.backgroundImageButton}
+          <BackgroundImageButtonContainer>
+            <BackgroundImageButton
               onClick={editedAccount.background_image ? onClickBackgroundImage : () => void 0}
             />
             {editedAccount.background_image && (
-              <CloseIcon
-                className={classes.backgroundImageButton}
+              <RemoveBackgroundImageButton
                 onClick={() => setOpen({ ...open, removeBackgroundDialog: true })}
                 ref={closeIconRef}
               />
             )}
-          </div>
+          </BackgroundImageButtonContainer>
           <input
             type="file"
             name="backgroundPhoto"
@@ -747,7 +751,7 @@ export default function EditAccountPage({
             onChange={onBackgroundChange}
             accept=".png,.jpeg,.jpg"
           />
-        </div>
+        </BackgroundContainer>
 
         <ConfirmDialog
           open={open.removeBackgroundDialog}
@@ -758,26 +762,20 @@ export default function EditAccountPage({
           confirmText={texts.yes}
         />
 
-        <Container className={classes.infoContainer}>
-          <Button
-            className={`${classes.saveButton} ${classes.actionButton}`}
-            color="primary"
-            variant="contained"
-            type="submit"
-          >
+        <InfoContainer>
+          <SaveButton color="primary" variant="contained" type="submit">
             {loadingSubmit ? <ButtonLoader /> : submitMessage ? submitMessage : texts.save}
-          </Button>
-          <Button
-            className={`${classes.cancelButton} ${classes.actionButton}`}
+          </SaveButton>
+          <CancelButton
             color="grey"
             variant="contained"
             onClick={() => handleDialogClickOpen("confirmExitDialog")}
           >
             {texts.cancel}
-          </Button>
+          </CancelButton>
 
-          <Container className={classes.avatarWithInfo}>
-            <div className={classes.avatarContainer}>
+          <AvatarWithInfo>
+            <AvatarContainer>
               <UserAvatar
                 mode="edit"
                 imageUrl={editedAccount.image}
@@ -785,12 +783,11 @@ export default function EditAccountPage({
                 alternativeText={editedAccount.name}
                 onAvatarChanged={handleAvatarImageChange}
               />
-            </div>
+            </AvatarContainer>
 
             {splitName ? (
               <>
-                <TextField
-                  className={classes.name}
+                <NameTextField
                   // @ts-ignore - contrast is a custom color defined in theme
                   color="contrast"
                   fullWidth
@@ -800,8 +797,7 @@ export default function EditAccountPage({
                   required
                   label={texts.first_name}
                 />
-                <TextField
-                  className={classes.name}
+                <NameTextField
                   // @ts-ignore - contrast is a custom color defined in theme
                   color="contrast"
                   fullWidth
@@ -813,8 +809,7 @@ export default function EditAccountPage({
                 />
               </>
             ) : (
-              <TextField
-                className={classes.name}
+              <NameTextField
                 // @ts-ignore - contrast is a custom color defined in theme
                 color="contrast"
                 fullWidth
@@ -826,18 +821,17 @@ export default function EditAccountPage({
             )}
 
             {editedAccount.types && (
-              <Container className={classes.noPadding}>
+              <NoPaddingContainer disableGutters>
                 {possibleAccountTypes &&
                   getTypesOfAccount(
                     editedAccount,
                     possibleAccountTypes,
                     infoMetadata
                   ).map((typeObject) => (
-                    <Chip
+                    <StyledChip
                       color="secondary"
                       label={typeObject.name}
                       key={typeObject.key}
-                      className={classes.chip}
                       onDelete={() => handleTypeDelete(typeObject.key)}
                     />
                   ))}
@@ -853,14 +847,14 @@ export default function EditAccountPage({
                       onClick={() => handleDialogClickOpen("addTypeDialog")}
                     />
                   )}
-              </Container>
+              </NoPaddingContainer>
             )}
-          </Container>
-          <Container className={classes.accountInfo}>
+          </AvatarWithInfo>
+          <AccountInfo disableGutters>
             {/*Contains all the possible info a user can put about their account e.g. website, location, summary, bio, ...*/}
-            <RequiredFieldsNotice className={classes.requiredFieldsNotice} />
+            <StyledRequiredFieldsNotice />
             {displayAccountInfo(editedAccount.info)}
-            <div className={classes.checkTranslationsButtonAndManageMembersButtonContainer}>
+            <CheckTranslationsButtonContainer>
               {onClickCheckTranslations && (
                 <Button
                   variant="contained"
@@ -882,10 +876,10 @@ export default function EditAccountPage({
                   {loadingSecondarySubmit ? <ButtonLoader /> : secondarySubmitMessage}
                 </Button>
               )}
-            </div>
-          </Container>
-        </Container>
-        <Container className={classes.detailledDescriptionContainer}>
+            </CheckTranslationsButtonContainer>
+          </AccountInfo>
+        </InfoContainer>
+        <DetailledDescriptionContainer>
           {detailledDescription && (
             <DetailledDescriptionInput
               title={detailledDescription.name}
@@ -895,17 +889,17 @@ export default function EditAccountPage({
               infoKey={detailledDescription.key}
             />
           )}
-        </Container>
+        </DetailledDescriptionContainer>
         {children}
         {deleteEmail && (
-          <Typography variant="subtitle2" className={classes.deleteMessage}>
+          <DeleteMessage variant="subtitle2">
             <InfoOutlinedIcon />
             {texts.if_you_wish_to_delete}
-            <div className={classes.spaceStrings} />
+            <SpaceStrings />
             <Link href={`mailto:${deleteEmail}`} underline="hover">
               {deleteEmail}
             </Link>
-          </Typography>
+          </DeleteMessage>
         )}
       </form>
       <UploadImageDialog
@@ -925,7 +919,9 @@ export default function EditAccountPage({
         }}
       />
       {possibleAccountTypes && (
-        <SelectDialog
+        <StyledSelectDialog
+          // SelectDialog types className as required; emotion merges its generated class into it
+          className=""
           onClose={handleAddTypeClose}
           open={open.addTypeDialog}
           title={texts.add_type}
@@ -934,7 +930,6 @@ export default function EditAccountPage({
           )}
           label={texts.choose_type}
           supportAdditionalInfo={true}
-          className={classes.dialogWidth}
         />
       )}
       <ConfirmDialog
@@ -945,7 +940,7 @@ export default function EditAccountPage({
         cancelText={texts.no}
         confirmText={texts.yes}
       />
-    </Container>
+    </NoPaddingContainer>
   );
 }
 

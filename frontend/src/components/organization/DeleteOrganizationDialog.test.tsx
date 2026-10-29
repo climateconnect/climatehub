@@ -2,7 +2,6 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 
 import { describe, expect, it, jest } from "@jest/globals";
 
@@ -26,9 +25,7 @@ function renderDialog(
 
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <DeleteOrganizationDialog {...defaultProps} />
-      </StylesThemeProvider>
+      <DeleteOrganizationDialog {...defaultProps} />
     </ThemeProvider>
   );
 }

@@ -2,7 +2,6 @@ import React, { createElement, createContext } from "react";
 import { render, act, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import BrowseContentBase from "./BrowseContentBase";
 
 const testTheme = createTheme({
@@ -101,13 +100,11 @@ jest.mock("../filter/FilterContent", () => {
 function renderBase() {
   return render(
     <ThemeProvider theme={testTheme}>
-      <StylesThemeProvider theme={testTheme}>
-        <BrowseContentBase
-          type="projects"
-          filterChoices={{}}
-          renderItems={() => <div data-testid="items" />}
-        />
-      </StylesThemeProvider>
+      <BrowseContentBase
+        type="projects"
+        filterChoices={{}}
+        renderItems={() => <div data-testid="items" />}
+      />
     </ThemeProvider>
   );
 }

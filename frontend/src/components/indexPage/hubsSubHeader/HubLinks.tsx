@@ -1,5 +1,5 @@
 import { Link, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
@@ -10,16 +10,15 @@ import isLocationHubLikeHub from "../../../../public/lib/isLocationHubLikeHub";
 import { useIsEventsPage, usePageNavEntries } from "../../../hooks/usePageNavEntries";
 import { BrowseEntity } from "../../../types";
 
-const useStyles = makeStyles(() => ({
-  spaceAround: {
-    display: "flex",
+const Wrapper = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$spaceAround",
+})<{ $spaceAround?: boolean }>(({ $spaceAround }) => ({
+  ...($spaceAround && {
     justifyContent: "flex-end",
     width: "100%",
-  },
-  wrapper: {
-    display: "flex",
-    alignItems: "center",
-  },
+  }),
+  display: "flex",
+  alignItems: "center",
 }));
 
 /**
@@ -45,7 +44,6 @@ export default function HubLinks({
   showAllProjectsButton,
   onlyShowDropDown,
 }: any) {
-  const classes = useStyles();
   const [open, setOpen] = useState({ climateHubs: false });
   const texts = getTexts({ page: "navigation", locale: locale });
   const locationHubs = hubs?.filter((h) => isLocationHubLikeHub(h.hub_type));
@@ -98,7 +96,7 @@ export default function HubLinks({
   })();
 
   return (
-    <div className={`${isNarrowScreen && classes.spaceAround} ${classes.wrapper}`}>
+    <Wrapper $spaceAround={!!isNarrowScreen}>
       {!isMediumScreen && !onlyShowDropDown && showAllProjectsButton && (
         <Link
           className={linkClassName}
@@ -121,6 +119,6 @@ export default function HubLinks({
           addLocationHubExplainerLink
         />
       )}
-    </div>
+    </Wrapper>
   );
 }

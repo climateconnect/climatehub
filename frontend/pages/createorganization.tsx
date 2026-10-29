@@ -1,5 +1,5 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import NextCookies from "next-cookies";
 import { useRouter } from "next/router";
 import React, { useContext, useRef, useState } from "react";
@@ -27,17 +27,16 @@ import getHubTheme from "../src/themes/fetchHubTheme";
 import { transformThemeData } from "../src/themes/transformThemeData";
 import theme from "../src/themes/theme";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    textAlign: "center",
-    marginTop: theme.spacing(4),
-  },
-  alert: {
-    textAlign: "center",
-    maxWidth: 1280,
-    margin: "0 auto",
-  },
-}));
+const Headline = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(4),
+})) as typeof Typography;
+
+const StyledAlert = styled(Alert)({
+  textAlign: "center",
+  maxWidth: 1280,
+  margin: "0 auto",
+});
 
 export async function getServerSideProps(ctx: {
   locale?: any;
@@ -71,7 +70,6 @@ export default function CreateOrganization({
   hubThemeData,
 }) {
   const token = new Cookies().get("auth_token");
-  const classes = useStyles();
   const router = useRouter();
   const [errorMessages, setErrorMessages] = useState({
     basicOrganizationInfo: "",
@@ -533,18 +531,14 @@ export default function CreateOrganization({
     return (
       <WideLayout {...layoutProps} title={texts.languages}>
         {errorMessages.detailledOrganizationInfo && (
-          <Alert severity="error" className={classes.alert}>
-            {errorMessages.detailledOrganizationInfo}
-          </Alert>
+          <StyledAlert severity="error">{errorMessages.detailledOrganizationInfo}</StyledAlert>
         )}
         {errorMessages.basicOrganizationInfo && (
-          <Alert severity="error" className={classes.alert}>
-            {errorMessages.basicOrganizationInfo}
-          </Alert>
+          <StyledAlert severity="error">{errorMessages.basicOrganizationInfo}</StyledAlert>
         )}
-        <Typography color="primary" className={classes.headline} component="h1" variant="h4">
+        <Headline color="primary" component="h1" variant="h4">
           {texts.translate}
-        </Typography>
+        </Headline>
         <TranslateTexts
           data={organizationInfo}
           pageName="organization"

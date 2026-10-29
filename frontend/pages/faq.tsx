@@ -1,5 +1,5 @@
 import { Container, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import Cookies from "next-cookies";
 import React, { useContext, useState } from "react";
 
@@ -12,78 +12,88 @@ import FilterSearchBar from "../src/components/filter/FilterSearchBar";
 import WideLayout from "../src/components/layouts/WideLayout";
 import HeaderImage from "../src/components/staticpages/HeaderImage";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    headerImageContainer: {
-      marginBottom: theme.spacing(3),
-      [theme.breakpoints.down("lg")]: {
-        marginBottom: theme.spacing(2),
-      },
-    },
-    headerTextContainer: {
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      background: "rgba(255, 255, 255, 0.6)",
-      width: "100%",
-      height: "100%",
-      [theme.breakpoints.down("lg")]: {
-        background: "rgba(255, 255, 255, 0.8)",
-      },
-    },
-    headerTextInnerContainer: {
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: theme.spacing(4),
-    },
-    headerTextBig: {
-      fontWeight: "bold",
-      fontSize: 80,
-      [theme.breakpoints.down("lg")]: {
-        fontSize: 60,
-      },
-      [theme.breakpoints.down("sm")]: {
-        fontSize: 40,
-      },
-      textAlign: "center",
-    },
-    headerTextSmall: {
-      color: "white",
-      fontWeight: "bold",
-      textAlign: "left",
-      [theme.breakpoints.down("lg")]: {
-        fontSize: 40,
-      },
-      [theme.breakpoints.down("sm")]: {
-        fontSize: 25,
-      },
-      textShadow: "3px 3px 3px #484848C2",
-    },
-    topText: {
-      fontWeight: "bold",
-      fontSize: 19,
-      textAlign: "center",
-      [theme.breakpoints.down("lg")]: {
-        fontSize: 14,
-        fontWeight: "normal",
-      },
-    },
-    searchBarContainer: {
-      flexGrow: 100,
-      marginTop: theme.spacing(3),
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    searchBar: {
-      width: "100%",
-      maxWidth: 780,
-      margin: "0 auto",
-    },
-  };
+// HeaderImage spreads `className` onto its root but types it as required, so widen the prop type
+const StyledHeaderImage = styled(
+  HeaderImage as React.ComponentType<{
+    src: string;
+    children: React.ReactNode;
+    className?: string;
+  }>
+)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  [theme.breakpoints.down("lg")]: {
+    marginBottom: theme.spacing(2),
+  },
+}));
+
+const HeaderTextContainer = styled("div")(({ theme }) => ({
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  background: "rgba(255, 255, 255, 0.6)",
+  width: "100%",
+  height: "100%",
+  [theme.breakpoints.down("lg")]: {
+    background: "rgba(255, 255, 255, 0.8)",
+  },
+}));
+
+const HeaderTextInnerContainer = styled("div")(({ theme }) => ({
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: theme.spacing(4),
+}));
+
+const HeaderTextBig = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  fontWeight: "bold",
+  fontSize: 80,
+  [theme.breakpoints.down("lg")]: {
+    fontSize: 60,
+  },
+  [theme.breakpoints.down("sm")]: {
+    fontSize: 40,
+  },
+  textAlign: "center",
+}));
+
+const HeaderTextSmall = styled(Typography)(({ theme }) => ({
+  color: "white",
+  fontWeight: "bold",
+  textAlign: "left",
+  [theme.breakpoints.down("lg")]: {
+    fontSize: 40,
+  },
+  [theme.breakpoints.down("sm")]: {
+    fontSize: 25,
+  },
+  textShadow: "3px 3px 3px #484848C2",
+}));
+
+const TopText = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  fontWeight: "bold",
+  fontSize: 19,
+  textAlign: "center",
+  [theme.breakpoints.down("lg")]: {
+    fontSize: 14,
+    fontWeight: "normal",
+  },
+}));
+
+const SearchBarContainer = styled("div")(({ theme }) => ({
+  flexGrow: 100,
+  marginTop: theme.spacing(3),
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}));
+
+const StyledFilterSearchBar = styled(FilterSearchBar)({
+  width: "100%",
+  maxWidth: 780,
+  margin: "0 auto",
 });
 
 export async function getServerSideProps(ctx) {
@@ -101,7 +111,6 @@ export async function getServerSideProps(ctx) {
 }
 
 export default function Faq({ questionsBySection, questions }) {
-  const classes = useStyles();
   // The first section should be the initial tab value
   const [searchValue, setSearchValue] = useState("");
   const { locale } = useContext(UserContext);
@@ -113,37 +122,27 @@ export default function Faq({ questionsBySection, questions }) {
   return (
     <div>
       <WideLayout title={texts.faq} isStaticPage>
-        <HeaderImage src="/images/supportusheader.jpg" className={classes.headerImageContainer}>
-          <div className={classes.headerTextContainer}>
-            <div className={classes.headerTextInnerContainer}>
+        <StyledHeaderImage src="/images/supportusheader.jpg">
+          <HeaderTextContainer>
+            <HeaderTextInnerContainer>
               <div>
-                <Typography
-                  color="primary"
-                  component="h1"
-                  variant="h1"
-                  className={classes.headerTextBig}
-                >
+                <HeaderTextBig color="primary" component="h1" variant="h1">
                   {texts.faq}
-                </Typography>
-                <Typography variant="h1" className={classes.headerTextSmall}>
-                  {texts.find_your_answers_here}
-                </Typography>
+                </HeaderTextBig>
+                <HeaderTextSmall variant="h1">{texts.find_your_answers_here}</HeaderTextSmall>
               </div>
-            </div>
-          </div>
-        </HeaderImage>
+            </HeaderTextInnerContainer>
+          </HeaderTextContainer>
+        </StyledHeaderImage>
         <Container>
-          <Typography className={classes.topText} component="h1">
-            {texts.cant_find_the_answer_to_your_question_contact}
-          </Typography>
-          <div className={classes.searchBarContainer}>
-            <FilterSearchBar
+          <TopText component="h1">{texts.cant_find_the_answer_to_your_question_contact}</TopText>
+          <SearchBarContainer>
+            <StyledFilterSearchBar
               label={texts.search_for_keywords}
-              className={classes.searchBar}
               onChange={handleSearchBarChange}
               value={searchValue}
             />
-          </div>
+          </SearchBarContainer>
           {searchValue ? (
             <FilteredFaqContent searchValue={searchValue} questions={questions} />
           ) : (

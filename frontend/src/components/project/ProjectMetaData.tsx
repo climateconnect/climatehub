@@ -1,5 +1,5 @@
-import { Box, Collapse, Container, Theme, Tooltip, Typography, Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Box, Collapse, Container, Tooltip, Typography, Button } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import PlaceIcon from "@mui/icons-material/Place";
 import React, { useContext, useEffect } from "react";
 import { useRouter } from "next/router";
@@ -22,88 +22,94 @@ import {
 } from "../../utils/eventRegistrationHelpers";
 import { trackGA4Event } from "../../utils/analytics";
 
-const useStyles = makeStyles<Theme, { hovering?: boolean }>((theme) => ({
-  creatorImage: {
-    height: 20,
-    marginRight: theme.spacing(1),
-    marginBottom: -5,
-  },
-  creator: {
-    wordBreak: "break-word",
-    marginBottom: theme.spacing(0.25),
-  },
-  cardIcon: {
+// `LocationDisplay`, `ProjectSectorsDisplay` and `ProjectTypeDisplay` take class names for their
+// inner icon / text elements, so these are styled with descendant selectors from the root.
+const CARD_ICON_CLASS = "ProjectMetaData-cardIcon";
+const METADATA_TEXT_CLASS = "ProjectMetaData-metadataText";
+const TYPE_ICON_CLASS = "ProjectMetaData-typeIcon";
+
+const MetaDataRoot = styled(Box)(({ theme }) => ({
+  [`& .${CARD_ICON_CLASS}`]: {
     verticalAlign: "bottom",
     marginRight: theme.spacing(0.5),
     marginLeft: theme.spacing(-0.25),
     fontSize: "default",
     color: theme.palette.background.default_contrastText,
   },
-  categories: (props) => ({
-    display: "flex",
-    marginTop: theme.spacing(0.5),
-    background: props.hovering ? "#e1e1e147" : "auto",
-    padding: props.hovering ? theme.spacing(2) : 0,
-    paddingTop: props.hovering ? theme.spacing(1) : 0,
-    paddingBottom: props.hovering ? theme.spacing(1) : 0,
-  }),
-  categoryText: {
-    marginTop: theme.spacing(0.5),
-  },
-  metadataText: {
+  [`& .${METADATA_TEXT_CLASS}`]: {
     display: "inline",
     fontSize: 14,
     marginLeft: theme.spacing(0.25),
     color: theme.palette.text.primary,
   },
-  shortDescription: {
-    fontSize: 13,
-    marginTop: theme.spacing(1.5),
-    marginBottom: theme.spacing(1),
-  },
-  wrapper: (props) => ({
-    padding: theme.spacing(2),
-    paddingTop: 0,
-    paddingBottom: props.hovering ? theme.spacing(0.5) : "auto",
-  }),
-  involvedOrganizationsContainer: {
-    display: "flex",
-    flexDirection: "row",
-    marginBottom: theme.spacing(0.5),
-  },
-  horizontalSpacing: {
-    marginLeft: theme.spacing(1),
-  },
-  additionalInfoIcon: {
-    marginRight: theme.spacing(1),
-    display: "flex",
-    alignItems: "center",
-    color: theme.palette.background.default_contrastText,
-  },
-  additionalInfoContainer: {
-    display: "flex",
-    flexDirection: "row",
-    marginTop: theme.spacing(1),
-    marginLeft: theme.spacing(-0.25),
-  },
-  additionalInfoCounter: {
-    marginLeft: theme.spacing(0.5),
-    color: theme.palette.text.primary,
-  },
-  typeIcon: {
+  [`& .${TYPE_ICON_CLASS}`]: {
     width: 20,
     height: 20,
     marginLeft: 2,
     marginRight: 6,
   },
-  registerButton: {
-    marginLeft: "auto",
-    fontSize: 11,
-    padding: "4px 12px",
-    height: 24,
-    whiteSpace: "nowrap",
-  },
 }));
+
+// `hovering` was never passed to the old `useStyles`, so the non-hovering values always applied
+const Wrapper = styled(Container)(({ theme }) => ({
+  padding: theme.spacing(2),
+  paddingTop: 0,
+  paddingBottom: "auto",
+}));
+
+const ShortDescription = styled(Typography)(({ theme }) => ({
+  fontSize: 13,
+  marginTop: theme.spacing(1.5),
+  marginBottom: theme.spacing(1),
+}));
+
+const InvolvedOrganizationsContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "row",
+  marginBottom: theme.spacing(0.5),
+}));
+
+const HorizontalSpacing = styled("div")(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+}));
+
+const creatorStyles = (theme) => ({
+  wordBreak: "break-word" as const,
+  marginBottom: theme.spacing(0.25),
+});
+
+const CreatorOrganizationPreview = styled(MiniOrganizationPreview)(({ theme }) =>
+  creatorStyles(theme)
+);
+
+const CreatorProfilePreview = styled(MiniProfilePreview)(({ theme }) => creatorStyles(theme));
+
+const AdditionalInfoContainer = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "row",
+  marginTop: theme.spacing(1),
+  marginLeft: theme.spacing(-0.25),
+}));
+
+const AdditionalInfoIcon = styled(Box)(({ theme }) => ({
+  marginRight: theme.spacing(1),
+  display: "flex",
+  alignItems: "center",
+  color: theme.palette.background.default_contrastText,
+}));
+
+const AdditionalInfoCounter = styled("span")(({ theme }) => ({
+  marginLeft: theme.spacing(0.5),
+  color: theme.palette.text.primary,
+}));
+
+const RegisterButton = styled(Button)({
+  marginLeft: "auto",
+  fontSize: 11,
+  padding: "4px 12px",
+  height: 24,
+  whiteSpace: "nowrap",
+});
 
 type Props = {
   project: Project;
@@ -179,31 +185,28 @@ const WithDescription = ({
   isUserRegistered,
   analyticsSurface,
 }: any) => {
-  const classes = useStyles({});
   return (
-    <Box className={className}>
-      <Container className={classes.wrapper}>
+    <MetaDataRoot className={className}>
+      <Wrapper disableGutters>
         <CreatorAndCollaboratorPreviews
           collaborating_organization={project.collaborating_organizations}
           project_parent={project_parent}
         />
         <Box>
           <LocationDisplay
-            textClassName={classes.metadataText}
-            iconClassName={classes.cardIcon}
+            textClassName={METADATA_TEXT_CLASS}
+            iconClassName={CARD_ICON_CLASS}
             location={project.is_online ? texts.online : project.location}
           />
           {/* Defer to MUI's best guess on height calculation for timeout: https://material-ui.com/api/collapse/ */}
           <Collapse in={hovering} timeout="auto">
-            <Typography className={classes.shortDescription}>
-              {project.short_description}
-            </Typography>
+            <ShortDescription>{project.short_description}</ShortDescription>
           </Collapse>
           {!hovering && (
             <ProjectSectorsDisplay
               main_project_sector={main_project_sector}
-              projectSectorClassName={classes.metadataText}
-              iconClassName={classes.cardIcon}
+              projectSectorClassName={METADATA_TEXT_CLASS}
+              iconClassName={CARD_ICON_CLASS}
             />
           )}
           <AdditionalPreviewInfo
@@ -212,16 +215,16 @@ const WithDescription = ({
             analyticsSurface={analyticsSurface}
           />
         </Box>
-      </Container>
+      </Wrapper>
       {hovering && (
         <ProjectSectorsDisplay
           main_project_sector={main_project_sector}
           hovering={hovering}
-          projectSectorClassName={classes.metadataText}
-          iconClassName={classes.cardIcon}
+          projectSectorClassName={METADATA_TEXT_CLASS}
+          iconClassName={CARD_ICON_CLASS}
         />
       )}
-    </Box>
+    </MetaDataRoot>
   );
 };
 
@@ -234,25 +237,24 @@ const WithOutDescription = ({
   isUserRegistered,
   analyticsSurface,
 }: any) => {
-  const classes = useStyles({});
   return (
-    <Box className={className}>
-      <Container className={classes.wrapper}>
+    <MetaDataRoot className={className}>
+      <Wrapper disableGutters>
         <CreatorAndCollaboratorPreviews
           collaborating_organization={project.collaborating_organizations}
           project_parent={project_parent}
         />
         <Box>
           <Tooltip title={texts.location}>
-            <PlaceIcon className={classes.cardIcon} />
+            <PlaceIcon className={CARD_ICON_CLASS} />
           </Tooltip>
-          <Typography className={classes.metadataText}>
+          <Typography className={METADATA_TEXT_CLASS}>
             {project.is_online ? texts.online : project.location}
           </Typography>
           <ProjectSectorsDisplay
             main_project_sector={main_project_sector}
-            projectSectorClassName={classes.metadataText}
-            iconClassName={classes.cardIcon}
+            projectSectorClassName={METADATA_TEXT_CLASS}
+            iconClassName={CARD_ICON_CLASS}
           />
           <AdditionalPreviewInfo
             project={project}
@@ -260,33 +262,30 @@ const WithOutDescription = ({
             analyticsSurface={analyticsSurface}
           />
         </Box>
-      </Container>
-    </Box>
+      </Wrapper>
+    </MetaDataRoot>
   );
 };
 
 export const CreatorAndCollaboratorPreviews = ({ collaborating_organization, project_parent }) => {
   const collaborating_organizations = collaborating_organization.slice(0, 2); // only show 2 collaborating orgs
-  const classes = useStyles({});
   return (
     <>
       {project_parent && project_parent.parent_organization && (
-        <div className={classes.involvedOrganizationsContainer}>
-          <MiniOrganizationPreview
-            className={classes.creator}
+        <InvolvedOrganizationsContainer>
+          <CreatorOrganizationPreview
             organization={project_parent.parent_organization}
             size="tiny"
             nolink
           />
           {collaborating_organizations.length > 0 && (
             <>
-              <div className={classes.horizontalSpacing} />
+              <HorizontalSpacing />
               <>{"+"}</>
-              <div className={classes.horizontalSpacing} />
+              <HorizontalSpacing />
               {collaborating_organizations.map((co, index) => (
-                <MiniOrganizationPreview
+                <CreatorOrganizationPreview
                   key={index}
-                  className={classes.creator}
                   organization={co.collaborating_organization}
                   size="tiny"
                   nolink
@@ -295,23 +294,17 @@ export const CreatorAndCollaboratorPreviews = ({ collaborating_organization, pro
               ))}
             </>
           )}
-        </div>
+        </InvolvedOrganizationsContainer>
       )}
 
       {project_parent && !project_parent.parent_organization && project_parent.parent_user && (
-        <MiniProfilePreview
-          className={classes.creator}
-          profile={project_parent.parent_user}
-          size="small"
-          nolink
-        />
+        <CreatorProfilePreview profile={project_parent.parent_user} size="small" nolink />
       )}
     </>
   );
 };
 
 const AdditionalPreviewInfo = ({ project, isUserRegistered, analyticsSurface }) => {
-  const classes = useStyles({});
   const { locale, user, ReactGA } = useContext(UserContext);
   const projectTypes = getProjectTypes(locale);
   const texts = getTexts({ page: "project", locale });
@@ -368,36 +361,35 @@ const AdditionalPreviewInfo = ({ project, isUserRegistered, analyticsSurface }) 
   }, []);
 
   return (
-    <Box className={classes.additionalInfoContainer}>
+    <AdditionalInfoContainer>
       {(project.number_of_comments ?? 0) > 0 && (
-        <Box className={classes.additionalInfoIcon}>
+        <AdditionalInfoIcon>
           <ModeCommentIcon />
-          <span className={classes.additionalInfoCounter}> {project.number_of_comments} </span>
-        </Box>
+          <AdditionalInfoCounter> {project.number_of_comments} </AdditionalInfoCounter>
+        </AdditionalInfoIcon>
       )}
       {(project.number_of_likes ?? 0) > 2 && (
-        <Box className={classes.additionalInfoIcon}>
+        <AdditionalInfoIcon>
           <FavoriteIcon />
-          <span className={classes.additionalInfoCounter}> {project.number_of_likes}</span>
-        </Box>
+          <AdditionalInfoCounter> {project.number_of_likes}</AdditionalInfoCounter>
+        </AdditionalInfoIcon>
       )}
-      <Box className={classes.additionalInfoIcon}>
+      <AdditionalInfoIcon>
         {((project.number_of_comments ?? 0) > 0 || (project.number_of_likes ?? 0) > 2) && (
           <>
             {" • "}
-            <div className={classes.horizontalSpacing} />
+            <HorizontalSpacing />
           </>
         )}
         <ProjectTypeDisplay
           projectType={projectType}
-          iconClassName={classes.typeIcon}
-          textClassName={classes.metadataText}
+          iconClassName={TYPE_ICON_CLASS}
+          textClassName={METADATA_TEXT_CLASS}
           hasChildren={project.has_children}
         />
-      </Box>
+      </AdditionalInfoIcon>
       {buttonConfig && (
-        <Button
-          className={classes.registerButton}
+        <RegisterButton
           variant={buttonConfig.variant as any}
           color={buttonConfig.color as any}
           size="small"
@@ -411,8 +403,8 @@ const AdditionalPreviewInfo = ({ project, isUserRegistered, analyticsSurface }) 
           }}
         >
           {buttonConfig.label}
-        </Button>
+        </RegisterButton>
       )}
-    </Box>
+    </AdditionalInfoContainer>
   );
 };

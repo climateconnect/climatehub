@@ -1,5 +1,4 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -27,11 +26,6 @@ type ActiveSectorsSelectorProps = {
   title?: string;
 };
 
-const useStyles = makeStyles(() => ({
-  headline: {
-    fontWeight: 700,
-  },
-}));
 export default function ActiveSectorsSelector({
   selectedSectors,
   sectorsToSelectFrom,
@@ -41,13 +35,12 @@ export default function ActiveSectorsSelector({
   hideTitle = false,
   title,
 }: ActiveSectorsSelectorProps) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   return (
     <div>
       {!hideTitle && (
-        <Typography color="text" className={classes.headline}>
+        <Typography color="text" sx={{ fontWeight: 700 }}>
           {title || texts.add_sectors_that_fit}
         </Typography>
       )}

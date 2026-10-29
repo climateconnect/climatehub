@@ -1,5 +1,5 @@
 import { Link, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import NextCookies from "next-cookies";
 import React, { useContext, useState } from "react";
 import ROLE_TYPES from "../../public/data/role_types";
@@ -19,14 +19,9 @@ import { transformThemeData } from "../../src/themes/transformThemeData";
 import { Project, Sector } from "../../src/types";
 import theme from "../../src/themes/theme";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    textAlign: "center",
-  },
-  errorTitle: {
-    textAlign: "center",
-    marginTop: theme.spacing(8),
-  },
+const ErrorTitle = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(8),
 }));
 
 export async function getServerSideProps(ctx) {
@@ -83,7 +78,6 @@ export default function EditProjectPage({
   hubUrl: string;
   sectorOptions: Sector[];
 }) {
-  const classes = useStyles();
   const [curProject, setCurProject] = useState({
     ...project,
     hubUrl: project?.related_hubs?.length ? project.related_hubs[0] : null,
@@ -135,14 +129,14 @@ export default function EditProjectPage({
     );
   else if (!project)
     return (
-      <Layout className={classes.root} title={texts.project_not_found}>
-        <Typography className={classes.errorTitle} variant="h3">
+      <Layout title={texts.project_not_found}>
+        <ErrorTitle variant="h3">
           {texts.project_does_not_exist}{" "}
           <Link href={getLocalePrefix(locale) + "/share"} underline="hover">
             {texts.click_here}
           </Link>{" "}
           {texts.to_create_a_project}
-        </Typography>
+        </ErrorTitle>
       </Layout>
     );
   else if (!members.find((m) => m.user && m.user.id === user.id))
@@ -155,13 +149,13 @@ export default function EditProjectPage({
         }
         hubUrl={hubUrl}
       >
-        <Typography variant="h4" color="primary" className={classes.errorTitle}>
+        <ErrorTitle variant="h4" color="primary">
           {texts.not_a_member}. {texts.go_to_the}{" "}
           <a href={getLocalePrefix(locale) + "/projects/" + project.url_slug}>
             {texts.project_page}
           </a>{" "}
           {texts.and_ask_to_be_part_of_the_team}
-        </Typography>
+        </ErrorTitle>
       </WideLayout>
     );
   else if (
@@ -178,9 +172,9 @@ export default function EditProjectPage({
         }
         hubUrl={hubUrl}
       >
-        <Typography variant="h4" color="primary" className={classes.errorTitle}>
+        <ErrorTitle variant="h4" color="primary">
           {texts.need_to_be_admin_to_manage_project_team}
-        </Typography>
+        </ErrorTitle>
       </WideLayout>
     );
   else {

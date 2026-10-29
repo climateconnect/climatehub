@@ -4,30 +4,30 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { RegistrationFieldOption } from "../../types";
 
-const useStyles = makeStyles((theme) => ({
-  optionRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(0.5),
-    marginBottom: theme.spacing(0.75),
-  },
-  optionInput: {
-    flex: 1,
-  },
-  addButton: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(0.5),
-    cursor: "pointer",
-    color: theme.palette.primary.main,
-    marginTop: theme.spacing(0.5),
-    fontSize: "0.875rem",
-  },
+const OptionRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.5),
+  marginBottom: theme.spacing(0.75),
+}));
+
+const OptionInput = styled(TextField)({
+  flex: 1,
+});
+
+const AddButton = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.5),
+  cursor: "pointer",
+  color: theme.palette.primary.main,
+  marginTop: theme.spacing(0.5),
+  fontSize: "0.875rem",
 }));
 
 type Props = {
@@ -53,7 +53,6 @@ export default function OptionSelectFieldEditor({
   fieldError,
   onClearFieldError,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -118,9 +117,8 @@ export default function OptionSelectFieldEditor({
         sx={{ mb: 1.5 }}
       />
       {options.map((option, index) => (
-        <Box key={option.id ?? `opt_${index}`} className={classes.optionRow}>
-          <TextField
-            className={classes.optionInput}
+        <OptionRow key={option.id ?? `opt_${index}`}>
+          <OptionInput
             value={option.title}
             onChange={(e) => handleOptionTitleChange(index, e.target.value)}
             placeholder={texts.option_placeholder}
@@ -161,14 +159,14 @@ export default function OptionSelectFieldEditor({
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-        </Box>
+        </OptionRow>
       ))}
-      <Box className={classes.addButton} onClick={handleAddOption} role="button" tabIndex={0}>
+      <AddButton onClick={handleAddOption} role="button" tabIndex={0}>
         <AddIcon fontSize="small" />
         <Typography variant="body2" color="primary">
           {texts.add_option}
         </Typography>
-      </Box>
+      </AddButton>
     </Box>
   );
 }

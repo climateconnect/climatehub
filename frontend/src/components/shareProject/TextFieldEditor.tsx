@@ -1,15 +1,13 @@
 import React, { useContext } from "react";
 import { Box, Switch, TextField, FormControlLabel, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles((theme) => ({
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(1.5),
-  },
+const FieldGroup = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(1.5),
 }));
 
 type Props = {
@@ -31,12 +29,11 @@ export default function TextFieldEditor({
   isDraft,
   fieldError,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
   return (
-    <Box className={classes.fieldGroup}>
+    <FieldGroup>
       <Box>
         <Typography variant="body2" color="textSecondary" gutterBottom>
           {texts.registration_text_field_title_label}
@@ -89,6 +86,6 @@ export default function TextFieldEditor({
         }
         label={texts.registration_text_field_multiline_label}
       />
-    </Box>
+    </FieldGroup>
   );
 }

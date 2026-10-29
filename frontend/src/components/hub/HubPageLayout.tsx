@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Container, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, useTheme } from "@mui/material/styles";
 import WideLayout from "../layouts/WideLayout";
 import HubHeaderImage from "./HubHeaderImage";
 import HubContent from "./HubContent";
@@ -19,35 +19,46 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { BrowseEntity } from "../../types";
 
-const useStyles = makeStyles((theme) => ({
-  // The outer Container uses `disableGutters` (no horizontal padding) so the
-  // inner `BrowseContentBase` Container provides the 24px padding. These
-  // elements live outside the inner Container, so they need their own
-  // padding to align with the content area.
-  linkedHubsContainer: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    paddingLeft: 24,
-    paddingRight: 24,
-    marginTop: theme.spacing(2),
-    gap: theme.spacing(1),
-  },
-  linkedHubsContainerMobile: {
-    display: "flex",
-    flexDirection: "row",
-    overflowX: "auto",
-    gap: theme.spacing(2),
-    padding: theme.spacing(2, 0, 0),
-  },
-  subHubInfoText: {
-    fontStyle: "italic",
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    paddingLeft: 24,
-    paddingRight: 24,
-    textAlign: "left" as const,
-  },
+// The spacing values are passed in as `$` props because the old `makeStyles` hook was called above
+// the hub `ThemeProvider` rendered by `WideLayout`, i.e. it used the outer (app-level) theme.
+
+// The outer Container uses `disableGutters` (no horizontal padding) so the
+// inner `BrowseContentBase` Container provides the 24px padding. These
+// elements live outside the inner Container, so they need their own
+// padding to align with the content area.
+const LinkedHubsContainer = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$marginTop" && prop !== "$gap",
+})<{ $marginTop: string | number; $gap: string | number }>(({ $marginTop, $gap }) => ({
+  display: "flex",
+  flexDirection: "row",
+  justifyContent: "center",
+  paddingLeft: 24,
+  paddingRight: 24,
+  marginTop: $marginTop,
+  gap: $gap,
+}));
+
+const LinkedHubsContainerMobile = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$gap" && prop !== "$padding",
+})<{ $gap: string | number; $padding: string | number }>(({ $gap, $padding }) => ({
+  display: "flex",
+  flexDirection: "row",
+  overflowX: "auto",
+  gap: $gap,
+  padding: $padding,
+}));
+
+const SubHubInfoText = styled("div", {
+  // The sibling test selects this element via `[class*="subHubInfoText"]`.
+  label: "subHubInfoText",
+  shouldForwardProp: (prop) => prop !== "$margin",
+})<{ $margin: string | number }>(({ $margin }) => ({
+  fontStyle: "italic",
+  marginTop: $margin,
+  marginBottom: $margin,
+  paddingLeft: 24,
+  paddingRight: 24,
+  textAlign: "left" as const,
 }));
 
 type HubPageLayoutProps = {
@@ -95,7 +106,7 @@ export default function HubPageLayout({
 }: HubPageLayoutProps) {
   const { locale, CUSTOM_HUB_URLS } = useContext(UserContext);
   const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("md"));
-  const classes = useStyles();
+  const outerTheme = useTheme();
   const texts = getTexts({ page: "hub", locale: locale, hubName: hubData?.name });
   const customTheme = hubThemeData ? transformThemeData(hubThemeData) : undefined;
   const contentRef = useRef<HTMLDivElement>(null);
@@ -191,7 +202,10 @@ export default function HubPageLayout({
             <HubSupporters supportersList={hubSupporters} hubName={hubData?.name} hubUrl={hubUrl} />
           )}
           {isNarrowScreen && linkedHubs && linkedHubs.length > 0 && (
-            <div className={classes.linkedHubsContainerMobile}>
+            <LinkedHubsContainerMobile
+              $gap={outerTheme.spacing(2)}
+              $padding={outerTheme.spacing(2, 0, 0)}
+            >
               {linkedHubs.map((linkedHub: any) => (
                 <HubLinkButton
                   key={linkedHub.hubUrl}
@@ -200,10 +214,10 @@ export default function HubPageLayout({
                   pageContext={linkedHubPageContext}
                 />
               ))}
-            </div>
+            </LinkedHubsContainerMobile>
           )}
           {!isNarrowScreen && linkedHubs && linkedHubs.length > 0 && (
-            <div className={classes.linkedHubsContainer}>
+            <LinkedHubsContainer $marginTop={outerTheme.spacing(2)} $gap={outerTheme.spacing(1)}>
               {linkedHubs.map((linkedHub: any) => (
                 <HubLinkButton
                   key={linkedHub.hubUrl}
@@ -212,10 +226,10 @@ export default function HubPageLayout({
                   pageContext={linkedHubPageContext}
                 />
               ))}
-            </div>
+            </LinkedHubsContainer>
           )}
           {hubData?.parent_hub && (
-            <div className={classes.subHubInfoText}>
+            <SubHubInfoText $margin={outerTheme.spacing(2)}>
               {isEventsPage
                 ? texts.you_are_seeing_events_related_to
                 : activeEntry === "organizations"
@@ -223,7 +237,7 @@ export default function HubPageLayout({
                 : activeEntry === "members"
                 ? texts.you_are_seeing_members_related_to
                 : texts.you_are_seeing_projects_related_to}
-            </div>
+            </SubHubInfoText>
           )}
           {children}
         </Container>

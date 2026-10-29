@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import { HubContext } from "../context/HubContext";
@@ -63,29 +62,27 @@ function renderProjectContent(projectOverrides = {}) {
   const project = { ...baseProject, ...projectOverrides };
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContext as any}>
-          <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
-            <ProjectContent
-              discussionTabLabel=""
-              handleTabChange={jest.fn()}
-              latestParentComment={[]}
-              leaveProject={jest.fn()}
-              project={project}
-              projectTabsRef={{ current: null }}
-              typesByTabValue={{}}
-              showRequesters={false}
-              toggleShowRequests={jest.fn()}
-              handleSendProjectJoinRequest={jest.fn()}
-              requestedToJoinProject={false}
-              hubUrl={undefined}
-              eventRegistration={null}
-              onEventRegistrationUpdated={jest.fn()}
-              onMembersRefreshed={jest.fn()}
-            />
-          </HubContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={defaultContext as any}>
+        <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
+          <ProjectContent
+            discussionTabLabel=""
+            handleTabChange={jest.fn()}
+            latestParentComment={[]}
+            leaveProject={jest.fn()}
+            project={project}
+            projectTabsRef={{ current: null }}
+            typesByTabValue={{}}
+            showRequesters={false}
+            toggleShowRequests={jest.fn()}
+            handleSendProjectJoinRequest={jest.fn()}
+            requestedToJoinProject={false}
+            hubUrl={undefined}
+            eventRegistration={null}
+            onEventRegistrationUpdated={jest.fn()}
+            onMembersRefreshed={jest.fn()}
+          />
+        </HubContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

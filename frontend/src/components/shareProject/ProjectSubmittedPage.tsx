@@ -1,5 +1,5 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useEffect, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -8,21 +8,20 @@ import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import { apiRequest } from "../../../public/lib/apiOperations";
 import ShareProjectCallToAction from "./ShareProjectCallToAction";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    textAlign: "center",
-    padding: theme.spacing(3),
-    [theme.breakpoints.up("sm")]: {
-      padding: theme.spacing(5),
-    },
-    marginTop: theme.spacing(4),
-    maxWidth: theme.breakpoints.values.lg,
-    marginLeft: "auto",
-    marginRight: "auto",
+const Root = styled("div")(({ theme }) => ({
+  textAlign: "center",
+  padding: theme.spacing(3),
+  [theme.breakpoints.up("sm")]: {
+    padding: theme.spacing(5),
   },
-  headline: {
-    marginBottom: theme.spacing(3),
-  },
+  marginTop: theme.spacing(4),
+  maxWidth: theme.breakpoints.values.lg,
+  marginLeft: "auto",
+  marginRight: "auto",
+}));
+
+const Headline = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
 }));
 
 export default function ProjectSubmittedPage({
@@ -34,7 +33,6 @@ export default function ProjectSubmittedPage({
   projectTypeId,
   projectName,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({
     page: "project",
@@ -78,21 +76,17 @@ export default function ProjectSubmittedPage({
   }, [url_slug, isDraft, hasError, locale]);
 
   return (
-    <div className={classes.root}>
+    <Root>
       {hasError ? (
-        <Typography variant="h5" color="error" className={classes.headline}>
+        <Headline variant="h5" color="error">
           {texts.there_has_been_an_error_when_trying_to_publish_your_project}
-        </Typography>
+        </Headline>
       ) : !url_slug ? (
         <LoadingContainer headerHeight={233} footerHeight={120} />
       ) : isDraft ? (
         <>
-          <Typography variant="h5" className={classes.headline}>
-            {projectTypeTexts.draftProject[typeId]}
-          </Typography>
-          <Typography variant="h5" className={classes.headline}>
-            {projectTypeTexts.editAndPublishDraftProject[typeId]}
-          </Typography>
+          <Headline variant="h5">{projectTypeTexts.draftProject[typeId]}</Headline>
+          <Headline variant="h5">{projectTypeTexts.editAndPublishDraftProject[typeId]}</Headline>
         </>
       ) : (
         <ShareProjectCallToAction
@@ -105,6 +99,6 @@ export default function ProjectSubmittedPage({
           previewProjectFailed={publishedProjectFailed}
         />
       )}
-    </div>
+    </Root>
   );
 }

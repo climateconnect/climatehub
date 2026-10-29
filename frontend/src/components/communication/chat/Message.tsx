@@ -1,5 +1,5 @@
-import { Box, CircularProgress, Link, Tooltip, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { CircularProgress, Link, Tooltip, Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useEffect, useState } from "react";
 // Same organization icon as in MobilePageNav
 import Groups2Icon from "@mui/icons-material/Groups2";
@@ -15,43 +15,70 @@ import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import MessageContent from "./../MessageContent";
 
-const useStyles = makeStyles((theme) => ({
-  time: {
+const notTransient = (prop: PropertyKey) => typeof prop !== "string" || !prop.startsWith("$");
+
+const MessageContainer = styled("div", { shouldForwardProp: notTransient })<{
+  $received: boolean;
+}>(({ theme, $received }) => ({
+  ...($received
+    ? { textAlign: "left", marginLeft: theme.spacing(1) }
+    : { textAlign: "right", marginRight: theme.spacing(1) }),
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+}));
+
+const MessageBubble = styled("span", { shouldForwardProp: notTransient })<{
+  $received: boolean;
+}>(({ theme, $received }) => ({
+  ...($received
+    ? {
+        backgroundColor: theme.palette.grey[300],
+        padding: theme.spacing(1),
+        paddingRight: theme.spacing(4),
+      }
+    : {
+        backgroundColor: theme.palette.primary.main,
+        padding: theme.spacing(1),
+        color: "white",
+        textAlign: "left",
+        paddingRight: theme.spacing(4),
+      }),
+  maxWidth: "70%",
+  display: "inline-block",
+  borderRadius: theme.spacing(1),
+}));
+
+const SenderName = styled(Typography)({
+  fontSize: 12,
+}) as typeof Typography;
+
+const OriginBox = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(0.5),
+  borderRadius: theme.spacing(0.75),
+  backgroundColor: theme.palette.grey[100],
+  padding: theme.spacing(0.5, 1),
+  display: "inline-flex",
+  alignItems: "center",
+  gap: theme.spacing(0.5),
+  maxWidth: "100%",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+}));
+
+const TimeContainer = styled("div")(({ theme }) => ({
+  paddingLeft: theme.spacing(4),
+}));
+
+const Time = styled("div", { shouldForwardProp: notTransient })<{ $received: boolean }>(
+  ({ theme, $received }) => ({
     fontSize: 10,
     float: "right",
     marginRight: theme.spacing(-3),
     color: theme.palette.secondary.main,
-  },
-  timeContainer: {
-    paddingLeft: theme.spacing(4),
-  },
-  sentTime: {
-    color: "#bdb8c7",
-  },
-  senderName: {
-    fontSize: 12,
-  },
-  originContext: {
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(0.5),
-    borderRadius: theme.spacing(0.75),
-    backgroundColor: theme.palette.grey[100],
-    padding: theme.spacing(0.5, 1),
-    display: "inline-flex",
-    alignItems: "center",
-    gap: theme.spacing(0.5),
-    maxWidth: "100%",
-    overflowWrap: "anywhere",
-    wordBreak: "break-word",
-  },
-  originContextIcon: {
-    width: 16,
-    height: 16,
-  },
-  originContextText: {
-    display: "inline",
-  },
-}));
+    ...(!$received && { color: "#bdb8c7" }),
+  })
+);
 
 const PROJECT_TYPE_ORIGIN_TEXT_KEYS = {
   EV: "chat_message_origin_event",
@@ -66,8 +93,7 @@ const PROJECT_TYPE_ORIGIN_ICON_IDS = {
   PR: "project",
 };
 
-export default function Message({ message, classes, isPrivateChat }) {
-  const ownClasses = useStyles();
+export default function Message({ message, isPrivateChat }) {
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   const received = message.sender.url_slug !== user.url_slug;
@@ -118,30 +144,22 @@ export default function Message({ message, classes, isPrivateChat }) {
   const originParts = originTemplate.split(/\{(?:event_name|project_name|organization_name)\}/);
 
   return (
-    <div
-      className={`${received ? classes.receivedContainer : classes.sentContainer} ${
-        classes.messageContainer
-      }`}
-      id="messageContainer"
-    >
-      <span
-        color={received ? "default" : "primary"}
-        className={`${received ? classes.receivedMessage : classes.sentMessage} ${classes.message}`}
-      >
+    <MessageContainer $received={received} id="messageContainer">
+      <MessageBubble $received={received} color={received ? "default" : "primary"}>
         {received && !isPrivateChat && (
           <Link
             href={getLocalePrefix(locale) + "/profiles/" + message.sender.url_slug}
             target="_blank"
             underline="hover"
           >
-            <Typography className={ownClasses.senderName} color="primary" component="span">
+            <SenderName color="primary" component="span">
               {message.sender.first_name + " " + message.sender.last_name}
-            </Typography>
+            </SenderName>
           </Link>
         )}
         <MessageContent content={message.content} received={received} />
         {originContext && (
-          <Box className={ownClasses.originContext}>
+          <OriginBox>
             {originContext.type === "organization" ? (
               <Groups2Icon
                 sx={(theme) => ({
@@ -153,13 +171,16 @@ export default function Message({ message, classes, isPrivateChat }) {
               <img
                 src={`/images/project_types/${originIconId}.png`}
                 alt=""
-                className={ownClasses.originContextIcon}
+                width={16}
+                height={16}
               />
             )}
             <Typography
               variant="caption"
-              className={ownClasses.originContextText}
-              sx={(theme) => ({ color: received ? "inherit" : theme.palette.text.primary })}
+              sx={(theme) => ({
+                display: "inline",
+                color: received ? "inherit" : theme.palette.text.primary,
+              })}
             >
               {originParts[0]}
               <Link href={originHref} underline="hover">
@@ -167,19 +188,23 @@ export default function Message({ message, classes, isPrivateChat }) {
               </Link>
               {originParts[1]}
             </Typography>
-          </Box>
+          </OriginBox>
         )}
-        <div className={ownClasses.timeContainer}>
-          <div className={`${ownClasses.time} ${!received && ownClasses.sentTime}`}>
+        <TimeContainer>
+          <Time $received={received}>
             {message.unconfirmed && (
               <Tooltip title={texts.sending_message + "..."}>
-                <CircularProgress size={10} color="inherit" className={classes.loader} />
+                <CircularProgress
+                  size={10}
+                  color="inherit"
+                  sx={(theme) => ({ display: "inline-block", marginRight: theme.spacing(0.25) })}
+                />
               </Tooltip>
             )}
             {sent_date}
-          </div>
-        </div>
-      </span>
-    </div>
+          </Time>
+        </TimeContainer>
+      </MessageBubble>
+    </MessageContainer>
   );
 }

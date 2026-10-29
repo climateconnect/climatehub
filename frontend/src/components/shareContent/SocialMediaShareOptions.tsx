@@ -1,5 +1,5 @@
 import { Button, InputAdornment, TextField } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import LinkIcon from "@mui/icons-material/Link";
 import React from "react";
 import {
@@ -17,17 +17,16 @@ import {
   WhatsappShareButton,
 } from "react-share";
 
-const useStyles = makeStyles((theme) => ({
-  shareButtonsContainer: {
-    paddingBottom: theme.spacing(2),
-    display: "flex",
-    gap: "5px",
-    justifyContent: "center",
-    flexWrap: "wrap",
-  },
-  copyButton: {
-    color: theme.palette.background.default_contrastText,
-  },
+const ShareButtonsContainer = styled("div")(({ theme }) => ({
+  paddingBottom: theme.spacing(2),
+  display: "flex",
+  gap: "5px",
+  justifyContent: "center",
+  flexWrap: "wrap",
+}));
+
+const CopyButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
 }));
 
 //The actual share buttons and copy-link field, used both in the
@@ -41,7 +40,6 @@ export default function SocialMediaShareOptions({
   mailBody,
   texts,
 }) {
-  const classes = useStyles();
   const iconSize = tinyScreen ? 40 : 50;
 
   const facebookHashtag = "#BelieveInTogether";
@@ -53,7 +51,7 @@ export default function SocialMediaShareOptions({
 
   return (
     <>
-      <div className={classes.shareButtonsContainer}>
+      <ShareButtonsContainer>
         <EmailShareButton
           beforeOnClick={() => createShareRecord(SHARE_OPTIONS.e_mail)}
           url={contentLink}
@@ -97,7 +95,7 @@ export default function SocialMediaShareOptions({
         >
           <TelegramIcon size={iconSize} round={true} />
         </TelegramShareButton>
-      </div>
+      </ShareButtonsContainer>
       <TextField
         fullWidth
         label={texts.link}
@@ -111,12 +109,9 @@ export default function SocialMediaShareOptions({
           ),
           endAdornment: (
             <InputAdornment position="end">
-              <Button
-                className={classes.copyButton}
-                onClick={() => handleClick(SHARE_OPTIONS.link)}
-              >
+              <CopyButton onClick={() => handleClick(SHARE_OPTIONS.link)}>
                 {tinyScreen ? texts.copy : texts.copy_link}
-              </Button>
+              </CopyButton>
             </InputAdornment>
           ),
         }}

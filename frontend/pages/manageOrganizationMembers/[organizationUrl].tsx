@@ -1,5 +1,5 @@
 import { Container, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import Cookies from "next-cookies";
 import React, { useContext, useState } from "react";
 
@@ -19,14 +19,10 @@ import getHubTheme from "../../src/themes/fetchHubTheme";
 import { transformThemeData } from "../../src/themes/transformThemeData";
 import theme from "../../src/themes/theme";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(4),
-    },
-  };
-});
+const Headline = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(4),
+}));
 
 export async function getServerSideProps(ctx) {
   const { auth_token } = Cookies(ctx);
@@ -74,7 +70,6 @@ export default function ManageOrganizationMembersPage({
 }) {
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "organization", locale: locale, organization: organization });
-  const classes = useStyles();
   const [currentMembers, setCurrentMembers] = useState(
     members ? [...members.sort((a, b) => b.role.role_type - a.role.role_type)] : []
   );
@@ -97,10 +92,10 @@ export default function ManageOrganizationMembersPage({
   else if (!members.find((m) => m.id === user.id))
     return (
       <WideLayout title={texts.please_log_in + " " + texts.to_manage_org_members} {...layoutProps}>
-        <Typography variant="h4" color="primary" className={classes.headline}>
+        <Headline variant="h4" color="primary">
           {texts.you_are_not_a_member_of_this_organization}{" "}
           {texts.go_to_org_page_and_click_join_to_join_it}
-        </Typography>
+        </Headline>
       </WideLayout>
     );
   else if (
@@ -109,9 +104,9 @@ export default function ManageOrganizationMembersPage({
   )
     return (
       <WideLayout title={texts.no_permission_to_manage_members_of_this_org} {...layoutProps}>
-        <Typography variant="h4" color="primary" className={classes.headline}>
+        <Headline variant="h4" color="primary">
           {texts.need_to_be_admin_to_manage_org_members}
-        </Typography>
+        </Headline>
       </WideLayout>
     );
   else {

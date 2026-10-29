@@ -1,7 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
-// TODO: MiniProfileInput still uses makeStyles, which needs this provider; drop it once migrated (#2290)
-import { ThemeProvider } from "@mui/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import React from "react";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
@@ -30,19 +28,17 @@ const memberFromSearch = {
 const renderInput = (profile) =>
   render(
     <UserContext.Provider value={{ locale: "en" }}>
-      <MuiThemeProvider theme={theme}>
-        <ThemeProvider theme={theme}>
-          <MiniProfileInput
-            profile={profile}
-            rolesOptions={rolesOptions}
-            fullRolesOptions={rolesOptions}
-            creatorRole={rolesOptions[0]}
-            availabilityOptions={[]}
-            onChange={() => {}}
-            allowAppointingCreator
-          />
-        </ThemeProvider>
-      </MuiThemeProvider>
+      <ThemeProvider theme={theme}>
+        <MiniProfileInput
+          profile={profile}
+          rolesOptions={rolesOptions}
+          fullRolesOptions={rolesOptions}
+          creatorRole={rolesOptions[0]}
+          availabilityOptions={[]}
+          onChange={() => {}}
+          allowAppointingCreator
+        />
+      </ThemeProvider>
     </UserContext.Provider>
   );
 

@@ -1,5 +1,5 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
 import { apiRequest, redirect } from "../../../public/lib/apiOperations";
@@ -10,31 +10,32 @@ import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ManageMembers from "../manageMembers/ManageMembers";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(4),
-      color: theme.palette.background.default_contrastText,
-    },
-    buttons: {
-      float: "right",
-    },
-    button: {
-      marginRight: theme.spacing(2),
-    },
-    cancelleButton: {
-      backgroundColor: theme.palette.grey[800],
-      "&:hover": {
-        backgroundColor: theme.palette.grey[900],
-      },
-      color: theme.palette.background.default,
-    },
-    buttonsContainer: {
-      height: 40,
-      width: "100%",
-    },
-  };
+const Headline = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(4),
+  color: theme.palette.background.default_contrastText,
+}));
+
+const Buttons = styled("div")({
+  float: "right",
+});
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  marginRight: theme.spacing(2),
+}));
+
+const CancelButton = styled(Button)(({ theme }) => ({
+  marginRight: theme.spacing(2),
+  backgroundColor: theme.palette.grey[800],
+  "&:hover": {
+    backgroundColor: theme.palette.grey[900],
+  },
+  color: theme.palette.background.default,
+}));
+
+const ButtonsContainer = styled("div")({
+  height: 40,
+  width: "100%",
 });
 
 export default function ManageProjectMembers({
@@ -47,7 +48,6 @@ export default function ManageProjectMembers({
   token,
   availabilityOptions,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const { hubUrl } = useContext(HubContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
@@ -190,9 +190,7 @@ export default function ManageProjectMembers({
   };
   return (
     <>
-      <Typography variant="h4" className={classes.headline}>
-        {texts.manage_members_of_project}
-      </Typography>
+      <Headline variant="h4">{texts.manage_members_of_project}</Headline>
       <form onSubmit={handleSubmit}>
         <ManageMembers
           currentMembers={currentMembers}
@@ -205,20 +203,19 @@ export default function ManageProjectMembers({
           user_role={user_role}
           setUserRole={setUserRole}
         />
-        <div className={classes.buttonsContainer}>
-          <div className={classes.buttons}>
-            <Button
-              className={`${classes.button} ${classes.cancelleButton}`}
+        <ButtonsContainer>
+          <Buttons>
+            <CancelButton
               href={appHref("/projects/" + project.url_slug, { hubUrl, locale })}
               variant="contained"
             >
               {texts.cancel}
-            </Button>
-            <Button className={classes.button} variant="contained" color="primary" type="submit">
+            </CancelButton>
+            <SaveButton variant="contained" color="primary" type="submit">
               {texts.save}
-            </Button>
-          </div>
-        </div>
+            </SaveButton>
+          </Buttons>
+        </ButtonsContainer>
       </form>
     </>
   );

@@ -1,5 +1,5 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import React, { useContext, useEffect } from "react";
@@ -13,19 +13,9 @@ import UserContext from "../context/UserContext";
 import LoginNudge from "../general/LoginNudge";
 import ProfilePreviews from "./../profile/ProfilePreviews";
 
-const useStyles = makeStyles((theme) => ({
-  editButton: {
-    float: "right",
-    marginBottom: theme.spacing(1),
-  },
-  leaveProjectButton: {
-    float: "right",
-    background: theme.palette.error.main,
-    color: "white",
-    ["&:hover"]: {
-      backgroundColor: theme.palette.error.main,
-    },
-  },
+const EditButton = styled(Button)(({ theme }) => ({
+  float: "right",
+  marginBottom: theme.spacing(1),
 }));
 
 function getTeamWithAdditionalInfo(team, texts) {
@@ -66,7 +56,6 @@ export default function TeamContent({ project, handleReadNotifications }) {
   const { user, locale } = useContext(UserContext);
   const { hubUrl } = useContext(HubContext);
   const texts = getTexts({ page: "project", locale: locale });
-  const classes = useStyles();
   useEffect(() => {
     const readNotifications = async () => {
       try {
@@ -93,13 +82,12 @@ export default function TeamContent({ project, handleReadNotifications }) {
             {[ROLE_TYPES.all_type, ROLE_TYPES.read_write_type].includes(
               project.team.find((m) => m.id === user.id).permission
             ) && (
-              <Button
-                className={classes.editButton}
+              <EditButton
                 variant="contained"
                 href={appHref("/manageProjectMembers/" + project.url_slug, { hubUrl, locale })}
               >
                 {texts.manage_members}
-              </Button>
+              </EditButton>
             )}
           </>
         )}

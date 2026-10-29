@@ -1,13 +1,8 @@
-import { Menu } from "@mui/material";
-import withStyles from "@mui/styles/withStyles";
+import { Menu, menuClasses } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import React from "react";
 
-const NotificationsBox: any = withStyles({
-  paper: {
-    border: "1px solid #d3d4d5",
-    minWidth: 300,
-  },
-})((props: any) => (
+const NotificationsBox: any = styled((props: any) => (
   <Menu
     elevation={0}
     getContentAnchorEl={null}
@@ -22,6 +17,11 @@ const NotificationsBox: any = withStyles({
     }}
     {...props}
   />
-));
+))({
+  [`& .${menuClasses.paper}`]: {
+    border: "1px solid #d3d4d5",
+    minWidth: 300,
+  },
+});
 
 export default NotificationsBox;
