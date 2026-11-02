@@ -135,7 +135,7 @@ function drawerTree({
   contactRole?: string;
   chatSocket?: any;
   socketConnectionState?: string;
-  origin?: { type: "project"; urlSlug: string; id: number };
+  origin?: { type: "project" | "organization"; urlSlug: string; id: number };
 } = {}) {
   return (
     <ThemeProvider theme={theme}>
@@ -317,6 +317,21 @@ describe("ChatDrawer", () => {
           (call: any[]) => call[0].url === "/api/chat/chat-1/send_message/"
         );
         expect(sendCall![0].payload.origin_project_url_slug).toBe("test-project");
+      });
+    });
+
+    it("sends the organization origin slug (not the project one) in the POST payload", async () => {
+      renderDrawer({ origin: { type: "organization", urlSlug: "test-org", id: 3 } });
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await waitFor(() => {
+        const sendCall = mockApiRequest.mock.calls.find(
+          (call: any[]) => call[0].url === "/api/chat/chat-1/send_message/"
+        );
+        expect(sendCall![0].payload.origin_organization_url_slug).toBe("test-org");
+        expect(sendCall![0].payload).not.toHaveProperty("origin_project_url_slug");
       });
     });
 

@@ -24,7 +24,7 @@ type ChatDrawerProps = {
   contactPerson: any;
   contextTerm: string;
   contactRole?: string;
-  origin?: { type: "project"; urlSlug: string; id: number };
+  origin?: { type: "project" | "organization"; urlSlug: string; id: number };
 };
 
 const Content = styled("div")({
@@ -250,6 +250,7 @@ export default function ChatDrawer({
     }
   };
 
+  const originSlugField = origin ? { [`origin_${origin.type}_url_slug`]: origin.urlSlug } : {};
   const originMessageFields = origin ? { origin_type: origin.type, origin_id: origin.id } : {};
 
   const sendChatMessageThroughSocket = async (message) => {
@@ -258,7 +259,7 @@ export default function ChatDrawer({
         JSON.stringify({
           message: message,
           chat_uuid: chat.chat_uuid,
-          ...(origin && { origin_project_url_slug: origin.urlSlug }),
+          ...originSlugField,
         })
       );
       setThread((thread) => ({
@@ -288,7 +289,7 @@ export default function ChatDrawer({
         url: "/api/chat/" + chat_uuid + "/send_message/",
         payload: {
           message_content: message,
-          ...(origin && { origin_project_url_slug: origin.urlSlug }),
+          ...originSlugField,
         },
         token: token,
         locale: locale,

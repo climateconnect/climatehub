@@ -11,6 +11,14 @@ export default function getOrganizationTexts({ organization, locale, user, hubNa
     locale,
   });
   return {
+    contact_chat_context_term: {
+      en: `the organisation “${organization?.name}”`,
+      de: `die Organisation „${organization?.name}“`,
+    },
+    contact_person: {
+      en: "Contact person",
+      de: "Ansprechpartner:in",
+    },
     log_in_to_edit_organization: {
       en: "You have to log in to edit an organisation.",
       de: "Du musst dich einloggen, um eine Organisation zu bearbeiten.",
