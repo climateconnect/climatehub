@@ -250,8 +250,19 @@ export default function ChatDrawer({
     }
   };
 
-  const originSlugField = origin ? { [`origin_${origin.type}_url_slug`]: origin.urlSlug } : {};
-  const originMessageFields = origin ? { origin_type: origin.type, origin_id: origin.id } : {};
+  const ORIGIN_SLUG_FIELDS = {
+    project: "origin_project_url_slug",
+    organization: "origin_organization_url_slug",
+  } as const;
+  // Set once the server rejected the origin, so later messages are not tagged either
+  const [originRejected, setOriginRejected] = useState(false);
+  const activeOrigin = origin && !originRejected ? origin : undefined;
+  const originSlugField = activeOrigin
+    ? { [ORIGIN_SLUG_FIELDS[activeOrigin.type]]: activeOrigin.urlSlug }
+    : {};
+  const originMessageFields = activeOrigin
+    ? { origin_type: activeOrigin.type, origin_id: activeOrigin.id }
+    : {};
 
   const sendChatMessageThroughSocket = async (message) => {
     try {
@@ -282,14 +293,20 @@ export default function ChatDrawer({
     }
   };
 
-  const sendChatMessageThroughPostRequest = async (message, chat_uuid, token) => {
+  const sendChatMessageThroughPostRequest = async (
+    message,
+    chat_uuid,
+    token,
+    withOrigin = true
+  ) => {
+    const useOrigin = withOrigin && !!activeOrigin;
     try {
       await apiRequest({
         method: "post",
         url: "/api/chat/" + chat_uuid + "/send_message/",
         payload: {
           message_content: message,
-          ...originSlugField,
+          ...(useOrigin && originSlugField),
         },
         token: token,
         locale: locale,
@@ -302,12 +319,17 @@ export default function ChatDrawer({
             content: message,
             sender: user,
             sent_at: new Date(),
-            ...originMessageFields,
+            ...(useOrigin && originMessageFields),
           },
         ],
       }));
       return true;
     } catch (err: any) {
+      // The server rejected the origin (400): silently retry untagged
+      if (useOrigin && err?.response?.status === 400) {
+        setOriginRejected(true);
+        return sendChatMessageThroughPostRequest(message, chat_uuid, token, false);
+      }
       if (err?.response?.data)
         console.log("Error in sendChatMessageThroughPostRequest: " + err.response.data?.detail);
       setErrorMessage(err?.response?.data?.detail || texts.could_not_send_message);

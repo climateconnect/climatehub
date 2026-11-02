@@ -337,7 +337,7 @@ function OrganizationLayout({
       >
         {!user && <StyledLoginNudge whatToDo={texts.to_see_this_organizations_full_information} />}
         <Container>
-          {user && !canEdit && (
+          {user && !canEdit && creator && (
             <Button variant="contained" color="primary" onClick={handleConnectBtn}>
               {texts.send_message}
             </Button>
