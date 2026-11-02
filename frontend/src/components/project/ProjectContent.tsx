@@ -142,6 +142,7 @@ export default function ProjectContent({
 }) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
+
   //return the right static text depending on the project type
   const getProjectDescriptionHeadline = () => {
     const type = project.project_type.type_id;
