@@ -100,9 +100,7 @@ def generate_webp_variant(
             if max_width is not None and image.width > max_width:
                 w_percent = max_width / float(image.width)
                 h_size = int(float(image.height) * w_percent)
-                image = image.resize(
-                    (max_width, h_size), Image.Resampling.LANCZOS
-                )
+                image = image.resize((max_width, h_size), Image.Resampling.LANCZOS)
 
             # WebP needs a flatten-friendly mode.
             # RGBA / LA / P with transparency → keep RGBA (lossless alpha).
@@ -117,7 +115,11 @@ def generate_webp_variant(
 
             # Derive the variant filename from the original storage path.
             original_name = field_file.name
-            base = original_name.rsplit(".", 1)[0] if "." in original_name else original_name
+            base = (
+                original_name.rsplit(".", 1)[0]
+                if "." in original_name
+                else original_name
+            )
             if max_width:
                 variant_name = "{}_{}.webp".format(base, max_width)
             else:

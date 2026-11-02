@@ -15,7 +15,7 @@ import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
 import ReactTimeago from "react-timeago";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 
 import UserContext from "../context/UserContext";
 import GenericDialog from "./GenericDialog";
@@ -116,7 +116,11 @@ const ProjectFollowers = ({ followers, followingSinceText, locale }) => {
                   >
                     <Avatar
                       className={classes.avatar}
-                      src={getImageUrl(f.user_profile.thumbnail_image)}
+                      src={resolveVariantUrl(
+                        f.user_profile.image_variants,
+                        THUMBNAIL_SOURCES,
+                        f.user_profile.thumbnail_image || f.user_profile.image
+                      )}
                       alt={f.user_profile.first_name + " " + f.user_profile.last_name}
                     />
                     <Typography component="span" color="secondary" className={classes.username}>

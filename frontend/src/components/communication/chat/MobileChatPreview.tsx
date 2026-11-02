@@ -4,7 +4,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import { getDateTime } from "../../../../public/lib/dateOperations";
-import { getImageUrl } from "../../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../../general/ResponsiveImage";
 import UserContext from "../../context/UserContext";
 
 const useStyles = makeStyles((theme) => {
@@ -54,7 +54,14 @@ export default function MobileChatPreview({ chat, isFirstChat, forwardedRef }) {
             <GroupIcon />
           </Avatar>
         ) : (
-          <Avatar className={classes.mobileAvatar} src={getImageUrl(chat.chatting_partner.image)} />
+          <Avatar
+            className={classes.mobileAvatar}
+            src={resolveVariantUrl(
+              chat.chatting_partner.image_variants,
+              THUMBNAIL_SOURCES,
+              chat.chatting_partner.thumbnail_image || chat.chatting_partner.image
+            )}
+          />
         )}
         <ListItemText
           primary={

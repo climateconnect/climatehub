@@ -10,7 +10,7 @@ import {
 import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
-import { getImageUrl } from "../../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../../general/ResponsiveImage";
 import UserContext from "../../context/UserContext";
 import { StyledMenuItem } from "./Notification";
 import CloseIcon from "@mui/icons-material/Close";
@@ -90,7 +90,10 @@ export default function GenericNotification({
         <div className={classes.content}>
           {avatar ? (
             <ListItemAvatar>
-              <Avatar alt={avatar.alt} src={getImageUrl(avatar.image)} />
+              <Avatar
+                alt={avatar.alt}
+                src={resolveVariantUrl(avatar.image_variants, THUMBNAIL_SOURCES, avatar.image)}
+              />
             </ListItemAvatar>
           ) : (
             <ListItemIcon>

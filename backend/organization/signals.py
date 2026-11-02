@@ -6,12 +6,13 @@ synchronized with the actual child_projects relationships, plus image-variant
 generation dispatch for ``Project`` and ``Organization`` image fields.
 """
 
-from django.db.models.signals import post_save, pre_delete, pre_save
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
 from climateconnect_main.utility.image_variants import (
     capture_image_field_changes,
     cleanup_orphaned_variants,
+    delete_image_files,
     dispatch_image_variant_task,
 )
 
@@ -94,6 +95,7 @@ def update_parent_has_children_on_delete(sender, instance, **kwargs):
 # Image-variant generation dispatch for Project and Organization
 # ---------------------------------------------------------------------------
 
+
 @receiver(pre_save, sender="organization.Project")
 def _capture_project_image_changes(sender, instance, **kwargs):
     capture_image_field_changes(sender, instance, **kwargs)
@@ -110,6 +112,12 @@ def _dispatch_project_image_variants(sender, instance, created, **kwargs):
     dispatch_image_variant_task(sender, instance, created, **kwargs)
 
 
+@receiver(post_delete, sender="organization.Project")
+def _delete_project_image_files(sender, instance, **kwargs):
+    """Delete the originals and variants of a deleted project."""
+    delete_image_files(sender, instance, **kwargs)
+
+
 @receiver(pre_save, sender="organization.Organization")
 def _capture_organization_image_changes(sender, instance, **kwargs):
     capture_image_field_changes(sender, instance, **kwargs)
@@ -124,3 +132,9 @@ def _cleanup_organization_orphaned_variants(sender, instance, **kwargs):
 @receiver(post_save, sender="organization.Organization")
 def _dispatch_organization_image_variants(sender, instance, created, **kwargs):
     dispatch_image_variant_task(sender, instance, created, **kwargs)
+
+
+@receiver(post_delete, sender="organization.Organization")
+def _delete_organization_image_files(sender, instance, **kwargs):
+    """Delete the originals and variants of a deleted organization."""
+    delete_image_files(sender, instance, **kwargs)

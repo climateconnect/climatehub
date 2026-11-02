@@ -8,21 +8,21 @@ import type { ImageVariants } from "../../types";
  * `field` is the image field the variant belongs to ("image",
  * "thumbnail_image", "background_image"); `key` is the variant within it
  * ("1200"/"600" for resized variants, "webp" for the format-only thumbnail
- * conversion). `media` is only used when rendering `<picture>` sources.
+ * conversion). Numeric keys double as the `w` descriptor in `<picture>`
+ * srcsets.
  */
 export type VariantSource = {
   field?: string;
   key: string;
-  media?: string;
 };
 
 /**
- * Hero images (project detail, headers): the 1200px variant on desktop, the
- * 600px one everywhere else. 900px matches the MUI `md` breakpoint, below
- * which the layout switches to the full-width mobile variant.
+ * Hero images (project detail, headers). In `<ResponsiveImage>` both widths go
+ * into one srcset and the browser picks by rendered size and pixel density;
+ * as a single-URL list for {@link resolveVariantUrl}, the larger one wins.
  */
 export const HERO_SOURCES: VariantSource[] = [
-  { field: "image", key: "1200", media: "(min-width: 900px)" },
+  { field: "image", key: "1200" },
   { field: "image", key: "600" },
 ];
 
@@ -112,15 +112,32 @@ export interface ResponsiveImageProps {
   imgClassName?: string;
   /** Inline style for the inner `<img>`, merged over the fill-the-picture default. */
   imgStyle?: React.CSSProperties;
-  /** `sizes` hint for the `<img>`. */
+  /** Rendered width (`sizes`) for the WebP srcset; the browser picks by it and DPR. Defaults to 100vw. */
   sizes?: string;
   /** Native lazy-loading hint. */
   loading?: "eager" | "lazy";
 }
 
 /**
- * Renders a `<picture>` with WebP `<source>` elements when variants exist, and
- * a plain `<img>` with the original URL when they do not — so legacy rows that
+ * Build the WebP srcset for the available variants.
+ *
+ * Resized variants are listed with `w` descriptors so the browser chooses by
+ * rendered size *and* pixel density: a 400px-wide phone at DPR 3 gets the
+ * 1200px file, a 550px desktop slot at DPR 1 the 600px one. A srcset cannot
+ * mix `w` descriptors with bare URLs, so a format-only variant (e.g. the
+ * thumbnail's "webp" key) is only used when no resized variant exists.
+ */
+function buildSrcSet(available: { source: VariantSource; url: string }[]): string | undefined {
+  const resized = available.filter(({ source }) => /^\d+$/.test(source.key));
+  if (resized.length > 0) {
+    return resized.map(({ source, url }) => `${url} ${source.key}w`).join(", ");
+  }
+  return available[0]?.url;
+}
+
+/**
+ * Renders a `<picture>` with a WebP `<source>` when variants exist, and a
+ * plain `<img>` with the original URL when they do not — so legacy rows that
  * were never backfilled keep working.
  *
  * Use it for the large image surfaces (project detail hero, headers). Surfaces
@@ -141,28 +158,21 @@ export default function ResponsiveImage({
 }: ResponsiveImageProps) {
   const fallbackUrl = getImageUrl(src);
 
-  // Drop candidates that have no variant so the browser never gets a <source>
-  // pointing at a file that was never generated.
+  // Drop candidates that have no variant so the browser never gets a srcset
+  // entry pointing at a file that was never generated.
   const available = sources
     .map((source) => ({ source, url: lookupVariant(variants, source) }))
     .filter((entry): entry is { source: VariantSource; url: string } => !!entry.url);
+  const srcSet = buildSrcSet(available);
 
   return (
     <picture className={className} style={{ display: "block", ...style }}>
-      {available.map(({ source, url }) => (
-        <source
-          key={`${source.field ?? "image"}-${source.key}`}
-          srcSet={url}
-          type="image/webp"
-          media={source.media}
-        />
-      ))}
+      {srcSet && <source srcSet={srcSet} sizes={sizes} type="image/webp" />}
       <img
         src={fallbackUrl}
         alt={alt}
         className={imgClassName}
         style={{ width: "100%", height: "auto", display: "block", ...imgStyle }}
-        sizes={sizes}
         loading={loading}
       />
     </picture>

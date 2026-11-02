@@ -4,6 +4,7 @@ import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import { durationFromMiliseconds } from "../../../../public/lib/dateOperations";
 import { getImageUrl } from "../../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../../general/ResponsiveImage";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 
@@ -64,7 +65,11 @@ export default function DonorForestEntry({ donor }) {
         >
           <Avatar
             /* TODO(unused) size="large" */
-            src={getImageUrl(donor.thumbnail_image ?? donor.image)}
+            src={resolveVariantUrl(
+              donor.image_variants,
+              THUMBNAIL_SOURCES,
+              donor.thumbnail_image ?? donor.image
+            )}
             className={classes.avatar}
           />
         </Link>

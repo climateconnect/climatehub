@@ -29,7 +29,8 @@ import React, { Fragment, useEffect, useContext, useRef, useState } from "react"
 import { getStaticPageLinks } from "../../../public/data/getStaticPageLinks"; // Relative imports
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import { appHref } from "../../../public/lib/appLink";
-import { getImageUrl, getLogoSrc } from "../../../public/lib/imageOperations";
+import { getLogoSrc } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import getTexts from "../../../public/texts/texts";
 import Notification from "../communication/notifications/Notification";
 import NotificationsBox from "../communication/notifications/NotificationsBox";
@@ -614,7 +615,11 @@ const LoggedInNormalScreen = ({
 
   const avatarProps = {
     className: classes.loggedInAvatar,
-    src: getImageUrl(loggedInUser.image),
+    src: resolveVariantUrl(
+      loggedInUser.image_variants,
+      THUMBNAIL_SOURCES,
+      loggedInUser.thumbnail_image || loggedInUser.image
+    ),
     alt: loggedInUser.name,
   };
   return (
@@ -864,7 +869,11 @@ function NarrowScreenLinks({
                     const Icon: any = link.iconForDrawer;
                     const avatarProps = {
                       className: classes.loggedInAvatarMobile,
-                      src: getImageUrl(loggedInUser.image),
+                      src: resolveVariantUrl(
+                        loggedInUser.image_variants,
+                        THUMBNAIL_SOURCES,
+                        loggedInUser.thumbnail_image || loggedInUser.image
+                      ),
                       alt: loggedInUser.name,
                     };
                     if (link.avatar)

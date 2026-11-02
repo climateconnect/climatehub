@@ -21,7 +21,7 @@ import Cookies from "universal-cookie";
 
 // Relative imports
 import { apiRequest, getLocalePrefix } from "../../../public/lib/apiOperations";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import { getMembershipRequests } from "../../../public/lib/projectOperations";
 import getTexts from "../../../public/texts/texts";
 import FeedbackContext from "../context/FeedbackContext";
@@ -227,7 +227,11 @@ const Requester = ({ handleUpdateRequesters, locale, project, requester, request
         >
           <Avatar
             className={classes.avatar}
-            src={getImageUrl(requester.user.image)}
+            src={resolveVariantUrl(
+              requester.user.image_variants,
+              THUMBNAIL_SOURCES,
+              requester.user.thumbnail_image || requester.user.image
+            )}
             alt={requester.user.first_name + " " + requester.user.last_name}
           />
           <Typography component="span" color="secondary" className={classes.username}>

@@ -8,6 +8,10 @@ Provides:
   changed image fields.
 * :func:`dispatch_image_variant_task` — ``post_save`` helper that enqueues
   the Celery task via ``transaction.on_commit``.
+* :func:`cleanup_orphaned_variants` — ``pre_save`` helper that deletes the old
+  original and variants of a replaced or cleared image.
+* :func:`delete_image_files` — ``post_delete`` helper that deletes every
+  original and variant of a deleted row.
 * :func:`generate_and_store_variants` — generates WebP variants for an
   instance and persists them in ``image_variants``.
 
@@ -149,21 +153,63 @@ def dispatch_image_variant_task(sender, instance, created, **kwargs):
     transaction.on_commit(_enqueue)
 
 
+def _delete_files_on_commit(to_delete, caller, model_name, pk):
+    """Delete ``(storage, name)`` pairs once the current transaction commits.
+
+    Deleting before the commit would leave a rolled-back row pointing at
+    missing files — and ``<picture>`` does not fall back to ``<img>`` when a
+    source 404s. Failures are logged per file and never raised.
+    """
+    if not to_delete:
+        return
+
+    def _delete():
+        for storage, name in to_delete:
+            try:
+                storage.delete(name)
+            except Exception as exc:
+                logger.error(
+                    "%s: failed to delete %s (%s pk=%s): %s",
+                    caller,
+                    name,
+                    model_name,
+                    pk,
+                    exc,
+                )
+
+    transaction.on_commit(_delete)
+
+
+def _image_file_names(field_name, field_file, recorded_variants, widths):
+    """Every storage name belonging to one image field: original + variants.
+
+    Prefers the variant paths actually recorded in ``image_variants``:
+    ``storage.save()`` may have had to suffix a name to avoid a collision, in
+    which case the recomputed name would not match the file on disk. Computed
+    names are added as well, for variants that were never recorded.
+    """
+    names = {field_file.name}
+    names.update(recorded_variants.get(field_name, {}).values())
+    names.update(_variant_filename(field_file.name, width) for width in widths)
+    return names
+
+
 def cleanup_orphaned_variants(sender, instance, **kwargs):
-    """``pre_save`` receiver: delete variant files for image fields being replaced.
+    """``pre_save`` receiver: delete the old files of image fields being replaced.
 
     Must run **after** :func:`capture_image_field_changes` so that
     ``_FIELD_CHANGES_ATTR`` is already populated.
 
-    For each image field that is about to change:
+    For each image field that is about to change (replaced or cleared):
 
     1. Fetch the old instance from the database.
-    2. Collect the variant file paths recorded in the *old* instance's
-       ``image_variants`` map, falling back to names computed with
-       :func:`_variant_filename` for entries that were never recorded.
-    3. Delete each variant file via ``storage.delete()`` (storage-agnostic).
-    4. Clear the stale entries from ``image_variants`` so the API never
+    2. Collect the old original plus its variant files (see
+       :func:`_image_file_names`). Uploads never share a file — every upload
+       gets a fresh random name — so nothing else can still reference them.
+    3. Clear the stale entries from ``image_variants`` so the API never
        returns URLs pointing at deleted files.
+    4. Delete the files via ``storage.delete()`` (storage-agnostic) once the
+       save commits (:func:`_delete_files_on_commit`).
 
     The Celery task enqueued by :func:`dispatch_image_variant_task`
     (in ``post_save``) will regenerate variants for the new image.
@@ -185,6 +231,7 @@ def cleanup_orphaned_variants(sender, instance, **kwargs):
         return
 
     config = IMAGE_VARIANT_CONFIGS.get(model_name, {})
+    to_delete = []
 
     for field_name in changed:
         if field_name not in config:
@@ -194,33 +241,48 @@ def cleanup_orphaned_variants(sender, instance, **kwargs):
         if not old_field or not old_field.name:
             continue
 
-        storage = old_field.storage
-
-        # Prefer the paths actually recorded for the old image: storage.save()
-        # may have had to suffix a name to avoid a collision, in which case the
-        # recomputed name would not match the file on disk.
-        recorded = (old_instance.image_variants or {}).get(field_name, {})
-        variant_names = set(recorded.values())
-        variant_names.update(
-            _variant_filename(old_field.name, width)
-            for width in config[field_name]["widths"]
+        names = _image_file_names(
+            field_name,
+            old_field,
+            old_instance.image_variants or {},
+            config[field_name]["widths"],
         )
-
-        for variant_name in variant_names:
-            try:
-                storage.delete(variant_name)
-            except Exception as exc:
-                logger.error(
-                    "cleanup_orphaned_variants: failed to delete %s (%s.%s pk=%s): %s",
-                    variant_name,
-                    sender._meta.app_label,
-                    model_name,
-                    instance.pk,
-                    exc,
-                )
+        to_delete.extend((old_field.storage, name) for name in names)
 
         if instance.image_variants:
             instance.image_variants.pop(field_name, None)
+
+    _delete_files_on_commit(
+        to_delete, "cleanup_orphaned_variants", model_name, instance.pk
+    )
+
+
+def delete_image_files(sender, instance, **kwargs):
+    """``post_delete`` receiver: delete every image file of a deleted row.
+
+    Removes each image field's original and all of its variants. Django never
+    deletes files when a row is deleted, so without this they would stay in
+    storage forever. Fires for cascaded deletes too (deleting a ``User``
+    deletes its ``UserProfile``). Files are removed only once the delete
+    commits, so a rolled-back delete keeps its images.
+    """
+    model_name = sender.__name__
+    config = IMAGE_VARIANT_CONFIGS.get(model_name)
+    if not config:
+        return
+
+    recorded = instance.image_variants or {}
+    to_delete = []
+    for field_name in IMAGE_FIELD_NAMES[model_name]:
+        field_file = getattr(instance, field_name, None)
+        if not field_file or not field_file.name:
+            continue
+        names = _image_file_names(
+            field_name, field_file, recorded, config[field_name]["widths"]
+        )
+        to_delete.extend((field_file.storage, name) for name in names)
+
+    _delete_files_on_commit(to_delete, "delete_image_files", model_name, instance.pk)
 
 
 def has_all_variants(instance):

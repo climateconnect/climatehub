@@ -9,13 +9,14 @@ cached members listing when a profile's image changes.
 import logging
 
 from django.core.cache import cache
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from climateconnect_main.utility.image_variants import (
     _FIELD_CHANGES_ATTR,
     capture_image_field_changes,
     cleanup_orphaned_variants,
+    delete_image_files,
     dispatch_image_variant_task,
 )
 
@@ -55,6 +56,12 @@ def _cleanup_userprofile_orphaned_variants(sender, instance, **kwargs):
 @receiver(post_save, sender="climateconnect_api.UserProfile")
 def _dispatch_userprofile_image_variants(sender, instance, created, **kwargs):
     dispatch_image_variant_task(sender, instance, created, **kwargs)
+
+
+@receiver(post_delete, sender="climateconnect_api.UserProfile")
+def _delete_userprofile_image_files(sender, instance, **kwargs):
+    """Delete the originals and variants of a deleted profile (and its User)."""
+    delete_image_files(sender, instance, **kwargs)
 
 
 @receiver(post_save, sender="climateconnect_api.UserProfile")

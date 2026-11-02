@@ -55,16 +55,27 @@ function getSources(): HTMLSourceElement[] {
 // ---------------------------------------------------------------------------
 
 describe("ResponsiveImage", () => {
-  it("renders a WebP <source> per available variant", () => {
-    render(<ResponsiveImage src={ORIGINAL} variants={FULL_VARIANTS} alt="A project" />);
+  it("renders one WebP <source> with a width-descriptor srcset", () => {
+    render(
+      <ResponsiveImage
+        src={ORIGINAL}
+        variants={FULL_VARIANTS}
+        sizes="(min-width: 1100px) 550px, 50vw"
+        alt="A project"
+      />
+    );
 
+    // The browser, not a media query, picks the variant from rendered size and
+    // pixel density, so there is a single source listing every width.
     const sources = getSources();
-    expect(sources).toHaveLength(2);
-    expect(sources[0]).toHaveAttribute("srcset", FULL_VARIANTS.image["1200"]);
+    expect(sources).toHaveLength(1);
+    expect(sources[0]).toHaveAttribute(
+      "srcset",
+      `${FULL_VARIANTS.image["1200"]} 1200w, ${FULL_VARIANTS.image["600"]} 600w`
+    );
+    expect(sources[0]).toHaveAttribute("sizes", "(min-width: 1100px) 550px, 50vw");
     expect(sources[0]).toHaveAttribute("type", "image/webp");
-    expect(sources[0]).toHaveAttribute("media", "(min-width: 900px)");
-    expect(sources[1]).toHaveAttribute("srcset", FULL_VARIANTS.image["600"]);
-    expect(sources[1]).not.toHaveAttribute("media");
+    expect(sources[0]).not.toHaveAttribute("media");
   });
 
   it("always renders the original as the <img> fallback", () => {
@@ -86,7 +97,7 @@ describe("ResponsiveImage", () => {
 
     const sources = getSources();
     expect(sources).toHaveLength(1);
-    expect(sources[0]).toHaveAttribute("srcset", FULL_VARIANTS.image["600"]);
+    expect(sources[0]).toHaveAttribute("srcset", `${FULL_VARIANTS.image["600"]} 600w`);
   });
 
   it("ignores variants belonging to a different image field", () => {
@@ -108,8 +119,23 @@ describe("ResponsiveImage", () => {
       />
     );
 
+    // A srcset cannot mix `w` descriptors with bare URLs, so the format-only
+    // thumbnail is dropped while a resized variant is available.
     const sources = getSources();
-    expect(sources[0]).toHaveAttribute("srcset", FULL_VARIANTS.thumbnail_image.webp);
+    expect(sources[0]).toHaveAttribute("srcset", `${FULL_VARIANTS.image["600"]} 600w`);
+  });
+
+  it("uses a format-only variant as a bare srcset when no resized one exists", () => {
+    render(
+      <ResponsiveImage
+        src={ORIGINAL}
+        variants={{ thumbnail_image: FULL_VARIANTS.thumbnail_image }}
+        sources={THUMBNAIL_SOURCES}
+        alt="A card"
+      />
+    );
+
+    expect(getSources()[0]).toHaveAttribute("srcset", FULL_VARIANTS.thumbnail_image.webp);
   });
 
   it("puts the layout class on <picture>, which is what the layout sizes", () => {

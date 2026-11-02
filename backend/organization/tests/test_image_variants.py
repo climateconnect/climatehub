@@ -1074,8 +1074,11 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         def raising_delete(name):
             raise RuntimeError("Azure storage error")
 
-        with mock_patch.object(
-            self.project.image.storage, "delete", side_effect=raising_delete
+        with (
+            mock_patch.object(
+                self.project.image.storage, "delete", side_effect=raising_delete
+            ),
+            self.captureOnCommitCallbacks(execute=True),
         ):
             content2 = make_test_image(
                 width=2000, height=1000, mode="RGB", color="blue"
@@ -1085,3 +1088,221 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         # Files still exist because delete was mocked to fail
         for path in old_variant_paths:
             self.assertTrue(self.project.image.storage.exists(path))
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_rolled_back_replace_keeps_old_variant_files(self, mock_task):
+        """Variant files are only deleted once the replacing save commits."""
+        from django.db import transaction
+
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        content = make_test_image(width=4000, height=2000, mode="RGB", color="green")
+        self.project.image.save("rollback_image.png", content, save=True)
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        old_variant_paths = list(self.project.image_variants["image"].values())
+
+        class Rollback(Exception):
+            pass
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            try:
+                with transaction.atomic():
+                    content2 = make_test_image(
+                        width=2000, height=1000, mode="RGB", color="blue"
+                    )
+                    self.project.image.save("replaced.png", content2, save=True)
+                    raise Rollback()
+            except Rollback:
+                pass
+
+        self.assertEqual(callbacks, [])
+        mock_task.delay.assert_not_called()
+
+        # The row still references the old original and variants, and they
+        # still exist.
+        self.project.refresh_from_db()
+        self.assertEqual(
+            sorted(self.project.image_variants["image"].values()),
+            sorted(old_variant_paths),
+        )
+        self.assertTrue(self.project.image.storage.exists(self.project.image.name))
+        for path in old_variant_paths:
+            self.assertTrue(self.project.image.storage.exists(path))
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_old_original_deleted_on_image_replace(self, mock_task):
+        """Replacing an image deletes the old original file, not just variants."""
+        content = make_test_image(width=1600, height=800, mode="RGB", color="green")
+        self.project.image.save("old_original.png", content, save=True)
+        old_name = self.project.image.name
+        storage = self.project.image.storage
+        self.assertTrue(storage.exists(old_name))
+
+        with self.captureOnCommitCallbacks(execute=True):
+            content2 = make_test_image(width=1600, height=800, mode="RGB", color="blue")
+            self.project.image.save("new_original.png", content2, save=True)
+
+        self.assertFalse(storage.exists(old_name))
+        self.assertTrue(storage.exists(self.project.image.name))
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_old_original_deleted_on_image_clear(self, mock_task):
+        """Clearing an image field deletes the old original file."""
+        content = make_test_image(width=1600, height=800, mode="RGB", color="green")
+        self.project.image.save("cleared_original.png", content, save=True)
+        old_name = self.project.image.name
+        storage = self.project.image.storage
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.project.image = None
+            self.project.save()
+
+        self.assertFalse(storage.exists(old_name))
+
+
+# ---------------------------------------------------------------------------
+# Row deletion tests
+# ---------------------------------------------------------------------------
+
+
+class TestDeleteImageFiles(TempMediaRootMixin, APITestCase):
+    """Deleting a row deletes its original images and all of their variants."""
+
+    def setUp(self):
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+
+    def _add_images(self, instance, field_names):
+        """Upload each field, generate variants, return (storage, all file names)."""
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        for field_name in field_names:
+            content = make_test_image(width=1600, height=800, mode="RGB")
+            getattr(instance, field_name).save(
+                "{}.png".format(field_name), content, save=True
+            )
+        generate_and_store_variants(instance)
+        instance.refresh_from_db()
+
+        names = [getattr(instance, field_name).name for field_name in field_names]
+        for variants in instance.image_variants.values():
+            names.extend(variants.values())
+        storage = getattr(instance, field_names[0]).storage
+        for name in names:
+            self.assertTrue(storage.exists(name), "File should exist: %s" % name)
+        return storage, names
+
+    def test_project_delete_removes_originals_and_variants(self):
+        project = Project.objects.create(
+            name="Delete Project",
+            url_slug="delete-project",
+            language=self.default_language,
+        )
+        storage, names = self._add_images(project, ["image", "thumbnail_image"])
+        # 2 originals + image 1200/600 + thumbnail webp
+        self.assertEqual(len(names), 5)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            project.delete()
+
+        for name in names:
+            self.assertFalse(storage.exists(name), "Should be deleted: %s" % name)
+
+    def test_organization_delete_removes_originals_and_variants(self):
+        org = Organization.objects.create(name="Delete Org", url_slug="delete-org")
+        storage, names = self._add_images(
+            org, ["image", "thumbnail_image", "background_image"]
+        )
+        # 3 originals + image 1200/600 + thumbnail webp + background 1200/600
+        self.assertEqual(len(names), 8)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            org.delete()
+
+        for name in names:
+            self.assertFalse(storage.exists(name), "Should be deleted: %s" % name)
+
+    def test_user_delete_cascades_to_profile_image_files(self):
+        """Deleting a User deletes its UserProfile, and with it the images."""
+        from django.contrib.auth.models import User
+
+        user = User.objects.create_user(username="delete_user", password="pw")
+        profile = UserProfile.objects.get_or_create(
+            user=user, defaults={"url_slug": "delete-user"}
+        )[0]
+        storage, names = self._add_images(
+            profile, ["image", "thumbnail_image", "background_image"]
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            user.delete()
+
+        self.assertFalse(UserProfile.objects.filter(pk=profile.pk).exists())
+        for name in names:
+            self.assertFalse(storage.exists(name), "Should be deleted: %s" % name)
+
+    def test_rolled_back_delete_keeps_files(self):
+        from django.db import transaction
+
+        project = Project.objects.create(
+            name="Rollback Delete Project",
+            url_slug="rollback-delete-project",
+            language=self.default_language,
+        )
+        storage, names = self._add_images(project, ["image"])
+
+        class Rollback(Exception):
+            pass
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            try:
+                with transaction.atomic():
+                    project.delete()
+                    raise Rollback()
+            except Rollback:
+                pass
+
+        self.assertEqual(callbacks, [])
+        for name in names:
+            self.assertTrue(storage.exists(name), "Should still exist: %s" % name)
+
+    def test_delete_without_images_queues_nothing(self):
+        project = Project.objects.create(
+            name="No Image Project",
+            url_slug="no-image-project",
+            language=self.default_language,
+        )
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            project.delete()
+
+        self.assertEqual(callbacks, [])
+
+    def test_delete_failure_is_logged_not_raised(self):
+        project = Project.objects.create(
+            name="Failing Delete Project",
+            url_slug="failing-delete-project",
+            language=self.default_language,
+        )
+        storage, names = self._add_images(project, ["image"])
+
+        with (
+            mock_patch.object(
+                storage, "delete", side_effect=RuntimeError("Azure storage error")
+            ),
+            self.assertLogs(
+                "climateconnect_main.utility.image_variants", level="ERROR"
+            ) as logs,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            project.delete()
+
+        self.assertFalse(Project.objects.filter(url_slug="failing-delete-project"))
+        self.assertEqual(len(logs.records), len(names))

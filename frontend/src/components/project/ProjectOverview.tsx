@@ -406,6 +406,7 @@ function SmallScreenOverview({
           className={classes.fullWidthImage}
           src={project.image}
           variants={project.image_variants}
+          sizes="100vw"
           alt={texts.project_image_of_project + " " + project.name}
         />
       </div>
@@ -463,7 +464,8 @@ function LargeScreenOverview({
           className={classes.inlineImage}
           src={project.image}
           variants={project.image_variants}
-          sizes="(min-width: 900px) 550px, 100vw"
+          // inlineImage: 50% of the container, capped at 550px.
+          sizes="(min-width: 1100px) 550px, 50vw"
           alt={texts.project_image_of_project + " " + project.name}
         />
         <div className={classes.inlineProjectInfo}>

@@ -528,6 +528,14 @@ Upload (data URL) ──► ImageField ──► post_save signal
 and 600px WebP at quality 80; `thumbnail_image` gets a format-only WebP
 conversion, since the frontend already caps it at 290x160 on upload.
 
+**Frontend surfaces**: large images (project hero) render through
+`<ResponsiveImage>`; CSS-background banners and every user/organization avatar
+(header, comments, notifications, chat, member lists, dialogs, ambassadors,
+donor forest) pick a single URL with `resolveVariantUrl(..., THUMBNAIL_SOURCES,
+thumbnail_image || image)`. Avatars must never load the stored `image` original
+directly — it is the uploader's full-size crop, often well over 1000px for a
+~40px slot.
+
 **Constraints that shaped this design**
 
 - **Never touch `FieldFile.path`.** It raises `NotImplementedError` on
@@ -543,6 +551,20 @@ conversion, since the frontend already caps it at 290x160 on upload.
 - **`image_variants` stores storage-relative paths, not URLs.** URLs are built
   per-request by `ImageVariantsField` (see `build_variant_urls`), so changing
   the storage account or putting a CDN in front does not invalidate every row.
+
+**File lifecycle**: Django never deletes files on its own, so two receivers do
+it, both only after the transaction commits (a rolled-back save or delete keeps
+its files):
+
+- **Image replaced or cleared** — `cleanup_orphaned_variants` (`pre_save`)
+  deletes the old original *and* its variants.
+- **Row deleted** — `delete_image_files` (`post_delete`) deletes every image
+  field's original and variants for `Project`, `Organization` and `UserProfile`.
+  Deleting a `User` cascades to its `UserProfile`, so profile images go too.
+
+No reference check is needed: `get_image_from_data_url` gives every upload a
+fresh random name, so a file is never shared between rows or fields, even when
+the same picture is uploaded twice. Delete failures are logged, never raised.
 
 **Legacy rows** have no variants and never will unless backfilled. Every read
 path falls back to the stored original, so an un-backfilled row renders exactly
