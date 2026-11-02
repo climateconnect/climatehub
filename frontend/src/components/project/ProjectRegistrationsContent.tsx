@@ -6,14 +6,17 @@ import {
   Chip,
   CircularProgress,
   IconButton,
+  InputAdornment,
   Link,
   Menu,
   MenuItem,
   TextField,
+  Theme,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
@@ -65,37 +68,41 @@ type EventRegistration = {
   field_answers: RegistrationFieldAnswer[];
 };
 
-const useStyles = makeStyles((theme) => ({
-  settingsGrid: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: theme.spacing(3),
-    marginBottom: theme.spacing(3),
-  },
-  settingItem: {
-    minWidth: 180,
-  },
-  settingLabel: {
-    color: theme.palette.text.secondary,
-    fontSize: "0.75rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    marginBottom: theme.spacing(0.5),
-  },
-  settingValue: {
-    fontWeight: 500,
-    fontSize: "1rem",
-  },
-  sectionTitle: {
-    fontWeight: "bold",
-    marginBottom: theme.spacing(2),
-  },
-  editButton: {
-    marginBottom: theme.spacing(4),
-  },
-  listSection: {
-    marginTop: theme.spacing(2),
-  },
+const SettingsGrid = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+}));
+
+const SettingItem = styled("div")({
+  minWidth: 180,
+});
+
+const SettingLabel = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  fontSize: "0.75rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  marginBottom: theme.spacing(0.5),
+}));
+
+const SettingValue = styled(Typography)({
+  fontWeight: 500,
+  fontSize: "1rem",
+});
+
+const SectionTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: "bold",
+  marginBottom: theme.spacing(2),
+})) as typeof Typography;
+
+const EditButton = styled(Button)(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+}));
+
+const ListSection = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(2),
 }));
 
 type Props = {
@@ -129,35 +136,75 @@ function RegistrationsToolbar({
   csvFields,
   printFields,
 }: ToolbarProps) {
+  const isNarrowScreen = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   return (
-    <GridToolbarContainer sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}>
+    // Desktop: one row. Mobile: full-width search, then email + export together in one row
+    <GridToolbarContainer
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: { xs: "wrap", sm: "nowrap" },
+        gap: 1,
+        px: { xs: 0, sm: 1 },
+        py: 1,
+      }}
+    >
       <TextField
         size="small"
         placeholder={placeholder}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         InputProps={{
-          startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: "text.secondary" }} />,
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+            </InputAdornment>
+          ),
         }}
-        aria-label={placeholder}
-        sx={{ flex: 1, maxWidth: 360 }}
+        inputProps={{ "aria-label": placeholder }}
+        sx={{
+          flex: { xs: "1 0 100%", sm: 1 },
+          maxWidth: { sm: 360 },
+          "& .MuiInputBase-root": { minHeight: (theme: Theme) => theme.spacing(5) },
+        }}
       />
-      <Box sx={{ flex: 1 }} />
+      {/* Spacer only on wider screens */}
+      <Box sx={{ flex: 1, display: { xs: "none", sm: "block" } }} />
       {onOpenEmailModal && (
         <Button
-          size="small"
+          size={isNarrowScreen ? "small" : "medium"}
           variant="outlined"
-          startIcon={<EmailOutlinedIcon fontSize="small" />}
+          startIcon={
+            isNarrowScreen ? <EmailOutlinedIcon fontSize="small" /> : <EmailOutlinedIcon />
+          }
           onClick={onOpenEmailModal}
           aria-label={emailGuestsLabel}
+          // Mobile: keep the (long German) label on one line; it gets the free space next to export
+          sx={{
+            // Natural width; only shrinks when the row is too narrow
+            flex: "0 1 auto",
+            minWidth: 0,
+            whiteSpace: "nowrap",
+            fontSize: { xs: "0.8125rem", sm: undefined },
+            textTransform: { xs: "none", sm: undefined },
+            // Same height as the search field, taken from the theme
+            minHeight: (theme: Theme) => (isNarrowScreen ? theme.spacing(5) : undefined),
+            px: { xs: 1, sm: undefined },
+            "& .MuiButton-startIcon": {
+              ml: { xs: 0, sm: undefined },
+              mr: { xs: 0.5, sm: undefined },
+            },
+          }}
         >
           {emailGuestsLabel}
         </Button>
       )}
-      <GridToolbarExport
-        csvOptions={{ fileName: csvFileName, fields: csvFields }}
-        printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
-      />
+      <Box sx={{ flex: "0 0 auto", display: "flex" }}>
+        <GridToolbarExport
+          csvOptions={{ fileName: csvFileName, fields: csvFields }}
+          printOptions={{ hideFooter: true, hideToolbar: true, fields: printFields }}
+        />
+      </Box>
     </GridToolbarContainer>
   );
 }
@@ -224,7 +271,6 @@ export default function ProjectRegistrationsContent({
   eventRegistration,
   onEventRegistrationUpdated,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
 
@@ -422,34 +468,30 @@ export default function ProjectRegistrationsContent({
   return (
     <>
       {/* Registration settings summary */}
-      <Box className={classes.settingsGrid}>
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>{texts.max_participants}</Typography>
-          <Typography className={classes.settingValue}>
-            {eventRegistration.max_participants ?? "—"}
-          </Typography>
-        </Box>
+      <SettingsGrid>
+        <SettingItem>
+          <SettingLabel>{texts.max_participants}</SettingLabel>
+          <SettingValue>{eventRegistration.max_participants ?? "—"}</SettingValue>
+        </SettingItem>
 
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>
-            {texts.max_seats_per_registration}
-          </Typography>
-          <Typography className={classes.settingValue}>{maxSeatsPerRegistration}</Typography>
-        </Box>
+        <SettingItem>
+          <SettingLabel>{texts.max_seats_per_registration}</SettingLabel>
+          <SettingValue>{maxSeatsPerRegistration}</SettingValue>
+        </SettingItem>
 
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>{texts.registration_end_date}</Typography>
-          <Typography className={classes.settingValue}>
+        <SettingItem>
+          <SettingLabel>{texts.registration_end_date}</SettingLabel>
+          <SettingValue>
             {eventRegistration.registration_end_date
               ? dayjs(eventRegistration.registration_end_date)
                   .locale(locale)
                   .format("DD MMM YYYY, HH:mm")
               : "—"}
-          </Typography>
-        </Box>
+          </SettingValue>
+        </SettingItem>
 
-        <Box className={classes.settingItem}>
-          <Typography className={classes.settingLabel}>{texts.registration_status}</Typography>
+        <SettingItem>
+          <SettingLabel>{texts.registration_status}</SettingLabel>
           <Chip
             size="small"
             label={statusConfig.label}
@@ -457,27 +499,26 @@ export default function ProjectRegistrationsContent({
             icon={<StatusIcon fontSize="small" />}
             sx={{ fontWeight: 600 }}
           />
-        </Box>
-      </Box>
+        </SettingItem>
+      </SettingsGrid>
 
       {!isEventEnded && (
-        <Button
+        <EditButton
           variant="outlined"
           color="primary"
           startIcon={<SettingsIcon />}
-          className={classes.editButton}
           onClick={() => setEditModalOpen(true)}
           aria-label={texts.edit_registration_settings}
         >
           {texts.edit_registration_settings}
-        </Button>
+        </EditButton>
       )}
 
       {/* Registered guests list */}
-      <Box className={classes.listSection}>
-        <Typography variant="h6" component="h2" className={classes.sectionTitle}>
+      <ListSection>
+        <SectionTitle variant="h6" component="h2">
           {texts.registered_guests}
-        </Typography>
+        </SectionTitle>
 
         {loadingParticipants && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 2 }}>
@@ -795,7 +836,7 @@ export default function ProjectRegistrationsContent({
             </Menu>
           </>
         )}
-      </Box>
+      </ListSection>
 
       {!isEventEnded && (
         <EditEventRegistrationModal

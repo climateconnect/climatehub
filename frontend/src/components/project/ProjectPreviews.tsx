@@ -1,23 +1,21 @@
 import React, { useContext, useMemo, useState } from "react";
 import Grid from "@mui/material/Grid";
-import makeStyles from "@mui/styles/makeStyles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import LoadingSpinner from "../general/LoadingSpinner";
 import ProjectPreview from "./ProjectPreview";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 
-const useStyles = makeStyles({
-  reset: {
-    margin: 0,
-    padding: 0,
-    listStyleType: "none",
-    width: "100%",
-  },
-  items: {
-    padding: "8px",
-  },
-});
+const resetStyles = {
+  margin: 0,
+  padding: 0,
+  listStyleType: "none",
+  width: "100%",
+} as const;
+
+const itemStyles = {
+  padding: "8px",
+} as const;
 
 // This component is to display projects with the option to infinitely scroll to get more projects
 export default function ProjectPreviews({
@@ -32,7 +30,6 @@ export default function ProjectPreviews({
   registeredEventSlugs,
   analyticsSurface,
 }: any) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
 
@@ -90,7 +87,7 @@ export default function ProjectPreviews({
 
   return (
     <>
-      <Grid container spacing={1} className={classes.reset} component="ul">
+      <Grid container spacing={1} sx={resetStyles} component="ul">
         {displayedProjects.map((project, index) => {
           const isLastElement = index === displayedProjects.length - 1;
           return (
@@ -104,7 +101,7 @@ export default function ProjectPreviews({
               key={project.props?.project?.url_slug || project.url_slug}
               component="li"
               ref={isLastElement ? lastElementRef : null}
-              className={classes.items}
+              sx={itemStyles}
             >
               {project.props ? (
                 project

@@ -1,6 +1,5 @@
 import { Slider, Theme, Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { func, bool, object, string, number, oneOfType } from "prop-types";
 import React, { useContext, useRef, useState } from "react";
@@ -12,28 +11,21 @@ import LoadingSpinner from "../general/LoadingSpinner";
 import GenericDialog from "./GenericDialog";
 import { getBackgroundContrastColor } from "../../../public/lib/themeOperations";
 
-const useStyles = makeStyles((theme) => ({
-  avatarEditor: {
-    margin: "0 auto",
-    display: "block",
-  },
-  slider: {
-    display: "block",
-    margin: "0 auto",
-  },
-  loadingSpinner: {
-    paddingBottom: theme.spacing(8),
-  },
-  dialog: {
-    position: "relative",
-  },
-  titleText: {
-    marginLeft: theme.spacing(1),
-    marginRight: theme.spacing(1),
-    fontSize: 20,
-    color: theme.palette.text.primary,
-  },
+const StyledLoadingSpinner = styled(LoadingSpinner)(({ theme }) => ({
+  paddingBottom: theme.spacing(8),
 }));
+
+const TitleText = styled(Typography)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+  marginRight: theme.spacing(1),
+  fontSize: 20,
+  color: theme.palette.text.primary,
+})) as typeof Typography;
+
+const StyledSlider = styled(Slider)({
+  display: "block",
+  margin: "0 auto",
+});
 
 type Props = {
   onClose?;
@@ -64,7 +56,6 @@ export default function UploadImageDialog({
 }: Props) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "general", locale: locale });
-  const classes = useStyles();
   const theme = useTheme();
   const defaultValue = 25;
   const fullScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
@@ -132,17 +123,12 @@ export default function UploadImageDialog({
     >
       {loading ? (
         <>
-          <LoadingSpinner className={classes.loadingSpinner} isLoading />
-          {loadingText && (
-            <Typography component="p" className={classes.titleText}>
-              {loadingText}
-            </Typography>
-          )}
+          <StyledLoadingSpinner isLoading />
+          {loadingText && <TitleText component="p">{loadingText}</TitleText>}
         </>
       ) : (
         <div /*TODO(undefined) className={classes.dialogContent} */>
           <AvatarEditorComponent
-            className={classes.avatarEditor}
             image={imageUrl}
             ref={setEditorRef}
             width={widthToUse}
@@ -153,11 +139,10 @@ export default function UploadImageDialog({
             rotate={0}
             borderRadius={borderRadius ? borderRadius : 0}
           />
-          <Slider
+          <StyledSlider
             aria-label="Image size"
             color={backgroundContrastColor}
             defaultValue={defaultValue}
-            className={classes.slider}
             onChange={handleSliderChange}
             style={{ maxWidth: sliderMaxWidth }}
           />

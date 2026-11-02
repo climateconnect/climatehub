@@ -12,8 +12,7 @@ import ProjectPageRoot from "../../../src/components/project/ProjectPageRoot";
 import HubsSubHeader from "../../../src/components/indexPage/hubsSubHeader/HubsSubHeader";
 import { useMediaQuery } from "@mui/material";
 import { getImageUrl } from "../../../public/lib/imageOperations";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { Theme, styled } from "@mui/material/styles";
 import ProjectSideBar from "../../../src/components/project/ProjectSideBar";
 import { transformThemeData } from "../../../src/themes/transformThemeData";
 import getHubTheme from "../../../src/themes/fetchHubTheme";
@@ -26,37 +25,37 @@ import {
   isWasseraktionswochenEnabled,
 } from "../../../public/data/wasseraktionswochen_config.js";
 
-type StyleProps = {
-  showSimilarProjects: boolean;
-};
-const useStyles = makeStyles<Theme, StyleProps>((theme) => {
-  return {
-    contentWrapper: {
-      display: "flex",
-    },
-    mainContent: (props) => ({
-      width: props.showSimilarProjects ? "80%" : "100%",
-      [theme.breakpoints.down("lg")]: {
-        width: "100%",
-      },
-    }),
-    secondaryContent: (props) => ({
-      width: props.showSimilarProjects ? "20%" : "0%",
-      [theme.breakpoints.down("lg")]: {
-        width: "0%",
-        marginTop: theme.spacing(0),
-        marginRight: theme.spacing(0),
-        marginLeft: theme.spacing(0),
-      },
-      marginTop: theme.spacing(2),
-      marginRight: theme.spacing(7),
-      marginLeft: theme.spacing(1),
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-end",
-    }),
-  };
+const ContentWrapper = styled("div")({
+  display: "flex",
 });
+
+const MainContent = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$showSimilarProjects",
+})<{ $showSimilarProjects: boolean }>(({ theme, $showSimilarProjects }) => ({
+  width: $showSimilarProjects ? "80%" : "100%",
+  [theme.breakpoints.down("lg")]: {
+    width: "100%",
+  },
+}));
+
+// JSS emitted the media query after the base rules, so it is placed last here to keep winning
+const SecondaryContent = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$showSimilarProjects",
+})<{ $showSimilarProjects: boolean }>(({ theme, $showSimilarProjects }) => ({
+  width: $showSimilarProjects ? "20%" : "0%",
+  marginTop: theme.spacing(2),
+  marginRight: theme.spacing(7),
+  marginLeft: theme.spacing(1),
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-end",
+  [theme.breakpoints.down("lg")]: {
+    width: "0%",
+    marginTop: theme.spacing(0),
+    marginRight: theme.spacing(0),
+    marginLeft: theme.spacing(0),
+  },
+}));
 
 const parseComments = (comments) => {
   return comments
@@ -177,10 +176,6 @@ export default function ProjectPage({
     return new Set(user?.registered_event_slugs || []);
   }, [user?.registered_event_slugs]);
 
-  const classes = useStyles({
-    showSimilarProjects: showSimilarProjects,
-  });
-
   const handleHideContent = () => {
     setShowSimilarProjects(!showSimilarProjects);
   };
@@ -286,8 +281,8 @@ export default function ProjectPage({
       image={project ? getImageUrl(project.image) : undefined}
     >
       {project ? (
-        <div className={classes.contentWrapper}>
-          <div className={classes.mainContent}>
+        <ContentWrapper>
+          <MainContent $showSimilarProjects={showSimilarProjects}>
             <ProjectPageRoot
               project={{
                 ...project,
@@ -320,8 +315,8 @@ export default function ProjectPage({
               hasAttended={hasAttended}
               adminCancelled={adminCancelled}
             />
-          </div>
-          <div className={classes.secondaryContent}>
+          </MainContent>
+          <SecondaryContent $showSimilarProjects={showSimilarProjects}>
             {!smallScreenSize && (
               <ProjectSideBar
                 similarProjects={similarProjects}
@@ -338,8 +333,8 @@ export default function ProjectPage({
                 hubUrl={hubUrl}
               />
             )}
-          </div>
-        </div>
+          </SecondaryContent>
+        </ContentWrapper>
       ) : (
         <PageNotFound itemName={texts.project} />
       )}

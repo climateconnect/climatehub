@@ -68,4 +68,9 @@ urlpatterns = [
         message_origin_views.ProjectOriginView.as_view(),
         name="project-origin",
     ),
+    path(
+        "organization-origin/<int:organization_id>/",
+        message_origin_views.OrganizationOriginView.as_view(),
+        name="organization-origin",
+    ),
 ]

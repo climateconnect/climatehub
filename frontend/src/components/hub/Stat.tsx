@@ -1,64 +1,63 @@
 import React from "react";
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import theme from "../../themes/theme";
 import { PieChart } from "react-minimal-pie-chart";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-const useStyles = makeStyles((theme) => ({
-  pieChartContainer: {
-    display: "flex",
-    marginBottom: theme.spacing(2),
-  },
-  chartInfo: {
-    marginLeft: theme.spacing(2),
-  },
-  chartInfoHeadline: {
-    fontWeight: "bold",
-    fontSize: 25,
-  },
-  pieChart: {
-    maxWidth: 100,
-  },
-  chartInfoDescription: {
-    fontSize: 16,
-  },
-  footnote: {
-    fontSize: 14,
-  },
-  infoIcon: {
-    fontSize: 19,
-    marginBottom: -4,
-    marginRight: theme.spacing(0.25),
-  },
+const PieChartContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  marginBottom: theme.spacing(2),
+}));
+
+const ChartInfo = styled("div")(({ theme }) => ({
+  marginLeft: theme.spacing(2),
+}));
+
+const ChartInfoHeadline = styled(Typography)({
+  fontWeight: "bold",
+  fontSize: 25,
+});
+
+const StyledPieChart = styled(PieChart)({
+  maxWidth: 100,
+});
+
+const ChartInfoDescription = styled(Typography)({
+  fontSize: 16,
+});
+
+const Footnote = styled(Typography)({
+  fontSize: 14,
+});
+
+const StyledInfoIcon = styled(InfoOutlinedIcon)(({ theme }) => ({
+  fontSize: 19,
+  marginBottom: -4,
+  marginRight: theme.spacing(0.25),
 }));
 
 export default function Stat({ statData }) {
-  const classes = useStyles();
   const data = [
     { value: parseInt(statData.value), title: statData.name, color: theme.palette.primary.main },
     { value: 100 - parseInt(statData.value), title: "Rest", color: "#D6D6D6" },
   ];
   return (
     <div>
-      <div className={classes.pieChartContainer}>
-        <PieChart data={data} lineWidth={30} startAngle={270} className={classes.pieChart} />
-        <div className={classes.chartInfo}>
-          <Typography color="primary" className={classes.chartInfoHeadline}>
-            {statData.value}
-          </Typography>
+      <PieChartContainer>
+        <StyledPieChart data={data} lineWidth={30} startAngle={270} />
+        <ChartInfo>
+          <ChartInfoHeadline color="primary">{statData.value}</ChartInfoHeadline>
           <div>
-            <Typography className={classes.chartInfoDescription}>
-              {statData.value_description}
-            </Typography>
+            <ChartInfoDescription>{statData.value_description}</ChartInfoDescription>
           </div>
-        </div>
-      </div>
+        </ChartInfo>
+      </PieChartContainer>
       {statData.description && (
-        <Typography className={classes.footnote}>
-          <InfoOutlinedIcon className={classes.infoIcon} />
+        <Footnote>
+          <StyledInfoIcon />
           {`${statData.description}`}
-        </Typography>
+        </Footnote>
       )}
     </div>
   );

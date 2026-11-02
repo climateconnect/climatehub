@@ -1,21 +1,19 @@
 import { Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import React, { useRef, useState } from "react";
 import DropDownList from "../header/DropDownList";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    position: "relative",
-  },
-  button: {
-    paddingRight: theme.spacing(0.5),
-    paddingLeft: theme.spacing(1.5),
-  },
+const Root = styled("div")({
+  position: "relative",
+});
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  paddingRight: theme.spacing(0.5),
+  paddingLeft: theme.spacing(1.5),
 }));
 
 export default function DropDownButton({ buttonProps, options, children, href }: any) {
-  const classes = useStyles();
   const [showOptions, setShowOptions] = useState(false);
   const buttonRef = useRef(null);
 
@@ -29,19 +27,19 @@ export default function DropDownButton({ buttonProps, options, children, href }:
   };
 
   return (
-    <div className={classes.root}>
-      <Button
+    <Root>
+      <StyledButton
         ref={buttonRef}
         onMouseEnter={handleShowOptions}
         onMouseLeave={handleHideOptions}
         {...buttonProps}
-        className={buttonProps ? `${classes.button} ${buttonProps.className}` : `${classes.button}`}
+        className={buttonProps ? buttonProps.className : undefined}
         href={href ? href : buttonProps.href}
         color="inherit"
       >
         {children}
         <ArrowDropDownIcon />
-      </Button>
+      </StyledButton>
       <DropDownList
         buttonRef={buttonRef}
         handleClose={handleHideOptions}
@@ -49,6 +47,6 @@ export default function DropDownButton({ buttonProps, options, children, href }:
         items={options}
         open={showOptions}
       />
-    </div>
+    </Root>
   );
 }

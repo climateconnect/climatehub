@@ -1,24 +1,23 @@
 import { Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import DonationWigetDialog from "../../dialogs/DonationWigetDialog";
 import DonationGoal from "./DonationGoal";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    position: "fixed",
-    bottom: 0,
-    zIndex: 1,
-    width: "100vw",
-    display: "flex",
-  },
-  button: {
-    width: "100%",
-    borderRadius: 0,
-    background: theme.palette.primary.light,
-  },
+const Root = styled("div")({
+  position: "fixed",
+  bottom: 0,
+  zIndex: 1,
+  width: "100vw",
+  display: "flex",
+});
+
+const DonateButton = styled(Button)(({ theme }) => ({
+  width: "100%",
+  borderRadius: 0,
+  background: theme.palette.primary.light,
 }));
 
 export default function ToggleWidgetButton({
@@ -28,9 +27,8 @@ export default function ToggleWidgetButton({
   current_amount,
   goal_amount,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
-  const texts = getTexts({ page: "donate", locale: locale, classes: classes });
+  const texts = getTexts({ page: "donate", locale: locale });
 
   const handleDialogClose = () => {
     setOverlayOpen(false);
@@ -42,16 +40,11 @@ export default function ToggleWidgetButton({
 
   return (
     <>
-      <div className={classes.root}>
-        <Button
-          size="large"
-          variant="contained"
-          className={classes.button}
-          onClick={handleClickDialogOpen}
-        >
+      <Root>
+        <DonateButton size="large" variant="contained" onClick={handleClickDialogOpen}>
           {texts.donate_now}
-        </Button>
-      </div>
+        </DonateButton>
+      </Root>
       {goal_name && (
         <DonationGoal
           name={goal_name}

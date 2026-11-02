@@ -1,5 +1,5 @@
 import { Avatar, Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import { redirect } from "../../../public/lib/apiOperations";
 import { appHref } from "../../../public/lib/appLink";
@@ -14,31 +14,33 @@ import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage
 import SendIcon from "@mui/icons-material/Send";
 import theme from "../../themes/theme";
 
-const useStyles = makeStyles(() => ({
-  root: {
-    zIndex: 10,
-    position: "fixed",
-    bottom: 0,
-    right: "1%",
-    display: "flex",
-    flexDirection: "column",
-    maxWidth: 350,
-  },
-  mobileButton: {
-    width: "100%",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2),
-  },
-  mobileAvatar: {
-    margin: 1,
-  },
-  ambassadorText: {
-    padding: theme.spacing(1, 2),
-  },
-}));
+// Spacing intentionally comes from the static app theme import, as in the original makeStyles.
+const Root = styled("div")({
+  zIndex: 10,
+  position: "fixed",
+  bottom: 0,
+  right: "1%",
+  display: "flex",
+  flexDirection: "column",
+  maxWidth: 350,
+});
+
+const MobileButton = styled(Button)({
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(2),
+});
+
+const MobileAvatar = styled(Avatar)({
+  margin: 1,
+});
+
+const AmbassadorText = styled(Button)({
+  padding: theme.spacing(1, 2),
+});
 
 export default function ContactAmbassadorButton({
   hubAmbassador,
@@ -47,7 +49,6 @@ export default function ContactAmbassadorButton({
   hubAmbassador: any;
   mobile: boolean;
 }) {
-  const classes = useStyles();
   const { locale, user } = useContext(UserContext);
   const { hubUrl } = useContext(HubContext);
   const cookies = new Cookies();
@@ -71,15 +72,13 @@ export default function ContactAmbassadorButton({
     return (
       <>
         {hubAmbassador && (
-          <Button
-            className={classes.mobileButton}
+          <MobileButton
             variant="contained"
             color="primary"
             onClick={handleClickContact}
             size="small"
           >
-            <Avatar
-              className={classes.mobileAvatar}
+            <MobileAvatar
               src={resolveVariantUrl(
                 hubAmbassador?.user?.image_variants,
                 THUMBNAIL_SOURCES,
@@ -88,7 +87,7 @@ export default function ContactAmbassadorButton({
             />
             {texts.contact_ambassador}
             <SendIcon />
-          </Button>
+          </MobileButton>
         )}
       </>
     );
@@ -96,7 +95,7 @@ export default function ContactAmbassadorButton({
   return (
     <>
       {hubAmbassador && (
-        <div className={classes.root} onClick={handleClickContact}>
+        <Root onClick={handleClickContact}>
           <ContactCreatorButtonInfo
             creatorName={`${hubAmbassador?.user?.first_name} ${hubAmbassador?.user?.last_name}`}
             creatorImageURL={resolveVariantUrl(
@@ -106,10 +105,10 @@ export default function ContactAmbassadorButton({
             )}
             customMessage={hubAmbassador.custom_message}
           />
-          <Button variant="contained" color="primary" className={classes.ambassadorText}>
+          <AmbassadorText variant="contained" color="primary">
             {texts.contact_ambassador}
-          </Button>
-        </div>
+          </AmbassadorText>
+        </Root>
       )}
     </>
   );

@@ -66,7 +66,18 @@
    - Every message sent from the drawer shows the chip, with the same event icon as the registration chip.
    - If the project is deleted, the resolver returns 404 and the chip is omitted; messages are untouched.
 
-## 7. Event Registration Flow (multiple seats per registration, introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
+## 7. Contact From an Organization Page Flow (introduced in [#2327](https://github.com/climateconnect/climateconnect/issues/2327))
+- **Trigger**: Logged-in user clicks "Contact" on an organization page
+- **Actions**:
+   1. The user is taken to the private chat with the organization's creator at `/chat/<uuid>/?origin_organization=<url_slug>` (`hub` kept when set).
+   2. Every message sent from the chat page while the param is present carries `origin_organization_url_slug` (POST `send_message` or WebSocket payload).
+   3. The backend validates the organization and that an organization admin is in the chat, then stores `origin_type="organization"` and `origin_id=<organization id>`.
+   4. Both participants see a chip ("This message is about the organization {name}") linking to the organization page, resolved through `GET /api/organization-origin/{id}/`.
+- **Notes**:
+   - No other participants are added to the chat.
+   - If the organization is deleted, the resolver returns 404 and the chip is omitted; messages are untouched.
+
+## 8. Event Registration Flow (multiple seats per registration, introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
 - **Actor**: Member (registrant)
 - **Trigger**: Member opens the registration dialog on an event with registration enabled
 - **Actions**:
@@ -80,7 +91,7 @@
    - A time slot is taken once per registration; inventory `max_amount_per_guest` stays a limit per registration.
    - Changing the seat count is done by cancelling and registering again.
 
-## 8. Event Registration Cancellation Flow (introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
+## 9. Event Registration Cancellation Flow (introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
 - **Actor**: Member (self-cancel) or Organiser / Team Admin (guest cancellation)
 - **Trigger**: Cancel action on the registration dialog or the attendee list
 - **Actions**:

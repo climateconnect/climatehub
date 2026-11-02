@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../../themes/theme";
 import UserContext from "../../context/UserContext";
 import Message from "./Message";
@@ -22,15 +21,13 @@ const sender = { url_slug: "other", first_name: "Other", last_name: "Person" };
 const renderMessage = (message: any, locale = "en") =>
   render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={{ user: me, locale } as any}>
-          <Message
-            message={{ content: "Hi", sender, sent_at: new Date(), ...message }}
-            classes={classes}
-            isPrivateChat={true}
-          />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={{ user: me, locale } as any}>
+        <Message
+          message={{ content: "Hi", sender, sent_at: new Date(), ...message }}
+          classes={classes}
+          isPrivateChat={true}
+        />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 
@@ -83,5 +80,33 @@ describe("Message project origin chip", () => {
     renderMessage({ origin_type: "event_registration", origin_id: nextId++ });
     await waitFor(() => expect(screen.getByText("Hitzefrei")).toBeInTheDocument());
     expect(screen.getByText(/This message is about the registration for/)).toBeInTheDocument();
+  });
+});
+
+describe("Message organization origin chip", () => {
+  const organizationOrigin = () => {
+    mockApiRequest.mockResolvedValue({
+      data: { organization_name: "Green Org", organization_url_slug: "green-org" },
+    });
+    return { origin_type: "organization", origin_id: nextId++ };
+  };
+
+  it("renders the chip linking to the organization", async () => {
+    renderMessage(organizationOrigin());
+    await waitFor(() => expect(screen.getByText("Green Org")).toBeInTheDocument());
+    expect(screen.getByText(/This message is about the organization/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Green Org" })).toHaveAttribute(
+      "href",
+      "/organizations/green-org"
+    );
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringMatching(/^\/api\/organization-origin\/\d+\/$/) })
+    );
+  });
+
+  it("renders German wording", async () => {
+    renderMessage(organizationOrigin(), "de");
+    await waitFor(() => expect(screen.getByText("Green Org")).toBeInTheDocument());
+    expect(screen.getByText(/Diese Nachricht betrifft die Organisation/)).toBeInTheDocument();
   });
 });

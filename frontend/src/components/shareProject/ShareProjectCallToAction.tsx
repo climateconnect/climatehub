@@ -1,7 +1,6 @@
 import { Divider, Skeleton, Theme, Typography, useMediaQuery } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import { alpha } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { alpha, keyframes, styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getProjectTypeTexts from "../../../public/data/projectTypeTexts";
 import { appHref } from "../../../public/lib/appLink";
@@ -15,90 +14,105 @@ import SocialMediaShareOptions from "../shareContent/SocialMediaShareOptions";
 import { SHARE_OPTIONS } from "../shareContent/shareOptions";
 import useCreateShareRecord from "../shareContent/useCreateShareRecord";
 
-const useStyles = makeStyles((theme) => ({
-  "@keyframes fadeRise": {
-    from: { opacity: 0, transform: "translateY(12px)" },
-    to: { opacity: 1, transform: "translateY(0)" },
+const fadeRise = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const Root = styled("section")(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  padding: theme.spacing(2),
+  [theme.breakpoints.up("sm")]: {
+    padding: theme.spacing(4),
   },
-  root: {
-    marginTop: theme.spacing(2),
-    padding: theme.spacing(2),
-    [theme.breakpoints.up("sm")]: {
-      padding: theme.spacing(4),
-    },
-    //tint derives from the active theme's primary color so it works on custom hubs
-    backgroundColor: alpha(theme.palette.primary.main, 0.05),
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-    borderRadius: theme.spacing(1),
-    animation: "$fadeRise 0.5s ease-out both",
-    "@media (prefers-reduced-motion: reduce)": {
-      animation: "none",
-    },
+  //tint derives from the active theme's primary color so it works on custom hubs
+  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+  borderRadius: theme.spacing(1),
+  animation: `${fadeRise} 0.5s ease-out both`,
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "none",
   },
-  liveTitle: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing(1),
-    fontWeight: "bold",
-    marginBottom: theme.spacing(1),
-  },
-  successIcon: {
-    color: theme.palette.success.main,
-    fontSize: 32,
-  },
-  subtitle: {
-    marginBottom: theme.spacing(4),
-  },
-  shareArea: {
-    display: "flex",
-    gap: theme.spacing(4),
-    textAlign: "left",
-    //columns must not stretch: the preview card uses height:100% internally and
-    //would otherwise grow beyond its content and overflow the box
-    alignItems: "flex-start",
-    [theme.breakpoints.down("lg")]: {
-      flexDirection: "column",
-      alignItems: "center",
-      textAlign: "center",
-    },
-  },
-  cardColumn: {
-    flex: "0 0 300px",
-    [theme.breakpoints.down("lg")]: {
-      flex: "none",
-      width: "100%",
-      maxWidth: 345,
-    },
-  },
-  shareColumn: {
-    flex: 1,
-    minWidth: 0,
-    [theme.breakpoints.down("lg")]: {
-      width: "100%",
-    },
-  },
-  qrColumn: {
-    flex: "0 0 240px",
-    [theme.breakpoints.down("lg")]: {
-      flex: "none",
-    },
-  },
-  columnTitle: {
-    marginBottom: theme.spacing(1),
-  },
-  columnDescription: {
-    marginBottom: theme.spacing(2),
-    color: theme.palette.text.secondary,
-  },
-  qrCodeContainer: {
-    display: "flex",
+}));
+
+const LiveTitle = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: theme.spacing(1),
+  fontWeight: "bold",
+  marginBottom: theme.spacing(1),
+}));
+
+const SuccessIcon = styled(CheckCircleOutlineIcon)(({ theme }) => ({
+  color: theme.palette.success.main,
+  fontSize: 32,
+}));
+
+const Subtitle = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+}));
+
+const ShareArea = styled("div")(({ theme }) => ({
+  display: "flex",
+  gap: theme.spacing(4),
+  textAlign: "left",
+  //columns must not stretch: the preview card uses height:100% internally and
+  //would otherwise grow beyond its content and overflow the box
+  alignItems: "flex-start",
+  [theme.breakpoints.down("lg")]: {
     flexDirection: "column",
-    alignItems: "flex-start",
-    gap: theme.spacing(2),
-    [theme.breakpoints.down("lg")]: {
-      alignItems: "center",
-    },
+    alignItems: "center",
+    textAlign: "center",
+  },
+}));
+
+const CardColumn = styled("div")(({ theme }) => ({
+  flex: "0 0 300px",
+  [theme.breakpoints.down("lg")]: {
+    flex: "none",
+    width: "100%",
+    maxWidth: 345,
+  },
+}));
+
+const ShareColumn = styled("div")(({ theme }) => ({
+  flex: 1,
+  minWidth: 0,
+  [theme.breakpoints.down("lg")]: {
+    width: "100%",
+  },
+}));
+
+const QrColumn = styled("div")(({ theme }) => ({
+  flex: "0 0 240px",
+  [theme.breakpoints.down("lg")]: {
+    flex: "none",
+  },
+}));
+
+const ColumnTitle = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+}));
+
+const ColumnDescription = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  color: theme.palette.text.secondary,
+}));
+
+const QrCodeContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: theme.spacing(2),
+  [theme.breakpoints.down("lg")]: {
+    alignItems: "center",
   },
 }));
 
@@ -127,7 +141,6 @@ export default function ShareProjectCallToAction({
   previewProject,
   previewProjectFailed,
 }: ShareProjectCallToActionProps) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const isTinyScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
   const texts = getTexts({
@@ -155,28 +168,28 @@ export default function ShareProjectCallToAction({
   const createShareRecord = useCreateShareRecord(`/api/projects/${url_slug}/set_shared_project/`);
 
   return (
-    <section className={classes.root}>
-      <Typography variant="h4" component="h2" className={classes.liveTitle}>
-        <CheckCircleOutlineIcon className={classes.successIcon} />
+    <Root>
+      <LiveTitle variant="h4" component="h2">
+        <SuccessIcon />
         {projectTypeTexts.contentIsLiveHeadline[typeId]}
-      </Typography>
-      <Typography className={classes.subtitle}>{subtitle}</Typography>
-      <div className={classes.shareArea}>
+      </LiveTitle>
+      <Subtitle>{subtitle}</Subtitle>
+      <ShareArea>
         {!previewProjectFailed && (
           <>
-            <div className={classes.cardColumn}>
-              <Typography variant="h6" component="h3" className={classes.columnTitle}>
+            <CardColumn>
+              <ColumnTitle variant="h6" component="h3">
                 {projectTypeTexts.yourPageTitle[typeId]}
-              </Typography>
-              <Typography variant="body2" className={classes.columnDescription}>
+              </ColumnTitle>
+              <ColumnDescription variant="body2">
                 {projectTypeTexts.contentPreviewCaption[typeId]}
-              </Typography>
+              </ColumnDescription>
               {previewProject ? (
                 <ProjectPreview project={previewProject} />
               ) : (
                 <Skeleton variant="rounded" height={380} />
               )}
-            </div>
+            </CardColumn>
             <Divider
               orientation="vertical"
               flexItem
@@ -185,13 +198,11 @@ export default function ShareProjectCallToAction({
             <Divider sx={{ display: { xs: "block", lg: "none" }, width: "100%" }} />
           </>
         )}
-        <div className={classes.shareColumn}>
-          <Typography variant="h6" component="h3" className={classes.columnTitle}>
+        <ShareColumn>
+          <ColumnTitle variant="h6" component="h3">
             {texts.share_online_title}
-          </Typography>
-          <Typography variant="body2" className={classes.columnDescription}>
-            {texts.share_online_description}
-          </Typography>
+          </ColumnTitle>
+          <ColumnDescription variant="body2">{texts.share_online_description}</ColumnDescription>
           <SocialMediaShareOptions
             createShareRecord={createShareRecord}
             tinyScreen={isTinyScreen}
@@ -201,26 +212,26 @@ export default function ShareProjectCallToAction({
             mailBody={texts.share_own_content_email_body}
             texts={texts}
           />
-        </div>
+        </ShareColumn>
         <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", lg: "block" } }} />
         <Divider sx={{ display: { xs: "block", lg: "none" }, width: "100%" }} />
-        <div className={classes.qrColumn}>
-          <Typography variant="h6" component="h3" className={classes.columnTitle}>
+        <QrColumn>
+          <ColumnTitle variant="h6" component="h3">
             {texts.qr_code_for_print_title}
-          </Typography>
-          <Typography variant="body2" className={classes.columnDescription}>
+          </ColumnTitle>
+          <ColumnDescription variant="body2">
             {texts.qr_code_for_print_description}
-          </Typography>
-          <div className={classes.qrCodeContainer}>
+          </ColumnDescription>
+          <QrCodeContainer>
             <QrCodeDownload
               url={contentLink}
               fileName={`climateconnect-${url_slug}-qr.png`}
               downloadButtonText={texts.download_qr_code}
               altText={texts.qr_code_alt_text}
             />
-          </div>
-        </div>
-      </div>
-    </section>
+          </QrCodeContainer>
+        </QrColumn>
+      </ShareArea>
+    </Root>
   );
 }

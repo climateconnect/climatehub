@@ -177,6 +177,19 @@ Backend environment variables are stored in `.backend_env` file in the `backend/
 - **Example**: `"redis://127.0.0.1"`, `"redis://localhost:6379/0"`
 - **Usage**: Queue for background tasks
 
+#### RUN_CELERY
+- **Required**: ❌ No (but set it explicitly on every Azure slot)
+- **Type**: Boolean (string), case-insensitive, surrounding whitespace ignored
+- **Description**: Whether this instance starts the Celery workers (`lookup` and default) and the embedded beat. Read by `backend/start_backend.sh` and `docker/backend-entrypoint.sh` via `backend/run_celery.sh`.
+- **Values**:
+  - `"true"`: Celery workers (`lookup` and default) and beat, plus gunicorn
+  - `"false"`: gunicorn only; no Celery worker and no beat (admin and API still work)
+- **Default**: missing → `true`. Unknown values are also treated as `true` and log a `WARN(RUN_CELERY):` line, so production never starts without Celery by mistake.
+- **Azure**: a **deployment slot setting** (sticky) on both slots: production `true`, `slot2` `false`. The slots share the broker and the DB, so only one of them may run Celery. If the setting is not sticky, a swap moves the value and production runs without Celery.
+- **Startup log**: every start prints one line such as `RUN_CELERY: celery=off (value 'false')`.
+- **Local development**: not needed. `runserver` and `make celery` don't use the startup scripts, and the `celery` / `celery-lookup` services in `docker-compose.yml` have their own commands. Only something that runs the image's default command (`/app/entrypoint.sh`) reads it, and with the value unset that starts Celery as before.
+- **See**: `doc/spec/20261026_1130_issue_2352_no_celery_on_backend_slot2.md` (runbook)
+
 #### CACHE_BACHED_RANK_REQUEST
 - **Required**: ❌ No
 - **Type**: Boolean (string)

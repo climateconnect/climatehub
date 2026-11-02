@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import AuthEmailStep from "./AuthEmailStep";
@@ -43,11 +42,9 @@ function renderAuthEmailStep({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={makeContextValue(locale) as any}>
-          <AuthEmailStep onUserStatusDetermined={onUserStatusDetermined} hubUrl={hubUrl} />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={makeContextValue(locale) as any}>
+        <AuthEmailStep onUserStatusDetermined={onUserStatusDetermined} hubUrl={hubUrl} />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

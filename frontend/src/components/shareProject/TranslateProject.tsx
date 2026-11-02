@@ -1,5 +1,5 @@
 import { Button, Container, TextField, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import { apiRequest } from "../../../public/lib/apiOperations";
 import getProjectTexts from "../../../public/texts/project_texts";
@@ -9,41 +9,46 @@ import NavigationButtons from "../general/NavigationButtons";
 import ButtonLoader from "../general/ButtonLoader";
 import ProjectDescriptionEditor from "../editProject/ProjectDescriptionEditor";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: theme.spacing(2),
-  },
-  explanation: {
-    margin: "0 auto",
-    textAlign: "center",
-  },
-  sectionHeader: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: theme.spacing(1.5),
-  },
-  translationBlocksHeader: {
-    marginTop: theme.spacing(3),
-  },
-  translationBlock: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing(2),
-  },
-  translationBlockElement: {
-    flexGrow: 0.48,
-  },
-  topButtonRow: {
-    display: "inline-flex",
-    width: "100%",
-    justifyContent: "center",
-    marginTop: theme.spacing(2),
-  },
-  translateButton: {
-    marginRight: theme.spacing(1),
-    marginLeft: theme.spacing(1),
-    width: 265,
-  },
+const RootContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+}));
+
+const Explanation = styled(Typography)({
+  margin: "0 auto",
+  textAlign: "center",
+});
+
+const SectionHeader = styled(Typography)(({ theme }) => ({
+  fontSize: 22,
+  fontWeight: "bold",
+  marginBottom: theme.spacing(1.5),
+}));
+
+const TranslationBlocksHeader = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(3),
+}));
+
+const TranslationBlockRoot = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  marginBottom: theme.spacing(2),
+}));
+
+const TranslationBlockElementRoot = styled("div")({
+  flexGrow: 0.48,
+});
+
+const TopButtonRow = styled("div")(({ theme }) => ({
+  display: "inline-flex",
+  width: "100%",
+  justifyContent: "center",
+  marginTop: theme.spacing(2),
+}));
+
+const TranslateButton = styled(Button)(({ theme }) => ({
+  marginRight: theme.spacing(1),
+  marginLeft: theme.spacing(1),
+  width: 265,
 }));
 
 export default function TranslateProject({
@@ -56,7 +61,6 @@ export default function TranslateProject({
   translations,
   targetLanguage,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const [waitingForTranslation, setWaitingForTranslation] = useState(false);
@@ -120,28 +124,25 @@ export default function TranslateProject({
   };
 
   return (
-    <Container className={classes.root}>
+    <RootContainer>
       <form onSubmit={onSubmit}>
-        <Typography className={classes.explanation} color="secondary">
-          {texts.translate_project_intro}
-        </Typography>
-        <div className={classes.topButtonRow}>
+        <Explanation color="secondary">{texts.translate_project_intro}</Explanation>
+        <TopButtonRow>
           <Button onClick={goToPreviousStep} variant="contained">
             {texts.back}
           </Button>
-          <Button
+          <TranslateButton
             variant="contained"
             color="primary"
-            className={classes.translateButton}
             onClick={automaticallyTranslateProject}
           >
             {waitingForTranslation ? <ButtonLoader /> : texts.automatically_translate}
-          </Button>
+          </TranslateButton>
           <Button variant="contained" color="primary" type="submit">
             {texts.skip_and_publish}
           </Button>
-        </div>
-        <div className={classes.translationBlocksHeader}>
+        </TopButtonRow>
+        <TranslationBlocksHeader>
           <TranslationBlock
             projectData={projectData}
             headlineTextKey="project_name"
@@ -173,15 +174,14 @@ export default function TranslateProject({
             targetLanguage={targetLanguage}
             richText
           />
-        </div>
+        </TranslationBlocksHeader>
         <NavigationButtons
-          className={classes.block}
           onClickPreviousStep={onClickPreviousStep}
           nextStepButtonType="publish"
           saveAsDraft={saveAsDraft}
         />
       </form>
-    </Container>
+    </RootContainer>
   );
 }
 
@@ -201,7 +201,6 @@ function TranslationBlock({
   richText,
 }) {
   const texts = getProjectTexts({});
-  const classes = useStyles();
 
   const originalContent = isInArray
     ? projectData[projectDataKey][indexInArray]
@@ -214,31 +213,31 @@ function TranslationBlock({
       : translations[targetLanguage][projectDataKey]);
 
   return (
-    <div className={classes.translationBlock}>
+    <TranslationBlockRoot>
       {richText ? (
         <>
-          <div className={classes.translationBlockElement}>
+          <TranslationBlockElementRoot>
             {!noHeadline && (
-              <Typography color="primary" className={classes.sectionHeader}>
+              <SectionHeader color="primary">
                 {texts[headlineTextKey][targetLanguage]}
-              </Typography>
+              </SectionHeader>
             )}
             <ProjectDescriptionEditor
               descriptionHtml={originalContent || ""}
               onChange={(html) => handleOriginalTextChange(html, projectDataKey)}
             />
-          </div>
-          <div className={classes.translationBlockElement}>
+          </TranslationBlockElementRoot>
+          <TranslationBlockElementRoot>
             {!noHeadline && (
-              <Typography color="primary" className={classes.sectionHeader}>
+              <SectionHeader color="primary">
                 {texts[headlineTextKey][targetLanguage]}
-              </Typography>
+              </SectionHeader>
             )}
             <ProjectDescriptionEditor
               descriptionHtml={translationContent || ""}
               onChange={(html) => handleTranslationChange(html, projectDataKey, indexInArray)}
             />
-          </div>
+          </TranslationBlockElementRoot>
         </>
       ) : (
         <>
@@ -263,19 +262,14 @@ function TranslationBlock({
           />
         </>
       )}
-    </div>
+    </TranslationBlockRoot>
   );
 }
 
 function TranslationBlockElement({ headline, rows, content, handleContentChange, noHeadline }) {
-  const classes = useStyles();
   return (
-    <div className={classes.translationBlockElement}>
-      {!noHeadline && (
-        <Typography color="primary" className={classes.sectionHeader}>
-          {headline}
-        </Typography>
-      )}
+    <TranslationBlockElementRoot>
+      {!noHeadline && <SectionHeader color="primary">{headline}</SectionHeader>}
       <TextField
         rows={rows}
         variant="outlined"
@@ -284,6 +278,6 @@ function TranslationBlockElement({ headline, rows, content, handleContentChange,
         value={content}
         onChange={handleContentChange}
       />
-    </div>
+    </TranslationBlockElementRoot>
   );
 }

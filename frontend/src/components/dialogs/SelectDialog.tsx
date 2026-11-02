@@ -1,5 +1,5 @@
 import { Button, TextField } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { array, string, func, bool } from "prop-types";
 import React, { useContext, useState } from "react";
 
@@ -8,21 +8,19 @@ import UserContext from "../context/UserContext";
 import SelectField from "./../general/SelectField";
 import GenericDialog from "./GenericDialog";
 
-const useStyles = makeStyles((theme) => ({
-  textField: {
-    width: "100%",
-  },
-  marginTop: {
-    marginTop: theme.spacing(2),
-  },
-  applyButton: {
-    position: "absolute",
-    right: theme.spacing(2),
-    top: theme.spacing(1.5),
-  },
-  dialogContent: {
-    width: theme.spacing(50),
-  },
+const StyledSelectField = styled(SelectField)({
+  width: "100%",
+});
+
+const AdditionalInfoField = styled(TextField)(({ theme }) => ({
+  width: "100%",
+  marginTop: theme.spacing(2),
+}));
+
+const ApplyButton = styled(Button)(({ theme }) => ({
+  position: "absolute",
+  right: theme.spacing(2),
+  top: theme.spacing(1.5),
 }));
 
 /*
@@ -39,7 +37,6 @@ export default function SelectDialog({
   supportAdditionalInfo,
   className,
 }) {
-  const classes = useStyles();
   const [element, setElement] = useState<any>(null);
   const [additionalInfo, setAdditionalInfo] = useState<any[]>([]);
   const { locale } = useContext(UserContext);
@@ -85,10 +82,9 @@ export default function SelectDialog({
   return (
     <GenericDialog onClose={handleClose} open={open} title={title}>
       <form className={className} onSubmit={applyElement}>
-        <SelectField
+        <StyledSelectField
           required
           color="contrast"
-          className={classes.textField}
           onChange={handleSelectChange}
           label={label}
           options={values}
@@ -96,21 +92,20 @@ export default function SelectDialog({
         {supportAdditionalInfo &&
           additionalInfo.length > 0 &&
           additionalInfo.map((e, i) => (
-            <TextField
+            <AdditionalInfoField
               required
               variant="outlined"
               type="text"
               key={i}
               placeholder={additionalInfo[i].name}
-              className={`${classes.textField} ${classes.marginTop}`}
               onChange={(e) => handleAdditionalInfoChange(additionalInfo[i].key, e)}
             >
               {additionalInfo[i].value}
-            </TextField>
+            </AdditionalInfoField>
           ))}
-        <Button variant="contained" color="primary" className={classes.applyButton} type="submit">
+        <ApplyButton variant="contained" color="primary" type="submit">
           {texts.add}
-        </Button>
+        </ApplyButton>
       </form>
     </GenericDialog>
   );

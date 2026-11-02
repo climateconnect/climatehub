@@ -1,12 +1,8 @@
-import { Menu } from "@mui/material";
-import withStyles from "@mui/styles/withStyles";
+import { Menu, menuClasses } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import React from "react";
 
-const StyledMenu: any = withStyles({
-  paper: {
-    width: 64,
-  },
-})((props) => (
+const StyledMenu: any = styled((props: any) => (
   <Menu
     elevation={0}
     getContentAnchorEl={null}
@@ -18,8 +14,12 @@ const StyledMenu: any = withStyles({
       vertical: "top",
       horizontal: "center",
     }}
-    {...(props as any)}
+    {...props}
   />
-));
+))({
+  [`& .${menuClasses.paper}`]: {
+    width: 64,
+  },
+});
 
 export default StyledMenu;

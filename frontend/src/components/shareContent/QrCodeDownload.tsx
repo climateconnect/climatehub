@@ -1,19 +1,17 @@
 import { Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import DownloadIcon from "@mui/icons-material/Download";
 import { toDataURL } from "qrcode";
 import React, { useEffect, useState } from "react";
 
-const useStyles = makeStyles(() => ({
-  qrImage: {
-    display: "block",
-    width: 160,
-    height: 160,
-    //scale: 1 gives 1 pixel per QR module; nearest-neighbor upscale keeps every
-    //module edge perfectly sharp on any display density
-    imageRendering: "pixelated",
-  },
-}));
+const QrImage = styled("img")({
+  display: "block",
+  width: 160,
+  height: 160,
+  //scale: 1 gives 1 pixel per QR module; nearest-neighbor upscale keeps every
+  //module edge perfectly sharp on any display density
+  imageRendering: "pixelated",
+});
 
 type QrCodeDownloadProps = {
   url: string;
@@ -30,7 +28,6 @@ export default function QrCodeDownload({
   downloadButtonText,
   altText,
 }: QrCodeDownloadProps) {
-  const classes = useStyles();
   const [displayUrl, setDisplayUrl] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
 
@@ -50,7 +47,7 @@ export default function QrCodeDownload({
 
   return (
     <>
-      <img src={displayUrl} className={classes.qrImage} alt={altText} />
+      <QrImage src={displayUrl} alt={altText} />
       <Button
         variant="contained"
         color="primary"

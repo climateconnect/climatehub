@@ -1,15 +1,14 @@
-import { MenuItem } from "@mui/material";
-import withStyles from "@mui/styles/withStyles";
-const StyledMenuItem = withStyles((theme) => ({
-  root: {
-    color: "primary",
-    textAlign: "center",
-    fontWeight: 600,
-  },
-  selected: {
+import { MenuItem, menuItemClasses } from "@mui/material";
+import { styled } from "@mui/material/styles";
+
+const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
+  color: "primary",
+  textAlign: "center",
+  fontWeight: 600,
+  [`&.${menuItemClasses.selected}`]: {
     color: theme.palette.primary.contrastText,
     backgroundColor: `${theme.palette.primary.main} !important`,
   },
-}))(MenuItem);
+}));
 
 export default StyledMenuItem;

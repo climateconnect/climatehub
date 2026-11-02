@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import AuthPasswordLogin from "./AuthPasswordLogin";
@@ -50,11 +49,9 @@ function renderComponent(props: Partial<typeof defaultProps> & { locale?: "en" |
 
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={makeContextValue(locale) as any}>
-          <AuthPasswordLogin {...mergedProps} />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={makeContextValue(locale) as any}>
+        <AuthPasswordLogin {...mergedProps} />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

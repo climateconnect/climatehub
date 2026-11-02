@@ -1,5 +1,5 @@
 import { Button, IconButton, TextField, Tooltip } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import SendIcon from "@mui/icons-material/Send";
 import React, { useContext } from "react";
@@ -9,51 +9,56 @@ import UserContext from "../../context/UserContext";
 import MiniProfilePreview from "../../profile/MiniProfilePreview";
 import Messages from "./Messages";
 
-const useStyles = makeStyles((theme) => ({
-  chatParticipantsContainer: {
-    background: theme.palette.grey[200],
-    width: "100%",
-    paddingBottom: theme.spacing(1),
-    display: "flex",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    maxWidth: 960,
-    margin: "0 auto",
-  },
-  chatParticipantsPreview: {
-    padding: theme.spacing(1),
-  },
-  content: {
-    flex: "auto",
-    overflowY: "auto",
-    width: "100%",
-  },
-  maxWidth: {
-    maxWidth: theme.breakpoints.values["md"],
-    margin: "0 auto",
-  },
-  bottomBar: {
-    background: theme.palette.grey[200],
-    flex: "none",
-    width: "100%",
-  },
-  sendMessageBarContent: {
-    padding: theme.spacing(1),
-  },
-  messageInput: {
-    width: "calc(100% - 60px)",
-    border: 0,
-  },
-  sendButton: {
-    height: 40,
-    width: 40,
-    marginLeft: theme.spacing(2),
-  },
-  sendButtonIcon: {
-    height: 35,
-    width: 35,
-  },
+const ChatParticipantsContainer = styled("div")(({ theme }) => ({
+  background: theme.palette.grey[200],
+  width: "100%",
+  paddingBottom: theme.spacing(1),
+  display: "flex",
+  justifyContent: "center",
+  flexWrap: "wrap",
+  maxWidth: 960,
+  margin: "0 auto",
 }));
+
+const ParticipantPreview = styled(MiniProfilePreview)(({ theme }) => ({
+  padding: theme.spacing(1),
+}));
+
+const StyledMessages = styled(Messages)(({ theme }) => ({
+  flex: "auto",
+  overflowY: "auto",
+  width: "100%",
+  maxWidth: theme.breakpoints.values["md"],
+  margin: "0 auto",
+}));
+
+const BottomBar = styled("div")(({ theme }) => ({
+  background: theme.palette.grey[200],
+  flex: "none",
+  width: "100%",
+  maxWidth: theme.breakpoints.values["md"],
+  margin: "0 auto",
+}));
+
+const SendMessageBarContent = styled("form")(({ theme }) => ({
+  padding: theme.spacing(1),
+}));
+
+const MessageInput = styled(TextField)({
+  width: "calc(100% - 60px)",
+  border: 0,
+});
+
+const SendButton = styled(IconButton)(({ theme }) => ({
+  height: 40,
+  width: 40,
+  marginLeft: theme.spacing(2),
+}));
+
+const SendButtonIcon = styled(SendIcon)({
+  height: 35,
+  width: 35,
+});
 
 export default function ChatContent({
   showChatParticipants,
@@ -76,7 +81,6 @@ export default function ChatContent({
   relatedIdea,
   emptyConversationLead,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
 
@@ -90,34 +94,23 @@ export default function ChatContent({
   return (
     <>
       {showChatParticipants && (
-        <div className={classes.chatParticipantsContainer}>
+        <ChatParticipantsContainer>
           {participants.map((p, index) => {
-            return (
-              <MiniProfilePreview
-                key={index}
-                profile={p}
-                className={classes.chatParticipantsPreview}
-              />
-            );
+            return <ParticipantPreview key={index} profile={p} />;
           })}
           {user_role.role_type === ROLE_TYPES.all_type && (
-            <Button
-              className={classes.manageMembersButton}
-              startIcon={<GroupAddIcon />}
-              onClick={handleToggleMemberManagementExpanded}
-            >
+            <Button startIcon={<GroupAddIcon />} onClick={handleToggleMemberManagementExpanded}>
               {texts.manage}
             </Button>
           )}
-        </div>
+        </ChatParticipantsContainer>
       )}
       {loading ? (
         <div>{texts.loading_and_waiting}</div>
       ) : (
-        <Messages
+        <StyledMessages
           messages={messages}
           chatting_partner={chatting_partner}
-          className={`${classes.content} ${classes.maxWidth}`}
           hasMore={hasMore}
           loadFunc={loadMoreMessages}
           isPrivateChat={isPrivateChat}
@@ -127,15 +120,14 @@ export default function ChatContent({
           emptyConversationLead={emptyConversationLead}
         />
       )}
-      <div className={`${classes.bottomBar} ${classes.maxWidth}`}>
-        <form className={classes.sendMessageBarContent} onSubmit={onSendMessage}>
-          <TextField
+      <BottomBar>
+        <SendMessageBarContent onSubmit={onSendMessage}>
+          <MessageInput
             variant="outlined"
             size="small"
             autoFocus
             multiline
             placeholder={texts.message}
-            className={classes.messageInput}
             value={curMessage}
             onChange={onCurMessageChange}
             onKeyDown={handleMessageKeydown}
@@ -148,19 +140,18 @@ export default function ChatContent({
             title={texts.click_here_to_send_or_press_ctrl_enter}
             placement="top"
           >
-            <IconButton
+            <SendButton
               disableRipple
               disableFocusRipple
               size="small"
               type="submit"
-              className={classes.sendButton}
               style={{ backgroundColor: "transparent" }}
             >
-              <SendIcon className={classes.sendButtonIcon} />
-            </IconButton>
+              <SendButtonIcon />
+            </SendButton>
           </Tooltip>
-        </form>
-      </div>
+        </SendMessageBarContent>
+      </BottomBar>
     </>
   );
 }

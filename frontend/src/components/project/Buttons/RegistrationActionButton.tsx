@@ -1,7 +1,6 @@
 import React, { useContext, useEffect } from "react";
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
-import { Theme } from "@mui/material/styles";
+import { styled } from "@mui/material/styles";
 import { Project } from "../../../types";
 import {
   RegistrationUIState,
@@ -11,22 +10,22 @@ import {
 import UserContext from "../../context/UserContext";
 import { trackGA4Event } from "../../../utils/analytics";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  registrationButtonContainer: {
-    display: "inline-flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  seatsText: {
-    fontWeight: 500,
-    fontSize: 15,
-    textAlign: "center",
-    marginTop: theme.spacing(0.5),
-  },
-  seatsNumber: {
-    fontWeight: 700,
-  },
+const RegistrationButtonContainer = styled("span")({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+});
+
+const SeatsText = styled(Typography)(({ theme }) => ({
+  fontWeight: 500,
+  fontSize: 15,
+  textAlign: "center",
+  marginTop: theme.spacing(0.5),
 }));
+
+const SeatsNumber = styled("span")({
+  fontWeight: 700,
+});
 
 interface RegistrationActionButtonProps {
   registrationState: RegistrationUIState;
@@ -64,7 +63,6 @@ export default function RegistrationActionButton({
   eventRegistration,
   analyticsSurface,
 }: RegistrationActionButtonProps) {
-  const classes = useStyles();
   const { ReactGA } = useContext(UserContext);
 
   // Fire button impression event on mount
@@ -142,26 +140,25 @@ export default function RegistrationActionButton({
     if (!shouldShowSeats) return null;
 
     return (
-      <Typography
-        className={classes.seatsText}
+      <SeatsText
         color="text.primary"
         aria-label={`${availableSeats} of ${maxParticipants} seats available`}
       >
-        <span className={classes.seatsNumber}>
+        <SeatsNumber>
           {availableSeats} / {maxParticipants}{" "}
-        </span>
+        </SeatsNumber>
         {texts.seats_available}
-      </Typography>
+      </SeatsText>
     );
   };
 
   // If showing seats, wrap in container; otherwise just return button
   if (shouldShowSeats && registrationState !== "hidden") {
     return (
-      <span className={classes.registrationButtonContainer}>
+      <RegistrationButtonContainer>
         {renderButton()}
         {renderSeatsInfo()}
-      </span>
+      </RegistrationButtonContainer>
     );
   }
 

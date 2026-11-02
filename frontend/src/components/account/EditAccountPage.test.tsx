@@ -2,7 +2,6 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
@@ -49,27 +48,25 @@ function renderEditAccountPage(overrides: Partial<typeof baseAccount> = {}) {
   const showFeedbackMessage = jest.fn();
   const utils = render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContext as any}>
-          <FeedbackContext.Provider value={{ showFeedbackMessage }}>
-            <EditAccountPage
-              account={{ ...baseAccount, ...overrides }}
-              possibleAccountTypes={undefined}
-              maxAccountTypes={5}
-              infoMetadata={{}}
-              handleSubmit={handleSubmit}
-              handleCancel={handleCancel}
-              errorMessage=""
-              existingName=""
-              existingUrlSlug=""
-              skillsOptions={[]}
-              splitName={false}
-              type="profile"
-              allSectors={[]}
-            />
-          </FeedbackContext.Provider>
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={defaultContext as any}>
+        <FeedbackContext.Provider value={{ showFeedbackMessage }}>
+          <EditAccountPage
+            account={{ ...baseAccount, ...overrides }}
+            possibleAccountTypes={undefined}
+            maxAccountTypes={5}
+            infoMetadata={{}}
+            handleSubmit={handleSubmit}
+            handleCancel={handleCancel}
+            errorMessage=""
+            existingName=""
+            existingUrlSlug=""
+            skillsOptions={[]}
+            splitName={false}
+            type="profile"
+            allSectors={[]}
+          />
+        </FeedbackContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
   );
   return { ...utils, handleSubmit, handleCancel, showFeedbackMessage };
