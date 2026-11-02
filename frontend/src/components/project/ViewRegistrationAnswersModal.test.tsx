@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import ViewRegistrationAnswersModal, {
@@ -82,19 +81,17 @@ function renderModal({
 } = {}) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={defaultContextValue as any}>
-          <ViewRegistrationAnswersModal
-            open={open}
-            onClose={onClose}
-            registration={registration}
-            title={title}
-            fields={fields}
-            maxSeatsPerRegistration={maxSeatsPerRegistration}
-            cancelAction={cancelAction}
-          />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={defaultContextValue as any}>
+        <ViewRegistrationAnswersModal
+          open={open}
+          onClose={onClose}
+          registration={registration}
+          title={title}
+          fields={fields}
+          maxSeatsPerRegistration={maxSeatsPerRegistration}
+          cancelAction={cancelAction}
+        />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }

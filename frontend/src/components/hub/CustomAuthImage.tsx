@@ -1,7 +1,6 @@
 import React, { ReactElement, useContext } from "react";
-import { makeStyles } from "@mui/styles";
 import Image from "next/legacy/image";
-import { Theme } from "@mui/material/styles";
+import { styled } from "@mui/material/styles";
 import { getLogoSrc } from "../../../public/lib/imageOperations";
 import UserContext from "../context/UserContext";
 
@@ -10,60 +9,62 @@ type Props = { hubUrl: string | undefined; texts: any | null; authStep?: string 
 const PRIO1_SLUG = "prio1";
 const PERTH_SLUG = "perth";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  prio1root: {
-    fontSize: theme.typography.h5.fontSize,
-    lineHeight: isNumber(theme.typography.h5.lineHeight)
-      ? (theme.typography.h5.lineHeight as number) - 0.2
-      : 0.8,
-    maxWidth: "100%",
-    overflow: "hidden",
+const Prio1Root = styled("div")(({ theme }) => ({
+  fontSize: theme.typography.h5.fontSize,
+  lineHeight: isNumber(theme.typography.h5.lineHeight)
+    ? (theme.typography.h5.lineHeight as number) - 0.2
+    : 0.8,
+  maxWidth: "100%",
+  overflow: "hidden",
+}));
+
+const Prio1X = styled("div")(({ theme }) => ({
+  fontSize: "8rem",
+  fontWeight: "bold",
+  fontStyle: "italic",
+  flexShrink: 0,
+  [theme.breakpoints.down("xl")]: {
+    fontSize: "5rem",
   },
-  prio1_X: {
-    fontSize: "8rem",
-    fontWeight: "bold",
-    fontStyle: "italic",
-    flexShrink: 0,
-    [theme.breakpoints.down("xl")]: {
-      fontSize: "5rem",
-    },
-    [theme.breakpoints.down("lg")]: {
-      fontSize: "4rem",
-    },
+  [theme.breakpoints.down("lg")]: {
+    fontSize: "4rem",
   },
-  prio1_imageContainer: {
-    height: "8rem",
-    maxWidth: "100%",
-    display: "flex",
-    flexDirection: "row",
-    gap: "1rem",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    minWidth: 0,
-    marginTop: theme.spacing(-1),
-    [theme.breakpoints.down("xl")]: {
-      height: "6rem",
-    },
-    [theme.breakpoints.down("lg")]: {
-      height: "5rem",
-    },
+}));
+
+const Prio1ImageContainer = styled("div")(({ theme }) => ({
+  height: "8rem",
+  maxWidth: "100%",
+  display: "flex",
+  flexDirection: "row",
+  gap: "1rem",
+  justifyContent: "flex-start",
+  alignItems: "center",
+  minWidth: 0,
+  marginTop: theme.spacing(-1),
+  [theme.breakpoints.down("xl")]: {
+    height: "6rem",
   },
-  prio1_image: {
-    maxHeight: "100%",
-    maxWidth: "100%",
-    height: "auto",
-    width: "auto",
-    objectFit: "contain",
-    flex: "0 1 auto",
-    minWidth: 0,
+  [theme.breakpoints.down("lg")]: {
+    height: "5rem",
   },
-  prio1_text: {
-    marginTop: theme.spacing(0.5),
-    maxWidth: "100%",
-    overflowWrap: "break-word",
-    [theme.breakpoints.up("xl")]: {
-      marginRight: "clamp(2rem, calc(15rem - 2vw), 15rem)",
-    },
+}));
+
+const Prio1Image = styled("img")({
+  maxHeight: "100%",
+  maxWidth: "100%",
+  height: "auto",
+  width: "auto",
+  objectFit: "contain",
+  flex: "0 1 auto",
+  minWidth: 0,
+});
+
+const Prio1Text = styled("p")(({ theme }) => ({
+  marginTop: theme.spacing(0.5),
+  maxWidth: "100%",
+  overflowWrap: "break-word",
+  [theme.breakpoints.up("xl")]: {
+    marginRight: "clamp(2rem, calc(15rem - 2vw), 15rem)",
   },
 }));
 
@@ -109,27 +110,25 @@ function AuthImage({
   authStep?: string;
   logoSrc: string;
 }): ReactElement {
-  const classes = useStyles();
   return authStep ? (
     <DefaultAuthImage authStep={authStep} />
   ) : (
-    <div className={classes.prio1root}>
-      <div className={classes.prio1_imageContainer}>
-        <img
+    <Prio1Root>
+      <Prio1ImageContainer>
+        <Prio1Image
           src={`/images/hub_logos/ch_${hubSlug}_logo.svg`}
           alt={texts.climate_connect_logo}
-          className={classes.prio1_image}
         />
-        <div className={classes.prio1_X}>X</div>
-        <img src={logoSrc} alt={texts.climate_connect_logo} className={classes.prio1_image} />
-      </div>
+        <Prio1X>X</Prio1X>
+        <Prio1Image src={logoSrc} alt={texts.climate_connect_logo} />
+      </Prio1ImageContainer>
 
-      <p className={classes.prio1_text}>
+      <Prio1Text>
         <b>
           <i>{texts.auth_image_subtitle}</i>
         </b>
-      </p>
-    </div>
+      </Prio1Text>
+    </Prio1Root>
   );
 }
 

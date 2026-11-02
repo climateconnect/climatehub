@@ -1,5 +1,5 @@
 import { Button, Theme, useMediaQuery, Popper, Paper, MenuList } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import LanguageIcon from "@mui/icons-material/Language";
 import { useRouter } from "next/router";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -10,43 +10,37 @@ import UserContext from "../context/UserContext";
 import StyledMenu from "../general/StyledMenu";
 import StyledMenuItem from "../general/StyledMenuItem";
 
-const useStyles = makeStyles<
-  Theme,
-  {
-    transparentHeader: boolean;
-    isCustomHub: boolean;
-    isNarrowScreen: boolean;
-    isLandingPage?: boolean;
-  }
->((theme) => ({
-  root: (props) => ({
-    color:
-      props.transparentHeader || (props.isLandingPage && !props.isNarrowScreen)
-        ? "white"
-        : props.isCustomHub
-        ? !props.isNarrowScreen
-          ? theme.palette.primary.contrastText
-          : theme.palette.background.default_contrastText
-        : theme.palette.primary.main,
-    cursor: "pointer",
-  }),
-  languageIcon: {
-    fontSize: 16,
-  },
-  popover: {
-    pointerEvents: "none",
-  },
-  popoverContent: {
-    pointerEvents: "auto",
-  },
-  centerText: {
-    textAlign: "center",
-  },
-  popper: {
-    width: "67px",
-    zIndex: 99,
-  },
+const LanguageButton = styled(Button, {
+  shouldForwardProp: (prop) =>
+    prop !== "$transparentHeader" &&
+    prop !== "$isCustomHub" &&
+    prop !== "$isNarrowScreen" &&
+    prop !== "$isLandingPage",
+})<{
+  $transparentHeader: boolean;
+  $isCustomHub: boolean;
+  $isNarrowScreen: boolean;
+  $isLandingPage?: boolean;
+}>(({ theme, $transparentHeader, $isCustomHub, $isNarrowScreen, $isLandingPage }) => ({
+  color:
+    $transparentHeader || ($isLandingPage && !$isNarrowScreen)
+      ? "white"
+      : $isCustomHub
+      ? !$isNarrowScreen
+        ? theme.palette.primary.contrastText
+        : theme.palette.background.default_contrastText
+      : theme.palette.primary.main,
+  cursor: "pointer",
 }));
+
+const StyledLanguageIcon = styled(LanguageIcon)({
+  fontSize: 16,
+});
+
+const StyledPopper = styled(Popper)({
+  width: "67px",
+  zIndex: 99,
+});
 
 /**
  * Hover button that's used in the global navbar to switch
@@ -70,7 +64,6 @@ export default function LanguageSelect({
   const [open, setOpen] = useState(false);
   const isMediumScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
-  const classes = useStyles({ transparentHeader, isCustomHub, isNarrowScreen, isLandingPage });
   const router = useRouter();
 
   useEffect(function () {
@@ -123,7 +116,7 @@ export default function LanguageSelect({
       {locales?.map((l) => (
         <StyledMenuItem
           key={l}
-          className={classes.centerText}
+          sx={{ textAlign: "center" }}
           selected={l === locale}
           dense={!isMediumScreen}
           onClick={(e) => handleLanguageClick(e, l)}
@@ -136,23 +129,26 @@ export default function LanguageSelect({
 
   return (
     <>
-      <Button
+      <LanguageButton
         {...hoverButtonProps}
-        className={classes.root}
+        $transparentHeader={transparentHeader}
+        $isCustomHub={isCustomHub}
+        $isNarrowScreen={isNarrowScreen}
+        $isLandingPage={isLandingPage}
         ref={buttonRef}
         aria-owns="language-select"
         aria-haspopup="true"
         onClick={handleToggleOpen}
-        startIcon={<LanguageIcon className={classes.languageIcon} />}
+        startIcon={<StyledLanguageIcon />}
       >
         {locale}
-      </Button>
+      </LanguageButton>
       {isMediumScreen ? (
         <StyledMenu
           id="language-select"
-          className={classes.popover}
-          classes={{
-            paper: classes.popoverContent,
+          sx={{
+            pointerEvents: "none",
+            "& .MuiMenu-paper": { pointerEvents: "auto" },
           }}
           anchorEl={anchorEl}
           onClose={handleClose}
@@ -171,13 +167,13 @@ export default function LanguageSelect({
         // For some reason, the StyledMenu component doesn't work as expected on Desktop
         // so we use the Popper and Paper component instead of StyledMenu
         // (on our new home page, we have focus problem with StyledMenu)
-        <Popper open={open} anchorEl={buttonRef.current} className={classes.popper}>
-          <Paper {...hoverButtonProps} className={classes.paper}>
+        <StyledPopper open={open} anchorEl={buttonRef.current}>
+          <Paper {...hoverButtonProps}>
             <MenuList>
               <MenuItems />
             </MenuList>
           </Paper>
-        </Popper>
+        </StyledPopper>
       )}
     </>
   );

@@ -1,5 +1,5 @@
 import { Divider, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 
 // Relative imports
@@ -10,17 +10,12 @@ import CommentInput from "../communication/CommentInput";
 import UserContext from "../context/UserContext";
 import Posts from "./../communication/Posts";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    divider: {
-      marginTop: theme.spacing(1),
-      marginBottom: theme.spacing(1),
-    },
-  };
-});
+const StyledDivider = styled(Divider)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+}));
 
 export default function CommentsContent({ user, project, token, setCurComments, hubUrl }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
   const comments = project.comments;
@@ -99,7 +94,7 @@ export default function CommentsContent({ user, project, token, setCurComments, 
     <div>
       <CommentInput user={user} onSendComment={onSendComment} hasComments={comments.length > 0} />
       <Typography>{comments.length + " " + texts.comments}</Typography>
-      <Divider className={classes.divider} />
+      <StyledDivider />
       {comments && comments.length > 0 && (
         <Posts
           posts={comments}

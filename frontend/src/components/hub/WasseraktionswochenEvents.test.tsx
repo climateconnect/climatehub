@@ -2,7 +2,6 @@ import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 import theme from "../../themes/theme";
 import WasseraktionswochenEvents, { sortProjectsByStartDate } from "./WasseraktionswochenEvents";
 
@@ -23,11 +22,7 @@ jest.mock("../project/ProjectPreviews", () => ({
 
 // Helper to render components with theme
 const renderWithTheme = (ui: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>{ui}</StylesThemeProvider>
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 };
 
 beforeAll(() => {

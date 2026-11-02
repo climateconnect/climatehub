@@ -1,18 +1,15 @@
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useEffect } from "react";
 import { CcLandingpage } from "../devlink/pageComponent/CcLandingpage";
 import { EnLandingpageClimateConnect } from "../devlink/pageComponent/EnLandingpageClimateConnect";
 import UserContext from "../src/components/context/UserContext";
 import WideLayout from "../src/components/layouts/WideLayout";
 
-const useStyles = makeStyles(() => ({
-  container: {
-    overflowAnchor: "none",
-  },
-}));
+const Container = styled("div")({
+  overflowAnchor: "none",
+});
 
 export default function Index() {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   // Workaround for a bug with tabs in Webflow's devlink: the generated Tabs wrapper
   // calls `.focus()` on the active tab header whenever it mounts (initial load and on
@@ -42,9 +39,7 @@ export default function Index() {
 
   return (
     <WideLayout>
-      <div className={classes.container}>
-        {locale === "de" ? <CcLandingpage /> : <EnLandingpageClimateConnect />}
-      </div>
+      <Container>{locale === "de" ? <CcLandingpage /> : <EnLandingpageClimateConnect />}</Container>
     </WideLayout>
   );
 }

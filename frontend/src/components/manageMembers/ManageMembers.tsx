@@ -1,4 +1,4 @@
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import MemberSearchOption from "../search/MemberSearchOption";
 import React, { useContext } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
@@ -8,32 +8,31 @@ import UserContext from "../context/UserContext";
 import MiniProfileInput from "../profile/MiniProfileInput";
 import AutoCompleteSearchBar from "../search/AutoCompleteSearchBar";
 
-const useStyles = makeStyles((theme) => ({
-  searchBarContainer: {
-    marginTop: theme.spacing(4),
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexGrow: 100,
-  },
-  searchBar: {
-    width: 800,
-    display: "flex",
-  },
-  block: {
-    marginBottom: theme.spacing(4),
-  },
-  memberContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    marginBottom: theme.spacing(2),
-  },
-  member: {
-    width: theme.spacing(34),
-    textAlign: "center",
-    marginRight: theme.spacing(4),
-    marginTop: theme.spacing(2),
-  },
+const SearchBarContainer = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexGrow: 100,
+}));
+
+const StyledAutoCompleteSearchBar = styled(AutoCompleteSearchBar)(({ theme }) => ({
+  width: 800,
+  display: "flex",
+  marginBottom: theme.spacing(4),
+}));
+
+const MembersWrapper = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  marginBottom: theme.spacing(2),
+}));
+
+const StyledMiniProfileInput = styled(MiniProfileInput)(({ theme }) => ({
+  width: theme.spacing(34),
+  textAlign: "center",
+  marginRight: theme.spacing(4),
+  marginTop: theme.spacing(2),
 }));
 
 export default function ManageMembers({
@@ -52,7 +51,6 @@ export default function ManageMembers({
   label,
   dontPickRole,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "organization", locale: locale });
   const renderSearchOption = (props, option) => (
@@ -134,10 +132,9 @@ export default function ManageMembers({
 
   return (
     <div>
-      <div className={classes.searchBarContainer}>
-        <AutoCompleteSearchBar
+      <SearchBarContainer>
+        <StyledAutoCompleteSearchBar
           label={label ? label : texts.search_for_your_organizations_members}
-          className={`${classes.searchBar} ${classes.block}`}
           baseUrl={process.env.API_URL + "/api/members/?search="}
           clearOnSelect
           freeSolo
@@ -148,7 +145,7 @@ export default function ManageMembers({
           getOptionLabel={(option) => option.first_name + " " + option.last_name}
           helperText={texts.type_name_of_next_team_member}
         />
-      </div>
+      </SearchBarContainer>
       {currentMembers && currentMembers.length > 0 && (
         <MemberContainer
           currentMembers={currentMembers}
@@ -181,16 +178,14 @@ const MemberContainer = ({
   isOrganization,
   dontPickRole,
 }) => {
-  const classes = useStyles();
   return (
-    <div className={classes.memberContainer}>
+    <MembersWrapper>
       {currentMembers.map((m, index) => {
         const creatorRole = rolesOptions.find((r) => r.role_type === ROLE_TYPES.all_type);
         const profile = m.id === user.id ? { ...m, role: user_role } : m;
         return (
-          <MiniProfileInput
+          <StyledMiniProfileInput
             key={index}
-            className={classes.member}
             profile={profile}
             onDelete={
               canEdit(m) && m.role.role_type !== ROLE_TYPES.all_type
@@ -216,6 +211,6 @@ const MemberContainer = ({
           />
         );
       })}
-    </div>
+    </MembersWrapper>
   );
 };

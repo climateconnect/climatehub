@@ -1,27 +1,23 @@
 import React, { useContext } from "react";
-import makeStyles from "@mui/styles/makeStyles";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../../../src/components/context/UserContext";
 import { Button } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import ApplyFilterSearchBar from "../../search/ApplyFilterSearchBar";
 
-const useStyles = makeStyles(() => {
-  return {
-    buttonBar: {
-      marginTop: 20,
-      marginBottom: 10,
-      position: "relative",
-      height: 40,
-    },
-    cancelButton: {
-      position: "absolute",
-      right: 0,
-    },
-  };
+const ButtonBar = styled("div")({
+  marginTop: 20,
+  marginBottom: 10,
+  position: "relative",
+  height: 40,
+});
+
+const CancelButton = styled(Button)({
+  position: "absolute",
+  right: 0,
 });
 
 export default function ChatSearchField({ cancelChatSearch, applyFilterToChats }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
 
@@ -34,11 +30,11 @@ export default function ChatSearchField({ cancelChatSearch, applyFilterToChats }
         helperText={texts.type_the_name_of_a_user_or_group_to_open_a_chat_with}
       />
 
-      <div className={classes.buttonBar}>
-        <Button variant="contained" className={classes.cancelButton} onClick={cancelChatSearch}>
+      <ButtonBar>
+        <CancelButton variant="contained" onClick={cancelChatSearch}>
           {texts.cancel}
-        </Button>
-      </div>
+        </CancelButton>
+      </ButtonBar>
     </>
   );
 }

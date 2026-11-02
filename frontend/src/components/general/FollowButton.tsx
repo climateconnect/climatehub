@@ -1,64 +1,68 @@
-import { Button, CircularProgress, Link, Tooltip, Typography, useTheme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Button, CircularProgress, Link, Tooltip, Typography } from "@mui/material";
 import React, { MouseEventHandler } from "react";
 import ButtonIcon from "./ButtonIcon";
-import { Theme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 
-type MakeStylesProps = {
-  hasAdminPermissions?: boolean;
-  followingChangePending?: boolean;
-  belowSmallScreen?: boolean;
-};
+const FollowButtonContainer = styled("span")({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+});
 
-const useStyles = makeStyles((theme: Theme) => ({
-  followButtonContainer: {
-    display: "inline-flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  followersLink: {
-    cursor: "pointer",
-    textAlign: "center",
-  },
-  followerNumber: {
-    fontWeight: 700,
-  },
-  followersText: {
-    fontWeight: 500,
-    fontSize: 18,
-  },
-  followingButton: (props: MakeStylesProps) => ({
-    marginLeft: props.hasAdminPermissions ? theme.spacing(2) : theme.spacing(0.25),
-    marginRight: props.hasAdminPermissions ? theme.spacing(2) : theme.spacing(0.25),
+const FollowersLink = styled(Link)({
+  cursor: "pointer",
+  textAlign: "center",
+});
+
+const FollowerNumber = styled("span")({
+  fontWeight: 700,
+});
+
+const FollowersText = styled(Typography)({
+  fontWeight: 500,
+  fontSize: 18,
+});
+
+const FollowingButton = styled(Button, {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $hasAdminPermissions?: boolean; $belowSmallScreen?: boolean }>(
+  ({ theme, $hasAdminPermissions, $belowSmallScreen }) => ({
+    marginLeft: $hasAdminPermissions ? theme.spacing(2) : theme.spacing(0.25),
+    marginRight: $hasAdminPermissions ? theme.spacing(2) : theme.spacing(0.25),
     whiteSpace: "nowrap",
     height: 40,
-    maxWidth: props.belowSmallScreen ? 180 : 140,
+    maxWidth: $belowSmallScreen ? 180 : 140,
     "&:disabled": {
       color: "white",
       background: theme.palette.secondary.main,
     },
-  }),
-  fabProgress: {
-    color: "white",
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    marginLeft: "auto",
-    marginRight: "auto",
-    marginTop: "auto",
-    marginBottom: "auto",
-  },
-  buttonLabel: {
-    position: "relative",
-  },
-  buttonText: (props) => ({
-    visibility: props.followingChangePending ? "hidden" : "visible",
-  }),
-  hidden: {
-    visibility: "hidden",
-  },
+  })
+);
+
+const FabProgress = styled(CircularProgress, {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $hidden?: boolean }>(({ $hidden }) => ({
+  color: "white",
+  position: "absolute",
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+  marginLeft: "auto",
+  marginRight: "auto",
+  marginTop: "auto",
+  marginBottom: "auto",
+  ...($hidden && { visibility: "hidden" }),
+}));
+
+const ButtonLabel = styled("div")({
+  position: "relative",
+});
+
+const ButtonText = styled("div", {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $pending?: boolean }>(({ $pending }) => ({
+  visibility: $pending ? "hidden" : "visible",
 }));
 
 type Args = {
@@ -96,17 +100,12 @@ export default function FollowButton({
   toolTipText,
   toolTipPlacement,
 }: Args) {
-  const classes = useStyles({
-    hasAdminPermissions: hasAdminPermissions,
-    followingChangePending: followingChangePending,
-    belowSmallScreen: screenSize?.belowSmall,
-  });
   const theme = useTheme();
   return (
-    <span className={classes.followButtonContainer}>
+    <FollowButtonContainer>
       {/* conditionally display the tooltip if text is defined only, since this is also used for project follow button */}
       <Tooltip arrow placement={toolTipPlacement} title={toolTipText == null ? "" : toolTipText}>
-        <Button
+        <FollowingButton
           {...bindFollow}
           onClick={handleToggleFollow}
           variant="contained"
@@ -123,21 +122,19 @@ export default function FollowButton({
           }
           color={isUserFollowing && isLoggedIn ? "secondary" : "primary"}
           disabled={followingChangePending}
-          className={classes.followingButton}
+          $hasAdminPermissions={hasAdminPermissions}
+          $belowSmallScreen={screenSize?.belowSmall}
         >
-          <div className={classes.buttonLabel}>
-            <CircularProgress
-              size={20}
-              className={`${classes.fabProgress} ${!followingChangePending && classes.hidden}`}
-            />
-            <div className={classes.buttonText}>
+          <ButtonLabel>
+            <FabProgress size={20} $hidden={!followingChangePending} />
+            <ButtonText $pending={followingChangePending}>
               {isUserFollowing && isLoggedIn ? texts.following : texts.follow}
               {showNumberInText && !followingChangePending && numberOfFollowers > 0
                 ? " • " + numberOfFollowers
                 : ""}
-            </div>
-          </div>
-        </Button>
+            </ButtonText>
+          </ButtonLabel>
+        </FollowingButton>
       </Tooltip>
       {showLinkUnderButton && numberOfFollowers > 0 && (
         <LinkWithText
@@ -146,23 +143,17 @@ export default function FollowButton({
           toggleShowFollowers={toggleShowFollowers}
         />
       )}
-    </span>
+    </FollowButtonContainer>
   );
 }
 
 function LinkWithText({ numberOfFollowers, texts, toggleShowFollowers }) {
-  const classes = useStyles({});
   return (
-    <Link
-      color="text.primary"
-      underline="none"
-      className={classes.followersLink}
-      onClick={toggleShowFollowers}
-    >
-      <Typography className={classes.followersText}>
-        <span className={classes.followerNumber}>{numberOfFollowers} </span>
+    <FollowersLink color="text.primary" underline="none" onClick={toggleShowFollowers}>
+      <FollowersText>
+        <FollowerNumber>{numberOfFollowers} </FollowerNumber>
         {numberOfFollowers > 1 ? texts.followers : texts.follower}
-      </Typography>
-    </Link>
+      </FollowersText>
+    </FollowersLink>
   );
 }

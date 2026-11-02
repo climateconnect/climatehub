@@ -1,85 +1,91 @@
 import React from "react";
-import { Theme, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
-const useStyles = makeStyles<Theme, { background?: string; image?: string }>((theme) => ({
-  wrapper: {
-    position: "relative",
-    ["&:hover #hover-image-container"]: {
-      transform: "scale(0.3)",
-      transitionDuration: "0.5s",
-      transformOrigin: "0% 100%",
-    },
-  },
-  imageContainer: (props) => ({
-    background: `url('${props.image}')`,
-    transformOrigin: "0% 100%",
+const notTransient = (prop: PropertyKey) => !(typeof prop === "string" && prop.startsWith("$"));
+
+const Wrapper = styled("div")({
+  position: "relative",
+  ["&:hover #hover-image-container"]: {
+    transform: "scale(0.3)",
     transitionDuration: "0.5s",
-    backgroundSize: "contain",
-    backgroundRepeat: "none",
-    height: "100%",
-    width: "100%",
-    position: "relative",
-    zIndex: 1,
-  }),
-  image: {
-    width: "100%",
-    height: "100%",
+    transformOrigin: "0% 100%",
   },
-  backgroundDiv: (props) => ({
-    position: "absolute",
-    background:
-      props.background === "primary" ? theme.palette.primary.main : theme.palette.yellow.main,
-    top: -20,
-    bottom: 20,
-    right: -20,
-    left: 20,
-    textAlign: "center",
-  }),
-  text: {
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  textDivInnerWrapper: {
-    position: "relative",
-    padding: theme.spacing(3),
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100%",
-    width: "100%",
-  },
-  arrowIcon: (props) => ({
-    position: "absolute",
-    top: 0,
-    right: 0,
-    transform: "rotate(-45deg)",
-    fontSize: 22,
-    color: props.background === "primary" ? "white" : theme.palette.primary.main,
-  }),
+});
+
+const ImageContainer = styled("div")({
+  transformOrigin: "0% 100%",
+  transitionDuration: "0.5s",
+  backgroundSize: "contain",
+  backgroundRepeat: "none",
+  height: "100%",
+  width: "100%",
+  position: "relative",
+  zIndex: 1,
+});
+
+const Image = styled("img")({
+  width: "100%",
+  height: "100%",
+});
+
+const BackgroundDiv = styled("div", {
+  shouldForwardProp: notTransient,
+})<{ $background?: string }>(({ theme, $background }) => ({
+  position: "absolute",
+  background: $background === "primary" ? theme.palette.primary.main : theme.palette.yellow.main,
+  top: -20,
+  bottom: 20,
+  right: -20,
+  left: 20,
+  textAlign: "center",
 }));
 
+const TextDivInnerWrapper = styled("div")(({ theme }) => ({
+  position: "relative",
+  padding: theme.spacing(3),
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  height: "100%",
+  width: "100%",
+}));
+
+const ArrowIcon = styled(ArrowBackIcon, {
+  shouldForwardProp: notTransient,
+})<{ $background?: string }>(({ theme, $background }) => ({
+  position: "absolute",
+  top: 0,
+  right: 0,
+  transform: "rotate(-45deg)",
+  fontSize: 22,
+  color: $background === "primary" ? "white" : theme.palette.primary.main,
+}));
+
+const StyledText = styled(Typography)({
+  fontWeight: 600,
+  fontSize: 14,
+});
+
 export default function HoverImage({ src, text, className, background }: any) {
-  const classes = useStyles({ image: src, background });
   return (
     <div className={className}>
-      <div className={classes.wrapper}>
-        <div className={classes.imageContainer} id="hover-image-container">
-          <img src={src} className={classes.image} alt="hover image" />
-        </div>
-        <div className={classes.backgroundDiv}>
-          <div className={classes.textDivInnerWrapper}>
-            <ArrowBackIcon className={classes.arrowIcon} />
+      <Wrapper>
+        <ImageContainer id="hover-image-container" style={{ backgroundImage: `url('${src}')` }}>
+          <Image src={src} alt="hover image" />
+        </ImageContainer>
+        <BackgroundDiv $background={background}>
+          <TextDivInnerWrapper>
+            <ArrowIcon $background={background} />
             {<Text text={text} />}
-          </div>
-        </div>
-      </div>
+          </TextDivInnerWrapper>
+        </BackgroundDiv>
+      </Wrapper>
     </div>
   );
 }
 
 function Text({ text }) {
-  const classes = useStyles({});
-  return <Typography className={classes.text}>{text}</Typography>;
+  return <StyledText>{text}</StyledText>;
 }

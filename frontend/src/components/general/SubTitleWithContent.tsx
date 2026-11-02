@@ -1,31 +1,32 @@
-import makeStyles from "@mui/styles/makeStyles";
-import { Theme } from "@mui/material";
+import { styled } from "@mui/material/styles";
 
-const useStyles = makeStyles<Theme>((theme) => ({
-  subtitleWithIcon: {
-    display: "flex",
-    alignItems: "center",
-    fontWeight: 700,
-    minWidth: 200,
-    fontSize: 15,
-  },
-  subtitle: {
-    fontWeight: "bold",
-  },
-  content: {
-    paddingBottom: theme.spacing(2),
-    // color: `${theme.palette.secondary.main}`,
-    fontSize: 16,
-    wordBreak: "break-word",
-  },
-  marginRight: {
-    marginRight: theme.spacing(0.5),
-  },
-  iconAndTitleWrapper: {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: theme.spacing(0.5),
-  },
+const SubtitleWithIcon = styled("div")({
+  display: "flex",
+  alignItems: "center",
+  fontWeight: 700,
+  minWidth: 200,
+  fontSize: 15,
+});
+
+const Subtitle = styled("div")({
+  fontWeight: "bold",
+});
+
+const Content = styled("div")(({ theme }) => ({
+  paddingBottom: theme.spacing(2),
+  // color: `${theme.palette.secondary.main}`,
+  fontSize: 16,
+  wordBreak: "break-word",
+}));
+
+const MarginRight = styled("div")(({ theme }) => ({
+  marginRight: theme.spacing(0.5),
+}));
+
+const IconAndTitleWrapper = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  marginBottom: theme.spacing(0.5),
 }));
 
 export default function SubTitleWithContent({
@@ -37,21 +38,21 @@ export default function SubTitleWithContent({
   subtitle: string;
   content: string;
 }) {
-  const classes = useStyles();
+  const SubtitleWrapper = subTitleIcon ? SubtitleWithIcon : Subtitle;
   return (
     <>
-      <div className={`${subTitleIcon ? classes.subtitleWithIcon : classes.subtitle}`}>
+      <SubtitleWrapper>
         {subTitleIcon?.icon ? (
-          <div className={classes.iconAndTitleWrapper}>
+          <IconAndTitleWrapper>
             <subTitleIcon.icon />
-            <div className={classes.marginRight} />
+            <MarginRight />
             {subtitle}
-          </div>
+          </IconAndTitleWrapper>
         ) : (
           <>{subtitle}</>
         )}
-      </div>
-      <div className={classes.content}>{content}</div>
+      </SubtitleWrapper>
+      <Content>{content}</Content>
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
 import { apiRequest, redirect } from "../../../public/lib/apiOperations";
@@ -11,26 +11,19 @@ import UserContext from "../context/UserContext";
 import ManageMembers from "../manageMembers/ManageMembers";
 import { useRouter } from "next/router";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(4),
-      color: theme.palette.background.default_contrastText,
-    },
-    buttons: {
-      float: "right",
-    },
-    button: {
-      marginRight: theme.spacing(2),
-      marginLeft: theme.spacing(1),
-    },
-    buttonsContainer: {
-      height: 40,
-      width: "100%",
-    },
-  };
+const ButtonsContainer = styled("div")({
+  height: 40,
+  width: "100%",
 });
+
+const Buttons = styled("div")({
+  float: "right",
+});
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  marginRight: theme.spacing(2),
+  marginLeft: theme.spacing(1),
+}));
 
 export default function ManageOrganizationMembers({
   user,
@@ -42,7 +35,6 @@ export default function ManageOrganizationMembers({
   token,
   availabilityOptions,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const { hubUrl } = useContext(HubContext);
   const texts = getTexts({ page: "organization", locale: locale, organization: organization });
@@ -150,7 +142,15 @@ export default function ManageOrganizationMembers({
 
   return (
     <>
-      <Typography variant="h4" color="contrast" className={classes.headline}>
+      <Typography
+        variant="h4"
+        color="contrast"
+        sx={(theme) => ({
+          textAlign: "center",
+          marginTop: theme.spacing(4),
+          color: theme.palette.background.default_contrastText,
+        })}
+      >
         {texts.manage_members_of_organization_name}
       </Typography>
       <form onSubmit={handleSubmit}>
@@ -167,8 +167,8 @@ export default function ManageOrganizationMembers({
           hideHoursPerWeek
           isOrganization
         />
-        <div className={classes.buttonsContainer}>
-          <div className={classes.buttons}>
+        <ButtonsContainer>
+          <Buttons>
             <Button
               href={appHref("/organizations/" + organization.url_slug, { hubUrl, locale })}
               variant="contained"
@@ -176,11 +176,11 @@ export default function ManageOrganizationMembers({
             >
               {isCreationStage ? texts.skip_for_now : texts.cancel}
             </Button>
-            <Button className={classes.button} variant="contained" color="primary" type="submit">
+            <SaveButton variant="contained" color="primary" type="submit">
               {texts.save}
-            </Button>
-          </div>
-        </div>
+            </SaveButton>
+          </Buttons>
+        </ButtonsContainer>
       </form>
     </>
   );

@@ -1,7 +1,6 @@
-import { Avatar, Theme } from "@mui/material";
+import { Avatar } from "@mui/material";
+import { alpha, styled } from "@mui/material/styles";
 import React, { ReactElement, useContext, useRef, useState } from "react";
-import makeStyles from "@mui/styles/makeStyles";
-import { alpha } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -34,48 +33,50 @@ interface UserAvatarProps {
 
 const dimensions = 150;
 
-const useStyles = makeStyles<Theme, { avatarImage?: string; isDragOver?: boolean }>((theme) => ({
-  avatarImage: {
-    width: `${dimensions}px`,
-    height: `${dimensions}px`,
-    border: "4px solid white",
-  },
-  imageOverlay: {
-    position: "absolute",
-    opacity: 0.4,
-    backgroundColor: "white",
-    width: `calc(${dimensions}px - 4px)`,
-    height: `calc(${dimensions}px - 4px)`,
-    borderRadius: "100px",
-  },
-  editIconContainer: {
-    display: "flex",
-    flexDirection: "row",
-    position: "absolute",
-    width: `${dimensions}px`,
-    height: `${dimensions}px`,
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: (props) => (!props.avatarImage ? "pointer" : "default"),
-    columnGap: theme.spacing(1),
-    // Round to match the avatar's round crop, per design feedback.
-    borderRadius: "50%",
-    // outlineOffset stays 0 (not negative) so the ring sits flush against the
-    // edge instead of drawing a few pixels inside it, over the image itself.
-    outline: (props) => (props.isDragOver ? `3px dashed ${theme.palette.primary.main}` : "none"),
-    backgroundColor: (props) =>
-      props.isDragOver ? alpha(theme.palette.primary.main, 0.15) : "transparent",
-    // Keyboard focus ring should match the project's brand color rather
-    // than the browser's default blue.
-    "&:focus-visible": {
-      outline: `3px solid ${theme.palette.primary.main}`,
-    },
-  },
-  editIcon: {
-    fontSize: "40px",
-    cursor: "pointer",
+const AvatarImageElement = styled(Avatar)({
+  width: `${dimensions}px`,
+  height: `${dimensions}px`,
+  border: "4px solid white",
+});
+
+const ImageOverlay = styled("div")({
+  position: "absolute",
+  opacity: 0.4,
+  backgroundColor: "white",
+  width: `calc(${dimensions}px - 4px)`,
+  height: `calc(${dimensions}px - 4px)`,
+  borderRadius: "100px",
+});
+
+const EditIconContainer = styled("div", {
+  shouldForwardProp: (prop) => !(typeof prop === "string" && prop.startsWith("$")),
+})<{ $hasImage?: boolean; $isDragOver?: boolean }>(({ theme, $hasImage, $isDragOver }) => ({
+  display: "flex",
+  flexDirection: "row",
+  position: "absolute",
+  width: `${dimensions}px`,
+  height: `${dimensions}px`,
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: !$hasImage ? "pointer" : "default",
+  columnGap: theme.spacing(1),
+  // Round to match the avatar's round crop, per design feedback.
+  borderRadius: "50%",
+  // outlineOffset stays 0 (not negative) so the ring sits flush against the
+  // edge instead of drawing a few pixels inside it, over the image itself.
+  outline: $isDragOver ? `3px dashed ${theme.palette.primary.main}` : "none",
+  backgroundColor: $isDragOver ? alpha(theme.palette.primary.main, 0.15) : "transparent",
+  // Keyboard focus ring should match the project's brand color rather
+  // than the browser's default blue.
+  "&:focus-visible": {
+    outline: `3px solid ${theme.palette.primary.main}`,
   },
 }));
+
+const editIconSx = {
+  fontSize: "40px",
+  cursor: "pointer",
+};
 
 export function UserAvatar(props: UserAvatarProps): ReactElement {
   const { locale } = useContext(UserContext);
@@ -129,8 +130,6 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
     onActivate: () => inputFileRef.current?.click(),
   });
 
-  const classes = useStyles({ avatarImage: avatarImage.imageUrl, isDragOver });
-
   const removeAvatarImage = (confirm) => {
     if (confirm) {
       setAvatarImage({ imageUrl: undefined, thumbnailImageUrl: undefined });
@@ -171,16 +170,13 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
 
   return (
     <>
-      <Avatar
-        className={classes.avatarImage}
-        alt={props.alternativeText}
-        src={avatarImage.imageUrl}
-      />
-      {props.mode === "edit" && <div className={classes.imageOverlay} />}
+      <AvatarImageElement alt={props.alternativeText} src={avatarImage.imageUrl} />
+      {props.mode === "edit" && <ImageOverlay />}
 
       {props.mode === "edit" && (
-        <div
-          className={classes.editIconContainer}
+        <EditIconContainer
+          $hasImage={!!avatarImage.imageUrl}
+          $isDragOver={isDragOver}
           onClick={avatarImage.imageUrl ? () => void 0 : onClickChangeImage}
           onKeyDown={onKeyDown}
           onDragOver={onDragOver}
@@ -194,19 +190,19 @@ export function UserAvatar(props: UserAvatarProps): ReactElement {
           data-drag-over={isDragOver}
         >
           <AddAPhotoIcon
-            className={classes.editIcon}
+            sx={editIconSx}
             aria-label={texts.edit_avatar}
             onClick={avatarImage.imageUrl ? onClickChangeImage : () => void 0}
           />
           {avatarImage.imageUrl && (
             <CloseIcon
-              className={classes.editIcon}
+              sx={editIconSx}
               onClick={() => setDialogStates({ ...dialogStates, confirmDeleteOpen: true })}
               aria-label={texts.remove_avatar}
               ref={closeIconRef}
             />
           )}
-        </div>
+        </EditIconContainer>
       )}
 
       <input

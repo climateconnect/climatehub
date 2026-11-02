@@ -1,5 +1,5 @@
 import { IconButton, Theme, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ShareIcon from "@mui/icons-material/Share";
 import React, { useState } from "react";
 import SocialMediaShareDialog from "./SocialMediaShareDialog";
@@ -7,18 +7,18 @@ import theme from "../../themes/theme";
 import { SHARE_OPTIONS } from "./shareOptions";
 import useCreateShareRecord from "./useCreateShareRecord";
 
-const useStyles = makeStyles<Theme, { switchColors?: boolean }>((theme) => ({
-  button: (props) => ({
-    color: props.switchColors
-      ? theme.palette.background.default_contrastText
-      : theme.palette.primary.contrastText,
-    width: 35,
-    height: 35,
-    backgroundColor: props.switchColors ? "white" : theme.palette.primary.main,
-    "&:hover": {
-      backgroundColor: props.switchColors ? "white" : theme.palette.primary.main,
-    },
-  }),
+const ShareIconButton = styled(IconButton, {
+  shouldForwardProp: (p) => p !== "switchColors",
+})<{ switchColors?: boolean }>(({ theme, switchColors }) => ({
+  color: switchColors
+    ? theme.palette.background.default_contrastText
+    : theme.palette.primary.contrastText,
+  width: 35,
+  height: 35,
+  backgroundColor: switchColors ? "white" : theme.palette.primary.main,
+  "&:hover": {
+    backgroundColor: switchColors ? "white" : theme.palette.primary.main,
+  },
 }));
 
 export type SocialMediaShareButtonProps = {
@@ -44,7 +44,6 @@ export default function SocialMediaShareButton({
   switchColors,
   hubUrl,
 }: SocialMediaShareButtonProps) {
-  const classes = useStyles({ switchColors: switchColors });
   const isTinyScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
   const isSmallScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   const [showSocials, setShowSocials] = useState(false);
@@ -78,10 +77,10 @@ export default function SocialMediaShareButton({
   return (
     <>
       <div className={className}>
-        <IconButton className={classes.button} onClick={handleClick} size="large">
+        <ShareIconButton switchColors={!!switchColors} onClick={handleClick} size="large">
           {/*adjusted viewBox to center the icon*/}
           <ShareIcon viewBox="2 0 24 24" />
-        </IconButton>
+        </ShareIconButton>
       </div>
       <SocialMediaShareDialog
         open={showSocials}

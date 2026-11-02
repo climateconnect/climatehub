@@ -1,18 +1,8 @@
 import { Checkbox, ListItemText, MenuItem, TextField } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import React, { useContext, useState } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
-
-const useStyles = makeStyles((theme) => ({
-  white: {
-    color: "white",
-  },
-  selectedItem: {
-    backgroundColor: `${theme.palette.background.default_contrastText} !important`,
-  },
-}));
 
 type Props = {
   className?: string;
@@ -54,7 +44,6 @@ export default function SelectField({
   color = "primary",
   sx,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "general", locale: locale });
 
@@ -127,13 +116,21 @@ export default function SelectField({
         options.map((value, index) => {
           if (multiple) {
             return (
-              <MenuItem key={index} value={value.name} classes={{ selected: classes.selectedItem }}>
+              <MenuItem
+                key={index}
+                value={value.name}
+                sx={(theme) => ({
+                  "&.Mui-selected": {
+                    backgroundColor: `${theme.palette.background.default_contrastText} !important`,
+                  },
+                })}
+              >
                 <Checkbox
                   checked={values.indexOf(value.name) > -1}
-                  checkedIcon={<CheckBoxIcon className={classes.white} />}
+                  checkedIcon={<CheckBoxIcon sx={{ color: "white" }} />}
                 />
                 <ListItemText
-                  className={values.indexOf(value.name) > -1 ? classes.white : undefined}
+                  sx={values.indexOf(value.name) > -1 ? { color: "white" } : undefined}
                   primary={value.name}
                 />
               </MenuItem>

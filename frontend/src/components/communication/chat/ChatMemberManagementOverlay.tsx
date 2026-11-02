@@ -1,5 +1,5 @@
 import { Button } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import React, { useContext, useState } from "react";
@@ -10,24 +10,24 @@ import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import ManageMembers from "../../manageMembers/ManageMembers";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    flex: "auto",
-    overflowY: "auto",
-    width: "100%",
-    background: "white",
-    maxWidth: theme.breakpoints.values["md"],
-    margin: "0 auto",
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2),
-  },
-  saveIcon: {
-    float: "right",
-  },
-  buttonsWrapper: {
-    marginTop: theme.spacing(0.5),
-  },
+const Root = styled("form")(({ theme }) => ({
+  flex: "auto",
+  overflowY: "auto",
+  width: "100%",
+  background: "white",
+  maxWidth: theme.breakpoints.values["md"],
+  margin: "0 auto",
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(2),
 }));
+
+const ButtonsWrapper = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(0.5),
+}));
+
+const SaveButton = styled(Button)({
+  float: "right",
+});
 
 export default function ChatMemberManagementOverlay({
   participants,
@@ -39,7 +39,6 @@ export default function ChatMemberManagementOverlay({
   chat_id,
   toggleMemberManagementExpanded,
 }) {
-  const classes = useStyles();
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   const [state, setState] = useState({
@@ -176,8 +175,8 @@ export default function ChatMemberManagementOverlay({
   };
 
   return (
-    <form className={classes.root} onSubmit={handleSubmit}>
-      <div className={classes.buttonsWrapper}>
+    <Root onSubmit={handleSubmit}>
+      <ButtonsWrapper>
         <Button
           color="secondary"
           variant="contained"
@@ -186,16 +185,10 @@ export default function ChatMemberManagementOverlay({
         >
           {texts.go_back}
         </Button>
-        <Button
-          color="primary"
-          variant="contained"
-          startIcon={<SaveIcon />}
-          className={classes.saveIcon}
-          type="submit"
-        >
+        <SaveButton color="primary" variant="contained" startIcon={<SaveIcon />} type="submit">
           {texts.save}
-        </Button>
-      </div>
+        </SaveButton>
+      </ButtonsWrapper>
       <ManageMembers
         currentMembers={state.curParticipants}
         setCurrentMembers={handleSetCurParticipants}
@@ -209,6 +202,6 @@ export default function ChatMemberManagementOverlay({
         label={texts.search_for_users_to_add_to_this_group_chat}
         dontPickRole
       />
-    </form>
+    </Root>
   );
 }

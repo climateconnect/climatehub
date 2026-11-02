@@ -1,17 +1,6 @@
 import React, { FC, ReactNode } from "react";
 import { Theme, useMediaQuery } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import makeStyles from "@mui/styles/makeStyles";
-
-const useStyles = makeStyles((theme) => ({
-  centerItems: {
-    margin: "auto 0",
-    placeItems: "center",
-  },
-  rightPadding: {
-    paddingRight: theme.spacing(6),
-  },
-}));
 
 interface ContentImageSplitViewProps {
   content: ReactNode;
@@ -29,7 +18,6 @@ const ContentImageSplitView: FC<ContentImageSplitViewProps> = ({
   // check the breakpoint for the right pane
   // if the breakpoint is not satisfied, the right pane will be hidden
   const rightPaneHidden = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
-  const classes = useStyles();
 
   return (
     <Grid
@@ -45,7 +33,11 @@ const ContentImageSplitView: FC<ContentImageSplitViewProps> = ({
       {/* content pane */}
       <Grid
         size={{ xs: 12, md: 7 }}
-        className={`${classes.centerItems} ${!rightPaneHidden && classes.rightPadding}`}
+        sx={(theme) => ({
+          margin: "auto 0",
+          placeItems: "center",
+          ...(!rightPaneHidden && { paddingRight: theme.spacing(6) }),
+        })}
       >
         {content}
       </Grid>

@@ -1,10 +1,9 @@
-import { Button, Link, Typography, useTheme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Button, Link, Typography } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import humanizeDuration from "humanize-duration";
 import React, { useState, useContext, useRef, useLayoutEffect } from "react";
-import { Theme } from "@mui/material/styles";
+import { styled, Theme, useTheme } from "@mui/material/styles";
 
 // Relative imports
 import DateDisplay from "./../general/DateDisplay";
@@ -19,158 +18,141 @@ import ProjectContentSideButtons from "./Buttons/ProjectContentSideButtons";
 import { getDevlinkComponent } from "../../utils/getDevlinkComponent";
 import { getEditorStyles } from "mui-tiptap";
 
-const useStyles = makeStyles((theme: Theme) => ({
-  createdBy: {
-    fontSize: 16,
-  },
-  info: {
-    fontStyle: "italic",
-    marginBottom: theme.spacing(1),
-    display: "block",
-    fontSize: 14,
-  },
-  creator: {
-    paddingLeft: theme.spacing(1),
-    color: theme.palette.grey[800],
-    cursor: "pointer",
-    wordBreak: "break-word",
-    "& h6": {
-      fontSize: "inherit",
-      fontWeight: 600,
-      lineHeight: "inherit",
-    },
-  },
-  collaboratingOrganization: {
-    paddingLeft: theme.spacing(1),
-    paddingRight: theme.spacing(1),
-    color: theme.palette.grey[800],
-    cursor: "pointer",
-    breakWord: "break-word",
-  },
-  parentProjectName: {
-    display: "inline-block",
-    color: theme.palette.grey[800],
-    fontWeight: 600,
-    cursor: "pointer",
-    wordBreak: "break-word",
-  },
-  creatorImage: {
-    height: 24,
-    marginBottom: -6,
-    paddingRight: theme.spacing(0.5),
-  },
-  subHeader: {
-    fontWeight: "bold",
-    paddingBottom: theme.spacing(1),
-  },
-  expandButton: {
-    width: "100%",
-    color: theme.palette.background.default_contrastText,
-  },
-  icon: {
-    verticalAlign: "bottom",
-    marginTop: 2,
-    paddingRight: theme.spacing(0.5),
-  },
-  chip: {
-    marginBottom: theme.spacing(1),
-    marginRight: theme.spacing(1),
-    marinTop: theme.spacing(1),
-  },
-  subSubHeader: {
-    fontWeight: 600,
-    marginTop: theme.spacing(1),
-    paddingBottom: theme.spacing(1),
-    color: theme?.palette?.background?.default_contrastText,
-  },
-  contentBlock: {
-    marginBottom: theme.spacing(4),
-  },
-  collabList: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    "& li": {
-      paddingLeft: theme.spacing(3),
-      position: "relative",
-      lineHeight: "30px",
-      "&::before": {
-        content: '"• "',
-        fontWeight: "bold",
-        fontSize: 20,
-        lineHeight: "30px",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        color: theme?.palette?.background?.default_contrastText,
-      },
-    },
-  },
-  progressContent: {
-    marginTop: theme.spacing(5),
-  },
-  collabSection: {
-    display: "inline-block",
-    width: "50%",
-    "@media (max-width:900px)": {
-      width: "100%",
-    },
-  },
-  collabSectionContainer: {
-    display: "flex",
-    marginRight: theme.spacing(3),
-    justifyContent: "space-between",
-    "@media (max-width:900px)": {
-      display: "block",
-    },
-  },
-  openToCollabBool: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    fontWeight: "bold",
-  },
-  projectDescription: {
-    wordBreak: "break-word",
-    // Reuse the tiptap editor's own styles (margin:0 on p/headings/lists, link &
-    // list styling) so the rendered description is WYSIWYG with the editor.
-    ...getEditorStyles(theme),
-    // The tiptap editor renders an empty paragraph (<p></p>, e.g. a blank line
-    // the author created) as a visible empty line — ProseMirror injects a <br>
-    // into empty blocks in the editable view. In the read-only display that <br>
-    // is absent, so an empty <p> collapses to zero height. Give it one line of
-    // height (via a hidden non-breaking space) so blank lines created in the
-    // editor stay visible. This matches the editor without changing global CSS.
-    "& p:empty::before": {
-      content: '"\\00a0"',
-      visibility: "hidden",
-    },
-    "& ul, & ol": {
-      paddingLeft: "1.5em",
-    },
-    "& iframe": {
-      maxWidth: 640,
-      width: "100%",
-      height: "auto",
-      aspectRatio: "16 / 9",
-    },
-  },
-  descriptionClamped: {
-    display: "-webkit-box",
-    "-webkit-line-clamp": 6,
-    "-webkit-box-orient": "vertical",
-    overflow: "hidden",
-  },
-  projectParentContainer: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  collaborationContainer: {
-    display: "flex",
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
+const CreatedBy = styled("div")({
+  fontSize: 16,
+});
+
+const InfoText = styled(Typography)(({ theme }) => ({
+  fontStyle: "italic",
+  marginBottom: theme.spacing(1),
+  display: "block",
+  fontSize: 14,
 }));
+
+const creatorStyles = (theme: Theme) => ({
+  paddingLeft: theme.spacing(1),
+  color: theme.palette.grey[800],
+  cursor: "pointer",
+  wordBreak: "break-word" as const,
+  "& h6": {
+    fontSize: "inherit",
+    fontWeight: 600,
+    lineHeight: "inherit",
+  },
+});
+
+const StyledMiniProfilePreview = styled(MiniProfilePreview)(({ theme }) => creatorStyles(theme));
+
+const StyledMiniOrganizationPreview = styled(MiniOrganizationPreview)(({ theme }) =>
+  creatorStyles(theme)
+);
+
+const CollaboratingOrganization = styled(MiniOrganizationPreview)(({ theme }) => ({
+  paddingLeft: theme.spacing(1),
+  paddingRight: theme.spacing(1),
+  color: theme.palette.grey[800],
+  cursor: "pointer",
+}));
+
+const ParentProjectName = styled(Typography)(({ theme }) => ({
+  display: "inline-block",
+  color: theme.palette.grey[800],
+  fontWeight: 600,
+  cursor: "pointer",
+  wordBreak: "break-word",
+}));
+
+const SubHeader = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  fontWeight: "bold",
+  paddingBottom: theme.spacing(1),
+}));
+
+const ExpandButton = styled(Button)(({ theme }) => ({
+  width: "100%",
+  color: theme.palette.background.default_contrastText,
+}));
+
+const StyledExpandLessIcon = styled(ExpandLessIcon)(({ theme }) => ({
+  verticalAlign: "bottom",
+  marginTop: 2,
+  paddingRight: theme.spacing(0.5),
+}));
+
+const StyledExpandMoreIcon = styled(ExpandMoreIcon)(({ theme }) => ({
+  verticalAlign: "bottom",
+  marginTop: 2,
+  paddingRight: theme.spacing(0.5),
+}));
+
+const ContentBlock = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+}));
+
+const ProgressContent = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(5),
+}));
+
+const OpenToCollabBool = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  fontWeight: "bold",
+}));
+
+const projectDescriptionStyles = (theme: Theme) => ({
+  wordBreak: "break-word" as const,
+  // Reuse the tiptap editor's own styles (margin:0 on p/headings/lists, link &
+  // list styling) so the rendered description is WYSIWYG with the editor.
+  ...getEditorStyles(theme),
+  // The tiptap editor renders an empty paragraph (<p></p>, e.g. a blank line
+  // the author created) as a visible empty line — ProseMirror injects a <br>
+  // into empty blocks in the editable view. In the read-only display that <br>
+  // is absent, so an empty <p> collapses to zero height. Give it one line of
+  // height (via a hidden non-breaking space) so blank lines created in the
+  // editor stay visible. This matches the editor without changing global CSS.
+  "& p:empty::before": {
+    content: '"\\00a0"',
+    visibility: "hidden" as const,
+  },
+  "& ul, & ol": {
+    paddingLeft: "1.5em",
+  },
+  "& iframe": {
+    maxWidth: 640,
+    width: "100%",
+    height: "auto",
+    aspectRatio: "16 / 9",
+  },
+});
+
+const DescriptionWrapper = styled(Typography)<{ component?: React.ElementType }>(({ theme }) =>
+  projectDescriptionStyles(theme)
+);
+
+const DescriptionBody = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$clamped",
+})<{ $clamped?: boolean }>(({ theme, $clamped }) => ({
+  ...projectDescriptionStyles(theme),
+  ...($clamped && {
+    // emotion label: keeps "descriptionClamped" in the class name (the test selects by it)
+    label: "descriptionClamped",
+    display: "-webkit-box",
+    WebkitLineClamp: 6,
+    WebkitBoxOrient: "vertical" as const,
+    overflow: "hidden",
+  }),
+}));
+
+const ProjectParentContainer = styled("div")({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+});
+
+const CollaborationContainer = styled("div")({
+  display: "flex",
+  flexDirection: "row",
+  flexWrap: "wrap",
+});
 
 export default function ProjectContent({
   discussionTabLabel,
@@ -189,7 +171,6 @@ export default function ProjectContent({
   onEventRegistrationUpdated,
   onMembersRefreshed,
 }) {
-  const classes = useStyles({});
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -242,8 +223,8 @@ export default function ProjectContent({
   const theme = useTheme();
   return (
     <>
-      <div className={classes.contentBlock}>
-        <div className={classes.createdBy}>
+      <ContentBlock>
+        <CreatedBy>
           <ProjectContentSideButtons
             project={project}
             showRequesters={showRequesters}
@@ -261,7 +242,7 @@ export default function ProjectContent({
             {texts.shared} <DateDisplay date={new Date(project.creation_date)} />
           </Typography>
           <div>
-            <div className={classes.projectParentContainer}>
+            <ProjectParentContainer>
               <Typography component="span">
                 {project.project_type.type_id === "event" ? (
                   <>{texts.event_organized_by}</>
@@ -272,15 +253,13 @@ export default function ProjectContent({
                   </>
                 )}
                 {project.isPersonalProject ? (
-                  <MiniProfilePreview
-                    className={classes.creator}
+                  <StyledMiniProfilePreview
                     profile={project.creator}
                     size="small"
                     hubUrl={hubUrl}
                   />
                 ) : (
-                  <MiniOrganizationPreview
-                    className={classes.creator}
+                  <StyledMiniOrganizationPreview
                     organization={project.creator}
                     inline
                     size="small"
@@ -288,7 +267,7 @@ export default function ProjectContent({
                   />
                 )}
               </Typography>
-            </div>
+            </ProjectParentContainer>
             {project.project_type.type_id === "project" && project.end_date && (
               <Typography>
                 {texts.finished + " "}
@@ -297,19 +276,18 @@ export default function ProjectContent({
             )}
 
             {project.collaborating_organizations && project.collaborating_organizations.length > 0 && (
-              <div className={classes.collaborationContainer}>
+              <CollaborationContainer>
                 <span> {texts.in_collaboration_with}</span>
                 {project.collaborating_organizations.map((o) => (
-                  <MiniOrganizationPreview
+                  <CollaboratingOrganization
                     key={o.id}
                     size="small"
                     inline
-                    className={classes.collaboratingOrganization}
                     organization={o}
                     hubUrl={hubUrl}
                   />
                 ))}
-              </div>
+              </CollaborationContainer>
             )}
             {project.parent_project_id &&
               project.parent_project_name &&
@@ -323,9 +301,7 @@ export default function ProjectContent({
                   })()}{" "}
                   <Link href={`/projects/${project.parent_project_slug}`}>
                     {" "}
-                    <Typography className={classes.parentProjectName}>
-                      {project.parent_project_name}
-                    </Typography>
+                    <ParentProjectName>{project.parent_project_name}</ParentProjectName>
                   </Link>
                 </div>
               )}
@@ -340,9 +316,9 @@ export default function ProjectContent({
               })}
             </Typography>
           )}
-        </div>
-      </div>
-      <div className={classes.contentBlock}>
+        </CreatedBy>
+      </ContentBlock>
+      <ContentBlock>
         {(() => {
           const DevlinkComponent = getDevlinkComponent(project.devlink_component, locale);
           if (DevlinkComponent) {
@@ -350,44 +326,41 @@ export default function ProjectContent({
           }
           return (
             <>
-              <Typography
+              <SubHeader
                 component="h2"
                 variant="h6"
                 color={theme.palette.background.default_contrastText}
-                className={classes.subHeader}
               >
                 {getProjectDescriptionHeadline()}
-              </Typography>
-              <Typography className={classes.projectDescription} component="div">
+              </SubHeader>
+              <DescriptionWrapper component="div">
                 {project.description_html ? (
-                  <div
+                  <DescriptionBody
                     ref={descRef}
-                    className={`${classes.projectDescription} ${
-                      showFullDescription ? "" : classes.descriptionClamped
-                    }`}
+                    $clamped={!showFullDescription}
                     dangerouslySetInnerHTML={{ __html: project.description_html }}
                   />
                 ) : (
                   <Typography variant="body2">{getNoProjectDescriptionText()}</Typography>
                 )}
-              </Typography>
+              </DescriptionWrapper>
               {project.description_html && (showFullDescription || isOverflowing) && (
-                <Button className={classes.expandButton} onClick={handleToggleFullDescriptionClick}>
+                <ExpandButton onClick={handleToggleFullDescriptionClick}>
                   {showFullDescription ? (
                     <div>
-                      <ExpandLessIcon className={classes.icon} /> {texts.show_less}
+                      <StyledExpandLessIcon /> {texts.show_less}
                     </div>
                   ) : (
                     <div>
-                      <ExpandMoreIcon className={classes.icon} /> {texts.show_more}
+                      <StyledExpandMoreIcon /> {texts.show_more}
                     </div>
                   )}
-                </Button>
+                </ExpandButton>
               )}
             </>
           );
         })()}
-      </div>
+      </ContentBlock>
       {latestParentComment[0] && (
         <DiscussionPreview
           latestParentComment={latestParentComment}
@@ -401,60 +374,55 @@ export default function ProjectContent({
         />
       )}
       {false && (
-        <div className={classes.contentBlock}>
-          <Typography
+        <ContentBlock>
+          <SubHeader
             component="h2"
             variant="h6"
             color={theme.palette.background.default_contrastText}
-            className={classes.subHeader}
           >
             {texts.collaboration}
-          </Typography>
+          </SubHeader>
           {project.collaborators_welcome ? (
             <CollaborateContent project={project} texts={texts} />
           ) : (
-            <Typography className={classes.openToCollabBool}>
+            <OpenToCollabBool>
               {texts.this_project_is_not_looking_for_collaborators_right_now}
-            </Typography>
+            </OpenToCollabBool>
           )}
-        </div>
+        </ContentBlock>
       )}
-      <div className={classes.contentBlock}>
-        <Typography
+      <ContentBlock>
+        <SubHeader
           component="h2"
           variant="h6"
           color={theme.palette.background.default_contrastText}
-          className={classes.subHeader}
         >
           {texts.progress}
-        </Typography>
+        </SubHeader>
         <Typography variant="body2" fontStyle="italic" fontWeight="bold">
           {texts.follow_the_project_to_be_notified_when_they_make_an_update_post}
         </Typography>
         {project.timeline_posts && project.timeline_posts.length > 0 && (
-          <div className={classes.progressContent}>
+          <ProgressContent>
             <Posts
               posts={project.timeline_posts.sort((a, b) => new Date(b.date) - new Date(a.date))}
               type="progresspost"
               hubUrl={hubUrl}
             />
-          </div>
+          </ProgressContent>
         )}
-      </div>
+      </ContentBlock>
     </>
   );
 }
 
 function CollaborateContent({ texts }) {
-  const classes = useStyles();
   return (
     <>
-      <Typography variant="body2" className={classes.info}>
+      <InfoText variant="body2">
         {texts.to_fight_climate_change_we_all_need_to_work_together}
-      </Typography>
-      <Typography className={classes.openToCollabBool}>
-        {texts.this_project_is_open_to_collaborators}
-      </Typography>
+      </InfoText>
+      <OpenToCollabBool>{texts.this_project_is_open_to_collaborators}</OpenToCollabBool>
     </>
   );
 }

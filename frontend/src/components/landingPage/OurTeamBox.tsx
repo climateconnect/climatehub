@@ -1,5 +1,5 @@
 import { Container, Typography, useMediaQuery, Link, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import theme from "../../themes/theme";
@@ -8,66 +8,68 @@ import InfoLinkBox from "../staticpages/InfoLinkBox";
 import SmallCloud from "../staticpages/SmallCloud";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: theme.spacing(10),
-    marginBottom: theme.spacing(10),
-    position: "relative",
-    [theme.breakpoints.down("sm")]: {
-      marginTop: theme.spacing(5),
-      marginBottom: theme.spacing(5),
-    },
+const Root = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(10),
+  marginBottom: theme.spacing(10),
+  position: "relative",
+  [theme.breakpoints.down("sm")]: {
+    marginTop: theme.spacing(5),
+    marginBottom: theme.spacing(5),
   },
-  content: {
-    display: "flex",
-    maxWidth: 1280,
-    [theme.breakpoints.down("md")]: {
-      flexDirection: "column",
-      width: "100%",
-    },
-  },
-  infoLinkBoxes: {
-    display: "flex",
+}));
+
+const Content = styled("div")(({ theme }) => ({
+  display: "flex",
+  maxWidth: 1280,
+  [theme.breakpoints.down("md")]: {
     flexDirection: "column",
-    justifyContent: "space-around",
-    position: "relative",
-    [theme.breakpoints.up("sm")]: {
-      marginLeft: theme.spacing(3),
-    },
+    width: "100%",
   },
-  teamImage: {
+}));
+
+const InfoLinkBoxes = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-around",
+  position: "relative",
+  [theme.breakpoints.up("sm")]: {
+    marginLeft: theme.spacing(3),
+  },
+}));
+
+const TeamImage = styled("img")(({ theme }) => ({
+  maxWidth: "100%",
+  [theme.breakpoints.down("md")]: {
+    width: "100%",
     maxWidth: "100%",
-    [theme.breakpoints.down("md")]: {
-      width: "100%",
-      maxWidth: "100%",
-    },
   },
-  smallCloud1: {
-    position: "absolute",
-    right: 110,
-    top: 160,
-    width: 120,
-    height: 90,
-    [theme.breakpoints.down("lg")]: {
-      display: "none",
-    },
+}));
+
+const StyledSmallCloud1 = styled(SmallCloud)(({ theme }) => ({
+  position: "absolute",
+  right: 110,
+  top: 160,
+  width: 120,
+  height: 90,
+  [theme.breakpoints.down("lg")]: {
+    display: "none",
   },
-  smallCloud2: {
-    position: "absolute",
-    width: 120,
-    height: 90,
-    top: -60,
-    left: 100,
-    [theme.breakpoints.down("sm")]: {
-      left: 30,
-      top: -30,
-      width: 80,
-    },
+}));
+
+const StyledSmallCloud2 = styled(SmallCloud)(({ theme }) => ({
+  position: "absolute",
+  width: 120,
+  height: 90,
+  top: -60,
+  left: 100,
+  [theme.breakpoints.down("sm")]: {
+    left: 30,
+    top: -30,
+    width: 80,
   },
 }));
 
 export default function OurTeamBox({ h1ClassName }) {
-  const classes = useStyles();
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
   const { locale } = useContext(UserContext);
   const link_to_team_page = getLocalePrefix(locale) + "/team";
@@ -75,24 +77,19 @@ export default function OurTeamBox({ h1ClassName }) {
   const texts = getTexts({
     page: "landing_page",
     locale: locale,
-    classes: classes,
     isNarrowScreen: isNarrowScreen,
   });
   return (
-    <Container className={classes.root}>
-      <SmallCloud type={2} reverse className={classes.smallCloud2} />
+    <Root>
+      <StyledSmallCloud2 type={2} reverse />
       <Typography color="primary" component="h1" className={h1ClassName}>
         {texts.our_team}
       </Typography>
-      <div className={classes.content}>
+      <Content>
         <Link href={link_to_team_page} underline="hover">
-          <img
-            src="/images/team.jpg"
-            className={classes.teamImage}
-            alt={texts.our_team_image_text}
-          />
+          <TeamImage src="/images/team.jpg" alt={texts.our_team_image_text} />
         </Link>
-        <div className={classes.infoLinkBoxes}>
+        <InfoLinkBoxes>
           <InfoLinkBox
             iconSrc="/icons/group-icon.svg"
             iconAlt={texts.group_icon_alt}
@@ -104,7 +101,7 @@ export default function OurTeamBox({ h1ClassName }) {
                 : ""
             }
           >
-            <SmallCloud type={1} className={classes.smallCloud1} />
+            <StyledSmallCloud1 type={1} />
           </InfoLinkBox>
           <InfoLinkBox
             iconSrc="/icons/donate-icon.svg"
@@ -117,8 +114,8 @@ export default function OurTeamBox({ h1ClassName }) {
                 : ""
             }
           />
-        </div>
-      </div>
-    </Container>
+        </InfoLinkBoxes>
+      </Content>
+    </Root>
   );
 }

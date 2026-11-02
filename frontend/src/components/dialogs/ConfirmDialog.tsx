@@ -1,19 +1,18 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { func, bool, object, string, oneOfType } from "prop-types";
 
 import React from "react";
 
 import GenericDialog from "./GenericDialog";
 
-const useStyles = makeStyles((theme) => ({
-  buttonsContainer: {
-    marginTop: theme.spacing(3),
-    textAlign: "right",
-  },
-  button: {
-    marginLeft: theme.spacing(1),
-  },
+const ButtonsContainer = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(3),
+  textAlign: "right",
+}));
+
+const DialogButton = styled(Button)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
 }));
 
 export default function ConfirmDialog({
@@ -25,8 +24,6 @@ export default function ConfirmDialog({
   title,
   className,
 }) {
-  const classes = useStyles();
-
   const handleCancel = () => {
     onClose(false);
   };
@@ -37,24 +34,14 @@ export default function ConfirmDialog({
   return (
     <GenericDialog onClose={handleCancel} open={open} title={title} dialogContentClass={className}>
       <Typography>{text}</Typography>
-      <div className={classes.buttonsContainer}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleCancel}
-          className={classes.button}
-        >
+      <ButtonsContainer>
+        <DialogButton variant="contained" color="primary" onClick={handleCancel}>
           {cancelText}
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleConfirm}
-          className={classes.button}
-        >
+        </DialogButton>
+        <DialogButton variant="contained" color="primary" onClick={handleConfirm}>
           {confirmText}
-        </Button>
-      </div>
+        </DialogButton>
+      </ButtonsContainer>
     </GenericDialog>
   );
 }

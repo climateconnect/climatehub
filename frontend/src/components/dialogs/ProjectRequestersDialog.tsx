@@ -13,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckIcon from "@mui/icons-material/Check";
 import React, { useContext, useState } from "react";
@@ -28,33 +28,31 @@ import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import GenericDialog from "./GenericDialog";
 
-const useStyles = makeStyles((theme) => ({
-  user: {
-    display: "flex",
-    alignItems: "center",
-  },
-  avatar: {
-    marginRight: theme.spacing(1),
-  },
-  username: {
-    fontWeight: 600,
-  },
-  followedText: {
-    [theme.breakpoints.down("sm")]: {
-      fontSize: 13,
-    },
-  },
-  loginButton: {
-    marginTop: theme.spacing(3),
-  },
-  loginButtonContainer: {
-    display: "flex",
-    justifyContent: "center",
-  },
-  noOpenRequestsText: {
-    textAlign: "center",
-  },
+const User = styled(Link)({
+  display: "flex",
+  alignItems: "center",
+});
+
+const UserAvatar = styled(Avatar)(({ theme }) => ({
+  marginRight: theme.spacing(1),
 }));
+
+const Username = styled(Typography)({
+  fontWeight: 600,
+}) as typeof Typography;
+
+const LoginButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(3),
+}));
+
+const LoginButtonContainer = styled(Container)({
+  display: "flex",
+  justifyContent: "center",
+});
+
+const NoOpenRequestsText = styled(Typography)({
+  textAlign: "center",
+});
 
 export default function ProjectRequestersDialog({
   loading,
@@ -67,7 +65,6 @@ export default function ProjectRequestersDialog({
   user,
   user_permission,
 }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
 
@@ -81,9 +78,9 @@ export default function ProjectRequestersDialog({
         {
           // If we don't have any permissions, we can't load the join requests
           !user_permission ? (
-            <Typography className={classes.noOpenRequestsText}>
+            <NoOpenRequestsText>
               {texts.only_project_admins_can_view_join_requests}
-            </Typography>
+            </NoOpenRequestsText>
           ) : loading ? (
             <LinearProgress />
           ) : !user ? (
@@ -91,16 +88,15 @@ export default function ProjectRequestersDialog({
               <Typography>
                 {texts.please_log_in + " " + texts.to_see_this_projects_requesters + "!"}
               </Typography>
-              <Container className={classes.loginButtonContainer}>
-                <Button
-                  className={classes.loginButton}
+              <LoginButtonContainer>
+                <LoginButton
                   variant="contained"
                   color="primary"
                   href={getLocalePrefix(locale) + "/signin?redirect=" + encodeURIComponent(url)}
                 >
                   {texts.log_in}
-                </Button>
-              </Container>
+                </LoginButton>
+              </LoginButtonContainer>
             </>
           ) : // If there are users requesting to join and we have permission to view them: render them!
           requesters && requesters.length > 0 ? (
@@ -110,9 +106,7 @@ export default function ProjectRequestersDialog({
               initialRequesters={requesters}
             />
           ) : (
-            <Typography className={classes.noOpenRequestsText}>
-              {texts.no_open_project_join_requests}
-            </Typography>
+            <NoOpenRequestsText>{texts.no_open_project_join_requests}</NoOpenRequestsText>
           )
         }
       </>
@@ -176,7 +170,6 @@ const ProjectRequesters = ({ initialRequesters, onRequestersUpdated, project }) 
  * all the requester state and functionality together.
  */
 const Requester = ({ handleUpdateRequesters, locale, project, requester, requestId, token }) => {
-  const classes = useStyles();
   const { showFeedbackMessage } = useContext(FeedbackContext);
   const texts = getTexts({ page: "general", locale: locale });
 
@@ -220,20 +213,18 @@ const Requester = ({ handleUpdateRequesters, locale, project, requester, request
   return (
     <>
       <TableCell>
-        <Link
-          className={classes.user}
+        <User
           href={getLocalePrefix(locale) + "/profiles/" + requester.user.url_slug}
           underline="hover"
         >
-          <Avatar
-            className={classes.avatar}
+          <UserAvatar
             src={getImageUrl(requester.user.image)}
             alt={requester.user.first_name + " " + requester.user.last_name}
           />
-          <Typography component="span" color="secondary" className={classes.username}>
+          <Username component="span" color="secondary">
             {requester.user.first_name + " " + requester.user.last_name}
-          </Typography>
-        </Link>
+          </Username>
+        </User>
       </TableCell>
 
       <TableCell>

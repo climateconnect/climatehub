@@ -7,7 +7,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Link from "next/link";
 import React, { useContext, useState } from "react";
@@ -20,57 +20,86 @@ import { removeUnnecesaryCookies } from "./../../../public/lib/cookieOperations"
 import Switcher from "../general/Switcher";
 import RequiredFieldsNotice from "../general/RequiredFieldsNotice";
 
-const useStyles = makeStyles((theme) => ({
-  blockElement: {
-    display: "block",
-    marginTop: theme.spacing(2),
-  },
-  displayBlock: {
-    display: "block",
-  },
-  forgotPasswordLink: {
-    marginTop: theme.spacing(2),
-    display: "block",
-  },
-  marginBottom: {
-    marginBottom: theme.spacing(1),
-  },
-  lowerHeaders: {
-    marginTop: theme.spacing(2),
-  },
-  editProfilePageButton: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  authMethodToggle: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(1),
-  },
-  authMethodHint: {
-    marginTop: theme.spacing(1),
-  },
-  deleteMessage: {
-    display: "flex",
-    alignItems: "center",
-    flexWrap: "wrap",
-    marginTop: theme.spacing(5),
-    marginBottom: theme.spacing(5),
-  },
-  spaceStrings: {
-    width: 4,
-  },
-  textColor: {
-    color: theme.palette.background.default_contrastText,
-  },
-  requiredFieldsNotice: {
-    display: "block",
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(2),
-  },
+const NoticeWrapper = styled(RequiredFieldsNotice)(({ theme }) => ({
+  display: "block",
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(2),
+}));
+
+const Heading = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+}));
+
+const LowerHeading = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  color: theme.palette.background.default_contrastText,
+}));
+
+const AuthMethodToggle = styled("div")(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+}));
+
+const AuthMethodHint = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const BlockTypography = styled(Typography)(({ theme }) => ({
+  display: "block",
+  marginTop: theme.spacing(2),
+}));
+
+const BlockDiv = styled("div")(({ theme }) => ({
+  display: "block",
+  marginTop: theme.spacing(2),
+}));
+
+const BlockTextField = styled(TextField)(({ theme }) => ({
+  display: "block",
+  marginTop: theme.spacing(2),
+}));
+
+const BlockButton = styled(Button)(({ theme }) => ({
+  display: "block",
+  marginTop: theme.spacing(2),
+}));
+
+const PasswordHint = styled(Typography)(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+}));
+
+const ForgotPasswordLink = styled(Link)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  display: "block",
+  color: theme.palette.background.default_contrastText,
+}));
+
+const BlockFormControlLabel = styled(FormControlLabel)({
+  display: "block",
+});
+
+const EditProfilePageButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+}));
+
+const DeleteMessage = styled(Typography)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  marginTop: theme.spacing(5),
+  marginBottom: theme.spacing(5),
+}));
+
+const SpaceStrings = styled("div")({
+  width: 4,
+});
+
+const ContrastLink = styled(Link)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
 }));
 
 export default function SettingsPage({ settings, setSettings, token, setMessage }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "settings", locale: locale });
   const emailLink = "contact@climatehub.org";
@@ -382,12 +411,12 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
 
   return (
     <>
-      <RequiredFieldsNotice className={classes.requiredFieldsNotice} />
-      <Typography variant="h5" component="h2" className={classes.textColor}>
+      <NoticeWrapper />
+      <Heading variant="h5" component="h2">
         {texts.login_method}
-      </Typography>
+      </Heading>
       <Divider />
-      <div className={classes.authMethodToggle}>
+      <AuthMethodToggle>
         <Switcher
           falseLabel={texts.login_method_otp}
           trueLabel={texts.login_method_password}
@@ -395,30 +424,24 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
           handleChangeValue={handleAuthMethodChange}
           disabled={!settings.has_password}
         />
-      </div>
+      </AuthMethodToggle>
       {!settings.has_password && (
-        <Typography variant="body2" className={classes.authMethodHint}>
-          {texts.password_option_disabled_hint}
-        </Typography>
+        <AuthMethodHint variant="body2">{texts.password_option_disabled_hint}</AuthMethodHint>
       )}
-      <Typography variant="h5" component="h2" className={classes.textColor}>
+      <Heading variant="h5" component="h2">
         {texts.password}
-      </Typography>
+      </Heading>
       <Divider />
       <form onSubmit={changePassword}>
         {errors.passworderror && (
-          <Typography className={classes.blockElement} color="error">
-            {errors.passworderror}
-          </Typography>
+          <BlockTypography color="error">{errors.passworderror}</BlockTypography>
         )}
         {!settings.has_password && (
-          <Typography className={classes.blockElement} variant="body2">
-            {texts.set_password_description}
-          </Typography>
+          <BlockTypography variant="body2">{texts.set_password_description}</BlockTypography>
         )}
         {settings.has_password && (
           <>
-            <div className={classes.blockElement}>
+            <BlockDiv>
               <TextField
                 variant="outlined"
                 style={{ minWidth: 360 }}
@@ -428,10 +451,10 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
                 onChange={(event) => handlePasswordInputsChange(event, "oldpassword")}
                 required
               />
-            </div>
+            </BlockDiv>
           </>
         )}
-        <div className={classes.blockElement}>
+        <BlockDiv>
           <TextField
             variant="outlined"
             style={{ minWidth: 360 }}
@@ -441,8 +464,8 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
             onChange={(event) => handlePasswordInputsChange(event, "newpassword")}
             required
           />
-        </div>
-        <div className={classes.blockElement}>
+        </BlockDiv>
+        <BlockDiv>
           <TextField
             variant="outlined"
             style={{ minWidth: 360 }}
@@ -452,74 +475,55 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
             onChange={(event) => handlePasswordInputsChange(event, "confirmnewpassword")}
             required
           />
-        </div>
-        <div className={classes.blockElement}>
-          <Typography variant="body2" className={classes.marginBottom}>
+        </BlockDiv>
+        <BlockDiv>
+          <PasswordHint variant="body2">
             {texts.make_sure_it_is_at_least_8_characters_including_a_number_and_an_uppercase_letter}
-          </Typography>
+          </PasswordHint>
           <Button variant="contained" color="primary" type="submit">
             {settings.has_password ? texts.change_password : texts.set_new_password}
           </Button>
           {settings.has_password && (
-            <Link
-              href={appHref("/resetpassword", { locale })}
-              className={`${classes.forgotPasswordLink} ${classes.textColor}`}
-            >
+            <ForgotPasswordLink href={appHref("/resetpassword", { locale })}>
               {texts.i_forgot_my_password}
-            </Link>
+            </ForgotPasswordLink>
           )}
-        </div>
+        </BlockDiv>
       </form>
-      <Typography
-        className={`${classes.lowerHeaders} ${classes.textColor}`}
-        variant="h5"
-        component="h2"
-      >
+      <LowerHeading variant="h5" component="h2">
         {texts.change_linked_email}
-      </Typography>
+      </LowerHeading>
       <Divider />
       <form onSubmit={changeEmail}>
         {errors.newemailerror && (
-          <Typography className={classes.blockElement} color="error">
-            {errors.newemailerror}
-          </Typography>
+          <BlockTypography color="error">{errors.newemailerror}</BlockTypography>
         )}
-        <Typography className={classes.blockElement} variant="body2">
+        <BlockTypography variant="body2">
           {texts.your_linked_email_is} {settings.email}
-        </Typography>
-        <TextField
+        </BlockTypography>
+        <BlockTextField
           variant="outlined"
-          className={classes.blockElement}
           type="email"
           label={texts.new_email}
           value={newEmail}
           onChange={handleNewEmailChange}
           required
         />
-        <Button className={classes.blockElement} variant="contained" color="primary" type="submit">
+        <BlockButton variant="contained" color="primary" type="submit">
           {texts.change_email}
-        </Button>
-        <Typography className={classes.blockElement} variant="body2">
-          {texts.change_email_text}
-        </Typography>
+        </BlockButton>
+        <BlockTypography variant="body2">{texts.change_email_text}</BlockTypography>
       </form>
-      <Typography
-        className={`${classes.lowerHeaders} ${classes.textColor}`}
-        variant="h5"
-        component="h2"
-        id="emailPreferences"
-      >
+      <LowerHeading variant="h5" component="h2" id="emailPreferences">
         {texts.change_email_preferences}
-      </Typography>
+      </LowerHeading>
       <Divider />
-      <div className={classes.blockElement}>
+      <BlockDiv>
         {errors.emailpreferenceserror && (
-          <Typography className={classes.blockElement} color="error">
-            {errors.emailpreferenceserror}
-          </Typography>
+          <BlockTypography color="error">{errors.emailpreferenceserror}</BlockTypography>
         )}
         {Object.keys(emailPreferences).map((key) => (
-          <FormControlLabel
+          <BlockFormControlLabel
             control={
               <Checkbox
                 checked={emailPreferences[key]}
@@ -529,12 +533,10 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
             }
             key={key}
             label={possibleEmailPreferences.find((p) => p.key === key)!.text}
-            className={classes.displayBlock}
           />
         ))}
-      </div>
-      <Button
-        className={`${classes.editProfilePageButton}`}
+      </BlockDiv>
+      <EditProfilePageButton
         variant="contained"
         color="primary"
         onClick={changeEmailPreferences}
@@ -542,24 +544,17 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
       >
         {emailPreferencesLoading && <CircularProgress size={13} />}
         {texts.change_preferences}
-      </Button>
-      <Typography
-        className={`${classes.lowerHeaders} ${classes.textColor}`}
-        variant="h5"
-        component="h2"
-        id="cookiesettings"
-      >
+      </EditProfilePageButton>
+      <LowerHeading variant="h5" component="h2" id="cookiesettings">
         {texts.change_cookie_settings}
-      </Typography>
+      </LowerHeading>
       <Divider />
-      <div className={classes.blockElement}>
+      <BlockDiv>
         {errors.cookiepreferencesserror && (
-          <Typography className={classes.blockElement} color="error">
-            {errors.cookiepreferencesserror}
-          </Typography>
+          <BlockTypography color="error">{errors.cookiepreferencesserror}</BlockTypography>
         )}
         {Object.keys(cookiePreferences).map((key) => (
-          <FormControlLabel
+          <BlockFormControlLabel
             control={
               <Checkbox
                 checked={cookiePreferences[key]}
@@ -569,42 +564,29 @@ export default function SettingsPage({ settings, setSettings, token, setMessage 
             }
             key={key}
             label={possibleCookiePreferences.find((p) => p.key === key)!.text}
-            className={classes.displayBlock}
           />
         ))}
-      </div>
-      <Button
-        className={`${classes.editProfilePageButton}`}
-        variant="contained"
-        color="primary"
-        onClick={changeCookiePreferences}
-      >
+      </BlockDiv>
+      <EditProfilePageButton variant="contained" color="primary" onClick={changeCookiePreferences}>
         {texts.change_cookie_settings}
-      </Button>
-      <Typography
-        className={`${classes.lowerHeaders} ${classes.textColor}`}
-        variant="h5"
-        component="h2"
-      >
+      </EditProfilePageButton>
+      <LowerHeading variant="h5" component="h2">
         {texts.edit_your_profile_page}
-      </Typography>
+      </LowerHeading>
       <Divider />
-      <Button
+      <EditProfilePageButton
         href={appHref("/editprofile", { locale })}
-        className={`${classes.editProfilePageButton}`}
         variant="contained"
         color="primary"
       >
         {texts.edit_profile_page}
-      </Button>
-      <Typography variant="subtitle2" className={classes.deleteMessage}>
+      </EditProfilePageButton>
+      <DeleteMessage variant="subtitle2">
         <InfoOutlinedIcon />
         {texts.if_you_wish_to_delete_this_account}
-        <div className={classes.spaceStrings} />
-        <Link href="mailto:contact@climatehub.org" className={classes.textColor}>
-          {emailLink}
-        </Link>
-      </Typography>
+        <SpaceStrings />
+        <ContrastLink href="mailto:contact@climatehub.org">{emailLink}</ContrastLink>
+      </DeleteMessage>
     </>
   );
 }

@@ -1,5 +1,5 @@
-import { Badge, Box, CircularProgress, Typography, useTheme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { Badge, Box, CircularProgress, Typography } from "@mui/material";
+import { styled, useTheme } from "@mui/material/styles";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import Cookies from "universal-cookie";
 import { apiRequest } from "../../../public/lib/apiOperations";
@@ -12,59 +12,64 @@ import NoItemsFound from "../browse/NoItemsFound";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { Dayjs } from "dayjs";
 
-const useStyles = makeStyles((theme) => ({
-  dayHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1.5),
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    paddingBottom: theme.spacing(0.5),
-    marginBottom: theme.spacing(1),
-  },
-  dayTile: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.spacing(0.5),
-    padding: theme.spacing(0.5, 1.5),
-    minWidth: 64,
-  },
-  dayTileMonth: {
-    fontSize: 12,
-    fontWeight: 600,
-    textTransform: "uppercase",
-    lineHeight: 1.2,
-  },
-  dayTileDay: {
-    fontSize: 24,
-    fontWeight: 700,
-    lineHeight: 1.1,
-  },
-  dayWeekday: {
-    fontSize: 18,
-    fontWeight: 600,
-  },
-  dayGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(1.5),
-  },
-  emptyState: {
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing(4),
-  },
-  todayBadge: {
-    "& .MuiBadge-badge": {
-      fontSize: 9,
-      height: 16,
-      minWidth: 36,
-      padding: "0 4px",
-      borderRadius: 8,
-      fontWeight: 700,
-    },
-  },
+const DayHeader = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1.5),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  paddingBottom: theme.spacing(0.5),
+  marginBottom: theme.spacing(1),
 }));
+
+const DayTile = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: theme.spacing(0.5),
+  padding: theme.spacing(0.5, 1.5),
+  minWidth: 64,
+}));
+
+const DayTileMonth = styled("span")({
+  fontSize: 12,
+  fontWeight: 600,
+  textTransform: "uppercase",
+  lineHeight: 1.2,
+});
+
+const DayTileDay = styled("span")({
+  fontSize: 24,
+  fontWeight: 700,
+  lineHeight: 1.1,
+});
+
+const DayWeekday = styled(Typography)({
+  fontSize: 18,
+  fontWeight: 600,
+}) as typeof Typography;
+
+const DayGroupList = styled("div")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(1.5),
+}));
+
+const EmptyState = styled(Typography)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  marginTop: theme.spacing(4),
+}));
+
+const TodayBadge = styled(Badge)({
+  "& .MuiBadge-badge": {
+    fontSize: 9,
+    height: 16,
+    minWidth: 36,
+    padding: "0 4px",
+    borderRadius: 8,
+    fontWeight: 700,
+  },
+});
 
 const toYyyyMmDd = (d: Date): string => {
   const y = d.getFullYear();
@@ -143,7 +148,6 @@ export default function EventCalendarEventList({
   const { locale, CUSTOM_HUB_URLS } = useContext(UserContext);
   const { hubData, hubUrl: contextHubUrl } = useContext(HubContext);
   const hubName = hubData?.name;
-  const classes = useStyles();
   const texts = getTexts({ page: "hub", locale: locale });
   const theme = useTheme();
   const isCustomHub = CUSTOM_HUB_URLS?.includes(contextHubUrl || hubUrl);
@@ -232,11 +236,7 @@ export default function EventCalendarEventList({
   return (
     <>
       {loading && allEvents.length === 0 && <CircularProgress />}
-      {error && (
-        <Typography className={classes.emptyState}>
-          {texts.error_loading_events ?? "Failed to load events."}
-        </Typography>
-      )}
+      {error && <EmptyState>{texts.error_loading_events ?? "Failed to load events."}</EmptyState>}
       {!loading && !error && dayGroups.length === 0 && (
         <NoItemsFound type="events" hubName={hubName} subHubName={subHubName} />
       )}
@@ -260,33 +260,29 @@ export default function EventCalendarEventList({
 
           return (
             <Box key={group.key} ref={isLastGroup ? lastElementRef : undefined}>
-              <div className={classes.dayHeader}>
-                <Badge
+              <DayHeader>
+                <TodayBadge
                   badgeContent={isToday ? texts.today : null}
                   color="secondary"
-                  className={classes.todayBadge}
                   anchorOrigin={{ vertical: "top", horizontal: "right" }}
                 >
-                  <div
-                    className={classes.dayTile}
+                  <DayTile
                     style={{
                       backgroundColor: tileBg,
                       color: tileColor,
                     }}
                   >
-                    <span className={classes.dayTileMonth}>{group.monthName}</span>
-                    <span className={classes.dayTileDay}>{group.dayNumber}</span>
-                  </div>
-                </Badge>
-                <Typography className={classes.dayWeekday} component="span">
-                  {group.weekday}
-                </Typography>
-              </div>
-              <div className={classes.dayGroup}>
+                    <DayTileMonth>{group.monthName}</DayTileMonth>
+                    <DayTileDay>{group.dayNumber}</DayTileDay>
+                  </DayTile>
+                </TodayBadge>
+                <DayWeekday component="span">{group.weekday}</DayWeekday>
+              </DayHeader>
+              <DayGroupList>
                 {group.occurrences.map((occurrence) => (
                   <EventCardWide key={occurrence.project.url_slug} project={occurrence.project} />
                 ))}
-              </div>
+              </DayGroupList>
             </Box>
           );
         })}
