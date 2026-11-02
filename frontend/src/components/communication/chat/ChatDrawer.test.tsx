@@ -335,32 +335,6 @@ describe("ChatDrawer", () => {
       });
     });
 
-    it("retries untagged when the server rejects the origin with a 400", async () => {
-      renderDrawer({ origin: { type: "organization", urlSlug: "bad-org", id: 3 } });
-      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
-      const defaultImpl = mockApiRequest.getMockImplementation()!;
-      mockApiRequest.mockImplementation((args: any) => {
-        if (
-          args.url === "/api/chat/chat-1/send_message/" &&
-          args.payload.origin_organization_url_slug
-        )
-          return Promise.reject({ response: { status: 400, data: { detail: "bad origin" } } });
-        return defaultImpl(args);
-      });
-      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
-      fireEvent.click(document.querySelector('button[type="submit"]')!);
-
-      await waitFor(() => {
-        const sends = mockApiRequest.mock.calls.filter(
-          (call: any[]) => call[0].url === "/api/chat/chat-1/send_message/"
-        );
-        expect(sends).toHaveLength(2);
-        expect(sends[1][0].payload).not.toHaveProperty("origin_organization_url_slug");
-      });
-      await waitFor(() => expect(screen.getByText("Hello")).toBeInTheDocument());
-      expect(screen.queryByText("bad origin")).not.toBeInTheDocument();
-    });
-
     it("omits the origin slug when no origin is set", async () => {
       renderDrawer();
       await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());

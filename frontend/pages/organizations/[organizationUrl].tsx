@@ -233,7 +233,7 @@ function OrganizationLayout({
 }) {
   const cookies = new Cookies();
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
-  const creator = members.filter((m) => m.isCreator === true)[0];
+  const creator = members.find((m) => m.isCreator === true);
 
   const [allProjects, setAllProjects] = useState(projects || []);
   const [hasMoreProjects, setHasMoreProjects] = useState(projectsHasMore);
