@@ -1,8 +1,6 @@
-import { Button, Link, Typography } from "@mui/material";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Link, Typography } from "@mui/material";
 import humanizeDuration from "humanize-duration";
-import React, { useState, useContext, useRef, useLayoutEffect } from "react";
+import React, { useContext } from "react";
 import { styled, Theme, useTheme } from "@mui/material/styles";
 
 // Relative imports
@@ -67,23 +65,6 @@ const SubHeader = styled(Typography)<{ component?: React.ElementType }>(({ theme
   paddingBottom: theme.spacing(1),
 }));
 
-const ExpandButton = styled(Button)(({ theme }) => ({
-  width: "100%",
-  color: theme.palette.background.default_contrastText,
-}));
-
-const StyledExpandLessIcon = styled(ExpandLessIcon)(({ theme }) => ({
-  verticalAlign: "bottom",
-  marginTop: 2,
-  paddingRight: theme.spacing(0.5),
-}));
-
-const StyledExpandMoreIcon = styled(ExpandMoreIcon)(({ theme }) => ({
-  verticalAlign: "bottom",
-  marginTop: 2,
-  paddingRight: theme.spacing(0.5),
-}));
-
 const ContentBlock = styled("div")(({ theme }) => ({
   marginBottom: theme.spacing(4),
 }));
@@ -128,19 +109,7 @@ const DescriptionWrapper = styled(Typography)<{ component?: React.ElementType }>
   projectDescriptionStyles(theme)
 );
 
-const DescriptionBody = styled("div", {
-  shouldForwardProp: (prop) => prop !== "$clamped",
-})<{ $clamped?: boolean }>(({ theme, $clamped }) => ({
-  ...projectDescriptionStyles(theme),
-  ...($clamped && {
-    // emotion label: keeps "descriptionClamped" in the class name (the test selects by it)
-    label: "descriptionClamped",
-    display: "-webkit-box",
-    WebkitLineClamp: 6,
-    WebkitBoxOrient: "vertical" as const,
-    overflow: "hidden",
-  }),
-}));
+const DescriptionBody = styled("div")(({ theme }) => projectDescriptionStyles(theme));
 
 const ProjectParentContainer = styled("div")({
   display: "flex",
@@ -173,39 +142,6 @@ export default function ProjectContent({
 }) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, project: project });
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const descRef = useRef<HTMLDivElement>(null);
-  const handleToggleFullDescriptionClick = () => setShowFullDescription(!showFullDescription);
-
-  useLayoutEffect(() => {
-    // When expanded there is no clamp, so scrollHeight === clientHeight and the
-    // measurement would incorrectly clear the overflow flag.
-    if (showFullDescription || !descRef.current) return;
-
-    const element = descRef.current;
-
-    const checkOverflow = () => {
-      // clientHeight is 0 when the element is inside a hidden tab panel –
-      // skip the measurement and wait for the ResizeObserver to fire once
-      // the panel becomes visible.
-      if (element.clientHeight > 0) {
-        setIsOverflowing(element.scrollHeight > element.clientHeight);
-      }
-    };
-
-    checkOverflow();
-
-    // Re-check whenever the element's size changes:
-    //   • the tab panel transitions from hidden → visible (clientHeight: 0 → N)
-    //   • web fonts finish loading and reflow the text
-    //   • the viewport is resized
-    const observer = new ResizeObserver(checkOverflow);
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, [project.description_html, showFullDescription]);
-
   //return the right static text depending on the project type
   const getProjectDescriptionHeadline = () => {
     const type = project.project_type.type_id;
@@ -335,28 +271,11 @@ export default function ProjectContent({
               </SubHeader>
               <DescriptionWrapper component="div">
                 {project.description_html ? (
-                  <DescriptionBody
-                    ref={descRef}
-                    $clamped={!showFullDescription}
-                    dangerouslySetInnerHTML={{ __html: project.description_html }}
-                  />
+                  <DescriptionBody dangerouslySetInnerHTML={{ __html: project.description_html }} />
                 ) : (
                   <Typography variant="body2">{getNoProjectDescriptionText()}</Typography>
                 )}
               </DescriptionWrapper>
-              {project.description_html && (showFullDescription || isOverflowing) && (
-                <ExpandButton onClick={handleToggleFullDescriptionClick}>
-                  {showFullDescription ? (
-                    <div>
-                      <StyledExpandLessIcon /> {texts.show_less}
-                    </div>
-                  ) : (
-                    <div>
-                      <StyledExpandMoreIcon /> {texts.show_more}
-                    </div>
-                  )}
-                </ExpandButton>
-              )}
             </>
           );
         })()}
