@@ -417,10 +417,10 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
     def test_clearing_a_field_drops_its_variant_entry(self):
         """An emptied image field must not leave URLs to deleted files.
 
-        ``cleanup_orphaned_variants`` pops the entry in ``pre_save``, but that
-        pop is lost on a ``save(update_fields=[...])`` that omits
-        ``image_variants``. The Celery task re-reads from the database, so it
-        is the authoritative place to reconcile.
+        The save itself drops the entry in the database, even with
+        ``save(update_fields=["image"])``. The Celery task also reconciles a row
+        that still carries an entry for an empty field (e.g. written before
+        that), since it re-reads from the database.
         """
         from climateconnect_main.utility.image_variants import (
             generate_and_store_variants,
@@ -431,16 +431,18 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
         generate_and_store_variants(self.project)
         self.project.refresh_from_db()
         self.assertIn("image", self.project.image_variants)
+        recorded = dict(self.project.image_variants)
 
         self.project.image = ""
         self.project.save(update_fields=["image"])
 
-        # The in-memory instance was already popped by cleanup_orphaned_variants;
-        # the row in the database is what still holds the stale entry. Re-fetch
-        # the way the Celery task does.
-        stale = Project.objects.get(pk=self.project.pk)
-        self.assertIn("image", stale.image_variants, "precondition: DB row is stale")
+        self.assertNotIn(
+            "image", Project.objects.get(pk=self.project.pk).image_variants
+        )
 
+        # Put a stale entry back and let the task reconcile it.
+        Project.objects.filter(pk=self.project.pk).update(image_variants=recorded)
+        stale = Project.objects.get(pk=self.project.pk)
         generate_and_store_variants(stale, field_names=["image"])
         self.project.refresh_from_db()
 
@@ -1306,3 +1308,562 @@ class TestDeleteImageFiles(TempMediaRootMixin, APITestCase):
 
         self.assertFalse(Project.objects.filter(url_slug="failing-delete-project"))
         self.assertEqual(len(logs.records), len(names))
+
+
+# ---------------------------------------------------------------------------
+# Stale instances (review H1)
+# ---------------------------------------------------------------------------
+
+
+class TestStaleInstanceSaves(TempMediaRootMixin, APITestCase):
+    """A save or task working on an outdated instance must never touch the
+    files of the image the row holds *now*."""
+
+    def setUp(self):
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+        self.project = Project.objects.create(
+            name="Stale Instance Project",
+            url_slug="stale-instance-project",
+            language=self.default_language,
+        )
+
+    def _upload(self, instance, field_name, color):
+        content = make_test_image(width=1600, height=800, mode="RGB", color=color)
+        getattr(instance, field_name).save(
+            "{}_{}.png".format(field_name, color), content, save=True
+        )
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_stale_update_fields_save_keeps_current_image(self, mock_task):
+        """``save(update_fields=["image_variants"])`` on an instance loaded
+        before the image was replaced must not delete the new image."""
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        self._upload(self.project, "image", "red")
+        stale = Project.objects.get(pk=self.project.pk)
+
+        fresh = Project.objects.get(pk=self.project.pk)
+        with self.captureOnCommitCallbacks(execute=True):
+            self._upload(fresh, "image", "blue")
+        generate_and_store_variants(fresh)
+        fresh.refresh_from_db()
+        current_files = [fresh.image.name, *fresh.image_variants["image"].values()]
+        mock_task.delay.reset_mock()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            stale.save(update_fields=["image_variants"])
+
+        storage = fresh.image.storage
+        for name in current_files:
+            self.assertTrue(storage.exists(name), "Should still exist: %s" % name)
+        mock_task.delay.assert_not_called()
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_update_fields_only_compares_written_image_fields(self, mock_task):
+        """``save(update_fields=["image"])`` with a stale ``thumbnail_image``
+        must leave the row's current thumbnail alone."""
+        self._upload(self.project, "image", "red")
+        self._upload(self.project, "thumbnail_image", "red")
+        stale = Project.objects.get(pk=self.project.pk)
+
+        fresh = Project.objects.get(pk=self.project.pk)
+        with self.captureOnCommitCallbacks(execute=True):
+            self._upload(fresh, "thumbnail_image", "blue")
+        current_thumbnail = fresh.thumbnail_image.name
+
+        with self.captureOnCommitCallbacks(execute=True):
+            content = make_test_image(width=1600, height=800, color="green")
+            stale.image.save("image_green.png", content, save=False)
+            stale.save(update_fields=["image"])
+
+        self.assertTrue(fresh.thumbnail_image.storage.exists(current_thumbnail))
+        self.assertEqual(mock_task.delay.call_args.kwargs["field_names"], ["image"])
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_variants_of_a_replaced_image_are_discarded(self, mock_task):
+        """A task that generated variants for an image that was replaced in the
+        meantime records nothing and deletes the files it wrote."""
+        from climateconnect_main.utility.image_variants import (
+            IMAGE_VARIANT_CONFIGS,
+            _variant_filename,
+            generate_and_store_variants,
+        )
+
+        self._upload(self.project, "image", "red")
+        stale = Project.objects.get(pk=self.project.pk)
+        old_name = stale.image.name
+
+        # Replace without running the commit callbacks, so the old original is
+        # still readable — as for a task that read it before the replace.
+        fresh = Project.objects.get(pk=self.project.pk)
+        with self.captureOnCommitCallbacks(execute=False):
+            self._upload(fresh, "image", "blue")
+
+        generate_and_store_variants(stale)
+
+        self.project.refresh_from_db()
+        self.assertNotIn("image", self.project.image_variants)
+        storage = self.project.image.storage
+        for width in IMAGE_VARIANT_CONFIGS["Project"]["image"]["widths"]:
+            self.assertFalse(storage.exists(_variant_filename(old_name, width)))
+        self.assertTrue(storage.exists(self.project.image.name))
+
+    def test_concurrent_fields_are_merged_not_overwritten(self):
+        """Committing one field keeps entries another task wrote meanwhile."""
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        self._upload(self.project, "image", "red")
+        self._upload(self.project, "thumbnail_image", "red")
+        first = Project.objects.get(pk=self.project.pk)
+        second = Project.objects.get(pk=self.project.pk)
+
+        generate_and_store_variants(first, field_names=["image"])
+        generate_and_store_variants(second, field_names=["thumbnail_image"])
+
+        self.project.refresh_from_db()
+        self.assertIn("image", self.project.image_variants)
+        self.assertIn("thumbnail_image", self.project.image_variants)
+
+    def test_variants_for_a_deleted_row_are_discarded(self):
+        from climateconnect_main.utility.image_variants import (
+            IMAGE_VARIANT_CONFIGS,
+            _variant_filename,
+            generate_and_store_variants,
+        )
+
+        self._upload(self.project, "image", "red")
+        stale = Project.objects.get(pk=self.project.pk)
+        name = stale.image.name
+        storage = stale.image.storage
+        with self.captureOnCommitCallbacks(execute=False):
+            Project.objects.filter(pk=self.project.pk).delete()
+
+        generate_and_store_variants(stale)
+
+        for width in IMAGE_VARIANT_CONFIGS["Project"]["image"]["widths"]:
+            self.assertFalse(storage.exists(_variant_filename(name, width)))
+
+
+# ---------------------------------------------------------------------------
+# Autocommit (review H2)
+# ---------------------------------------------------------------------------
+
+
+def _run_on_commit_immediately(func, using=None, robust=False):
+    """What ``transaction.on_commit`` does outside an atomic block."""
+    func()
+
+
+class TestCleanupWithoutTransaction(TempMediaRootMixin, APITestCase):
+    """The edit views run in autocommit mode, where ``on_commit`` callbacks run
+    immediately. Old files must still only go once the row is written."""
+
+    def setUp(self):
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+        self.project = Project.objects.create(
+            name="Autocommit Project",
+            url_slug="autocommit-project",
+            language=self.default_language,
+        )
+        content = make_test_image(width=1600, height=800, color="red")
+        self.project.image.save("autocommit_old.png", content, save=True)
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        self.old_files = [
+            self.project.image.name,
+            *self.project.image_variants["image"].values(),
+        ]
+        self.storage = self.project.image.storage
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_failed_save_keeps_old_files(self, mock_task):
+        from django.db import DatabaseError, transaction
+
+        with (
+            mock_patch(
+                "django.db.transaction.on_commit",
+                side_effect=_run_on_commit_immediately,
+            ),
+            mock_patch.object(
+                Project, "_do_update", side_effect=DatabaseError("write failed")
+            ),
+        ):
+            content = make_test_image(width=1600, height=800, color="blue")
+            try:
+                with transaction.atomic():
+                    self.project.image.save("autocommit_new.png", content, save=True)
+            except DatabaseError:
+                pass
+
+        for name in self.old_files:
+            self.assertTrue(self.storage.exists(name), "Should still exist: %s" % name)
+        mock_task.delay.assert_not_called()
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_successful_save_deletes_old_files(self, mock_task):
+        with mock_patch(
+            "django.db.transaction.on_commit",
+            side_effect=_run_on_commit_immediately,
+        ):
+            content = make_test_image(width=1600, height=800, color="blue")
+            self.project.image.save("autocommit_new.png", content, save=True)
+
+        for name in self.old_files:
+            self.assertFalse(self.storage.exists(name), "Should be deleted: %s" % name)
+        self.assertTrue(self.storage.exists(self.project.image.name))
+
+
+# ---------------------------------------------------------------------------
+# Task retries (review L5)
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateImageVariantsRetry(TempMediaRootMixin, APITestCase):
+    def setUp(self):
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+        self.project = Project.objects.create(
+            name="Retry Project",
+            url_slug="retry-project",
+            language=self.default_language,
+        )
+        content = make_test_image(width=1600, height=800, color="red")
+        self.project.image.save("retry.png", content, save=True)
+
+    def _run_task(self):
+        from organization.tasks import generate_image_variants
+
+        generate_image_variants(
+            app_label="organization",
+            model_name="Project",
+            pk=self.project.pk,
+            field_names=["image"],
+        )
+
+    def test_unreadable_original_is_retried(self):
+        from organization.tasks import generate_image_variants
+
+        with (
+            mock_patch(
+                "climateconnect_main.utility.images.read_source_bytes",
+                return_value=None,
+            ),
+            mock_patch.object(generate_image_variants, "retry") as mock_retry,
+        ):
+            self._run_task()
+
+        mock_retry.assert_called_once()
+        self.assertEqual(
+            mock_retry.call_args.kwargs["kwargs"]["field_names"], ["image"]
+        )
+
+    def test_replaced_image_is_not_retried(self):
+        from organization.tasks import generate_image_variants
+
+        with (
+            mock_patch(
+                "climateconnect_main.utility.image_variants.generate_and_store_variants",
+                return_value=[("image", "projects/0/replaced_meanwhile.png")],
+            ),
+            mock_patch.object(generate_image_variants, "retry") as mock_retry,
+        ):
+            self._run_task()
+
+        mock_retry.assert_not_called()
+
+    def test_gives_up_after_max_retries(self):
+        from celery.exceptions import MaxRetriesExceededError
+
+        from organization.tasks import generate_image_variants
+
+        with (
+            mock_patch(
+                "climateconnect_main.utility.images.read_source_bytes",
+                return_value=None,
+            ),
+            mock_patch.object(
+                generate_image_variants,
+                "retry",
+                side_effect=MaxRetriesExceededError(),
+            ),
+            self.assertLogs("organization.tasks", level="ERROR") as logs,
+        ):
+            self._run_task()
+
+        self.assertIn("Giving up", logs.output[0])
+
+    def test_success_does_not_retry(self):
+        from organization.tasks import generate_image_variants
+
+        with mock_patch.object(generate_image_variants, "retry") as mock_retry:
+            self._run_task()
+
+        mock_retry.assert_not_called()
+        self.project.refresh_from_db()
+        self.assertIn("image", self.project.image_variants)
+
+
+# ---------------------------------------------------------------------------
+# Full saves never write image_variants (review M1)
+# ---------------------------------------------------------------------------
+
+
+class TestFullSaveKeepsVariants(TempMediaRootMixin, APITestCase):
+    """A plain ``save()`` (what the edit views do) must not write back an
+    outdated ``image_variants`` or an image someone else replaced."""
+
+    def setUp(self):
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+        self.project = Project.objects.create(
+            name="Full Save Project",
+            url_slug="full-save-project",
+            language=self.default_language,
+        )
+
+    def _upload(self, instance, field_name, color):
+        content = make_test_image(width=1600, height=800, mode="RGB", color=color)
+        getattr(instance, field_name).save(
+            "{}_{}.png".format(field_name, color), content, save=True
+        )
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_edit_loaded_before_task_finished_keeps_variants(self, mock_task):
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        self._upload(self.project, "image", "red")
+        edit = Project.objects.get(pk=self.project.pk)  # loaded: no variants
+
+        generate_and_store_variants(Project.objects.get(pk=self.project.pk))
+
+        edit.name = "Edited"
+        edit.save()
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.name, "Edited")
+        self.assertIn("image", self.project.image_variants)
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_stale_full_save_does_not_write_back_replaced_image(self, mock_task):
+        self._upload(self.project, "image", "red")
+        stale = Project.objects.get(pk=self.project.pk)
+
+        fresh = Project.objects.get(pk=self.project.pk)
+        with self.captureOnCommitCallbacks(execute=True):
+            self._upload(fresh, "image", "blue")
+        current = fresh.image.name
+
+        with self.captureOnCommitCallbacks(execute=True):
+            stale.name = "Edited"
+            stale.save()
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.name, "Edited")
+        self.assertEqual(self.project.image.name, current)
+        self.assertTrue(self.project.image.storage.exists(current))
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_replacing_one_image_keeps_other_fields_entries(self, mock_task):
+        """The stale entry is removed in the database, key by key — not by
+        writing back an in-memory map that misses newer entries."""
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        self._upload(self.project, "image", "red")
+        self._upload(self.project, "thumbnail_image", "red")
+        generate_and_store_variants(
+            Project.objects.get(pk=self.project.pk), field_names=["image"]
+        )
+        edit = Project.objects.get(pk=self.project.pk)  # no thumbnail entry yet
+        generate_and_store_variants(
+            Project.objects.get(pk=self.project.pk), field_names=["thumbnail_image"]
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._upload(edit, "image", "blue")
+
+        self.project.refresh_from_db()
+        self.assertNotIn("image", self.project.image_variants)
+        self.assertIn("thumbnail_image", self.project.image_variants)
+
+    def test_explicit_update_fields_still_writes_image_variants(self):
+        self.project.image_variants = {"image": {"600": "projects/x_600.webp"}}
+        self.project.save(update_fields=["image_variants"])
+
+        self.project.refresh_from_db()
+        self.assertEqual(
+            self.project.image_variants, {"image": {"600": "projects/x_600.webp"}}
+        )
+
+    def test_full_save_with_deferred_fields(self):
+        self._upload(self.project, "image", "red")
+        image_name = Project.objects.get(pk=self.project.pk).image.name
+
+        partial = Project.objects.only("id", "name").get(pk=self.project.pk)
+        partial.name = "Deferred Edit"
+        partial.save()
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.name, "Deferred Edit")
+        self.assertEqual(self.project.image.name, image_name)
+
+
+# ---------------------------------------------------------------------------
+# Query cost of change detection (review M3)
+# ---------------------------------------------------------------------------
+
+
+class TestChangeDetectionQueries(TempMediaRootMixin, APITestCase):
+    def setUp(self):
+        self.org = Organization.objects.create(
+            name="Query Count Org", url_slug="query-count-org"
+        )
+        content = make_test_image(width=400, height=200, color="red")
+        self.org.image.save("query_count.png", content, save=True)
+        self.org = Organization.objects.get(pk=self.org.pk)
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_unrelated_save_runs_only_the_update(self, mock_task):
+        self.org.name = "Renamed"
+        with self.assertNumQueries(1):
+            self.org.save()
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_image_change_runs_one_narrow_select(self, mock_task):
+        content = make_test_image(width=400, height=200, color="blue")
+        # SELECT old names + UPDATE row + UPDATE image_variants (key removal)
+        with self.assertNumQueries(3):
+            self.org.image.save("query_count_new.png", content, save=True)
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_refresh_from_db_does_not_look_like_a_change(self, mock_task):
+        other = Organization.objects.get(pk=self.org.pk)
+        content = make_test_image(width=400, height=200, color="blue")
+        with self.captureOnCommitCallbacks(execute=True):
+            other.image.save("query_count_other.png", content, save=True)
+        mock_task.delay.reset_mock()
+
+        self.org.refresh_from_db()
+        self.org.name = "After Refresh"
+        with self.captureOnCommitCallbacks(execute=True):
+            self.org.save()
+
+        mock_task.delay.assert_not_called()
+        self.assertTrue(self.org.image.storage.exists(other.image.name))
+
+
+# ---------------------------------------------------------------------------
+# Repairing maps that point at missing files (review M5)
+# ---------------------------------------------------------------------------
+
+
+class TestVerifyMissingVariants(TempMediaRootMixin, APITestCase):
+    def setUp(self):
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+        self.project = Project.objects.create(
+            name="Verify Project",
+            url_slug="verify-project",
+            language=self.default_language,
+        )
+        content = make_test_image(width=1600, height=800, color="red")
+        self.project.image.save("verify.png", content, save=True)
+        thumb = make_test_image(width=120, height=120, color="blue")
+        self.project.thumbnail_image.save("verify_thumb.png", thumb, save=True)
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        self.storage = self.project.image.storage
+        self.missing = self.project.image_variants["image"]["1200"]
+        self.storage.delete(self.missing)
+
+    def test_only_verify_notices_a_missing_file(self):
+        from climateconnect_main.utility.image_variants import (
+            incomplete_variant_fields,
+        )
+
+        self.assertEqual(incomplete_variant_fields(self.project), [])
+        self.assertEqual(
+            incomplete_variant_fields(self.project, verify=True), ["image"]
+        )
+
+    def test_failing_check_counts_as_missing(self):
+        from climateconnect_main.utility.image_variants import (
+            incomplete_variant_fields,
+        )
+
+        with mock_patch.object(
+            self.storage, "exists", side_effect=RuntimeError("Azure down")
+        ):
+            self.assertEqual(
+                incomplete_variant_fields(self.project, verify=True),
+                ["image", "thumbnail_image"],
+            )
+
+    def test_empty_field_with_entry_is_incomplete(self):
+        from climateconnect_main.utility.image_variants import (
+            incomplete_variant_fields,
+        )
+
+        Project.objects.filter(pk=self.project.pk).update(thumbnail_image="")
+        self.project.refresh_from_db()
+        self.assertIn("thumbnail_image", incomplete_variant_fields(self.project))
+
+    def test_backfill_skips_missing_file_without_verify(self):
+        call_command("backfill_image_variants", "--sleep", "0", stdout=_quiet_stdout())
+        self.assertFalse(self.storage.exists(self.missing))
+
+    def test_backfill_verify_regenerates_only_the_broken_field(self):
+        from climateconnect_main.utility import image_variants
+
+        with mock_patch(
+            "organization.management.commands.backfill_image_variants."
+            "generate_and_store_variants",
+            wraps=image_variants.generate_and_store_variants,
+        ) as spy:
+            call_command(
+                "backfill_image_variants",
+                "--sleep",
+                "0",
+                "--verify",
+                stdout=_quiet_stdout(),
+            )
+
+        spy.assert_called_once()
+        self.assertEqual(spy.call_args.kwargs["field_names"], ["image"])
+        self.project.refresh_from_db()
+        for path in self.project.image_variants["image"].values():
+            self.assertTrue(self.storage.exists(path), path)
+
+
+def _quiet_stdout():
+    """Swallow command output."""
+    from io import StringIO
+
+    return StringIO()

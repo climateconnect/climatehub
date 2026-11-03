@@ -2,6 +2,10 @@ import logging
 
 from django.core.cache import cache
 from django.db import models
+
+from climateconnect_main.utility.image_variant_models import (
+    ImageVariantsModelMixin,
+)
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -20,7 +24,7 @@ def background_image_path(instance, filename):
     return "background_images/{}/{}".format(instance.id, filename)
 
 
-class UserProfile(models.Model):
+class UserProfile(ImageVariantsModelMixin, models.Model):
     user = models.OneToOneField(
         "auth.User",
         help_text="Points to user table",

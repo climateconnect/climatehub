@@ -4,8 +4,15 @@ Management command to backfill WebP image variants for existing
 
 The command is **idempotent** and **resumable**: rows that already have every
 configured variant are skipped, so a re-run after an interruption only does the
-work that is actually left. Pass ``--force`` to regenerate variants that already
-exist (e.g. after changing the quality settings).
+work that is actually left. Only the fields that need work are regenerated.
+Pass ``--force`` to regenerate variants that already exist (e.g. after changing
+the quality settings).
+
+By default a row counts as complete when every configured variant is
+*recorded*. Pass ``--verify`` to also check that each recorded file still
+exists in storage and regenerate the ones that do not — e.g. after a manual
+blob delete. That is one ``exists()`` request per variant on Azure, so it is
+opt-in.
 
 Because a backfill downloads, re-encodes, and re-uploads every image from
 Azure Blob Storage, it pauses for ``--sleep`` seconds between batches to keep
@@ -17,6 +24,7 @@ Usage::
     pdm run python manage.py backfill_image_variants --dry-run
     pdm run python manage.py backfill_image_variants --model Project --sleep 2
     pdm run python manage.py backfill_image_variants --force --batch-size 50
+    pdm run python manage.py backfill_image_variants --verify
 """
 
 import logging
@@ -28,7 +36,7 @@ from django.db.models import Q
 from climateconnect_main.utility.image_variants import (
     IMAGE_VARIANT_CONFIGS,
     generate_and_store_variants,
-    has_all_variants,
+    incomplete_variant_fields,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,6 +81,14 @@ class Command(BaseCommand):
             help="Regenerate variants even for rows that already have them.",
         )
         parser.add_argument(
+            "--verify",
+            action="store_true",
+            help=(
+                "Also check that recorded variant files still exist in storage "
+                "and regenerate missing ones (one storage request per variant)."
+            ),
+        )
+        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Report what would be processed without writing any files.",
@@ -100,6 +116,7 @@ class Command(BaseCommand):
         sleep_seconds = options["sleep"]
         limit = options.get("limit")
         force = options["force"]
+        verify = options["verify"]
         dry_run = options["dry_run"]
 
         if batch_size < 1:
@@ -134,16 +151,20 @@ class Command(BaseCommand):
                     )
                     break
 
-                if not force and has_all_variants(instance):
-                    skipped += 1
-                    continue
+                if force:
+                    field_names = None
+                else:
+                    field_names = incomplete_variant_fields(instance, verify=verify)
+                    if not field_names:
+                        skipped += 1
+                        continue
 
                 if dry_run:
                     processed += 1
                     continue
 
                 try:
-                    generate_and_store_variants(instance)
+                    generate_and_store_variants(instance, field_names=field_names)
                     processed += 1
                 except Exception as exc:
                     failed += 1

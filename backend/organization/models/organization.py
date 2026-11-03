@@ -1,6 +1,10 @@
 from location.models import Location
 from django.db import models
 
+from climateconnect_main.utility.image_variant_models import (
+    ImageVariantsModelMixin,
+)
+
 #
 from climateconnect_api.models.language import Language
 
@@ -13,7 +17,7 @@ def organization_background_image_path(instance, filename):
     return "organization_images/{}/background/{}".format(instance.id, filename)
 
 
-class Organization(models.Model):
+class Organization(ImageVariantsModelMixin, models.Model):
     name = models.CharField(
         help_text="Points to name of the organization",
         verbose_name="Organization",

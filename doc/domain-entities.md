@@ -45,7 +45,8 @@ This document provides comprehensive documentation of the main domain entities i
   "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
   paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
   asynchronously by the `generate_image_variants` Celery task on upload, and by
-  the `backfill_image_variants` management command for existing rows. Empty
+  the `backfill_image_variants` management command for existing rows; a plain
+  `save()` never writes it (`ImageVariantsModelMixin`). Empty
   (`{}`) on rows that predate the feature — every consumer falls back to the
   original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 
@@ -181,7 +182,8 @@ This document provides comprehensive documentation of the main domain entities i
   "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
   paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
   asynchronously by the `generate_image_variants` Celery task on upload, and by
-  the `backfill_image_variants` management command for existing rows. Empty
+  the `backfill_image_variants` management command for existing rows; a plain
+  `save()` never writes it (`ImageVariantsModelMixin`). Empty
   (`{}`) on rows that predate the feature — every consumer falls back to the
   original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 
@@ -216,7 +218,8 @@ This document provides comprehensive documentation of the main domain entities i
   "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
   paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
   asynchronously by the `generate_image_variants` Celery task on upload, and by
-  the `backfill_image_variants` management command for existing rows. Empty
+  the `backfill_image_variants` management command for existing rows; a plain
+  `save()` never writes it (`ImageVariantsModelMixin`). Empty
   (`{}`) on rows that predate the feature — every consumer falls back to the
   original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 

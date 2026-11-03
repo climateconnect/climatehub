@@ -2,6 +2,10 @@ from organization.utility.cache import generate_project_ranking_cache_key
 from organization.utility.project_ranking import ProjectRanking
 from location.models import Location
 from django.db import models
+
+from climateconnect_main.utility.image_variant_models import (
+    ImageVariantsModelMixin,
+)
 from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
@@ -21,7 +25,7 @@ def project_image_path(instance, filename):
     return "projects/{}/{}".format(instance.id, filename)
 
 
-class Project(models.Model):
+class Project(ImageVariantsModelMixin, models.Model):
     name = models.CharField(
         help_text="Points to project name", verbose_name="Name", max_length=1024
     )

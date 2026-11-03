@@ -519,6 +519,7 @@ Upload (data URL) ──► ImageField ──► post_save signal
 |---|---|
 | Pillow encode/resize | `climateconnect_main/utility/images.py` |
 | Orchestration, change detection, cleanup | `climateconnect_main/utility/image_variants.py` |
+| Config, load tracking, `ImageVariantsModelMixin` | `climateconnect_main/utility/image_variant_models.py` |
 | Celery task | `organization/tasks.py` → `generate_image_variants` |
 | Signal wiring | `organization/signals.py`, `climateconnect_api/signals.py` |
 | Backfill | `manage.py backfill_image_variants` |
@@ -545,19 +546,43 @@ directly — it is the uploader's full-size crop, often well over 1000px for a
 - **Never break a save.** Variant generation runs in a Celery task, and both
   the task and the Pillow helper catch and log their errors. A corrupt or
   undecodable upload leaves the entity saved with its original image.
-- **Never re-encode on an unrelated save.** A `pre_save` receiver records which
-  image fields actually changed; `post_save` dispatches only for those, so a
-  ranking-cache update does not queue image work.
+- **Never re-encode on an unrelated save — and never query for one.**
+  `ImageVariantsModelMixin` (on `Project`, `Organization`, `UserProfile`)
+  remembers the image names each instance was loaded with. The `pre_save`
+  receiver compares in memory, and only when an image field changed does it
+  run one narrow `SELECT` for the row's current names (what is being
+  overwritten, and must be cleaned up). `post_save` dispatches only for those
+  fields, so a ranking-cache update does not queue image work. With
+  `save(update_fields=...)` only the image fields being written are compared.
+- **Only the task writes `image_variants`.** On an existing row, the mixin
+  turns a plain `save()` into one that writes every loaded field *except*
+  `image_variants` and unchanged image fields. So an edit view saving an
+  instance loaded before the task finished can neither overwrite fresh
+  variants nor write back an image someone else has since replaced. Entries
+  of a replaced image are removed with an atomic `jsonb - key` `UPDATE`.
+  Side effect: a plain `save()` on a row deleted in the meantime raises
+  instead of re-inserting it. An explicit `update_fields` is passed through
+  unchanged.
+- **Tolerate stale instances.** The task (and the backfill) may work on an
+  instance whose image is replaced, or whose row is deleted, while variants are
+  being encoded. Results are committed per field under `select_for_update`, and
+  only for fields that still hold the image they were generated from; variants
+  of a replaced image are deleted instead of recorded. An original that cannot
+  be read is retried by the task (up to 3 times, 60 s apart) while the row
+  still holds that file.
 - **`image_variants` stores storage-relative paths, not URLs.** URLs are built
   per-request by `ImageVariantsField` (see `build_variant_urls`), so changing
   the storage account or putting a CDN in front does not invalidate every row.
 
-**File lifecycle**: Django never deletes files on its own, so two receivers do
-it, both only after the transaction commits (a rolled-back save or delete keeps
-its files):
+**File lifecycle**: Django never deletes files on its own, so receivers do
+it, always after the row write and only once the transaction commits (a
+rolled-back or failed save or delete keeps its files; outside a transaction
+`on_commit` runs immediately, which is why nothing is deleted from `pre_save`):
 
-- **Image replaced or cleared** — `cleanup_orphaned_variants` (`pre_save`)
-  deletes the old original *and* its variants.
+- **Image replaced or cleared** — `capture_image_field_changes` (`pre_save`)
+  collects the old original *and* its variants while the old row is still
+  readable; `handle_image_field_changes` (`post_save`) drops the stale
+  `image_variants` entries, deletes the files and then enqueues the task.
 - **Row deleted** — `delete_image_files` (`post_delete`) deletes every image
   field's original and variants for `Project`, `Organization` and `UserProfile`.
   Deleting a `User` cascades to its `UserProfile`, so profile images go too.
@@ -565,6 +590,13 @@ its files):
 No reference check is needed: `get_image_from_data_url` gives every upload a
 fresh random name, so a file is never shared between rows or fields, even when
 the same picture is uploaded twice. Delete failures are logged, never raised.
+
+**Backfill** (`manage.py backfill_image_variants`) regenerates only the
+fields that need it: a missing variant key, or an entry for an emptied field.
+A row whose map is complete but points at files that no longer exist looks
+fine to that check, and `<picture>` does not fall back to `<img>` on a 404.
+`--verify` therefore also checks every recorded path with `storage.exists()`
+(one request per variant on Azure, so opt-in) and regenerates those fields.
 
 **Legacy rows** have no variants and never will unless backfilled. Every read
 path falls back to the stored original, so an un-backfilled row renders exactly

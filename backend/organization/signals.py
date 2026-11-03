@@ -11,9 +11,8 @@ from django.dispatch import receiver
 
 from climateconnect_main.utility.image_variants import (
     capture_image_field_changes,
-    cleanup_orphaned_variants,
     delete_image_files,
-    dispatch_image_variant_task,
+    handle_image_field_changes,
 )
 
 
@@ -101,15 +100,9 @@ def _capture_project_image_changes(sender, instance, **kwargs):
     capture_image_field_changes(sender, instance, **kwargs)
 
 
-@receiver(pre_save, sender="organization.Project")
-def _cleanup_project_orphaned_variants(sender, instance, **kwargs):
-    """Delete old variant files before the image is replaced (post-capture)."""
-    cleanup_orphaned_variants(sender, instance, **kwargs)
-
-
 @receiver(post_save, sender="organization.Project")
-def _dispatch_project_image_variants(sender, instance, created, **kwargs):
-    dispatch_image_variant_task(sender, instance, created, **kwargs)
+def _handle_project_image_changes(sender, instance, created, **kwargs):
+    handle_image_field_changes(sender, instance, created, **kwargs)
 
 
 @receiver(post_delete, sender="organization.Project")
@@ -123,15 +116,9 @@ def _capture_organization_image_changes(sender, instance, **kwargs):
     capture_image_field_changes(sender, instance, **kwargs)
 
 
-@receiver(pre_save, sender="organization.Organization")
-def _cleanup_organization_orphaned_variants(sender, instance, **kwargs):
-    """Delete old variant files before the image is replaced (post-capture)."""
-    cleanup_orphaned_variants(sender, instance, **kwargs)
-
-
 @receiver(post_save, sender="organization.Organization")
-def _dispatch_organization_image_variants(sender, instance, created, **kwargs):
-    dispatch_image_variant_task(sender, instance, created, **kwargs)
+def _handle_organization_image_changes(sender, instance, created, **kwargs):
+    handle_image_field_changes(sender, instance, created, **kwargs)
 
 
 @receiver(post_delete, sender="organization.Organization")

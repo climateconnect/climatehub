@@ -462,9 +462,15 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
     image field on ``Project``, ``Organization``, or ``UserProfile`` changes.
 
     The task re-fetches the instance from the database so it always operates
-    on committed data.  All errors are caught and logged — a variant-
+    on committed data.  Processing errors are caught and logged — a variant-
     generation failure never propagates to the caller and never rolls back
     the original save.
+
+    An original that cannot be *read* (e.g. a transient Azure error) is
+    retried, up to ``max_retries`` times, for just the affected fields — but
+    only while the row still holds that same file. A field whose image was
+    replaced meanwhile already has its own task. Once the retries are used up
+    the row keeps no variants for that field until the next backfill.
 
     Args:
         app_label: Django app label of the model (e.g. ``"organization"``).
@@ -472,6 +478,7 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
         pk: Primary key of the instance.
         field_names: List of image field names that changed.
     """
+    from celery.exceptions import MaxRetriesExceededError
     from django.apps import apps
 
     from climateconnect_main.utility.image_variants import (
@@ -501,7 +508,7 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
         return
 
     try:
-        generate_and_store_variants(instance, field_names=field_names)
+        unreadable = generate_and_store_variants(instance, field_names=field_names)
     except Exception as exc:  # noqa: BLE001 — never break the task chain
         logger.error(
             "[ImageVariants] Failed to generate variants for %s.%s pk=%s: %s",
@@ -509,4 +516,41 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
             model_name,
             pk,
             exc,
+        )
+        return
+
+    if not unreadable:
+        return
+
+    current = (
+        model.objects.filter(pk=pk)
+        .values(*{field_name for field_name, _source in unreadable})
+        .first()
+    )
+    retry_fields = [
+        field_name
+        for field_name, source_name in unreadable
+        if current and current[field_name] == source_name
+    ]
+    if not retry_fields:
+        return
+
+    try:
+        self.retry(
+            kwargs={
+                "app_label": app_label,
+                "model_name": model_name,
+                "pk": pk,
+                "field_names": retry_fields,
+            }
+        )
+    except MaxRetriesExceededError:
+        logger.error(
+            "[ImageVariants] Giving up on %s.%s pk=%s fields=%s: original "
+            "still unreadable after %s retries",
+            app_label,
+            model_name,
+            pk,
+            retry_fields,
+            self.max_retries,
         )
