@@ -210,13 +210,18 @@ def get_project_translations(data: Dict):
 def add_project_member(project, user, user_role, role_in_project, availability):
     """
     Adds a user to a project. Assumes valid data at input.
+    If the user has an inactive membership (left or was deactivated), it is reactivated
+    with the given role and availability instead of creating a second row.
     """
-    ProjectMember.objects.create(
-        availability=availability,
+    ProjectMember.objects.update_or_create(
         project=project,
-        role_in_project=role_in_project,
-        role=user_role,
         user=user,
+        defaults={
+            "availability": availability,
+            "role_in_project": role_in_project,
+            "role": user_role,
+            "is_active": True,
+        },
     )
 
 
@@ -255,13 +260,15 @@ def get_project_admin_creators(project, limit_to_admins=False):
 
 def is_part_of_project(user, project):
     """
-    Returns True if user belongs to a project
+    Returns True if user is an active member of a project
     :param user: user to be checked
     :type user: User
     :param project: project to be checked
     :type project: ProjectMember
     """
-    return ProjectMember.objects.filter(project=project, user=user).count() > 0
+    return ProjectMember.objects.filter(
+        project=project, user=user, is_active=True
+    ).exists()
 
 
 def get_similar_projects(url_slug: str, return_count=5, target_projects=None):

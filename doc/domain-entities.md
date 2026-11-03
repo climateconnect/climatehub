@@ -226,6 +226,8 @@ This document provides comprehensive documentation of the main domain entities i
 - **ForeignKey**: `User`, `User` (`decided_by`, nullable: admin who approved/rejected), `Project` (nullable), `Organization` (nullable), `Availability`
 - **Referenced by**: `Notification` (notifies admins of requests)
 
+**Lifecycle**: An approved project request is deleted when the membership ends (user leaves or an admin removes them), so the user can request again; its notifications are deleted by cascade. Rejected and pending requests are kept and keep blocking new requests. Leaving a project is a soft delete of `ProjectMember` (`is_active = False`); approving a new request reactivates that row with role `Member`.
+
 ---
 
 ### Post & PostComment

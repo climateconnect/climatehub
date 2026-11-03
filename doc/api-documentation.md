@@ -941,6 +941,12 @@ When `is_test=true`, the subject is prefixed with `[TEST] ` so the organiser can
 - Test send is synchronous — one email, inline in the HTTP request.
 - Uses Mailjet templates `EVENT_ORGANIZER_MESSAGE_TEMPLATE_ID` (EN) and `EVENT_ORGANIZER_MESSAGE_TEMPLATE_ID_DE` (DE). No emails are sent until these are configured — see `doc/environment-variables.md`.
 
+#### Project membership requests
+
+- `POST /api/projects/{url_slug}/request_membership/{user_slug}/`: a former member (left or removed) can request to join again. A pending or rejected request still returns 400 "Request already exists to join project".
+- `POST /api/projects/{url_slug}/leave/` and `DELETE /api/projects/{url_slug}/members/{id}/`: the user's approved join request for the project is deleted in the same transaction.
+- Approving a request for a user with an inactive membership reactivates it with role `Member`.
+
 ### Organizations
 
 | Endpoint | Method | Auth Required | Description |

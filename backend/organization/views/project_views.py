@@ -11,7 +11,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Case, Prefetch, Q, When
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
@@ -129,6 +129,7 @@ from organization.utility.requests import (
     MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH,
     MembershipRequestsManager,
     is_plain_text,
+    remove_approved_membership_request,
 )
 from organization.utility.sector import (
     create_context_for_hub_specific_sector,
@@ -1401,7 +1402,10 @@ class UpdateProjectMemberView(RetrieveUpdateDestroyAPIView):
         return ProjectMember.objects.filter(id=int(self.kwargs["pk"]), project=project)
 
     def perform_destroy(self, instance):
-        instance.delete()
+        with transaction.atomic():
+            user, project = instance.user, instance.project
+            instance.delete()
+            remove_approved_membership_request(user, project)
         return "Project Member successfully deleted."
 
     def perform_update(self, serializer):
@@ -1802,8 +1806,10 @@ class LeaveProject(RetrieveUpdateAPIView):
 
             project_member_record.is_active = False
             updatable_records.append(project_member_record)
-            for updatable_record in updatable_records:
-                updatable_record.save()
+            with transaction.atomic():
+                for updatable_record in updatable_records:
+                    updatable_record.save()
+                remove_approved_membership_request(self.request.user, project)
             return Response(
                 data={"message": f"Left project {url_slug} successfully"},
                 status=status.HTTP_200_OK,
@@ -1909,7 +1915,14 @@ class RequestJoinProject(RetrieveUpdateAPIView):
             )
 
         try:
-            request = request_manager.create_membership_request()
+            try:
+                with transaction.atomic():
+                    request = request_manager.create_membership_request()
+            except IntegrityError:
+                return Response(
+                    {"message": "Request already exists to join project"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             project_admins = get_project_admin_creators(project)
             create_project_join_request_notification(
                 requester=user,

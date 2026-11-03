@@ -27,6 +27,28 @@ def is_plain_text(message: str) -> bool:
     return unescape(cleaned) == unescape(message)
 
 
+def remove_approved_membership_request(user, project):
+    """
+    Deletes the approved join request of a user for a project once their membership
+    has ended, so that they can request to join again. Pending and rejected requests
+    are kept. Returns the number of deleted requests.
+    """
+    stale_requests = MembershipRequests.objects.filter(
+        user=user,
+        target_project=project,
+        request_status=RequestStatus.APPROVED.value,
+    )
+    count = 0
+    for membership_request in list(stale_requests):
+        logger.info(
+            f"Deleting approved membership request {membership_request.id} "
+            f"(user {user.id}, project {project.id}) after membership ended"
+        )
+        membership_request.delete()
+        count += 1
+    return count
+
+
 class MembershipRequestsManager:
     """
     Manages the project/org membership requests.
