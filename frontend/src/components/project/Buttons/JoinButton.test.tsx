@@ -2,7 +2,6 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as StylesThemeProvider } from "@mui/styles";
 
 import theme from "../../../themes/theme";
 import UserContext from "../../context/UserContext";
@@ -23,11 +22,9 @@ const setToggle = (enabled: boolean) =>
 function renderButton(handler: jest.Mock, user: any = { url_slug: "me" }) {
   return render(
     <ThemeProvider theme={theme}>
-      <StylesThemeProvider theme={theme}>
-        <UserContext.Provider value={{ locale: "en", user } as any}>
-          <JoinButton handleSendProjectJoinRequest={handler} requestedToJoin={false} />
-        </UserContext.Provider>
-      </StylesThemeProvider>
+      <UserContext.Provider value={{ locale: "en", user } as any}>
+        <JoinButton handleSendProjectJoinRequest={handler} requestedToJoin={false} />
+      </UserContext.Provider>
     </ThemeProvider>
   );
 }
@@ -134,15 +131,13 @@ describe("JoinButton when already requested", () => {
     const handler = jest.fn();
     render(
       <ThemeProvider theme={theme}>
-        <StylesThemeProvider theme={theme}>
-          <UserContext.Provider value={{ locale: "en", user: { url_slug: "me" } } as any}>
-            <JoinButton
-              handleSendProjectJoinRequest={handler}
-              requestedToJoin
-              screenSize={{ belowSmall: true }}
-            />
-          </UserContext.Provider>
-        </StylesThemeProvider>
+        <UserContext.Provider value={{ locale: "en", user: { url_slug: "me" } } as any}>
+          <JoinButton
+            handleSendProjectJoinRequest={handler}
+            requestedToJoin
+            screenSize={{ belowSmall: true }}
+          />
+        </UserContext.Provider>
       </ThemeProvider>
     );
     fireEvent.click(screen.getByRole("button").parentElement as HTMLElement);
