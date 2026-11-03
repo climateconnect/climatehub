@@ -7,6 +7,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.db.models.functions import Cast
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
@@ -1089,6 +1090,50 @@ class ChangeOrganizationCreator(APIView):
 
         return Response(
             {"message": "Changed organization creator"}, status=status.HTTP_200_OK
+        )
+
+
+class LeaveOrganization(APIView):
+    """
+    Lets the requesting user leave an organization (deletes their membership).
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, url_slug):
+        organization = get_object_or_404(Organization, url_slug=url_slug)
+        try:
+            membership = OrganizationMember.objects.select_related("role").get(
+                user=request.user, organization=organization
+            )
+        except OrganizationMember.DoesNotExist:
+            return Response(
+                {"message": "User is not a member of this organization"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if membership.role.name == "Super-Admin":
+            has_other_members = (
+                OrganizationMember.objects.filter(organization=organization)
+                .exclude(id=membership.id)
+                .exists()
+            )
+            if has_other_members:
+                return Response(
+                    {"message": "A new Super-Admin needs to be assigned first"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(
+                {
+                    "message": "You are the last member. Delete the organization instead."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        membership.delete()
+        return Response(
+            {"message": f"Left organization {url_slug} successfully"},
+            status=status.HTTP_200_OK,
         )
 
 
