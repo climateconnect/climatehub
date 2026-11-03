@@ -153,11 +153,47 @@ export default function getLandingPageTexts({ classes, isNarrowScreen }) {
       en: "ClimateHub",
       de: "ClimateHub",
     },
-    find_fellow_campaigners_for_climate_protection_idea: {
+    hub_landing_page_description: {
       en:
-        "Find projects and initiatives from Erlangen to get involved and make a difference. The ClimateHub is your starting point to find your group to make an impact.",
+        "Find projects and initiatives near you to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
+      de:
+        "Finde Mitstreiter:innen, um in deiner Region gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
+    },
+    hub_landing_page_description_em: {
+      en:
+        "Find projects and initiatives in the Emmendingen district to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
+      de:
+        "Finde Mitstreiter:innen, um im Landkreis Emmendingen gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
+    },
+    hub_landing_page_description_erlangen: {
+      en:
+        "Find projects and initiatives in Erlangen to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
       de:
         "Finde Mitstreiter:innen, um in Erlangen gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
+    },
+    hub_landing_page_description_kassel: {
+      en:
+        "Find projects and initiatives in Kassel to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
+      de:
+        "Finde Mitstreiter:innen, um in Kassel gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
+    },
+    hub_landing_page_description_marburg: {
+      en:
+        "Find projects and initiatives in Marburg to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
+      de:
+        "Finde Mitstreiter:innen, um in Marburg gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
+    },
+    hub_landing_page_description_potsdam: {
+      en:
+        "Find projects and initiatives in Potsdam to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
+      de:
+        "Finde Mitstreiter:innen, um in Potsdam gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
+    },
+    hub_landing_page_description_wuerzburg: {
+      en:
+        "Find projects and initiatives in Würzburg to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",
+      de:
+        "Finde Mitstreiter:innen, um in Würzburg gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
     },
     coordinates_the_climateHub: {
       en: "coordinates the ClimateHub",

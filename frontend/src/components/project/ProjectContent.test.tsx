@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "../../themes/theme";
@@ -126,48 +126,21 @@ describe("ProjectContent", () => {
     });
   });
 
-  describe("show more / show less", () => {
-    it('shows "show more" button when content overflows', () => {
+  describe("full description", () => {
+    it("renders a long description in full without a show more / show less toggle", () => {
       renderProjectContent({
         description_html: "<p>" + "a".repeat(1000) + "</p>",
       });
-      // Mock overflow: scrollHeight > clientHeight
-      const descEl = document.querySelector("[class*='descriptionClamped']");
-      if (descEl) {
-        Object.defineProperty(descEl, "scrollHeight", { value: 500, configurable: true });
-        Object.defineProperty(descEl, "clientHeight", { value: 100, configurable: true });
-        // Trigger re-check via resize observer or manual call
-        window.dispatchEvent(new Event("resize"));
-      }
-      // In JSDOM, useLayoutEffect runs but scrollHeight/clientHeight are 0.
-      // The button appears only when overflow is detected, which requires real layout.
-      // This test verifies the component renders without crashing.
-      expect(document.querySelector("[class*='descriptionClamped']")).toBeInTheDocument();
-    });
-
-    it('toggles to "show less" after clicking "show more"', () => {
-      renderProjectContent({
-        description_html: "<p>" + "a".repeat(1000) + "</p>",
-      });
-      // Force overflow detection by mocking the ref element
-      const descEl = document.querySelector("[class*='descriptionClamped']");
-      if (descEl) {
-        Object.defineProperty(descEl, "scrollHeight", { value: 500, configurable: true });
-        Object.defineProperty(descEl, "clientHeight", { value: 100, configurable: true });
-      }
-      const showMore = screen.queryByText(/show more/i);
-      if (showMore) {
-        fireEvent.click(showMore);
-        expect(screen.getByText(/show less/i)).toBeInTheDocument();
-      }
-    });
-
-    it("does not show toggle for short descriptions that fit", () => {
-      renderProjectContent({
-        description_html: "<p>Short</p>",
-      });
-      // In JSDOM scrollHeight == clientHeight == 0, so no overflow detected
+      expect(screen.getByText("a".repeat(1000))).toBeInTheDocument();
       expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/show less/i)).not.toBeInTheDocument();
+      expect(document.querySelector("[class*='descriptionClamped']")).not.toBeInTheDocument();
+    });
+
+    it("does not show a toggle for short descriptions", () => {
+      renderProjectContent({ description_html: "<p>Short</p>" });
+      expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/show less/i)).not.toBeInTheDocument();
     });
   });
 });
