@@ -193,7 +193,7 @@ class TestReactivationOnApproval(RejoinProjectTeamBase):
             membership_target=MembershipTarget.PROJECT,
         )
         self.assertFalse(manager.validation_failed)
-        manager.approve_request()
+        manager.approve_request(decided_by=self.admin)
         members = ProjectMember.objects.filter(user=self.user, project=self.project)
         self.assertEqual(members.count(), 1)
         member = members.get()
