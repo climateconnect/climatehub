@@ -68,6 +68,7 @@ This document defines the core system entities for Climate Connect, serving as t
 - **Definition**: Event registration configuration. Presence of this record signals that registration is enabled for an event.
 - **Properties**:
   - `max_participants`: PositiveInteger, nullable
+  - `max_seats_per_registration`: PositiveInteger (default 1) — maximum seats one registration may book (introduced in [#2348](https://github.com/climateconnect/climatehub/issues/2348))
   - `registration_end_date`: DateTimeField, nullable
   - `status`: Enum (`open`, `closed`, `full`)
   - `notify_admins`: Boolean (default true)
@@ -80,6 +81,7 @@ This document defines the core system entities for Climate Connect, serving as t
 - **Definition**: A user's registration record for an event. One row per user per event.
 - **Properties**:
   - `registered_at`: DateTimeField
+  - `number_of_seats`: PositiveInteger (default 1) — seats booked by this registration; 1 for all rows predating [#2348](https://github.com/climateconnect/climatehub/issues/2348)
   - `cancelled_at`: DateTimeField, nullable (NULL = active registration)
   - `cancelled_by`: FK → User, nullable (self-cancel vs admin-cancel distinction)
   - `cancellation_reason`: TextField, nullable (optional guest-provided reason at self-cancellation; persists across re-registration)

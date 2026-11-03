@@ -1,6 +1,6 @@
 import { Theme } from "@emotion/react";
 import { Container, Link, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import getTexts from "../../../public/texts/texts";
@@ -15,92 +15,58 @@ import HubLinks from "../indexPage/hubsSubHeader/HubLinks";
 import { usePageNavEntries } from "../../hooks/usePageNavEntries";
 import { BrowseEntity } from "../../types";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    background: theme.palette.primary.main,
-  },
-  path: {
-    color: theme.palette.primary.contrastText,
-    fontWeight: 600,
-  },
-  link: {
-    color: theme.palette.primary.contrastText,
-    display: "inline-block",
-    fontWeight: 600,
-    marginRight: theme.spacing(2),
-    marginLeft: theme.spacing(2),
-  },
-  activeLink: {
-    color: theme.palette.primary.main,
-    background: theme.palette.primary.contrastText,
-    borderRadius: 15,
-    padding: "3px 12px",
-    fontWeight: 600,
-    display: "inline-flex",
-    alignItems: "center",
-    marginRight: theme.spacing(2),
-    marginLeft: theme.spacing(2),
-    "&:hover": {
-      textDecoration: "none",
-    },
-  },
-  flexContainer: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  rightSideContainer: {
-    display: "flex",
-    alignItems: "center",
-  },
-  allProjectsLink: {
-    marginRight: theme.spacing(1.5),
-  },
-  highlightedLink: {
-    color: theme.palette.primary.contrastText,
-    fontWeight: 600,
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(4),
-  },
-  wasseraktionsButton: {
-    backgroundColor: "#D5F1FF",
-    color: theme.palette.primary.main,
-    borderRadius: theme.spacing(3),
-    padding: theme.spacing(0.75, 2),
-    fontWeight: 600,
-    marginLeft: theme.spacing(1.5),
+const Root = styled("div")(({ theme }) => ({
+  background: theme.palette.primary.main,
+}));
+
+const NavLink = styled(AppLink)(({ theme }) => ({
+  color: theme.palette.primary.contrastText,
+  display: "inline-block",
+  fontWeight: 600,
+  marginRight: theme.spacing(2),
+  marginLeft: theme.spacing(2),
+}));
+
+const ActiveNavLink = styled(AppLink)(({ theme }) => ({
+  color: theme.palette.primary.main,
+  background: theme.palette.primary.contrastText,
+  borderRadius: 15,
+  padding: "3px 12px",
+  fontWeight: 600,
+  display: "inline-flex",
+  alignItems: "center",
+  marginRight: theme.spacing(2),
+  marginLeft: theme.spacing(2),
+  "&:hover": {
     textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    columnGap: theme.spacing(1),
-    "&:hover": {
-      backgroundColor: "#C0E6FF",
-      textDecoration: "none",
-    },
   },
-  wasseraktionsIcon: {
-    width: 20,
-    height: 20,
-    flexShrink: 0,
-  },
-  linksAndTabsWrapper: {
-    display: "flex",
-    alignItems: "center",
-    // Match the MUI <Tabs> default height that the old nav used; without this
-    // the row collapses to the height of its tallest entry on pages that
-    // don't render a hub dropdown or hub links on the right (e.g. the events
-    // page, custom hubs like prio1, or sub-hub pages that have no linked
-    // hubs).
-    minHeight: 48,
-    [theme.breakpoints.down("md")]: {
-      justifyContent: "space-between",
-    },
-  },
-  container: {
-    display: "flex",
+}));
+
+const HighlightedLink = styled(Link)(({ theme }) => ({
+  color: theme.palette.primary.contrastText,
+  fontWeight: 600,
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(4),
+}));
+
+const LinksAndTabsWrapper = styled("div")(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  // Match the MUI <Tabs> default height that the old nav used; without this
+  // the row collapses to the height of its tallest entry on pages that
+  // don't render a hub dropdown or hub links on the right (e.g. the events
+  // page, custom hubs like prio1, or sub-hub pages that have no linked
+  // hubs).
+  minHeight: 48,
+  [theme.breakpoints.down("md")]: {
     justifyContent: "space-between",
   },
 }));
+
+const NavContainer = styled(Container)({
+  display: "flex",
+  justifyContent: "space-between",
+});
 
 /**
  * The main page nav shown at the top of the browse pages and the events
@@ -130,7 +96,6 @@ export default function PageNav({
   subHubSegment?: string;
 }) {
   const { locale, CUSTOM_HUB_URLS } = useContext(UserContext);
-  const classes = useStyles();
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
@@ -168,6 +133,8 @@ export default function PageNav({
   const handleClose = () => setDropdownOpen(false);
   const handleToggleOpen = () => setDropdownOpen(!dropdownOpen);
 
+  const EventsLink = isActive("events", activeEntry) ? ActiveNavLink : NavLink;
+
   const renderBrowseLinks = () => {
     if (isNarrowScreen) return null;
 
@@ -176,10 +143,10 @@ export default function PageNav({
         {browseEntries.map((entry) => {
           const path = getHref(entry);
           const active = isActive(entry, activeEntry);
+          const BrowseLink = active ? ActiveNavLink : NavLink;
           return (
-            <AppLink
+            <BrowseLink
               key={entry}
-              className={active ? classes.activeLink : classes.link}
               href={path}
               underline={active ? "none" : "hover"}
               onClick={(e: React.MouseEvent) => {
@@ -195,7 +162,7 @@ export default function PageNav({
               }}
             >
               {type_names[entry]}
-            </AppLink>
+            </BrowseLink>
           );
         })}
       </>
@@ -208,14 +175,9 @@ export default function PageNav({
     return (
       <>
         {hubTabLink && (
-          <Link
-            className={classes.highlightedLink}
-            href={hubTabLink.href}
-            target="_blank"
-            underline="hover"
-          >
+          <HighlightedLink href={hubTabLink.href} target="_blank" underline="hover">
             {hubTabLink.text}
-          </Link>
+          </HighlightedLink>
         )}
       </>
     );
@@ -242,46 +204,34 @@ export default function PageNav({
 
     // Show hub links on browse page for non-custom hubs
     if (allHubs && !isCustomHub) {
-      return (
-        <HubLinks
-          linkClassName={classes.link}
-          hubs={allHubs}
-          locale={locale}
-          isNarrowScreen={isNarrowScreen}
-        />
-      );
+      return <HubLinks hubs={allHubs} locale={locale} isNarrowScreen={isNarrowScreen} />;
     }
 
     return null;
   };
 
   return (
-    <div className={`${className ?? ""} ${classes.root}`}>
-      <Container maxWidth="lg" className={classes.container}>
-        <div className={classes.linksAndTabsWrapper}>
+    <Root className={className}>
+      <NavContainer maxWidth="lg">
+        <LinksAndTabsWrapper>
           {renderBrowseLinks()}
           {isEventsEnabled && !isNarrowScreen && (
-            <AppLink
-              className={isActive("events", activeEntry) ? classes.activeLink : classes.link}
+            <EventsLink
               href={getHref("events")}
               underline={isActive("events", activeEntry) ? "none" : "hover"}
             >
               {texts.event_calendar ?? "Event calendar"}
-            </AppLink>
+            </EventsLink>
           )}
           {isEmmendingenHub && !isNarrowScreen && (
-            <Link
-              className={classes.highlightedLink}
-              href="https://climatehub.earth/burgerenergie-em"
-              underline="hover"
-            >
+            <HighlightedLink href="https://climatehub.earth/burgerenergie-em" underline="hover">
               {texts.emmerdingen_buergerenergie}
-            </Link>
+            </HighlightedLink>
           )}
           {renderNarrowScreenLinks()}
-        </div>
+        </LinksAndTabsWrapper>
         {renderRightSection()}
-      </Container>
-    </div>
+      </NavContainer>
+    </Root>
   );
 }

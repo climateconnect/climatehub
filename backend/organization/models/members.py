@@ -229,6 +229,17 @@ class MembershipRequests(models.Model):
         default=RequestStatus.PENDING.value,
     )
 
+    decided_by = models.ForeignKey(
+        User,
+        verbose_name="Decided by",
+        help_text="The admin who approved or rejected the request (null while pending)",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        default=None,
+        related_name="decided_membership_requests",
+    )
+
     class Meta:
         unique_together = ("user", "target_project")
         verbose_name = "Membership Request"

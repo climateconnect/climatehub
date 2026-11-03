@@ -8,7 +8,11 @@ import {
   getRegisterButtonText,
   isRegisterButtonDisabled,
   getRegistrationUIState,
+  formatSeatCount,
+  getSelectableSeatMax,
+  sumActiveSeats,
 } from "./eventRegistrationHelpers";
+import getTexts from "../../public/texts/texts";
 import { Project } from "../types";
 
 describe("shouldShowRegisterButton", () => {
@@ -337,5 +341,50 @@ describe("getRegistrationUIState", () => {
     it('returns closed when status is "closed"', () => {
       expect(getRegistrationUIState(closedProject, false, false, false)).toBe("closed");
     });
+  });
+});
+
+describe("formatSeatCount", () => {
+  it("uses singular and plural copy in English", () => {
+    const texts = getTexts({ page: "project", locale: "en" });
+    expect(formatSeatCount(1, texts)).toBe("1 seat");
+    expect(formatSeatCount(2, texts)).toBe("2 seats");
+  });
+
+  it("uses singular and plural copy in German", () => {
+    const texts = getTexts({ page: "project", locale: "de" });
+    expect(formatSeatCount(1, texts)).toBe("1 Platz");
+    expect(formatSeatCount(3, texts)).toBe("3 Plätze");
+  });
+});
+
+describe("getSelectableSeatMax", () => {
+  it("is the per-registration maximum when enough seats are left", () => {
+    expect(getSelectableSeatMax(3, 10)).toBe(3);
+  });
+
+  it("is capped by the seats left", () => {
+    expect(getSelectableSeatMax(5, 2)).toBe(2);
+  });
+
+  it("is the maximum alone for unlimited capacity", () => {
+    expect(getSelectableSeatMax(4, null)).toBe(4);
+  });
+
+  it("defaults to 1 when the maximum is absent and never drops below 1", () => {
+    expect(getSelectableSeatMax(undefined, 10)).toBe(1);
+    expect(getSelectableSeatMax(3, 0)).toBe(1);
+  });
+});
+
+describe("sumActiveSeats", () => {
+  it("sums seats of active registrations only, defaulting missing counts to 1", () => {
+    expect(
+      sumActiveSeats([
+        { cancelled_at: null, number_of_seats: 3 },
+        { cancelled_at: "2026-10-01T10:00:00Z", number_of_seats: 2 },
+        { cancelled_at: null },
+      ])
+    ).toBe(4);
   });
 });

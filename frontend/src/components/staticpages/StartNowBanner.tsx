@@ -1,57 +1,59 @@
 import { Container, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import LightBigButton from "./LightBigButton";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    paddingTop: theme.spacing(3),
-    paddingBottom: theme.spacing(3),
-    background: theme.palette.primary.main,
-  },
-  headline: {
-    color: "white",
-    maxWidth: 580,
-    textAlign: "center",
-    margin: "0 auto",
-  },
-  signUpButton: {
-    margin: "0 auto",
-  },
-  buttonContainer: {
-    display: "flex",
-    justifyContent: "center",
-    marginTop: theme.spacing(3),
-  },
-  yellow: {
+// Static class handed to the text files (`classes.yellow`) so highlighted spans can be styled
+const YELLOW_TEXT_CLASS = "startNowBannerYellowText";
+
+const Root = styled("div")(({ theme }) => ({
+  paddingTop: theme.spacing(3),
+  paddingBottom: theme.spacing(3),
+  background: theme.palette.primary.main,
+  [`& .${YELLOW_TEXT_CLASS}`]: {
     color: theme.palette.yellow.main,
   },
 }));
 
+const Headline = styled(Typography)({
+  color: "white",
+  maxWidth: 580,
+  textAlign: "center",
+  margin: "0 auto",
+}) as typeof Typography;
+
+const ButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  marginTop: theme.spacing(3),
+}));
+
+const SignUpButton = styled(LightBigButton)({
+  margin: "0 auto",
+});
+
 export default function StartNowBanner({ h1ClassName, className }: any) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
-  const texts = getTexts({ page: "landing_page", locale: locale, classes: classes });
+  const texts = getTexts({
+    page: "landing_page",
+    locale: locale,
+    classes: { yellow: YELLOW_TEXT_CLASS },
+  });
   return (
-    <div className={`${classes.root} ${className}`}>
+    <Root className={className}>
       <Container>
         <div>
-          <Typography className={`${classes.headline} ${h1ClassName}`} component="h1">
+          <Headline className={h1ClassName} component="h1">
             {texts.start_now_banner_text}
-          </Typography>
+          </Headline>
         </div>
-        <div className={classes.buttonContainer}>
-          <LightBigButton
-            href={getLocalePrefix(locale) + "/signup"}
-            className={classes.signUpButton}
-          >
-            {texts.sign_up}
-          </LightBigButton>
-        </div>
+        <ButtonContainer>
+          <SignUpButton href={getLocalePrefix(locale) + "/signup"}>{texts.sign_up}</SignUpButton>
+        </ButtonContainer>
       </Container>
-    </div>
+    </Root>
   );
 }

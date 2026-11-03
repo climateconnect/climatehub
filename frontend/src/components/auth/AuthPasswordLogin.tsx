@@ -1,3 +1,4 @@
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import {
   Alert,
@@ -13,7 +14,6 @@ import { apiRequest } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { trackAuthEvent } from "../../utils/analytics";
-import makeStyles from "@mui/styles/makeStyles";
 
 interface AuthPasswordLoginProps {
   email: string;
@@ -25,16 +25,14 @@ interface AuthPasswordLoginProps {
   showHeader?: boolean;
 }
 
-const useStyles = makeStyles((theme) => ({
-  header: {
-    color: theme.palette.background.default_contrastText,
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-      fontSize: 35,
-      fontWeight: "bold",
-    },
+const Header = styled(Typography)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    textAlign: "center",
+    fontSize: 35,
+    fontWeight: "bold",
   },
 }));
 
@@ -49,7 +47,6 @@ export default function AuthPasswordLogin({
 }: AuthPasswordLoginProps) {
   const { locale, signIn, ReactGA } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale: locale, hubName: hubUrl });
-  const classes = useStyles();
 
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -114,9 +111,7 @@ export default function AuthPasswordLogin({
           <IconButton aria-label="go back" onClick={onBack} size="small" style={{ marginRight: 8 }}>
             <ArrowBack />
           </IconButton>
-          <Typography variant="h1" className={classes.header}>
-            {texts.log_in}
-          </Typography>
+          <Header variant="h1">{texts.log_in}</Header>
         </div>
       )}
 

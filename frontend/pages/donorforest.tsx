@@ -1,4 +1,4 @@
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import NextCookies from "next-cookies";
 import React, { useContext } from "react";
 import { apiRequest } from "../public/lib/apiOperations";
@@ -9,13 +9,11 @@ import DonorForestTransition from "../src/components/donation/donorForest/DonorF
 import WideLayout from "../src/components/layouts/WideLayout";
 import TopSection from "../src/components/staticpages/TopSection";
 
-const useStyles = makeStyles(() => ({
-  forest: {
-    background: "#59B25F",
-    width: "100%",
-    minHeight: "100vh",
-  },
-}));
+const Forest = styled("div")({
+  background: "#59B25F",
+  width: "100%",
+  minHeight: "100vh",
+});
 
 export async function getServerSideProps(ctx) {
   const { auth_token } = NextCookies(ctx);
@@ -30,12 +28,11 @@ export async function getServerSideProps(ctx) {
 }
 
 export default function DonorForest({ donorsWithBadges, possibleBadges }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "donate", locale: locale });
   return (
     <WideLayout noSpaceBottom isStaticPage useFloodStdFont>
-      <div className={classes.forest}>
+      <Forest>
         <TopSection
           headline={texts.donor_forest}
           subHeader={texts.watch_the_forest_grow}
@@ -44,7 +41,7 @@ export default function DonorForest({ donorsWithBadges, possibleBadges }) {
         />
         <DonorForestTransition possibleBadges={possibleBadges} />
         <DonorForestEntries donors={donorsWithBadges} />
-      </div>
+      </Forest>
     </WideLayout>
   );
 }

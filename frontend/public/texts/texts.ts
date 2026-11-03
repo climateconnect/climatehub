@@ -1,4 +1,3 @@
-import { ClassNameMap } from "@mui/styles";
 import { User, CcLocale, Project } from "../../src/types";
 import getAboutTexts from "./about_texts";
 import account_texts from "./account_texts.json";
@@ -44,7 +43,7 @@ type Page =
   | "project"
   | "settings";
 type Args<P extends Page> = {
-  classes?: ClassNameMap;
+  classes?: Record<string, string>;
   filterType?: string;
   goal?: string;
   hubName?: string;
@@ -110,7 +109,12 @@ export default function getTexts<P extends Page>({
     landing_page: getLandingPageTexts({ classes: classes, isNarrowScreen: isNarrowScreen }),
     navigation: navigation_texts,
     notification: getNotificationTexts({ idea: idea, project: project }),
-    organization: getOrganizationTexts({ organization: organization, locale: locale }),
+    organization: getOrganizationTexts({
+      organization: organization,
+      locale: locale,
+      user: user,
+      hubName: hubName,
+    }),
     profile: getProfileTexts({ profile: profile, locale: locale, hubName: hubName }),
     project: getProjectTexts({
       project: project,

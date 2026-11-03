@@ -1,6 +1,5 @@
-import { Button, Container, Divider, Typography, useMediaQuery } from "@mui/material";
-import { Theme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { Alert, Button, Container, Divider, Typography, useMediaQuery } from "@mui/material";
+import { styled, Theme } from "@mui/material/styles";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import NextCookies from "next-cookies";
@@ -38,48 +37,49 @@ import { getAllHubs } from "../../public/lib/hubOperations";
 
 const DEFAULT_BACKGROUND_IMAGE = "/images/default_background_org.jpg";
 
-const useStyles = makeStyles((theme) => ({
-  cardHeadline: {
-    marginTop: theme.spacing(3),
-    marginBottom: theme.spacing(1),
-  },
-  subtitle: {
-    color: `${theme.palette.secondary.main}`,
-  },
-  loginNudge: {
-    textAlign: "center",
-    margin: "0 auto",
-  },
-  button: {
-    width: "30px",
-    height: "auto",
-    marginBottom: theme.spacing(1),
-    color: theme.palette.background.default_contrastText,
-  },
-  innerIcon: {
-    marginRight: theme.spacing(0.5),
-    marginLeft: -theme.spacing(1),
-  },
-  divider: {
-    marginTop: theme.spacing(1),
-  },
-  headline: {
-    fontSize: 23,
-    fontWeight: "bold",
-    marginBottom: theme.spacing(1),
-    wordBreak: "break-word",
-    color: theme?.palette?.background?.default_contrastText,
-  },
-  sectionHeadlineWithButtonContainer: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: theme.spacing(3),
-  },
-  no_content_yet: {
-    marginTop: theme.spacing(4),
-    marginBottom: theme.spacing(5),
-  },
+const StyledLoginNudge = styled(LoginNudge)({
+  textAlign: "center",
+  margin: "0 auto",
+});
+
+const buttonIconStyles = ({ theme }: { theme: Theme }) => ({
+  width: "30px",
+  height: "auto",
+  marginBottom: theme.spacing(1),
+  color: theme.palette.background.default_contrastText,
+});
+
+const innerIconStyles = ({ theme }: { theme: Theme }) => ({
+  marginRight: theme.spacing(0.5),
+});
+
+const ShareProjectButtonIcon = styled(ControlPointSharpIcon)(buttonIconStyles);
+const ShareProjectInnerIcon = styled(ControlPointSharpIcon)(innerIconStyles);
+const ManageMembersButtonIcon = styled(GroupAddIcon)(buttonIconStyles);
+const ManageMembersInnerIcon = styled(GroupAddIcon)(innerIconStyles);
+
+const StyledDivider = styled(Divider)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+}));
+
+const SectionHeadline = styled(Typography)(({ theme }) => ({
+  fontSize: 23,
+  fontWeight: "bold",
+  marginBottom: theme.spacing(1),
+  wordBreak: "break-word",
+  color: theme?.palette?.background?.default_contrastText,
+})) as typeof Typography;
+
+const SectionHeadlineWithButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: theme.spacing(3),
+}));
+
+const NoContentYet = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(5),
 }));
 
 export async function getServerSideProps(ctx) {
@@ -232,7 +232,6 @@ function OrganizationLayout({
   rolesOptions,
   hubUrl,
 }) {
-  const classes = useStyles();
   const cookies = new Cookies();
   const router = useRouter();
 
@@ -276,7 +275,9 @@ function OrganizationLayout({
     const token = cookies.get("auth_token");
     const creator = members.filter((m) => m.isCreator === true)[0];
     const chat = await startPrivateChat(creator, token, locale);
-    const chatLink = hubUrl ? `/chat/${chat.chat_uuid}/?hub=${hubUrl}` : `/chat/${chat.chat_uuid}/`;
+    const chatParams = new URLSearchParams({ origin_organization: organization.url_slug });
+    if (hubUrl) chatParams.set("hub", hubUrl);
+    const chatLink = `/chat/${chat.chat_uuid}/?${chatParams.toString()}`;
     router.push(chatLink);
   };
   const canEdit =
@@ -314,126 +315,127 @@ function OrganizationLayout({
   const isTinyScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
   const isSmallScreen = useMediaQuery<Theme>(theme.breakpoints.down("md"));
   return (
-    <AccountPage
-      numberOfFollowers={numberOfFollowers}
-      handleFollow={handleFollow}
-      followingChangePending={followingChangePending}
-      isUserFollowing={isUserFollowing}
-      account={organization}
-      default_background={DEFAULT_BACKGROUND_IMAGE}
-      editHref={`${getLocalePrefix(locale)}/editOrganization/${organization.url_slug}${
-        hubUrl ? `?hub=${hubUrl}` : ""
-      }`}
-      /*TODO(unused) type="organization" */
-      infoMetadata={infoMetadata}
-      isOwnAccount={canEdit}
-      isOrganization={true}
-      editText={texts.edit_organization}
-      isSmallScreen={isSmallScreen}
-      hubUrl={hubUrl}
-    >
-      {!user && (
-        <LoginNudge
-          className={classes.loginNudge}
-          whatToDo={texts.to_see_this_organizations_full_information}
-        />
+    <>
+      {organization.is_draft && (
+        <Container>
+          <Alert severity="info" sx={{ my: 2 }}>
+            {texts.draft_organization_notice}
+          </Alert>
+        </Container>
       )}
-      <Container>
-        {user && !canEdit && (
-          <Button variant="contained" color="primary" onClick={handleConnectBtn}>
-            {texts.send_message}
-          </Button>
-        )}
-        <div className={classes.sectionHeadlineWithButtonContainer}>
-          <Typography color="primary" className={classes.headline} component="h2">
-            {texts.this_organizations_projects}
-          </Typography>
-          {isTinyScreen ? (
-            <IconButton
-              href={`${getLocalePrefix(locale)}/share${hubUrl ? `?hub=${hubUrl}` : ""}`}
-              size="large"
-            >
-              <ControlPointSharpIcon
-                className={classes.button}
-                /*TODO(unused) variant="contained" */
-                color="primary"
-              />
-            </IconButton>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              href={`${getLocalePrefix(locale)}/share${hubUrl ? `?hub=${hubUrl}` : ""}`}
-            >
-              <ControlPointSharpIcon className={classes.innerIcon} />
-              {texts.share_a_project}
+      <AccountPage
+        numberOfFollowers={numberOfFollowers}
+        handleFollow={handleFollow}
+        followingChangePending={followingChangePending}
+        isUserFollowing={isUserFollowing}
+        account={organization}
+        default_background={DEFAULT_BACKGROUND_IMAGE}
+        editHref={`${getLocalePrefix(locale)}/editOrganization/${organization.url_slug}${
+          hubUrl ? `?hub=${hubUrl}` : ""
+        }`}
+        /*TODO(unused) type="organization" */
+        infoMetadata={infoMetadata}
+        isOwnAccount={canEdit}
+        isOrganization={true}
+        editText={texts.edit_organization}
+        isSmallScreen={isSmallScreen}
+        hubUrl={hubUrl}
+      >
+        {!user && <StyledLoginNudge whatToDo={texts.to_see_this_organizations_full_information} />}
+        <Container>
+          {user && !canEdit && (
+            <Button variant="contained" color="primary" onClick={handleConnectBtn}>
+              {texts.send_message}
             </Button>
           )}
-        </div>
-        {allProjects && allProjects.length ? (
-          <>
-            <ProjectPreviews projects={allProjects} hubUrl={hubUrl} parentHandlesGridItems />
-            {hasMoreProjects && (
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleLoadMoreProjects}
-                disabled={isLoadingMore}
-                fullWidth
-                sx={{ mt: 2 }}
-              >
-                {isLoadingMore ? texts.loading : texts.load_more}
-              </Button>
-            )}
-          </>
-        ) : (
-          <Typography className={classes.no_content_yet}>
-            {texts.this_organization_has_not_listed_any_projects_yet}
-          </Typography>
-        )}
-      </Container>
-      <Divider className={classes.divider} />
-      <Container>
-        <div className={classes.sectionHeadlineWithButtonContainer}>
-          <Typography color="primary" className={classes.headline} component="h2">
-            {texts.members_of_organization}
-          </Typography>
-          {canEdit &&
-            (isTinyScreen ? (
+          <SectionHeadlineWithButtonContainer>
+            <SectionHeadline color="primary" component="h2">
+              {texts.this_organizations_projects}
+            </SectionHeadline>
+            {isTinyScreen ? (
               <IconButton
-                href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
-                  organization.url_slug
-                }${hubUrl ? `?hub=${hubUrl}` : ""}`}
+                href={`${getLocalePrefix(locale)}/share${hubUrl ? `?hub=${hubUrl}` : ""}`}
                 size="large"
               >
-                <GroupAddIcon className={classes.button} color="primary" />
+                <ShareProjectButtonIcon
+                  /*TODO(unused) variant="contained" */
+                  color="primary"
+                />
               </IconButton>
             ) : (
               <Button
                 variant="contained"
                 color="primary"
-                href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
-                  organization.url_slug
-                }${hubUrl ? `?hub=${hubUrl}` : ""}`}
+                href={`${getLocalePrefix(locale)}/share${hubUrl ? `?hub=${hubUrl}` : ""}`}
               >
-                <GroupAddIcon className={classes.innerIcon} />
-                {texts.manage_members}
+                <ShareProjectInnerIcon />
+                {texts.share_a_project}
               </Button>
-            ))}
-        </div>
-        {members && members.length ? (
-          <ProfilePreviews
-            profiles={membersWithAdditionalInfo}
-            showAdditionalInfo
-            hubUrl={hubUrl}
-          />
-        ) : (
-          <Typography>
-            {texts.none_of_the_members_of_this_organization_has_signed_up_yet}
-          </Typography>
-        )}
-      </Container>
-    </AccountPage>
+            )}
+          </SectionHeadlineWithButtonContainer>
+          {allProjects && allProjects.length ? (
+            <>
+              <ProjectPreviews projects={allProjects} hubUrl={hubUrl} parentHandlesGridItems />
+              {hasMoreProjects && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleLoadMoreProjects}
+                  disabled={isLoadingMore}
+                  fullWidth
+                  sx={{ mt: 2 }}
+                >
+                  {isLoadingMore ? texts.loading : texts.load_more}
+                </Button>
+              )}
+            </>
+          ) : (
+            <NoContentYet>{texts.this_organization_has_not_listed_any_projects_yet}</NoContentYet>
+          )}
+        </Container>
+        <StyledDivider />
+        <Container>
+          <SectionHeadlineWithButtonContainer>
+            <SectionHeadline color="primary" component="h2">
+              {texts.members_of_organization}
+            </SectionHeadline>
+            {canEdit &&
+              (isTinyScreen ? (
+                <IconButton
+                  href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
+                    organization.url_slug
+                  }${hubUrl ? `?hub=${hubUrl}` : ""}`}
+                  size="large"
+                >
+                  <ManageMembersButtonIcon color="primary" />
+                </IconButton>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
+                    organization.url_slug
+                  }${hubUrl ? `?hub=${hubUrl}` : ""}`}
+                >
+                  <ManageMembersInnerIcon />
+                  {texts.manage_members}
+                </Button>
+              ))}
+          </SectionHeadlineWithButtonContainer>
+          {members && members.length ? (
+            <ProfilePreviews
+              profiles={membersWithAdditionalInfo}
+              showAdditionalInfo
+              hubUrl={hubUrl}
+            />
+          ) : (
+            <Typography>
+              {texts.none_of_the_members_of_this_organization_has_signed_up_yet}
+            </Typography>
+          )}
+        </Container>
+      </AccountPage>
+    </>
   );
 }
 

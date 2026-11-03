@@ -1,26 +1,33 @@
 import { Typography, Tooltip } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    display: "flex",
-    alignItems: "center",
-  },
-  typeIcon: {
-    width: 20,
-    height: 20,
-    marginLeft: 0,
-    marginRight: 8,
-  },
-  layersIcon: {
-    fontSize: 18,
-    marginLeft: 4,
-    color: theme.palette.primary.main,
-  },
+const Root = styled("div")({
+  display: "flex",
+  alignItems: "center",
+});
+
+// The default icon size is only applied when no `iconClassName` is passed.
+const TypeIcon = styled("img", {
+  shouldForwardProp: (prop) => !(prop as string).startsWith("$"),
+})<{ $useDefaultStyles: boolean }>(({ $useDefaultStyles }) =>
+  $useDefaultStyles
+    ? {
+        width: 20,
+        height: 20,
+        marginLeft: 0,
+        marginRight: 8,
+      }
+    : {}
+);
+
+const StyledLayersIcon = styled(LayersIcon)(({ theme }) => ({
+  fontSize: 18,
+  marginLeft: 4,
+  color: theme.palette.primary.main,
 }));
 
 type Props = {
@@ -38,7 +45,6 @@ export default function ProjectTypeDisplay({
   textClassName,
   hasChildren,
 }: Props) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
 
@@ -54,18 +60,19 @@ export default function ProjectTypeDisplay({
   const typeName = getLocalizedTypeName();
 
   return (
-    <div className={`${className} ${classes.root}`}>
-      <img
+    <Root className={className}>
+      <TypeIcon
         src={`/images/project_types/${projectType.type_id}.png`}
-        className={iconClassName ? iconClassName : classes.typeIcon}
+        className={iconClassName}
+        $useDefaultStyles={!iconClassName}
         alt={typeName}
       />
       <Typography className={textClassName}>{typeName}</Typography>
       {hasChildren && (
         <Tooltip title="This event contains multiple sub-events">
-          <LayersIcon className={classes.layersIcon} />
+          <StyledLayersIcon />
         </Tooltip>
       )}
-    </div>
+    </Root>
   );
 }

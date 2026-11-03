@@ -178,3 +178,36 @@ export function validateRegistrationFields(
 
   return result;
 }
+
+/**
+ * Formats a seat count with the correct singular/plural copy,
+ * e.g. "1 seat" / "2 seats" (EN) or "1 Platz" / "2 Plätze" (DE).
+ * @param count - Number of seats
+ * @param texts - Project texts containing `seat_count_one` / `seat_count_other`
+ */
+export const formatSeatCount = (count: number, texts: any): string =>
+  (count === 1 ? texts.seat_count_one : texts.seat_count_other).replace("{count}", String(count));
+
+/**
+ * Highest number of seats a registrant may choose in the registration dialog:
+ * the organiser's per-registration maximum, capped by the seats left
+ * (unlimited-capacity events: the maximum alone). Never below 1.
+ * @param maxSeatsPerRegistration - Organiser setting (absent = 1)
+ * @param availableSeats - Seats left; null for unlimited capacity
+ */
+export const getSelectableSeatMax = (
+  maxSeatsPerRegistration: number | undefined,
+  availableSeats: number | null | undefined
+): number => {
+  const max = Math.max(1, maxSeatsPerRegistration ?? 1);
+  if (availableSeats == null) return max;
+  return Math.max(1, Math.min(max, availableSeats));
+};
+
+/** Seats booked by active (non-cancelled) registrations. */
+export const sumActiveSeats = (
+  registrations: { cancelled_at: string | null; number_of_seats?: number }[]
+): number =>
+  registrations
+    .filter((r) => !r.cancelled_at)
+    .reduce((sum, r) => sum + (r.number_of_seats ?? 1), 0);

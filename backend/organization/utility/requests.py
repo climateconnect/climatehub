@@ -1,6 +1,9 @@
+from html import unescape
+
 from django.utils import timezone
 
 from climateconnect_api.models import Role
+from climateconnect_api.utility.html import sanitize_html
 from organization.utility.project import add_project_member, is_part_of_project
 from organization.utility.organization import add_organization_member
 from organization.models.members import MembershipRequests
@@ -8,6 +11,20 @@ from organization.utility import MembershipTarget, RequestStatus
 import logging
 
 logger = logging.getLogger(__name__)
+
+# API-level limit; the DB column allows 4096 so this can be raised without a migration.
+MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH = 500
+
+
+def is_plain_text(message: str) -> bool:
+    """True if the message contains no HTML markup.
+
+    bleach (empty allowlist) escapes its output, so entities are decoded on both
+    sides before comparing. Entity-encoded text such as ``&lt;script&gt;`` stays
+    inert because the original is stored without being decoded.
+    """
+    cleaned = sanitize_html(message, allowed_tags=[], allowed_attributes={})
+    return unescape(cleaned) == unescape(message)
 
 
 def remove_approved_membership_request(user, project):
@@ -142,8 +159,9 @@ class MembershipRequestsManager:
 
         return request_obj
 
-    def approve_request(self):
+    def approve_request(self, decided_by):
         self.membership_request.request_status = RequestStatus.APPROVED.value
+        self.membership_request.decided_by = decided_by
         self.membership_request.approved_at = timezone.now()
 
         # create a record in ProjectMember
@@ -168,7 +186,8 @@ class MembershipRequestsManager:
         print(f"User {self.user} is approved for project: {self.project}")
         self.membership_request.save()
 
-    def reject_request(self):
+    def reject_request(self, decided_by):
         self.membership_request.request_status = RequestStatus.REJECTED.value
+        self.membership_request.decided_by = decided_by
         self.membership_request.rejected_at = timezone.now()
         self.membership_request.save()

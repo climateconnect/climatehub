@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from organization.models.project import Project
@@ -79,6 +80,18 @@ class EventRegistrationConfig(models.Model):
             "May be null while the project is still a draft."
         ),
         verbose_name="Maximum Participants",
+    )
+
+    max_seats_per_registration = models.PositiveIntegerField(
+        default=1,
+        db_default=1,
+        validators=[MinValueValidator(1)],
+        help_text=(
+            "Maximum number of seats one registration may book (the registrant "
+            "plus their guests). Default 1 = one seat per registration. "
+            "No platform-wide cap beyond max_participants."
+        ),
+        verbose_name="Max. Seats per Registration",
     )
 
     registration_end_date = models.DateTimeField(
@@ -191,14 +204,14 @@ class EventRegistration(models.Model):
         - Admin-cancelled: cancelled_by != user  → member may NOT self-re-register
 
     Seat counting (active registrations only):
-        available_seats = registration_config.max_participants
-                          - EventRegistration.objects.filter(
-                                registration_config=rc,
-                                cancelled_at__isnull=True,
-                            ).count()
+        A registration books ``number_of_seats`` seats (the registrant plus
+        their guests).  ``number_of_seats`` is kept on cancelled rows for display.
 
-    This is computed on-the-fly on the detail endpoint only (see
-    EventRegistrationConfigSerializer with ``include_seat_count=True`` context flag).
+        available_seats = registration_config.max_participants
+                          - SUM(number_of_seats) over active registrations
+
+    Always use ``organization.utility.event_registration.get_booked_seats`` /
+    ``get_available_seats`` — every capacity site must share one calculation.
     No denormalised counter column is used to avoid update-anomaly races.
     """
 
@@ -252,6 +265,16 @@ class EventRegistration(models.Model):
         default=None,
         help_text="Optional message provided by the guest when they cancelled.",
         verbose_name="Cancellation Reason",
+    )
+    number_of_seats = models.PositiveIntegerField(
+        default=1,
+        db_default=1,
+        validators=[MinValueValidator(1)],
+        help_text=(
+            "Seats booked by this registration (registrant + guests). "
+            "Kept on cancelled rows; replaced on re-registration."
+        ),
+        verbose_name="Number of Seats",
     )
 
     class Meta:

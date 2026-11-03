@@ -1,5 +1,4 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext, useState } from "react";
 import { Project, Organization } from "../../types";
 import ProjectTypeSelector from "./ProjectTypeSelector";
@@ -9,37 +8,31 @@ import UserContext from "../context/UserContext";
 import Switcher from "../general/Switcher";
 import SelectField from "../general/SelectField";
 import RequiredFieldsNotice from "../general/RequiredFieldsNotice";
-import { useTheme } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import NavigationButtons from "../general/NavigationButtons";
 
-const useStyles = makeStyles((theme) => ({
-  orgBottomLink: {
-    textAlign: "center",
-    marginTop: theme.spacing(0.5),
-  },
-  bold: {
-    fontWeight: "bold",
-  },
-  appealText: {
-    textAlign: "center",
-  },
-  appealBox: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  form: {
-    maxWidth: 700,
-    margin: "0 auto",
-    padding: theme.spacing(4),
-    paddingTop: theme.spacing(2),
-  },
-  requiredFieldsNotice: {
-    marginTop: theme.spacing(2),
-    color: theme.palette.text.secondary,
-  },
-  field: {
+// ProjectTypeSelector is still on makeStyles, so the shared "field" spacing is applied
+// through a static class + descendant selector from the form root.
+const FIELD_CLASS_NAME = "shareProjectField";
+
+const Form = styled("div")(({ theme }) => ({
+  maxWidth: 700,
+  margin: "0 auto",
+  padding: theme.spacing(4),
+  paddingTop: theme.spacing(2),
+  [`& .${FIELD_CLASS_NAME}`]: {
     marginTop: theme.spacing(3),
   },
+}));
+
+const StyledRequiredFieldsNotice = styled(RequiredFieldsNotice)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  color: theme.palette.text.secondary,
+}));
+
+const OrgBottomLink = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(0.5),
 }));
 
 type Args = {
@@ -67,7 +60,6 @@ export default function Share({
           ...org,
         };
       });
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale, hubName: hubName });
   const projectTypeTexts = getProjectTypeTexts(texts);
@@ -109,23 +101,21 @@ export default function Share({
       : "primary";
 
   return (
-    <div className={classes.form}>
+    <Form>
       <Switcher
         trueLabel={projectTypeTexts.organizations[project.project_type?.type_id]}
         falseLabel={projectTypeTexts.personal[project.project_type?.type_id]}
         value={project.is_organization_project}
         required={false}
-        className={classes.field}
+        className={FIELD_CLASS_NAME}
         handleChangeValue={onChangeSwitch}
         color={mainColor}
       />
-      {project.is_organization_project && (
-        <RequiredFieldsNotice variant="body2" className={classes.requiredFieldsNotice} />
-      )}
+      {project.is_organization_project && <StyledRequiredFieldsNotice variant="body2" />}
       {project.is_organization_project && (
         <>
           {organizationOptions.length === 0 && (
-            <Typography color="error" variant="body2" className={classes.field}>
+            <Typography color="error" variant="body2" className={FIELD_CLASS_NAME}>
               {texts.you_are_not_a_member_of_any_organization_yet}
             </Typography>
           )}
@@ -137,22 +127,20 @@ export default function Share({
             helperText={organizationError}
             options={organizationOptions}
             label={texts.organization}
-            className={classes.field}
+            className={FIELD_CLASS_NAME}
             onChange={onChangeParentOrganization}
           />
-          <Typography className={classes.orgBottomLink}>
-            {texts.if_your_organization_does_not_exist_yet_click_here}
-          </Typography>
+          <OrgBottomLink>{texts.if_your_organization_does_not_exist_yet_click_here}</OrgBottomLink>
         </>
       )}
       <ProjectTypeSelector
-        className={classes.field}
+        className={FIELD_CLASS_NAME}
         value={project.project_type}
         onChange={onChangeProjectType}
         types={projectTypeOptions}
         color={mainColor}
       />
       <NavigationButtons onClickNextStep={onClickNextStep} sticky />
-    </div>
+    </Form>
   );
 }

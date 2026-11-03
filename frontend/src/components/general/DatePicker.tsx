@@ -10,7 +10,7 @@ import { DatePicker as DatePickerComponent } from "@mui/x-date-pickers/DatePicke
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import UserContext from "../context/UserContext";
 import { ThemeProvider } from "@mui/material";
-import { useTheme } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 
 type Props = {
   label?: string;

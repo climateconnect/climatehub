@@ -136,6 +136,23 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/naechsterhalt",
+        destination: "https://climatehub.org/de/projects/nachster-halt-zukunft?hub=erlangen",
+        permanent: true,
+      },
+      {
+        source: "/waerme",
+        destination:
+          "https://climatehub.org/de/projects/warmepumpen-in-mehrfamilienhausern-besichtigen?hub=em",
+        permanent: true,
+      },
+      {
+        source: "/show-em",
+        destination:
+          "https://climatehub.org/de/projects/cycling-cities-liveshow-in-emmendingen?hub=em",
+        permanent: true,
+      },
+      {
         source: "/hubs/prio1",
         destination: "/hubs/prio1/browse",
         permanent: false,

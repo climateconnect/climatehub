@@ -1,5 +1,5 @@
 import { Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { useRouter } from "next/router";
 import React, { useContext, useEffect, useState } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
@@ -61,19 +61,11 @@ function extractErrorMessage(error: unknown): string | null {
   return status ? `Error ${status}: ${messages.join("; ")}` : messages.join("; ");
 }
 
-const useStyles = makeStyles((theme) => {
-  return {
-    stepsTracker: {
-      maxWidth: 600,
-      margin: "0 auto",
-    },
-    headline: {
-      textAlign: "center",
-      marginTop: theme.spacing(4),
-      color: theme.palette.background.default_contrastText,
-    },
-  };
-});
+const Headline = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(4),
+  color: theme.palette.background.default_contrastText,
+}));
 
 const getSteps = (texts, project, projectTypeTexts, showRegistrationStep: boolean = false) => {
   const steps: Array<{ key: string; text: any; headline?: any }> = [
@@ -151,7 +143,6 @@ export default function ShareProjectRoot({
   hubName,
   sectorOptions,
 }: ShareProjectRootProps) {
-  const classes = useStyles();
   const { locale, locales } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale: locale });
 
@@ -374,9 +365,7 @@ export default function ShareProjectRoot({
             steps={steps}
             activeStep={curStep.key}
           />
-          <Typography variant="h4" className={classes.headline}>
-            {curStep.headline && curStep.headline}
-          </Typography>
+          <Headline variant="h4">{curStep.headline && curStep.headline}</Headline>
           {/* paddingBottom reserves space above the sticky navigation bar */}
           <div style={{ paddingBottom: 80 }}>
             {curStep.key === "share" && (
@@ -517,6 +506,7 @@ const getDefaultProjectValues = (
     // Event registration defaults
     registrationEnabled: false,
     max_participants: null,
+    max_seats_per_registration: 1,
     registration_end_date: null,
   };
 };
@@ -527,6 +517,7 @@ const formatProjectForRequest = async (project, translations) => {
   const {
     registrationEnabled,
     max_participants,
+    max_seats_per_registration,
     registration_end_date,
     registration_fields,
     ...projectRest
@@ -555,6 +546,10 @@ const formatProjectForRequest = async (project, translations) => {
       registrationEnabled && project.project_type?.type_id === "event"
         ? {
             max_participants: max_participants ? Number(max_participants) : undefined,
+            // Empty → omitted; the backend defaults to one seat per registration.
+            max_seats_per_registration: max_seats_per_registration
+              ? Number(max_seats_per_registration)
+              : undefined,
             registration_end_date: registration_end_date
               ? dayjs(registration_end_date).toISOString()
               : undefined,

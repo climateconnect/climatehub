@@ -1,5 +1,5 @@
 import { Button, TextField, Typography, useMediaQuery, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
 import { apiRequest } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
@@ -7,45 +7,45 @@ import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import GenericDialog from "./GenericDialog";
 
-const useStyles = makeStyles((theme) => ({
-  callToAction: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    textAlign: "center",
+const CallToAction = styled("form")(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  textAlign: "center",
+}));
+
+const SubscribeButton = styled(Button)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+  [theme.breakpoints.up("md")]: {
+    height: 56,
+    width: 150,
   },
-  subscribeButton: {
-    marginLeft: theme.spacing(1),
-    [theme.breakpoints.up("md")]: {
-      height: 56,
-      width: 150,
-    },
-    [theme.breakpoints.down("sm")]: {
-      width: 250,
-      marginTop: theme.spacing(1),
-      marginLeft: 0,
-    },
+  [theme.breakpoints.down("sm")]: {
+    width: 250,
+    marginTop: theme.spacing(1),
+    marginLeft: 0,
   },
-  emailTextField: {
-    [theme.breakpoints.up("md")]: {
-      width: 340,
-    },
-    [theme.breakpoints.down("sm")]: {
-      width: 250,
-    },
+}));
+
+const EmailTextField = styled(TextField)(({ theme }) => ({
+  [theme.breakpoints.up("md")]: {
+    width: 340,
   },
-  textBlock: {
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2),
-    [theme.breakpoints.up("md")]: {
-      paddingLeft: theme.spacing(4),
-      paddingRight: theme.spacing(4),
-      marginTop: theme.spacing(-1),
-    },
+  [theme.breakpoints.down("sm")]: {
+    width: 250,
+  },
+}));
+
+const TextBlock = styled(Typography)(({ theme }) => ({
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(2),
+  [theme.breakpoints.up("md")]: {
+    paddingLeft: theme.spacing(4),
+    paddingRight: theme.spacing(4),
+    marginTop: theme.spacing(-1),
   },
 }));
 
 export default function SubscribeToNewsletterDialog({ onClose, open }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "communication", locale: locale });
   const [emailAddress, setEmailAddress] = useState("");
@@ -74,30 +74,28 @@ export default function SubscribeToNewsletterDialog({ onClose, open }) {
       open={open}
       title={isMediumScreen ? texts.climate_news : texts.receive_climate_news_every_month}
     >
-      <Typography className={classes.textBlock}>{texts.newsletter_banner_text}</Typography>
-      <form className={classes.callToAction} onSubmit={handleSubscribe}>
-        <TextField
+      <TextBlock>{texts.newsletter_banner_text}</TextBlock>
+      <CallToAction onSubmit={handleSubscribe}>
+        <EmailTextField
           value={emailAddress}
           variant="outlined"
           size={isMediumScreen ? "small" : "large"}
           label={texts.your_email_address}
-          className={classes.emailTextField}
           onChange={handleEmailTextChange}
           type="email"
           required
         />
         {isNarrowScreen && <br />}
-        <Button
+        <SubscribeButton
           variant="contained"
           color="primary"
           type="submit"
           size={!isMediumScreen ? "large" : "normal"}
-          className={classes.subscribeButton}
           disabled={loading}
         >
           {texts.subscribe}
-        </Button>
-      </form>
+        </SubscribeButton>
+      </CallToAction>
     </GenericDialog>
   );
 }

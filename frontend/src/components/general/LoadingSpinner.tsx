@@ -1,24 +1,30 @@
-import { Theme, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
 import CircularProgress from "@mui/material/CircularProgress";
-import makeStyles from "@mui/styles/makeStyles";
 import React, { useContext } from "react";
 import LoadingContext from "../context/LoadingContext";
 
-const useStyles = makeStyles<Theme, { noMarginTop?: boolean; color?: string }>((theme) => ({
-  spinner: (props) => ({
-    marginTop: props.noMarginTop ? 0 : "48px",
-    color: props.color ? props.color : "default",
-  }),
-  text: (props) => ({
-    marginTop: theme.spacing(2),
-    textAlign: "center",
-    color: props.color,
-  }),
-  progressAndMessageContainer: {
-    textAlign: "center",
-  },
+type StyleProps = { $noMarginTop?: boolean; $color?: string };
+
+const shouldForwardProp = (prop: string) => !prop.startsWith("$");
+
+const Spinner = styled(CircularProgress, { shouldForwardProp })<StyleProps>(
+  ({ $noMarginTop, $color }) => ({
+    marginTop: $noMarginTop ? 0 : "48px",
+    color: $color ? $color : "default",
+  })
+);
+
+const MessageText = styled(Typography, { shouldForwardProp })<StyleProps>(({ theme, $color }) => ({
+  marginTop: theme.spacing(2),
+  textAlign: "center",
+  color: $color,
 }));
+
+const ProgressAndMessageContainer = styled("div")({
+  textAlign: "center",
+});
 
 type Props = {
   isLoading?: boolean;
@@ -33,7 +39,6 @@ type Props = {
  * to determine if the spinnner should be rendered.
  */
 const LoadingSpinner = ({ isLoading = false, className, color, noMarginTop, message }: Props) => {
-  const classes = useStyles({ color: color, noMarginTop: noMarginTop });
   const loadingContext = useContext(LoadingContext);
 
   // A short-circuit isLoading prop will bypass the loading context.
@@ -46,10 +51,10 @@ const LoadingSpinner = ({ isLoading = false, className, color, noMarginTop, mess
         alignContent="center"
         className={className}
       >
-        <div className={classes.progressAndMessageContainer}>
-          <CircularProgress className={classes.spinner} />
-          {message && <Typography className={classes.text}>{message}</Typography>}
-        </div>
+        <ProgressAndMessageContainer>
+          <Spinner $noMarginTop={noMarginTop} $color={color} />
+          {message && <MessageText $color={color}>{message}</MessageText>}
+        </ProgressAndMessageContainer>
       </Grid>
     );
   }
@@ -59,7 +64,7 @@ const LoadingSpinner = ({ isLoading = false, className, color, noMarginTop, mess
 
   return (
     <Grid container justifyContent="center" className={className}>
-      <CircularProgress className={classes.spinner} />
+      <Spinner $noMarginTop={noMarginTop} $color={color} />
     </Grid>
   );
 };

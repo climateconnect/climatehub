@@ -1,29 +1,35 @@
 import { Link, Typography } from "@mui/material";
-import { ThemeProvider } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled, ThemeProvider, useTheme } from "@mui/material/styles";
 import React, { useContext } from "react";
 import getTexts from "../../../../public/texts/texts";
 import hubTheme from "../../../themes/hubTheme";
 import UserContext from "../../context/UserContext";
 import SimpleBarChart from "../SimpleBarChart";
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: theme.spacing(2),
-  },
-  chart: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  sources: {
-    marginTop: theme.spacing(6),
-  },
-  callToAction: {
-    fontWeight: 600,
-  },
+// The spacing values come from the OUTER theme (the old makeStyles hook ran outside the
+// nested hub ThemeProvider), so they are passed in as `$` props.
+const Root = styled("div", {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $marginTop: string }>(({ $marginTop }) => ({
+  marginTop: $marginTop,
 }));
+
+const Chart = styled(SimpleBarChart, {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $marginTop: string; $marginBottom: string }>(({ $marginTop, $marginBottom }) => ({
+  marginTop: $marginTop,
+  marginBottom: $marginBottom,
+}));
+
+const Sources = styled("div", {
+  shouldForwardProp: (prop) => typeof prop !== "string" || !prop.startsWith("$"),
+})<{ $marginTop: string }>(({ $marginTop }) => ({
+  marginTop: $marginTop,
+}));
+
 export default function FoodDescription() {
-  const classes = useStyles();
+  const outerTheme = useTheme();
+  const chartMargin = outerTheme.spacing(2);
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "hub", locale: locale, hubName: "Food" });
 
@@ -97,59 +103,55 @@ export default function FoodDescription() {
 
   return (
     <ThemeProvider theme={hubTheme}>
-      <div className={classes.root}>
-        <Typography component="h2" variant="h2" className={classes.headline}>
+      <Root $marginTop={chartMargin}>
+        <Typography component="h2" variant="h2">
           {texts.food_headline}
         </Typography>
-        <Typography className={classes.textContent}>{texts.food_introduction}</Typography>
-        <SimpleBarChart
+        <Typography>{texts.food_introduction}</Typography>
+        <Chart
           config={chart2Config}
           labelsOutSideBar
-          className={classes.chart}
+          $marginTop={chartMargin}
+          $marginBottom={chartMargin}
           title={texts.emissions_per_calories_chart_title}
         />
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography component="h2" variant="h2">
           {texts.vegan_most_climate_friendly}
         </Typography>
-        <Typography className={classes.textContent}>
-          {texts.vegan_most_climate_friendly_text}
-        </Typography>
-        <SimpleBarChart
+        <Typography>{texts.vegan_most_climate_friendly_text}</Typography>
+        <Chart
           config={chart1Config}
-          className={classes.chart}
+          $marginTop={chartMargin}
+          $marginBottom={chartMargin}
           labelsOutSideBar
           title={texts.avg_daily_co2_emissions_chart_title}
         />
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography component="h2" variant="h2">
           {texts.seasonal_more_important_than_local}
         </Typography>
-        <Typography className={classes.textContent}>
-          {texts.seasonal_more_important_than_local_text}
-        </Typography>
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography>{texts.seasonal_more_important_than_local_text}</Typography>
+        <Typography component="h2" variant="h2">
           {texts.food_waste}
         </Typography>
-        <Typography className={classes.textContent}>
+        <Typography>
           <div>
             <img src="/images/foodwaste.jpg" alt={texts.foodwaste_chart_alt} />
           </div>
           {texts.food_waste_text}
         </Typography>
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography component="h2" variant="h2">
           {texts.lab_grown_meat_could_be_a_game_changer}
         </Typography>
-        <Typography className={classes.textContent}>
-          {texts.lab_grown_meat_could_be_a_game_changer_text}
-        </Typography>
-        <Typography component="h2" variant="h2" className={classes.headline}>
+        <Typography>{texts.lab_grown_meat_could_be_a_game_changer_text}</Typography>
+        <Typography component="h2" variant="h2">
           {texts.scalable_solutions_needed}
         </Typography>
-        <Typography className={classes.textContent}>
+        <Typography>
           {texts.scalable_solutions_needed_text}
           <br />
-          <Typography className={classes.callToAction}>{texts.food_call_to_action}</Typography>
+          <Typography sx={{ fontWeight: 600 }}>{texts.food_call_to_action}</Typography>
         </Typography>
-        <div className={classes.sources}>
+        <Sources $marginTop={outerTheme.spacing(6)}>
           {texts.sources}:
           <ul>
             <li>
@@ -163,8 +165,8 @@ export default function FoodDescription() {
               </Link>
             </li>
           </ul>
-        </div>
-      </div>
+        </Sources>
+      </Root>
     </ThemeProvider>
   );
 }

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardMedia, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
 import { getImageUrl } from "../../../public/lib/imageOperations";
@@ -9,102 +9,101 @@ import UserContext from "../context/UserContext";
 import ProjectMetaData from "./ProjectMetaData";
 import EventDateIndicator from "./EventDateIndicator";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    wrapper: {
-      position: "relative",
-      display: "block",
-      height: "100%",
-      paddingTop: theme.spacing(0.25),
-    },
-    root: {
-      "&:hover": {
-        cursor: "pointer",
-        "box-shadow": "2px 2px 1px #EEE",
-      },
-      "-webkit-user-select": "none",
-      "-moz-user-select": "none",
-      "-ms-user-select": "none",
-      userSelect: "none",
-      backgroundColor: theme.palette.background.paper,
-      borderRadius: 3,
-      boxShadow: "3px 3px 8px #E0E0E0",
-      position: "relative",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-    },
-    placeholderImg: {
-      visibility: "hidden",
-      width: "100%",
-    },
-    projectNameWrapper: {
-      display: "block",
-      marginBottom: theme.spacing(0.75),
-      padding: theme.spacing(2),
-      paddingBottom: 0,
-    },
-    projectName: {
-      fontWeight: "bold",
-      overflow: "hidden",
-      lineHeight: 1.5,
-      fontSize: 15,
-      color: "rgba(0, 0, 0, 0.87)",
-      wordBreak: "break-word",
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      // @ts-ignore - WebkitBoxOrient is deprecated but still required for line-clamp to work
-      WebkitBoxOrient: "vertical",
-    },
-    button: {
-      marginTop: theme.spacing(1),
-      margin: "0 auto",
-      display: "block",
-    },
-    noUnderline: {
-      textDecoration: "inherit",
-      "&:hover": {
-        textDecoration: "inherit",
-      },
-    },
-    draftTriangle: {
-      width: 0,
-      height: 0,
-      borderTop: "100px solid " + theme.palette.primary.main,
-      borderRight: "100px solid transparent",
-    },
-    draftText: {
-      transform: "rotate(-45deg)",
-      display: "block",
-      fontWeight: "bold",
-      textTransform: "uppercase",
-      marginTop: "-56px",
-      marginLeft: "10px",
-      fontSize: "20px",
-      color: "white",
-    },
-    cardContent: {
-      background: "white",
-      padding: 0,
-      height: "auto",
-      width: "100%",
-      visibility: "hidden",
-      ["&:last-child"]: {
-        padding: 0,
-      },
-    },
-    cardContentWithDescription: {
-      position: "absolute",
-      visibility: "visible",
-      background: theme.palette.background.paper,
-      bottom: 0,
-      minHeight: "100%",
-    },
-    cardContentWrapper: {
-      position: "relative",
-      flex: 1,
-    },
-  };
+// `noUnderline` came after `wrapper` in the original rules, so its properties win on equal keys.
+const Wrapper = styled(AppLink)(({ theme }) => ({
+  position: "relative",
+  display: "block",
+  height: "100%",
+  paddingTop: theme.spacing(0.25),
+  textDecoration: "inherit",
+  "&:hover": {
+    textDecoration: "inherit",
+  },
+}));
+
+const PreviewCard = styled(Card)(({ theme }) => ({
+  "&:hover": {
+    cursor: "pointer",
+    "box-shadow": "2px 2px 1px #EEE",
+  },
+  "-webkit-user-select": "none",
+  "-moz-user-select": "none",
+  "-ms-user-select": "none",
+  userSelect: "none",
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: 3,
+  boxShadow: "3px 3px 8px #E0E0E0",
+  position: "relative",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+}));
+
+const PlaceholderImg = styled("img")({
+  visibility: "hidden",
+  width: "100%",
+});
+
+const ProjectNameWrapper = styled("div")(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(0.75),
+  padding: theme.spacing(2),
+  paddingBottom: 0,
+}));
+
+const ProjectName = styled(Typography)<{ component?: React.ElementType }>({
+  fontWeight: "bold",
+  overflow: "hidden",
+  lineHeight: 1.5,
+  fontSize: 15,
+  color: "rgba(0, 0, 0, 0.87)",
+  wordBreak: "break-word",
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+});
+
+const DraftTriangle = styled("div")(({ theme }) => ({
+  width: 0,
+  height: 0,
+  borderTop: "100px solid " + theme.palette.primary.main,
+  borderRight: "100px solid transparent",
+}));
+
+const DraftText = styled("div")({
+  transform: "rotate(-45deg)",
+  display: "block",
+  fontWeight: "bold",
+  textTransform: "uppercase",
+  marginTop: "-56px",
+  marginLeft: "10px",
+  fontSize: "20px",
+  color: "white",
+});
+
+const PreviewCardContent = styled(CardContent)({
+  background: "white",
+  padding: 0,
+  height: "auto",
+  width: "100%",
+  visibility: "hidden",
+  ["&:last-child"]: {
+    padding: 0,
+  },
+});
+
+// `cardContentWithDescription` was defined after `cardContent`, so it wins on equal keys.
+const PreviewCardContentWithDescription = styled(PreviewCardContent)(({ theme }) => ({
+  position: "absolute",
+  visibility: "visible",
+  background: theme.palette.background.paper,
+  bottom: 0,
+  minHeight: "100%",
+}));
+
+const CardContentWrapper = styled("div")({
+  position: "relative",
+  flex: 1,
 });
 
 export default function ProjectPreview({
@@ -129,7 +128,6 @@ export default function ProjectPreview({
     icon: "",
   };
   const texts = getTexts({ page: "project", locale: locale });
-  const classes = useStyles({ hovering: hovering });
 
   // DISABLED: Hover handlers (kept for potential future re-enablement)
   // const handleMouseEnter = () => {
@@ -144,16 +142,12 @@ export default function ProjectPreview({
     : `/projects/${project.url_slug}`;
 
   return (
-    <AppLink
-      href={projectUrl}
-      underline="hover"
-      className={`${classes.wrapper} ${classes.noUnderline}`}
-    >
+    <Wrapper href={projectUrl} underline="hover">
       {projectType.type_id === "event" && project.start_date && project.end_date && (
         <EventDateIndicator project={project} hubUrl={hubUrl} />
       )}
-      <Card
-        className={`${classes.root} ${className}`}
+      <PreviewCard
+        className={className}
         variant="outlined"
         // DISABLED: Hover handlers (kept for potential future re-enablement)
         // onMouseEnter={handleMouseEnter}
@@ -166,18 +160,17 @@ export default function ProjectPreview({
           image={getImageUrl(project.image)}
         >
           {project.is_draft ? (
-            <div className={classes.draftTriangle}>
-              <div className={classes.draftText}>Draft</div>
-            </div>
+            <DraftTriangle>
+              <DraftText>Draft</DraftText>
+            </DraftTriangle>
           ) : (
-            <img
+            <PlaceholderImg
               src={getImageUrl(project.image)}
-              className={classes.placeholderImg}
               alt={texts.project_image_of_project + " " + project.name}
             />
           )}
         </CardMedia>
-        <div className={classes.cardContentWrapper}>
+        <CardContentWrapper>
           <CardContentWithDescription
             project={project}
             hovering={hovering}
@@ -190,9 +183,9 @@ export default function ProjectPreview({
             registeredEventSlugs={registeredEventSlugs}
             analyticsSurface={analyticsSurface}
           />
-        </div>
-      </Card>
-    </AppLink>
+        </CardContentWrapper>
+      </PreviewCard>
+    </Wrapper>
   );
 }
 
@@ -202,25 +195,22 @@ const CardContentWithoutDescription = ({
   registeredEventSlugs,
   analyticsSurface,
 }) => {
-  const classes = useStyles();
   const isUserRegistered =
     registeredEventSlugs && project.url_slug
       ? registeredEventSlugs.has(project.url_slug)
       : undefined;
   return (
-    <CardContent className={classes.cardContent}>
-      <div className={classes.projectNameWrapper}>
-        <Typography component="h2" className={classes.projectName}>
-          {project.name}
-        </Typography>
-      </div>
+    <PreviewCardContent>
+      <ProjectNameWrapper>
+        <ProjectName component="h2">{project.name}</ProjectName>
+      </ProjectNameWrapper>
       <ProjectMetaData
         project={project}
         hovering={hovering}
         isUserRegistered={isUserRegistered}
         analyticsSurface={analyticsSurface}
       />
-    </CardContent>
+    </PreviewCardContent>
   );
 };
 
@@ -230,19 +220,16 @@ const CardContentWithDescription = ({
   registeredEventSlugs,
   analyticsSurface,
 }) => {
-  const classes = useStyles({ hovering: hovering });
   const isUserRegistered =
     registeredEventSlugs && project.url_slug
       ? registeredEventSlugs.has(project.url_slug)
       : undefined;
 
   return (
-    <CardContent className={`${classes.cardContentWithDescription} ${classes.cardContent}`}>
-      <div className={classes.projectNameWrapper}>
-        <Typography component="h2" className={classes.projectName}>
-          {project.name}
-        </Typography>
-      </div>
+    <PreviewCardContentWithDescription>
+      <ProjectNameWrapper>
+        <ProjectName component="h2">{project.name}</ProjectName>
+      </ProjectNameWrapper>
       <ProjectMetaData
         project={project}
         hovering={hovering}
@@ -250,6 +237,6 @@ const CardContentWithDescription = ({
         isUserRegistered={isUserRegistered}
         analyticsSurface={analyticsSurface}
       />
-    </CardContent>
+    </PreviewCardContentWithDescription>
   );
 };

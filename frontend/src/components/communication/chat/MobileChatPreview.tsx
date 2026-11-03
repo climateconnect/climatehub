@@ -1,5 +1,5 @@
 import { Avatar, Badge, Divider, ListItemButton, ListItemText } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import GroupIcon from "@mui/icons-material/Group";
 import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
@@ -7,36 +7,29 @@ import { getDateTime } from "../../../../public/lib/dateOperations";
 import { getImageUrl } from "../../../../public/lib/imageOperations";
 import UserContext from "../../context/UserContext";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    mobileAvatar: {
-      marginRight: theme.spacing(2),
-    },
-    time: {
-      color: theme.palette.grey[600],
-    },
-    unreadBadge: {
-      "& span": {
-        backgroundColor: theme.palette.success.main,
-      },
-    },
-    badgeAndTimeContainer: {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center",
-      marginLeft: theme.spacing(2),
-    },
-    content: {
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    },
-  };
-});
+const MobileAvatar = styled(Avatar)(({ theme }) => ({
+  marginRight: theme.spacing(2),
+}));
+
+const Time = styled("span")(({ theme }) => ({
+  color: theme.palette.grey[600],
+}));
+
+const UnreadBadge = styled(Badge)(({ theme }) => ({
+  "& span": {
+    backgroundColor: theme.palette.success.main,
+  },
+}));
+
+const BadgeAndTimeContainer = styled("span")(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  marginLeft: theme.spacing(2),
+}));
 
 export default function MobileChatPreview({ chat, isFirstChat, forwardedRef }) {
-  const classes = useStyles();
   const { locale } = useContext(UserContext);
   const isGroupChat = !chat.chatting_partner && !!chat.name;
   const last_activity = chat.last_message ? chat.last_message.sent_at : chat.created_at;
@@ -50,11 +43,11 @@ export default function MobileChatPreview({ chat, isFirstChat, forwardedRef }) {
         alignItems="center"
       >
         {isGroupChat ? (
-          <Avatar className={classes.mobileAvatar}>
+          <MobileAvatar>
             <GroupIcon />
-          </Avatar>
+          </MobileAvatar>
         ) : (
-          <Avatar className={classes.mobileAvatar} src={getImageUrl(chat.chatting_partner.image)} />
+          <MobileAvatar src={getImageUrl(chat.chatting_partner.image)} />
         )}
         <ListItemText
           primary={
@@ -64,23 +57,23 @@ export default function MobileChatPreview({ chat, isFirstChat, forwardedRef }) {
           }
           secondary={chat.content}
           secondaryTypographyProps={{
-            className: classes.content,
+            sx: {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            },
           }}
         />
-        <span className={classes.badgeAndTimeContainer}>
+        <BadgeAndTimeContainer>
           <span /*TODO(undefined) className={classes.timeContainer}*/>
-            <span className={classes.time}>{getDateTime(last_activity)}</span>
+            <Time>{getDateTime(last_activity)}</Time>
           </span>
           {chat.unread_count > 0 && (
             <span /*TODO(undefined) className={classes.badgeContainer}*/>
-              <Badge
-                color="primary"
-                className={classes.unreadBadge}
-                badgeContent={chat.unread_count}
-              />
+              <UnreadBadge color="primary" badgeContent={chat.unread_count} />
             </span>
           )}
-        </span>
+        </BadgeAndTimeContainer>
       </ListItemButton>
       <Divider component="li" />
     </>

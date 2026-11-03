@@ -13,7 +13,7 @@ import { apiRequest } from "../../../public/lib/apiOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { trackAuthEvent } from "../../utils/analytics";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 
 const SESSION_KEY = "auth_session_key";
 const RESEND_COOLDOWN_SECONDS = 180;
@@ -27,16 +27,14 @@ interface AuthOtpProps {
   showHeader?: boolean;
 }
 
-const useStyles = makeStyles((theme) => ({
-  header: {
-    color: theme.palette.background.default_contrastText,
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-      fontSize: 35,
-      fontWeight: "bold",
-    },
+const Header = styled(Typography)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    textAlign: "center",
+    fontSize: 35,
+    fontWeight: "bold",
   },
 }));
 
@@ -50,7 +48,6 @@ export default function AuthOtp({
 }: AuthOtpProps) {
   const { locale, signIn, ReactGA } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale, hubName: hubUrl });
-  const classes = useStyles();
   const [sessionKey, setSessionKey] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -234,9 +231,7 @@ export default function AuthOtp({
             >
               <ArrowBack />
             </IconButton>
-            <Typography variant="h1" className={classes.header}>
-              {texts.enter_your_code}
-            </Typography>
+            <Header variant="h1">{texts.enter_your_code}</Header>
           </div>
         </>
       )}

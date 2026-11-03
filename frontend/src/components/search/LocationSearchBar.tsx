@@ -1,6 +1,6 @@
 import { TextField, TextFieldProps } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import axios from "axios";
 import { debounce } from "lodash";
 import React, { Fragment, useContext, useEffect, useMemo, useState } from "react";
@@ -36,11 +36,9 @@ const AUTOCOMPLETE_POLL_SCHEDULE_MS = [250, 500, 1000, 1000, 1000, 1000, 1000, 1
 const PROXY_DEBOUNCE_MS = 400;
 const DIRECT_NOMINATIM_DEBOUNCE_MS = 1000;
 
-const useStyles = makeStyles((theme) => ({
-  additionalInfos: {
-    width: "100%",
-    marginTop: theme.spacing(2),
-  },
+const AdditionalInfosField = styled(TextField)(({ theme }) => ({
+  width: "100%",
+  marginTop: theme.spacing(2),
 }));
 
 type Props = {
@@ -90,7 +88,6 @@ export default function LocationSearchBar({
   additionalInfoText,
   onChangeAdditionalInfoText,
   enableAdditionalInfo,
-  hideHelperText,
   filterMode = false, //Are we filtering any content by this location?
   color,
 }: Props) {
@@ -101,7 +98,6 @@ export default function LocationSearchBar({
   // Nominatim call that ran on master for years.
   // See doc/spec/20260804_1202_locationiq_feature_toggle_and_result_caching.md.
   const useAutocompleteProxy = isEnabled("LOCATIONIQ_AUTOCOMPLETE", false);
-  const classes = useStyles({ hideHelperText: hideHelperText });
   const texts = getTexts({ page: "filter_and_search", locale: locale });
   const getValue = (newValue, inputValue) => {
     if (!newValue) {
@@ -487,11 +483,10 @@ export default function LocationSearchBar({
         )}
       />
       {enableAdditionalInfo && (
-        <TextField
+        <AdditionalInfosField
           label={texts.additional_infos_for_location}
           // @ts-ignore - contrast is a custom color defined in theme
           color={color || "contrast"}
-          className={classes.additionalInfos}
           value={additionalInfoText ?? ""}
           onChange={handleChangeAdditionalInfoText}
         />

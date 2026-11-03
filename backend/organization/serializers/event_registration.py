@@ -14,7 +14,11 @@ from organization.serializers.registration_field import (
     create_fields,
     sync_fields,
 )
-from organization.utility.event_registration import evaluate_registration_status
+from organization.utility.event_registration import (
+    evaluate_registration_status,
+    get_available_seats,
+    get_booked_seats,
+)
 
 
 def _compute_effective_status(obj: EventRegistrationConfig) -> str:
@@ -45,8 +49,9 @@ class EventRegistrationConfigBaseSerializer(serializers.ModelSerializer):
         so that ``"ended"`` is returned when the deadline has passed.
 
     ``available_seats`` / ``get_available_seats``
-        Always-computed default: ``max_participants − COUNT(registrations)``,
-        or ``None`` for unlimited-capacity events.  Subclasses that serve
+        Always-computed default: ``max_participants − booked seats`` (sum of
+        ``number_of_seats`` over active registrations), or ``None`` for
+        unlimited-capacity events.  Subclasses that serve
         *list* endpoints should override ``get_available_seats`` to gate the
         COUNT query behind a context flag (see ``EventRegistrationConfigSerializer``).
     """
@@ -65,12 +70,10 @@ class EventRegistrationConfigBaseSerializer(serializers.ModelSerializer):
     def get_available_seats(self, obj):
         """Return available seats, or ``None`` for unlimited-capacity events.
 
-        Only active (non-cancelled) registrations count against capacity.
+        Only active (non-cancelled) registrations count against capacity,
+        each weighted by its ``number_of_seats``.
         """
-        if obj.max_participants is None:
-            return None
-        active_count = obj.registrations.filter(cancelled_at__isnull=True).count()
-        return max(0, obj.max_participants - active_count)
+        return get_available_seats(obj)
 
 
 class EventRegistrationConfigSerializer(EventRegistrationConfigBaseSerializer):
@@ -97,7 +100,7 @@ class EventRegistrationConfigSerializer(EventRegistrationConfigBaseSerializer):
 
     available_seats:
         - Only included (non-null) when ``context["include_seat_count"]`` is True.
-        - Computed as ``max_participants - COUNT(registrations)`` on the fly.
+        - Computed as ``max_participants - booked seats`` on the fly.
         - Returns ``None`` when the context flag is absent (list responses) to
           avoid a COUNT query per row on the project list endpoint.
         - Returns ``None`` when ``max_participants`` is None (unlimited capacity).
@@ -106,6 +109,7 @@ class EventRegistrationConfigSerializer(EventRegistrationConfigBaseSerializer):
     class Meta(EventRegistrationConfigBaseSerializer.Meta):
         fields = [
             "max_participants",
+            "max_seats_per_registration",
             "registration_end_date",
             "status",
             "available_seats",
@@ -118,6 +122,7 @@ class EventRegistrationConfigSerializer(EventRegistrationConfigBaseSerializer):
             # PositiveIntegerField gives us min_value via the model, but we set
             # min_value=1 explicitly so DRF returns a clear field-level error.
             "max_participants": {"required": False, "allow_null": True, "min_value": 1},
+            "max_seats_per_registration": {"required": False, "min_value": 1},
             "registration_end_date": {"required": False, "allow_null": True},
             # Organisers may set OPEN or CLOSED; FULL is reserved for the system.
             "status": {"required": False, "default": RegistrationStatus.OPEN},
@@ -269,6 +274,7 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     admin-cancellation (DELETE /api/projects/{slug}/registrations/{id}/).
     ``cancelled_at`` lets the frontend distinguish active from cancelled rows.
     ``cancellation_reason`` stores the guest-provided message from self-cancellation.
+    ``number_of_seats`` is the seats booked (kept on cancelled rows for display).
 
     Requires ``select_related("user__user_profile")`` on the queryset to avoid
     N+1 queries when resolving ``url_slug`` and ``thumbnail_image`` from the
@@ -294,6 +300,7 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             "registered_at",
             "cancelled_at",
             "cancellation_reason",
+            "number_of_seats",
             "field_answers",
         ]
         read_only_fields = fields
@@ -393,9 +400,14 @@ class EventRegistrationSubmissionSerializer(serializers.Serializer):
     Validates the registration submission payload for POST /registrations/.
 
     Payload shape:
-      {"answers": [{"field": <id>, "value_boolean": true}, ...]}
+      {"number_of_seats": 2, "answers": [{"field": <id>, "value_boolean": true}, ...]}
+
+    ``number_of_seats`` is optional (default 1).  Only its type and lower bound
+    are validated here; the per-registration maximum and remaining capacity are
+    checked by the view under the config row lock.
     """
 
+    number_of_seats = serializers.IntegerField(min_value=1, required=False, default=1)
     answers = RegistrationFieldAnswerInputSerializer(many=True, required=False)
 
     def validate(self, attrs):
@@ -715,7 +727,9 @@ class EditEventRegistrationConfigSerializer(EventRegistrationConfigBaseSerialize
     Serializer for PATCH /api/projects/{slug}/registration-config/.
 
     Allows an event organiser to update ``max_participants``,
-    ``registration_end_date``, and ``status`` on an existing EventRegistrationConfig.
+    ``max_seats_per_registration``, ``registration_end_date``, and ``status``
+    on an existing EventRegistrationConfig.  Lowering
+    ``max_seats_per_registration`` never touches existing registrations.
 
     ``status`` (writable):
         - Organiser may send ``"open"`` or ``"closed"`` to manually open/close
@@ -742,9 +756,9 @@ class EditEventRegistrationConfigSerializer(EventRegistrationConfigBaseSerialize
     Validation:
         - ``registration_end_date`` must be > now()  (past-date guard, edit only)
         - ``registration_end_date`` must be ≤ ``project.end_date``
-        - ``max_participants`` must be ≥ current registration count (lower-bound guard)
+        - ``max_participants`` must be ≥ current booked seats (lower-bound guard)
         - ``status = "open"`` is rejected when ``effective_status == "ended"``
-        - ``status = "open"`` is rejected when registration count ≥ effective
+        - ``status = "open"`` is rejected when booked seats ≥ effective
           ``max_participants`` (fully-booked guard; use effective value from
           this PATCH if ``max_participants`` is also being changed)
 
@@ -758,6 +772,7 @@ class EditEventRegistrationConfigSerializer(EventRegistrationConfigBaseSerialize
     class Meta(EventRegistrationConfigBaseSerializer.Meta):
         fields = [
             "max_participants",
+            "max_seats_per_registration",
             "registration_end_date",
             "status",
             "available_seats",
@@ -767,6 +782,7 @@ class EditEventRegistrationConfigSerializer(EventRegistrationConfigBaseSerialize
         ]
         extra_kwargs = {
             "max_participants": {"required": False, "allow_null": True, "min_value": 1},
+            "max_seats_per_registration": {"required": False, "min_value": 1},
             "registration_end_date": {"required": False, "allow_null": True},
             "status": {"required": False},
             "notify_admins": {"required": False},
@@ -964,20 +980,17 @@ class EditEventRegistrationConfigSerializer(EventRegistrationConfigBaseSerialize
                 )
 
         # Lazily computed and shared by multiple guards below to avoid extra queries.
-        registration_count = None
+        booked_seats = None
 
         max_participants = attrs.get("max_participants")
         if max_participants is not None and self.instance:
-            registration_count = EventRegistration.objects.filter(
-                registration_config=self.instance,
-                cancelled_at__isnull=True,
-            ).count()
-            if max_participants < registration_count:
+            booked_seats = get_booked_seats(self.instance)
+            if max_participants < booked_seats:
                 raise serializers.ValidationError(
                     {
                         "max_participants": (
                             f"Cannot be lower than the current number of "
-                            f"registrations ({registration_count})."
+                            f"booked seats ({booked_seats})."
                         )
                     }
                 )
@@ -1004,12 +1017,9 @@ class EditEventRegistrationConfigSerializer(EventRegistrationConfigBaseSerialize
                 "max_participants", self.instance.max_participants
             )
             if effective_max is not None:
-                if registration_count is None:
-                    registration_count = EventRegistration.objects.filter(
-                        registration_config=self.instance,
-                        cancelled_at__isnull=True,
-                    ).count()
-                if registration_count >= effective_max:
+                if booked_seats is None:
+                    booked_seats = get_booked_seats(self.instance)
+                if booked_seats >= effective_max:
                     raise serializers.ValidationError(
                         {
                             "status": (

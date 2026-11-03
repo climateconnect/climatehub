@@ -1,5 +1,5 @@
 import { Button, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import { useRouter } from "next/router";
 import React, { useContext, useState, useEffect, useRef } from "react";
 import Cookies from "universal-cookie";
@@ -26,24 +26,25 @@ import { parseOrganization } from "../../../public/lib/organizationOperations";
 import FeedbackContext from "../context/FeedbackContext";
 import ROLE_TYPES from "../../../public/data/role_types";
 
-const useStyles = makeStyles((theme) => ({
-  headline: {
-    textAlign: "center",
-    marginTop: theme.spacing(4),
-  },
-  alert: {
-    textAlign: "center",
-    maxWidth: 1280,
-    margin: "0 auto",
-  },
-  deleteButtonContainer: {
-    display: "flex",
-    justifyContent: "center",
-    marginTop: theme.spacing(2),
-  },
-  deleteButton: {
-    minWidth: theme.spacing(28),
-  },
+const Headline = styled(Typography)(({ theme }) => ({
+  textAlign: "center",
+  marginTop: theme.spacing(4),
+})) as typeof Typography;
+
+const StyledAlert = styled(Alert)({
+  textAlign: "center",
+  maxWidth: 1280,
+  margin: "0 auto",
+});
+
+const DeleteButtonContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  marginTop: theme.spacing(2),
+}));
+
+const DeleteButton = styled(Button)(({ theme }) => ({
+  minWidth: theme.spacing(28),
 }));
 
 export default function EditOrganizationRoot({
@@ -63,7 +64,6 @@ export default function EditOrganizationRoot({
   hubUrl,
   user_role,
 }) {
-  const classes = useStyles();
   const cookies = new Cookies();
   const token = cookies.get("auth_token");
   const { locale, locales, user } = useContext(UserContext);
@@ -115,13 +115,16 @@ export default function EditOrganizationRoot({
     return finalProfile;
   };
 
-  const saveChanges = async (editedOrg, isTranslationsStep) => {
-    const error = verifyChanges(editedOrg, texts).error;
+  const [loadingSaveDraft, setLoadingSaveDraft] = useState(false);
+
+  const saveChanges = async (editedOrg, isTranslationsStep, isDraftSave = false) => {
+    const error = verifyChanges(editedOrg, texts, isDraftSave, !!organization.is_draft).error;
     //verify location is valid and notify user if it's not
     if (
       editedOrg?.info?.location !== organization?.info?.location &&
       !isLocationValid(editedOrg?.info?.location) &&
-      !isTranslationsStep
+      !isTranslationsStep &&
+      !isDraftSave
     )
       indicateWrongLocation(
         locationInputRef,
@@ -130,11 +133,20 @@ export default function EditOrganizationRoot({
         texts
       );
     if (error) {
+      setLoadingSaveDraft(false);
       handleSetErrorMessage(error);
     } else {
-      editedOrg.language = sourceLanguage;
+      // Work on a copy: editedOrg is the caller's form state, and mutating it
+      // would leak is_draft=false into a later "save as draft" if this request fails.
+      const orgToSave = { ...editedOrg, language: sourceLanguage };
+      const wasDraft = !!organization.is_draft;
+      // One way transition: draft → published, never back. Only the main
+      // submit (not the "save as draft" action) is allowed to publish.
+      if (!isDraftSave && wasDraft) {
+        orgToSave.is_draft = false;
+      }
       const oldOrg = await getOrganizationByUrlIfExists(organization.url_slug, token, locale);
-      const payload = await parseForRequest(getChanges(editedOrg, oldOrg));
+      const payload = await parseForRequest(getChanges(orgToSave, oldOrg));
       if (isTranslationsStep)
         payload.translations = getTranslationsWithoutRedundantKeys(
           getTranslationsFromObject(initialTranslations, "organization"),
@@ -148,15 +160,29 @@ export default function EditOrganizationRoot({
         locale: locale,
       })
         .then(function () {
-          router.push({
-            pathname: "/organizations/" + organization.url_slug,
-            query: {
-              message: texts.successfully_edited_organization,
-              hub: hubUrl,
-            },
-          });
+          setLoadingSaveDraft(false);
+          if (isDraftSave) {
+            router.push({
+              pathname: "/profiles/" + user.url_slug,
+              query: {
+                message: texts.successfully_edited_organization,
+                hub: hubUrl,
+              },
+            });
+          } else {
+            router.push({
+              pathname: "/organizations/" + organization.url_slug,
+              query: {
+                message: wasDraft
+                  ? texts.your_organization_has_been_published_great_work
+                  : texts.successfully_edited_organization,
+                hub: hubUrl,
+              },
+            });
+          }
         })
         .catch(function (error) {
+          setLoadingSaveDraft(false);
           console.log(error);
           if (error) console.log(error.response);
           if (error?.response?.data?.message) handleSetErrorMessage(error?.response?.data?.message);
@@ -166,6 +192,11 @@ export default function EditOrganizationRoot({
             handleSetExistingName(error?.response.data?.existing_name);
         });
     }
+  };
+
+  const handleSaveDraft = async (editedOrg) => {
+    setLoadingSaveDraft(true);
+    await saveChanges(editedOrg, false, true);
   };
   const handleCancel = () => {
     router.push("/organizations/" + organization.url_slug);
@@ -217,6 +248,11 @@ export default function EditOrganizationRoot({
     await saveChanges(editedOrganization, true);
   };
 
+  const handleTranslationsSaveDraft = async () => {
+    setLoadingSaveDraft(true);
+    await saveChanges(editedOrganization, true, true);
+  };
+
   const standardTextsToTranslate = [
     {
       textKey: "name",
@@ -258,6 +294,7 @@ export default function EditOrganizationRoot({
 
   const { showFeedbackMessage } = useContext(FeedbackContext);
   const canDeleteOrganization = !!user_role && user_role.role_type === ROLE_TYPES.all_type;
+  const deleteButtonText = organization.is_draft ? texts.delete_draft : texts.delete_organization;
 
   useEffect(() => {
     if (organization.language && organization.language !== locale) {
@@ -282,34 +319,37 @@ export default function EditOrganizationRoot({
               accountHref={appHref("/organizations/" + organization.url_slug, { hubUrl, locale })}
               maxAccountTypes={2}
               handleSubmit={saveChanges}
+              submitMessage={organization.is_draft ? texts.publish : undefined}
               handleCancel={handleCancel}
               errorMessage={errorMessage}
               existingName={existingName}
               existingUrlSlug={existingUrlSlug}
               onClickCheckTranslations={onClickCheckTranslations}
+              onSecondarySubmit={organization.is_draft ? handleSaveDraft : undefined}
+              secondarySubmitMessage={texts.save_changes_as_draft}
+              loadingSecondarySubmit={loadingSaveDraft}
               allSectors={allSectors}
               type="organization"
               checkTranslationsRef={checkTranslationsButtonRef}
             />
             {canDeleteOrganization && (
-              <div className={classes.deleteButtonContainer}>
-                <Button
-                  className={classes.deleteButton}
+              <DeleteButtonContainer>
+                <DeleteButton
                   color="error"
                   variant="contained"
                   startIcon={<DeleteIcon />}
                   onClick={() => setDeleteDialogOpen(true)}
-                  aria-label={texts.delete_organization}
+                  aria-label={deleteButtonText}
                 >
-                  {texts.delete_organization}
-                </Button>
-              </div>
+                  {deleteButtonText}
+                </DeleteButton>
+              </DeleteButtonContainer>
             )}
             <DeleteOrganizationDialog
               open={deleteDialogOpen}
               onClose={handleDeleteDialogClose}
               cancelText={texts.cancel}
-              confirmText={texts.delete_organization}
+              confirmText={deleteButtonText}
               title={texts.do_you_really_want_to_delete_your_organization}
               text={
                 hasVisibleProjects
@@ -324,14 +364,10 @@ export default function EditOrganizationRoot({
           </>
         ) : (
           <>
-            {errorMessage && (
-              <Alert severity="error" className={classes.alert}>
-                {errorMessage}
-              </Alert>
-            )}
-            <Typography color="primary" className={classes.headline} component="h1" variant="h4">
+            {errorMessage && <StyledAlert severity="error">{errorMessage}</StyledAlert>}
+            <Headline color="primary" component="h1" variant="h4">
               {texts.translate}
-            </Typography>
+            </Headline>
 
             <TranslateTexts
               data={editedOrganization}
@@ -344,7 +380,9 @@ export default function EditOrganizationRoot({
               organization={organization}
               pageName="organization"
               introTextKey="translate_organization_intro"
-              submitButtonText={texts.save}
+              submitButtonText={organization.is_draft ? texts.publish : texts.save}
+              saveAsDraft={organization.is_draft ? handleTranslationsSaveDraft : undefined}
+              loadingSubmitDraft={loadingSaveDraft}
               textsToTranslate={textsToTranslate}
             />
           </>
@@ -394,7 +432,14 @@ const parseForRequest = async (org) => {
   return parsedOrg;
 };
 
-const verifyChanges = (newOrg, texts) => {
+const verifyChanges = (newOrg, texts, isDraftSave = false, isPublishingDraft = false) => {
+  // Drafts only require a name - everything else can be filled in later.
+  if (isDraftSave) {
+    if (!newOrg.name) {
+      return { error: texts.name_required_error };
+    }
+    return true;
+  }
   const requiredPropErrors = {
     image: texts.image_required_error,
     types: texts.type_required_errror,
@@ -402,6 +447,11 @@ const verifyChanges = (newOrg, texts) => {
   };
   const requiredInfoPropErrors = {
     location: texts.location_required_error,
+    // Publishing a draft must meet the same requirements as creating an organisation
+    ...(isPublishingDraft && {
+      short_description: texts.short_description_required_error,
+      sectors: texts.sectors_required_error,
+    }),
   };
   for (const prop of Object.keys(requiredPropErrors)) {
     if (!newOrg[prop] || (Array.isArray(newOrg[prop]) && newOrg[prop].length <= 0)) {

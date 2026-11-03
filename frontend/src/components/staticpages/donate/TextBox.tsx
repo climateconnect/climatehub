@@ -1,19 +1,19 @@
 import { Container, Theme, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import React from "react";
 import theme from "../../../themes/theme";
 import IconWrapper from "./IconWrapper";
 
-const useStyles = makeStyles(() => ({
-  root: {
-    display: "flex",
-  },
-  icon: {
-    width: 28,
-    marginBottom: theme.spacing(-2),
-    marginRight: theme.spacing(2),
-  },
-}));
+// The original makeStyles used the statically imported theme (not the context theme)
+const Root = styled(Container)({
+  display: "flex",
+});
+
+const NarrowIcon = styled("img")({
+  width: 28,
+  marginBottom: theme.spacing(-2),
+  marginRight: theme.spacing(2),
+});
 
 type Props = {
   className?: any;
@@ -37,14 +37,13 @@ export default function TextBox({
   subPoints,
   subHeadlineClass,
 }: Props) {
-  const classes = useStyles();
   const isNarrowScreen = useMediaQuery<Theme>(theme.breakpoints.down("sm"));
   return (
-    <Container className={`${className} ${classes.root}`}>
+    <Root className={className}>
       {!isNarrowScreen && <IconWrapper src={icon} />}
       <div>
         <Typography component="h1" className={headlineClass}>
-          {isNarrowScreen && <img src={icon} className={classes.icon} alt="icon" />}
+          {isNarrowScreen && <NarrowIcon src={icon} alt="icon" />}
           {headline}
         </Typography>
         {children}
@@ -59,6 +58,6 @@ export default function TextBox({
             </div>
           ))}
       </div>
-    </Container>
+    </Root>
   );
 }

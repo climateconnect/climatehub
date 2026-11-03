@@ -1,5 +1,5 @@
 import { Button, IconButton, Theme, Tooltip, Typography, useMediaQuery } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { alpha, styled } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import React, { useContext, useRef, useState } from "react";
 import {
@@ -9,44 +9,56 @@ import {
   whitenTransparentPixels,
 } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
+import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
 import UploadImageDialog from "../dialogs/UploadImageDialog";
+import useImageDrop from "../../hooks/useImageDrop";
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-const useStyles = makeStyles<Theme, { image?: string }>((theme) => {
-  return {
-    imageZoneWrapper: {
-      display: "block",
-      width: "100%",
-      position: "relative",
-    },
-    imageZone: (props) => ({
-      cursor: "pointer",
-      border: "1px dashed #000",
-      width: "100%",
-      paddingBottom: "56.25%",
-      backgroundImage: `${props.image ? `url(${props.image})` : null}`,
-      backgroundSize: "contain",
-    }),
-    photoIcon: {
-      display: "block",
-      marginBottom: theme.spacing(1),
-      margin: "0 auto",
-      cursor: "pointer",
-      fontSize: 40,
-    },
-    addPhotoWrapper: {
-      position: "absolute",
-      left: "calc(50% - 85px)",
-      top: "calc(50% - 44px)",
-    },
-    addPhotoContainer: {
-      position: "absolute",
-      left: "-50%",
-      top: "-50%",
-      width: 170,
-    },
-  };
+const ImageZoneWrapper = styled("label")({
+  display: "block",
+  width: "100%",
+  position: "relative",
+});
+
+const ImageZone = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isDragOver",
+})<{ $isDragOver?: boolean }>(({ theme, $isDragOver }) => ({
+  cursor: "pointer",
+  // Drag-over re-colors this existing dashed border instead of layering a
+  // second outline on top of it, which looked like a double border.
+  border: $isDragOver ? `1px dashed ${theme.palette.primary.main}` : "1px dashed #000",
+  width: "100%",
+  paddingBottom: "56.25%",
+  backgroundSize: "contain",
+  backgroundColor: $isDragOver ? alpha(theme.palette.primary.main, 0.08) : "transparent",
+  // Keyboard focus ring should match the project's brand color rather
+  // than the browser's default blue.
+  "&:focus-visible": {
+    outline: `2px solid ${theme.palette.primary.main}`,
+    outlineOffset: 2,
+  },
+}));
+
+const PhotoIcon = styled(AddAPhotoIcon)(({ theme }) => ({
+  display: "block",
+  marginBottom: theme.spacing(1),
+  margin: "0 auto",
+  cursor: "pointer",
+  fontSize: 40,
+}));
+
+const AddPhotoWrapper = styled("div")({
+  position: "absolute",
+  left: "calc(50% - 85px)",
+  top: "calc(50% - 44px)",
+});
+
+const AddPhotoContainer = styled("div")({
+  position: "absolute",
+  left: "-50%",
+  top: "-50%",
+  width: 170,
 });
 
 export default function AddPhotoSection({
@@ -60,8 +72,8 @@ export default function AddPhotoSection({
   open,
   handleSetOpen,
 }) {
-  const classes = useStyles(projectData);
   const { locale } = useContext(UserContext);
+  const { showFeedbackMessage } = useContext(FeedbackContext);
   const texts = getTexts({ page: "project", locale: locale });
   const [tempImage, setTempImage] = useState(projectData.image);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,10 +84,12 @@ export default function AddPhotoSection({
     handleSetOpen({ [dialogName]: true });
   };
 
-  const onImageChange = async (event) => {
-    const file = event.target.files[0];
+  const handleImageFile = async (file: File) => {
     if (!file || !file.type || !ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      alert(texts.please_upload_either_a_png_or_a_jpg_file);
+      showFeedbackMessage({
+        message: texts.please_upload_either_a_png_or_a_jpg_file,
+        error: true,
+      });
       return;
     }
     try {
@@ -89,6 +103,16 @@ export default function AddPhotoSection({
       setIsLoading(false);
     }
   };
+
+  const onImageChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    handleImageFile(file);
+  };
+
+  const { isDragOver, onDragOver, onDragLeave, onDrop, onPaste } = useImageDrop({
+    onFileSelected: handleImageFile,
+  });
 
   const onUploadImageClick = (event) => {
     event.preventDefault();
@@ -126,7 +150,7 @@ export default function AddPhotoSection({
             </IconButton>
           </Tooltip>
         </Typography>
-        <label htmlFor="photo" className={classes.imageZoneWrapper}>
+        <ImageZoneWrapper htmlFor="photo">
           <input
             type="file"
             name="photo"
@@ -136,17 +160,27 @@ export default function AddPhotoSection({
             onChange={onImageChange}
             accept=".png,.jpeg,.jpg"
           />
-          <div className={classes.imageZone}>
-            <div className={classes.addPhotoWrapper}>
-              <div className={classes.addPhotoContainer}>
-                <AddAPhotoIcon className={classes.photoIcon} />
+          <ImageZone
+            style={projectData.image ? { backgroundImage: `url(${projectData.image})` } : undefined}
+            $isDragOver={isDragOver}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onPaste={onPaste}
+            tabIndex={0}
+            data-testid="add-photo-drop-zone"
+            data-drag-over={isDragOver}
+          >
+            <AddPhotoWrapper>
+              <AddPhotoContainer>
+                <PhotoIcon />
                 <Button variant="contained" color="primary" onClick={onUploadImageClick}>
                   {!projectData.image ? texts.upload_image : texts.change_image}
                 </Button>
-              </div>
-            </div>
-          </div>
-        </label>
+              </AddPhotoContainer>
+            </AddPhotoWrapper>
+          </ImageZone>
+        </ImageZoneWrapper>
       </div>
       <UploadImageDialog
         onClose={handleAvatarDialogClose}

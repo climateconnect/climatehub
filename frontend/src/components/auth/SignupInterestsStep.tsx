@@ -8,7 +8,7 @@ import { Sector } from "../../types";
 import { getSectorOptions } from "../../../public/lib/getOptions";
 import LoadingSpinner from "../general/LoadingSpinner";
 import { trackAuthEvent } from "../../utils/analytics";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 
 interface SignupInterestsStepProps {
   email: string;
@@ -20,16 +20,14 @@ interface SignupInterestsStepProps {
   showHeader?: boolean;
 }
 
-const useStyles = makeStyles((theme) => ({
-  header: {
-    color: theme.palette.background.default_contrastText,
-    [theme.breakpoints.down("sm")]: {
-      padding: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-      fontSize: 35,
-      fontWeight: "bold",
-    },
+const Header = styled(Typography)(({ theme }) => ({
+  color: theme.palette.background.default_contrastText,
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    textAlign: "center",
+    fontSize: 35,
+    fontWeight: "bold",
   },
 }));
 
@@ -44,7 +42,6 @@ export default function SignupInterestsStep({
 }: SignupInterestsStepProps) {
   const { locale, ReactGA } = useContext(UserContext);
   const texts = getTexts({ page: "profile", locale: locale, hubName: hubUrl });
-  const classes = useStyles();
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
   const [sectorOptions, setSectorOptions] = useState<Sector[]>([]);
   const [isLoadingSectors, setIsLoadingSectors] = useState(true);
@@ -120,9 +117,9 @@ export default function SignupInterestsStep({
           <IconButton aria-label="go back" onClick={onBack} size="small" style={{ marginRight: 8 }}>
             <ArrowBack />
           </IconButton>
-          <Typography variant="h1" gutterBottom className={classes.header}>
+          <Header variant="h1" gutterBottom>
             {texts.your_area_of_interest}
-          </Typography>
+          </Header>
         </div>
       )}
 

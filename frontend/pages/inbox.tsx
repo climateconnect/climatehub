@@ -1,5 +1,5 @@
 import { Button, Container, Typography } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import NextCookies from "next-cookies";
@@ -14,42 +14,38 @@ import UserSearchField from "../src/components/communication/chat/UserSearchFiel
 import ChatSearchField from "../src/components/communication/chat/ChatSearchField";
 import LoadingSpinner from "../src/components/general/LoadingSpinner";
 
-const useStyles = makeStyles((theme) => {
-  return {
-    root: {
-      padding: 0,
-    },
-    headline: {
-      paddingTop: theme.spacing(2),
-      paddingBottom: theme.spacing(2),
-      textAlign: "center",
-    },
-    newChatButton: {
-      marginBottom: theme.spacing(1),
-      marginRight: theme.spacing(1),
-      [theme.breakpoints.down("lg")]: {
-        marginLeft: theme.spacing(1),
-      },
-    },
-    searchChatButton: {
-      marginBottom: theme.spacing(1),
-      [theme.breakpoints.down("lg")]: {
-        marginLeft: theme.spacing(1),
-      },
-    },
-    searchSectionContainer: {
-      marginBottom: theme.spacing(4),
-      [theme.breakpoints.down("lg")]: {
-        marginLeft: theme.spacing(2),
-        marginRight: theme.spacing(2),
-      },
-    },
-    buttonBar: {
-      position: "relative",
-      height: 40,
-    },
-  };
+const InboxContainer = styled(Container)({
+  padding: 0,
 });
+
+const Headline = styled(Typography)(({ theme }) => ({
+  paddingTop: theme.spacing(2),
+  paddingBottom: theme.spacing(2),
+  textAlign: "center",
+})) as typeof Typography;
+
+const NewChatButton = styled(Button)(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+  marginRight: theme.spacing(1),
+  [theme.breakpoints.down("lg")]: {
+    marginLeft: theme.spacing(1),
+  },
+}));
+
+const SearchChatButton = styled(Button)(({ theme }) => ({
+  marginBottom: theme.spacing(1),
+  [theme.breakpoints.down("lg")]: {
+    marginLeft: theme.spacing(1),
+  },
+}));
+
+const SearchSectionContainer = styled("div")(({ theme }) => ({
+  marginBottom: theme.spacing(4),
+  [theme.breakpoints.down("lg")]: {
+    marginLeft: theme.spacing(2),
+    marginRight: theme.spacing(2),
+  },
+}));
 
 export async function getServerSideProps(ctx) {
   const { auth_token } = NextCookies(ctx);
@@ -72,7 +68,6 @@ export async function getServerSideProps(ctx) {
 
 export default function Inbox({ chatData, initialNextPage, hubUrl }) {
   const token = new Cookies().get("auth_token");
-  const classes = useStyles();
   const { user, locale } = useContext(UserContext);
   const texts = getTexts({ page: "chat", locale: locale });
   const [userSearchEnabled, setUserSearchEnabled] = useState(false);
@@ -210,11 +205,11 @@ export default function Inbox({ chatData, initialNextPage, hubUrl }) {
         resetAlertMessage={resetAlertMessage}
         hubUrl={hubUrl}
       >
-        <Container maxWidth="md" className={classes.root}>
-          <Typography component="h1" variant="h4" className={classes.headline}>
+        <InboxContainer maxWidth="md" disableGutters>
+          <Headline component="h1" variant="h4">
             {texts.inbox}
-          </Typography>
-          <div className={classes.searchSectionContainer}>
+          </Headline>
+          <SearchSectionContainer>
             {(() => {
               if (userSearchEnabled)
                 return (
@@ -269,24 +264,22 @@ export default function Inbox({ chatData, initialNextPage, hubUrl }) {
               if (!userSearchEnabled && !chatSearchEnabled)
                 return (
                   <span>
-                    <Button
-                      className={classes.newChatButton}
+                    <NewChatButton
                       startIcon={<AddIcon />}
                       variant="contained"
                       color="primary"
                       onClick={enableUserSearch}
                     >
                       {texts.new_chat}
-                    </Button>
-                    <Button
-                      className={classes.searchChatButton}
+                    </NewChatButton>
+                    <SearchChatButton
                       startIcon={<SearchIcon />}
                       variant="contained"
                       color="primary"
                       onClick={enableChatSearch}
                     >
                       {texts.find_a_chat}
-                    </Button>
+                    </SearchChatButton>
                     <ChatPreviews
                       chatSearchEnabled={chatSearchEnabled}
                       loadFunc={loadMoreChats}
@@ -297,8 +290,8 @@ export default function Inbox({ chatData, initialNextPage, hubUrl }) {
                   </span>
                 );
             })()}
-          </div>
-        </Container>
+          </SearchSectionContainer>
+        </InboxContainer>
       </WideLayout>
     </div>
   );

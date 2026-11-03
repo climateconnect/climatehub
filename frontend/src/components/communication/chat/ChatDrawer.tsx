@@ -1,5 +1,5 @@
 import { Alert, CircularProgress, Drawer, IconButton, Theme } from "@mui/material";
-import makeStyles from "@mui/styles/makeStyles";
+import { styled } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import CloseIcon from "@mui/icons-material/Close";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -24,40 +24,43 @@ type ChatDrawerProps = {
   contactPerson: any;
   contextTerm: string;
   contactRole?: string;
+  origin?: { type: "project"; urlSlug: string; id: number };
 };
 
-const useStyles = makeStyles((theme) => ({
-  content: {
-    display: "flex",
-    flexDirection: "column",
-    flex: "1 1 auto",
-    minHeight: 0,
-    width: "100%",
-    overflow: "hidden",
-  },
-  header: {
-    flex: "none",
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    padding: theme.spacing(1.5, 2),
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    background: theme.palette.grey[200],
-  },
-  headerInfo: {
-    textAlign: "left",
-    minWidth: 0,
-  },
-  loadingContainer: {
-    display: "flex",
-    justifyContent: "center",
-    padding: theme.spacing(4),
-    flex: 1,
-  },
-  alert: {
-    flex: "none",
-    margin: theme.spacing(1),
-  },
+const Content = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+  flex: "1 1 auto",
+  minHeight: 0,
+  width: "100%",
+  overflow: "hidden",
+});
+
+const Header = styled("div")(({ theme }) => ({
+  flex: "none",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  padding: theme.spacing(1.5, 2),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  background: theme.palette.grey[200],
+}));
+
+const HeaderInfo = styled("div")({
+  textAlign: "left",
+  minWidth: 0,
+});
+
+const LoadingContainer = styled("div")(({ theme }) => ({
+  display: "flex",
+  justifyContent: "center",
+  padding: theme.spacing(4),
+  flex: 1,
+}));
+
+const ErrorAlert = styled(Alert)(({ theme }) => ({
+  flex: "none",
+  margin: theme.spacing(1),
 }));
 
 export default function ChatDrawer({
@@ -66,8 +69,8 @@ export default function ChatDrawer({
   contactPerson,
   contextTerm,
   contactRole,
+  origin,
 }: ChatDrawerProps) {
-  const classes = useStyles();
   const isMobile = useMediaQuery<Theme>((theme) => theme.breakpoints.down("sm"));
   const token = new Cookies().get("auth_token");
   const { chatSocket, user, locale, socketConnectionState } = useContext(UserContext);
@@ -247,9 +250,17 @@ export default function ChatDrawer({
     }
   };
 
+  const originMessageFields = origin ? { origin_type: origin.type, origin_id: origin.id } : {};
+
   const sendChatMessageThroughSocket = async (message) => {
     try {
-      chatSocket.send(JSON.stringify({ message: message, chat_uuid: chat.chat_uuid }));
+      chatSocket.send(
+        JSON.stringify({
+          message: message,
+          chat_uuid: chat.chat_uuid,
+          ...(origin && { origin_project_url_slug: origin.urlSlug }),
+        })
+      );
       setThread((thread) => ({
         ...thread,
         messages: [
@@ -259,6 +270,7 @@ export default function ChatDrawer({
             sender: user,
             unconfirmed: true,
             sent_at: new Date(),
+            ...originMessageFields,
           },
         ],
       }));
@@ -274,7 +286,10 @@ export default function ChatDrawer({
       await apiRequest({
         method: "post",
         url: "/api/chat/" + chat_uuid + "/send_message/",
-        payload: { message_content: message },
+        payload: {
+          message_content: message,
+          ...(origin && { origin_project_url_slug: origin.urlSlug }),
+        },
         token: token,
         locale: locale,
       });
@@ -286,6 +301,7 @@ export default function ChatDrawer({
             content: message,
             sender: user,
             sent_at: new Date(),
+            ...originMessageFields,
           },
         ],
       }));
@@ -360,25 +376,21 @@ export default function ChatDrawer({
         },
       }}
     >
-      <div className={classes.content}>
-        <div className={classes.header}>
-          <div className={classes.headerInfo}>
+      <Content>
+        <Header>
+          <HeaderInfo>
             <MiniProfilePreview profile={chatting_partner} title={contactRole} />
-          </div>
+          </HeaderInfo>
           <IconButton onClick={onClose} aria-label={texts.close_chat} size="small">
             <CloseIcon />
           </IconButton>
-        </div>
+        </Header>
         {showLoading && (
-          <div className={classes.loadingContainer}>
+          <LoadingContainer>
             <CircularProgress size={28} />
-          </div>
+          </LoadingContainer>
         )}
-        {errorMessage && (
-          <Alert severity="error" className={classes.alert}>
-            {errorMessage}
-          </Alert>
-        )}
+        {errorMessage && <ErrorAlert severity="error">{errorMessage}</ErrorAlert>}
         {chat && !showLoading && (
           <ChatContent
             showChatParticipants={false}
@@ -401,7 +413,7 @@ export default function ChatDrawer({
             emptyConversationLead={emptyConversationLead}
           />
         )}
-      </div>
+      </Content>
     </Drawer>
   );
 }
