@@ -283,7 +283,7 @@ function OrganizationLayout({
   };
   const currentMember = user ? members.find((m) => m.id === user.id) : undefined;
   const isMember = !!currentMember;
-  const isSuperAdmin = currentMember?.role?.name === "Super-Admin";
+  const isSuperAdmin = !!currentMember?.is_super_admin;
   const canEdit =
     !!currentMember &&
     [ROLE_TYPES.all_type, ROLE_TYPES.read_write_type].includes(currentMember.permission);

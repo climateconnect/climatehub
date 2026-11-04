@@ -54,10 +54,11 @@ export default function LeaveOrganizationButton({
       onLeft();
     } catch (e: any) {
       if (e?.response?.status === 400) {
+        // Backend returns a stable `code` for the known Super-Admin cases
         onError(
-          memberCount > 1
-            ? texts.you_cant_leave_an_organization_as_the_super_admin
-            : texts.you_are_the_last_member_delete_organization_instead
+          e?.response?.data?.code === "last_member"
+            ? texts.you_are_the_last_member_delete_organization_instead
+            : texts.you_cant_leave_an_organization_as_the_super_admin
         );
       } else {
         onError(texts.could_not_leave_the_organization);

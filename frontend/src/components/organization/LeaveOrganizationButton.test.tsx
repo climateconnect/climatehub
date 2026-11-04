@@ -81,4 +81,15 @@ describe("LeaveOrganizationButton", () => {
     await waitFor(() => expect(onError).toHaveBeenCalledWith("Failed"));
     expect(onLeft).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["super_admin_must_hand_over", "Hand over first"],
+    ["last_member", "Delete instead"],
+  ])("maps the 400 code %j to translated text", async (code, expected) => {
+    (apiRequest as jest.Mock).mockRejectedValue({ response: { status: 400, data: { code } } });
+    const { onError } = setup();
+    fireEvent.click(screen.getByText("Leave team"));
+    fireEvent.click(screen.getByText("Yes"));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(expected));
+  });
 });

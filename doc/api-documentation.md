@@ -949,7 +949,7 @@ When `is_test=true`, the subject is prefixed with `[TEST] ` so the organiser can
 | `/api/organizations/` | POST | Yes | Create an organization |
 | `/api/organizations/{slug}/` | GET | No | Get organization details |
 | `/api/organizations/{slug}/members/` | GET | No | List organization members |
-| `/api/organizations/{slug}/leave/` | POST | Yes | Leave the organization (deletes own membership). 200 on success; 400 if Super-Admin (others remain: "A new Super-Admin needs to be assigned first"; last member: delete the organization instead); 401 anonymous; 404 unknown org or not a member |
+| `/api/organizations/{slug}/leave/` | POST | Yes | Leave the organization (deletes own membership). 200 on success; 400 if Super-Admin, with a stable `code` (`super_admin_must_hand_over` while others remain; `last_member` if sole member: delete the organization instead); 401 anonymous; 404 unknown org or not a member |
 
 ### Members
 

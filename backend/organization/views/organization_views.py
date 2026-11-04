@@ -1120,12 +1120,16 @@ class LeaveOrganization(APIView):
             )
             if has_other_members:
                 return Response(
-                    {"message": "A new Super-Admin needs to be assigned first"},
+                    {
+                        "message": "A new Super-Admin needs to be assigned first",
+                        "code": "super_admin_must_hand_over",
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(
                 {
-                    "message": "You are the last member. Delete the organization instead."
+                    "message": "You are the last member. Delete the organization instead.",
+                    "code": "last_member",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

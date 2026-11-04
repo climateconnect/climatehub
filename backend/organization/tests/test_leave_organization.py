@@ -75,6 +75,7 @@ class TestLeaveOrganization(APITestCase):
         self.assertEqual(
             response.data["message"], "A new Super-Admin needs to be assigned first"
         )
+        self.assertEqual(response.data["code"], "super_admin_must_hand_over")
         self.assertTrue(self._exists(self.super_admin))
 
     def test_last_super_admin_blocked(self):
@@ -83,6 +84,7 @@ class TestLeaveOrganization(APITestCase):
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Delete the organization", response.data["message"])
+        self.assertEqual(response.data["code"], "last_member")
         self.assertTrue(self._exists(self.super_admin))
         self.assertTrue(Organization.objects.filter(url_slug=self.slug).exists())
 
