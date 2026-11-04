@@ -1,4 +1,4 @@
-import { Alert, Button, Container, Divider, Typography, useMediaQuery } from "@mui/material";
+import { Alert, Box, Button, Container, Divider, Typography, useMediaQuery } from "@mui/material";
 import { styled, Theme } from "@mui/material/styles";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -414,7 +414,7 @@ function OrganizationLayout({
             <SectionHeadline color="primary" component="h2">
               {texts.members_of_organization}
             </SectionHeadline>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {isMember && (
                 <LeaveOrganizationButton
                   organizationUrlSlug={organization.url_slug}
@@ -450,7 +450,7 @@ function OrganizationLayout({
                     {texts.manage_members}
                   </Button>
                 ))}
-            </div>
+            </Box>
           </SectionHeadlineWithButtonContainer>
           {leaveError && (
             <Alert severity="error" sx={{ mt: 1 }} onClose={() => setLeaveError(null)}>
