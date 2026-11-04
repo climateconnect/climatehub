@@ -33,7 +33,7 @@ const HubLandingPage: FC<HubLandingPageProps> = ({ hubData, hubUrl, EnComponent,
   }
 
   const title = `${texts.climateHub} ${hubData.name} | ${texts.citizen_climate_action} ${hubData.name}`;
-  const description = `${texts.find_fellow_campaigners_for_climate_protection_idea}`;
+  const description = texts[`hub_landing_page_description_${hubUrl}`];
 
   return (
     <DevlinkPage
