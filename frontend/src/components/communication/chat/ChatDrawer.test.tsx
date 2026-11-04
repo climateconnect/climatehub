@@ -335,6 +335,23 @@ describe("ChatDrawer", () => {
       });
     });
 
+    it("tags the sender's own message with the organization origin (type and id)", async () => {
+      renderDrawer({ origin: { type: "organization", urlSlug: "test-org", id: 913 } });
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello org" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await screen.findByText("Hello org");
+      // Message.tsx only looks up the label when the message carries origin_type and origin_id
+      await waitFor(() =>
+        expect(
+          mockApiRequest.mock.calls.some(
+            (call: any[]) => call[0].url === "/api/organization-origin/913/"
+          )
+        ).toBe(true)
+      );
+    });
+
     it("omits the origin slug when no origin is set", async () => {
       renderDrawer();
       await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());

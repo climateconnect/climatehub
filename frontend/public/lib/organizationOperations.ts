@@ -4,6 +4,7 @@ import ROLE_TYPES from "../../public/data/role_types";
 
 export function parseOrganization(organization, editMode: boolean = false) {
   const org = {
+    id: organization.id,
     url_slug: organization.url_slug,
     background_image: getImageUrl(organization.background_image),
     name: organization.name,

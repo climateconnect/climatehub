@@ -31,7 +31,7 @@ Only **where the message is written** changes. Who sees the button, who receives
 1. **No backend work.** `origin_organization_url_slug` is already accepted and validated on both `SendChatMessage.post` and `DirectMessageConsumer.new_message`; `GET /api/organization-origin/{id}/` and the chip in `Message.tsx` already exist.
 2. **`ChatDrawer` is project-specific only in its `origin` handling.** The type is `"project"` only and both payloads hard-code `origin_project_url_slug`. Everything else (header, history, pagination, sending, create-or-get chat on open) is generic.
 3. **The drawer creates or fetches the chat itself when opened**, so `handleConnectBtn`'s own `startPrivateChat` call becomes unnecessary on the org page.
-4. **The drawer already receives the organization id** from the page (`organization.id`), so the slug-to-id lookup (`getOrganizationOriginBySlug`) that the chat page needs is not required any more.
+4. **The organization id must be passed explicitly.** `parseOrganization` did not copy `id`, so it is now added there; the drawer needs `origin.id` to show the label on the sender's own message. The slug-to-id lookup (`getOrganizationOriginBySlug`) on the chat page is not required any more.
 5. **The creator is already known on the org page** (`members.filter(m => m.isCreator)[0]`), mirroring `creator` in `ProjectPageRoot`.
 
 ## Design decisions

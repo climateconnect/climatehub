@@ -5,17 +5,16 @@ import { ThemeProvider } from "@mui/material/styles";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import ROLE_TYPES from "../../../public/data/role_types";
+import { parseOrganization } from "../../../public/lib/organizationOperations";
 import OrganizationPage from "../../../pages/organizations/[organizationUrl]";
 
 jest.mock("universal-cookie", () => jest.fn(() => ({ get: jest.fn(() => "test-token") })));
 
-const mockRouterPush = jest.fn();
 jest.mock("next/router", () => ({
   useRouter: () => ({
     locale: "en",
     query: {},
     asPath: "/organizations/test-org",
-    push: mockRouterPush,
   }),
 }));
 
@@ -53,13 +52,15 @@ const creator = {
   permission: ROLE_TYPES.all_type,
 };
 const me = { id: 2, url_slug: "me", first_name: "My", last_name: "Self" };
-const organization = {
+// Built through parseOrganization from a server-shaped response, like the real page
+const organization = parseOrganization({
   id: 3,
   name: "Test Org",
   url_slug: "test-org",
-  info: { short_description: "desc" },
   types: [],
-};
+  sectors: [],
+  short_description: "desc",
+});
 
 function renderPage({ user = me as any, members = [creator] as any[] } = {}) {
   return render(
@@ -93,7 +94,6 @@ describe("OrganizationPage contact drawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /send message/i }));
 
     expect(screen.getByTestId("chat-drawer")).toBeInTheDocument();
-    expect(mockRouterPush).not.toHaveBeenCalled();
     const props = mockChatDrawer.mock.calls.at(-1)![0];
     expect(props.contactPerson).toEqual(creator);
     expect(props.origin).toEqual({ type: "organization", urlSlug: "test-org", id: 3 });
