@@ -1,4 +1,4 @@
-import { Alert, Button, Container, Divider, Typography, useMediaQuery } from "@mui/material";
+import { Alert, Box, Button, Container, Divider, Typography, useMediaQuery } from "@mui/material";
 import { styled, Theme } from "@mui/material/styles";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -33,6 +33,7 @@ import { transformThemeData } from "../../src/themes/transformThemeData";
 import { parseProjectStubs } from "../../public/lib/parsingOperations";
 import HubsSubHeader from "../../src/components/indexPage/hubsSubHeader/HubsSubHeader";
 import { getAllHubs } from "../../public/lib/hubOperations";
+import LeaveOrganizationButton from "../../src/components/organization/LeaveOrganizationButton";
 
 const DEFAULT_BACKGROUND_IMAGE = "/images/default_background_org.jpg";
 
@@ -274,12 +275,19 @@ function OrganizationLayout({
     e.preventDefault();
     setChatDrawerOpen(true);
   };
+  const currentMember = user ? members.find((m) => m.id === user.id) : undefined;
+  const isMember = !!currentMember;
+  const isSuperAdmin = !!currentMember?.is_super_admin;
   const canEdit =
-    user &&
-    !!members.find((m) => m.id === user.id) &&
-    [ROLE_TYPES.all_type, ROLE_TYPES.read_write_type].includes(
-      members.find((m) => m.id === user.id).permission
-    );
+    !!currentMember &&
+    [ROLE_TYPES.all_type, ROLE_TYPES.read_write_type].includes(currentMember.permission);
+  const [leftMessage, setLeftMessage] = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+
+  const handleLeft = () => {
+    setLeftMessage(texts.you_have_successfully_left_the_organization);
+    router.replace(router.asPath);
+  };
 
   const membersWithAdditionalInfo = getMembersWithAdditionalInfo(members);
 
@@ -335,6 +343,13 @@ function OrganizationLayout({
         isSmallScreen={isSmallScreen}
         hubUrl={hubUrl}
       >
+        {leftMessage && (
+          <Container>
+            <Alert severity="success" sx={{ my: 2 }} onClose={() => setLeftMessage(null)}>
+              {leftMessage}
+            </Alert>
+          </Container>
+        )}
         {!user && <StyledLoginNudge whatToDo={texts.to_see_this_organizations_full_information} />}
         <Container>
           {user && !canEdit && creator && (
@@ -393,29 +408,49 @@ function OrganizationLayout({
             <SectionHeadline color="primary" component="h2">
               {texts.members_of_organization}
             </SectionHeadline>
-            {canEdit &&
-              (isTinyScreen ? (
-                <IconButton
-                  href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
-                    organization.url_slug
-                  }${hubUrl ? `?hub=${hubUrl}` : ""}`}
-                  size="large"
-                >
-                  <ManageMembersButtonIcon color="primary" />
-                </IconButton>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
-                    organization.url_slug
-                  }${hubUrl ? `?hub=${hubUrl}` : ""}`}
-                >
-                  <ManageMembersInnerIcon />
-                  {texts.manage_members}
-                </Button>
-              ))}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {isMember && (
+                <LeaveOrganizationButton
+                  organizationUrlSlug={organization.url_slug}
+                  isSuperAdmin={isSuperAdmin}
+                  memberCount={members.length}
+                  token={cookies.get("auth_token")}
+                  locale={locale}
+                  texts={texts}
+                  isTinyScreen={isTinyScreen}
+                  onLeft={handleLeft}
+                  onError={setLeaveError}
+                />
+              )}
+              {canEdit &&
+                (isTinyScreen ? (
+                  <IconButton
+                    href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
+                      organization.url_slug
+                    }${hubUrl ? `?hub=${hubUrl}` : ""}`}
+                    size="large"
+                  >
+                    <ManageMembersButtonIcon color="primary" />
+                  </IconButton>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    href={`${getLocalePrefix(locale)}/manageOrganizationMembers/${
+                      organization.url_slug
+                    }${hubUrl ? `?hub=${hubUrl}` : ""}`}
+                  >
+                    <ManageMembersInnerIcon />
+                    {texts.manage_members}
+                  </Button>
+                ))}
+            </Box>
           </SectionHeadlineWithButtonContainer>
+          {leaveError && (
+            <Alert severity="error" sx={{ mt: 1 }} onClose={() => setLeaveError(null)}>
+              {leaveError}
+            </Alert>
+          )}
           {members && members.length ? (
             <ProfilePreviews
               profiles={membersWithAdditionalInfo}
