@@ -165,6 +165,12 @@ export default function ProjectPage({
   const [requestedToJoinProject, setRequestedToJoinProject] = useState(hasRequestedToJoin);
   const [followingChangePending, setFollowingChangePending] = useState(false);
   const [likingChangePending, setLikingChangePending] = useState(false);
+
+  // Re-sync with fresh SSR props, e.g. after leaving the team (same-URL router.push keeps state)
+  useEffect(() => {
+    setCurrentMembers(members);
+    setRequestedToJoinProject(hasRequestedToJoin);
+  }, [members, hasRequestedToJoin]);
   const [numberOfLikes, setNumberOfLikes] = useState(project?.number_of_likes);
   const [numberOfFollowers, setNumberOfFollowers] = useState(project?.number_of_followers);
   const { CUSTOM_HUB_URLS, locale, user } = useContext(UserContext);

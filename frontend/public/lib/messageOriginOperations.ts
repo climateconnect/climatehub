@@ -74,25 +74,3 @@ export const fetchOriginContext = async (
   pendingOriginContextRequests.set(key, request);
   return request;
 };
-
-// Public organization lookup. The origin resolver is not usable here: before the first
-// tagged message the sender is neither a chat participant of an origin chat nor an admin.
-export const getOrganizationOriginBySlug = async (
-  organizationUrlSlug: string,
-  token?: string,
-  locale?: string
-): Promise<{ id: number; name: string } | null> => {
-  try {
-    const response = await apiRequest({
-      method: "get",
-      url: `/api/organizations/${organizationUrlSlug}/`,
-      token,
-      locale,
-    });
-    if (!response.data?.id) return null;
-    return { id: response.data.id, name: response.data.name };
-  } catch (error) {
-    console.warn("Failed to resolve organization by slug", error);
-    return null;
-  }
-};
