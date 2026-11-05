@@ -2,7 +2,7 @@ import { Avatar, Button, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { redirect } from "../../../public/lib/apiOperations";
 import React, { useContext } from "react";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import { startPrivateChat } from "../../../public/lib/messagingOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -99,7 +99,13 @@ export default function LocalAmbassadorInfoBox({ hubAmbassador, hubData, hubSupp
         </UpperSection>
       )}
       <LowerSection>
-        <AmbassadorAvatar src={getImageUrl(hubAmbassador?.user?.thumbnail_image)} />
+        <AmbassadorAvatar
+          src={resolveVariantUrl(
+            hubAmbassador?.user?.image_variants,
+            THUMBNAIL_SOURCES,
+            hubAmbassador?.user?.thumbnail_image
+          )}
+        />
         <div>
           <Name>
             {hubAmbassador?.user?.first_name} {hubAmbassador?.user?.last_name}

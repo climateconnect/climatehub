@@ -2,7 +2,7 @@ import { Avatar, Button, Collapse, Fade, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import SendIcon from "@mui/icons-material/Send";
 import React, { useContext, useState } from "react";
-import { getImageUrl } from "../../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../../general/ResponsiveImage";
 import getTexts from "../../../../public/texts/texts";
 import UserContext from "../../context/UserContext";
 import ContactCreatorButtonInfo from "../../communication/contactcreator/ContactCreatorButtonInfo";
@@ -72,7 +72,11 @@ export default function ContactCreatorButton({
     setHoveringButton(false);
   };
 
-  const creatorImageURL = getImageUrl(creator?.thumbnail_image);
+  const creatorImageURL = resolveVariantUrl(
+    creator?.image_variants,
+    THUMBNAIL_SOURCES,
+    creator?.thumbnail_image
+  );
   const creatorName = creator?.name;
   const creatorsRoleInProject = texts.contact_person;
   const buttonText = texts.contact;

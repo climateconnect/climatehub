@@ -2,11 +2,18 @@
 Django signals for maintaining parent/child project relationships.
 
 This module contains signals that keep the has_children denormalized flag
-synchronized with the actual child_projects relationships.
+synchronized with the actual child_projects relationships, plus image-variant
+generation dispatch for ``Project`` and ``Organization`` image fields.
 """
 
-from django.db.models.signals import post_save, pre_delete, pre_save
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
+
+from climateconnect_main.utility.image_variants import (
+    capture_image_field_changes,
+    delete_image_files,
+    handle_image_field_changes,
+)
 
 
 @receiver(pre_save, sender="organization.Project")
@@ -81,3 +88,40 @@ def update_parent_has_children_on_delete(sender, instance, **kwargs):
             sender.objects.filter(pk=instance.parent_project.pk).update(
                 has_children=remaining_children
             )
+
+
+# ---------------------------------------------------------------------------
+# Image-variant generation dispatch for Project and Organization
+# ---------------------------------------------------------------------------
+
+
+@receiver(pre_save, sender="organization.Project")
+def _capture_project_image_changes(sender, instance, **kwargs):
+    capture_image_field_changes(sender, instance, **kwargs)
+
+
+@receiver(post_save, sender="organization.Project")
+def _handle_project_image_changes(sender, instance, created, **kwargs):
+    handle_image_field_changes(sender, instance, created, **kwargs)
+
+
+@receiver(post_delete, sender="organization.Project")
+def _delete_project_image_files(sender, instance, **kwargs):
+    """Delete the originals and variants of a deleted project."""
+    delete_image_files(sender, instance, **kwargs)
+
+
+@receiver(pre_save, sender="organization.Organization")
+def _capture_organization_image_changes(sender, instance, **kwargs):
+    capture_image_field_changes(sender, instance, **kwargs)
+
+
+@receiver(post_save, sender="organization.Organization")
+def _handle_organization_image_changes(sender, instance, created, **kwargs):
+    handle_image_field_changes(sender, instance, created, **kwargs)
+
+
+@receiver(post_delete, sender="organization.Organization")
+def _delete_organization_image_files(sender, instance, **kwargs):
+    """Delete the originals and variants of a deleted organization."""
+    delete_image_files(sender, instance, **kwargs)

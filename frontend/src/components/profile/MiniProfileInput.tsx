@@ -5,7 +5,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import React, { useContext, useEffect, useState } from "react";
 
 import ROLE_TYPES from "../../../public/data/role_types";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -156,7 +156,11 @@ export default function MiniProfileInput({
       <ProfileAvatar
         alt={displayName}
         /*TODO(unused) size="large" */
-        src={getImageUrl(profile.thumbnail_image ?? profile.image)}
+        src={resolveVariantUrl(
+          profile.image_variants,
+          THUMBNAIL_SOURCES,
+          profile.thumbnail_image ?? profile.image
+        )}
       />
       <NameText variant="h6">{displayName}</NameText>
       <FieldLabel>

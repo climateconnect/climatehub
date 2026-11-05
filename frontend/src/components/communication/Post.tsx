@@ -4,7 +4,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -149,9 +149,11 @@ export default function Post({
 
   const handleClick = (element) => noLink && element.preventDefault();
   const avatarProps = {
-    src: post.author_user.image
-      ? getImageUrl(post.author_user.image)
-      : getImageUrl(post.author_user.thumbnail_image),
+    src: resolveVariantUrl(
+      post.author_user.image_variants,
+      THUMBNAIL_SOURCES,
+      post.author_user.thumbnail_image || post.author_user.image
+    ),
   };
   const queryString = hubUrl ? "?hub=" + hubUrl : "";
 

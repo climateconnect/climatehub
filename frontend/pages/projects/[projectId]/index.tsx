@@ -520,6 +520,7 @@ function parseProject(project) {
     id: project.id,
     url_slug: project.url_slug,
     image: project.image,
+    image_variants: project.image_variants,
     location: project.location,
     description_html: project.description_html,
     short_description: project.short_description,

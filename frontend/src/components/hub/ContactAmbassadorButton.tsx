@@ -10,7 +10,7 @@ import UserContext from "../context/UserContext";
 import getTexts from "../../../public/texts/texts";
 import Cookies from "universal-cookie";
 import ContactCreatorButtonInfo from "../communication/contactcreator/ContactCreatorButtonInfo";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import SendIcon from "@mui/icons-material/Send";
 import theme from "../../themes/theme";
 
@@ -78,7 +78,13 @@ export default function ContactAmbassadorButton({
             onClick={handleClickContact}
             size="small"
           >
-            <MobileAvatar src={getImageUrl(hubAmbassador?.user?.thumbnail_image)} />
+            <MobileAvatar
+              src={resolveVariantUrl(
+                hubAmbassador?.user?.image_variants,
+                THUMBNAIL_SOURCES,
+                hubAmbassador?.user?.thumbnail_image
+              )}
+            />
             {texts.contact_ambassador}
             <SendIcon />
           </MobileButton>
@@ -92,7 +98,11 @@ export default function ContactAmbassadorButton({
         <Root onClick={handleClickContact}>
           <ContactCreatorButtonInfo
             creatorName={`${hubAmbassador?.user?.first_name} ${hubAmbassador?.user?.last_name}`}
-            creatorImageURL={getImageUrl(hubAmbassador?.user?.thumbnail_image)}
+            creatorImageURL={resolveVariantUrl(
+              hubAmbassador?.user?.image_variants,
+              THUMBNAIL_SOURCES,
+              hubAmbassador?.user?.thumbnail_image
+            )}
             customMessage={hubAmbassador.custom_message}
           />
           <AmbassadorText variant="contained" color="primary">
