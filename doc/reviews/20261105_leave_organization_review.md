@@ -50,6 +50,8 @@ Finding 1 is the cause; finding 2 is why the user sees it as "could not leave" i
 
 `[organizationUrl].tsx:284-290` adds two `useState` hooks, a custom success `Alert` and the broken reload. The project "Leave team" flow, which the issue says to mirror, uses `redirect(url, { message })` from `public/lib/apiOperations.ts`. Calling `redirect(`/organizations/${organization.url_slug}`, { message: texts.you_have_successfully_left_the_organization })` reloads the page with the message the same way and also fixes finding 1.
 
+**Resolution (2026-11-09):** not applied as written, on purpose. `redirect` uses a soft `router.push`. Tested manually: the success message did not appear on the page after leaving, because `WideLayout` reads `?message=` only on mount. `handleLeft` therefore keeps a full page load (`window.location.assign` with the `message` and `hub` params), which shows the message and refetches the members and the Leave button. Findings 1 and 4 are fixed by this too.
+
 ### 4. [Low] Success and error alerts can linger
 
 `[organizationUrl].tsx:284-285`: `leftMessage` / `leaveError` are page-level state. `leaveError` is only cleared in `handleClick`, so in the failure path of findings 1 and 2 both alerts can render together. After a soft `router.replace` the success alert stays until dismissed. This goes away with finding 3.
