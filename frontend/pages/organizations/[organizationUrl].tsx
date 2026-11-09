@@ -281,12 +281,18 @@ function OrganizationLayout({
   const canEdit =
     !!currentMember &&
     [ROLE_TYPES.all_type, ROLE_TYPES.read_write_type].includes(currentMember.permission);
-  const [leftMessage, setLeftMessage] = useState<string | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
   const handleLeft = () => {
-    setLeftMessage(texts.you_have_successfully_left_the_organization);
-    router.replace(router.asPath);
+    // Full page load (not router.push): WideLayout reads ?message= only on mount,
+    // and the page data (members, Leave button) must be refetched anyway.
+    const params = new URLSearchParams({
+      message: texts.you_have_successfully_left_the_organization,
+    });
+    if (hubUrl) params.set("hub", hubUrl);
+    window.location.assign(
+      `${getLocalePrefix(locale)}/organizations/${organization.url_slug}?${params.toString()}`
+    );
   };
 
   const membersWithAdditionalInfo = getMembersWithAdditionalInfo(members);
@@ -343,13 +349,6 @@ function OrganizationLayout({
         isSmallScreen={isSmallScreen}
         hubUrl={hubUrl}
       >
-        {leftMessage && (
-          <Container>
-            <Alert severity="success" sx={{ my: 2 }} onClose={() => setLeftMessage(null)}>
-              {leftMessage}
-            </Alert>
-          </Container>
-        )}
         {!user && <StyledLoginNudge whatToDo={texts.to_see_this_organizations_full_information} />}
         <Container>
           {user && !canEdit && creator && (

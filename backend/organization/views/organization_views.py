@@ -1108,7 +1108,10 @@ class LeaveOrganization(APIView):
             )
         except OrganizationMember.DoesNotExist:
             return Response(
-                {"message": "User is not a member of this organization"},
+                {
+                    "message": "User is not a member of this organization",
+                    "code": "not_a_member",
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
 

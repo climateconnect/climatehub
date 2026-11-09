@@ -51,7 +51,6 @@ export default function LeaveOrganizationButton({
         token,
         locale,
       });
-      onLeft();
     } catch (e: any) {
       if (e?.response?.status === 400) {
         // Backend returns a stable `code` for the known Super-Admin cases
@@ -60,10 +59,14 @@ export default function LeaveOrganizationButton({
             ? texts.you_are_the_last_member_delete_organization_instead
             : texts.you_cant_leave_an_organization_as_the_super_admin
         );
+      } else if (e?.response?.data?.code === "not_a_member") {
+        onError(texts.you_are_not_a_member_of_this_organization);
       } else {
         onError(texts.could_not_leave_the_organization);
       }
+      return;
     }
+    onLeft();
   };
 
   const handleClose = async (confirmed: boolean) => {
