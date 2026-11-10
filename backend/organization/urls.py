@@ -197,6 +197,11 @@ urlpatterns = [
         name="list-requesters-view",
     ),
     path(
+        "projects/<str:url_slug>/join_requests/<int:request_id>/",
+        project_views.JoinRequestDetailView.as_view(),
+        name="join-request-detail",
+    ),
+    path(
         "projects/<str:url_slug>/likes/",
         project_views.ListProjectLikesView.as_view(),
         name="list-likes-view",
