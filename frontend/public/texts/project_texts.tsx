@@ -1286,6 +1286,82 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "There are currently no open join requests",
       de: "Keine offenen Anfragen.",
     },
+    join_request_detail_title: {
+      en: "Join request",
+      de: "Beitrittsanfrage",
+    },
+    join_request_requested_on: {
+      en: "Requested on",
+      de: "Angefragt am",
+    },
+    join_request_status_pending: {
+      en: "Pending",
+      de: "Offen",
+    },
+    join_request_status_approved: {
+      en: "Approved",
+      de: "Angenommen",
+    },
+    join_request_status_rejected: {
+      en: "Declined",
+      de: "Abgelehnt",
+    },
+    join_request_decided_on: {
+      en: "on",
+      de: "am",
+    },
+    join_request_approved_by: {
+      en: "Approved by",
+      de: "Angenommen von",
+    },
+    join_request_rejected_by: {
+      en: "Declined by",
+      de: "Abgelehnt von",
+    },
+    join_request_message: {
+      en: "Message",
+      de: "Nachricht",
+    },
+    join_request_no_message: {
+      en: "No message",
+      de: "Keine Nachricht",
+    },
+    join_request_approve: {
+      en: "Approve",
+      de: "Annehmen",
+    },
+    join_request_decline: {
+      en: "Decline",
+      de: "Ablehnen",
+    },
+    join_request_not_found: {
+      en: "This join request could not be found.",
+      de: "Diese Beitrittsanfrage wurde nicht gefunden.",
+    },
+    join_request_no_permission: {
+      en: "You don't have permission to view this join request.",
+      de: "Du hast keine Berechtigung, diese Beitrittsanfrage zu sehen.",
+    },
+    join_request_please_log_in: {
+      en: "Please log in to view this join request.",
+      de: "Bitte melde dich an, um diese Beitrittsanfrage zu sehen.",
+    },
+    join_request_load_error: {
+      en: "The join request could not be loaded.",
+      de: "Die Beitrittsanfrage konnte nicht geladen werden.",
+    },
+    join_request_already_decided: {
+      en: "This request has already been decided.",
+      de: "Über diese Anfrage wurde bereits entschieden.",
+    },
+    open_join_requests_title: {
+      en: "Open join requests",
+      de: "Offene Beitrittsanfragen",
+    },
+    open_join_requests_view: {
+      en: "View",
+      de: "Ansehen",
+    },
     project_requesters_dialog_title: {
       en: "Open requests to join project",
       de: "Offene Anfragen zum Mitmachen",
