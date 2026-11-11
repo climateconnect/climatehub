@@ -145,7 +145,6 @@ const JoinProjectRequestNotification = ({ notification, hubUrl }) => {
       avatar={{
         alt: requesterName,
         image: requester?.thumbnail_image,
-        image_variants: requester?.image_variants,
       }}
       primaryText={requesterName + " " + texts.wants_to_join_your_project}
       notification={notification}
@@ -182,7 +181,6 @@ const PrivateMessageNotification = ({ notification, hubUrl }) => {
       avatar={{
         alt: sender?.first_name + " " + sender?.last_name,
         image: sender?.thumbnail_image,
-        image_variants: sender?.image_variants,
       }}
       primaryText={texts.message_from + " " + sender?.first_name + " " + sender?.last_name}
       secondaryText={notification.last_message.content}
@@ -289,7 +287,6 @@ const ProjectFollowerNotification = ({ notification, hubUrl }) => {
       avatar={{
         alt: followerName,
         image: notification.project_follower.thumbnail_image,
-        image_variants: notification.project_follower.image_variants,
       }}
       primaryText={`${followerName} ${texts.now_follows_your_project} "${notification.project.name}"`}
       secondaryText={texts.congratulations}
@@ -313,7 +310,6 @@ const ProjectLikeNotification = ({ notification, hubUrl }) => {
       avatar={{
         alt: likingUserName,
         image: notification.project_like.thumbnail_image,
-        image_variants: notification.project_like.image_variants,
       }}
       primaryText={`${likingUserName} ${texts.liked_your_project}`}
       secondaryText={texts.congratulations}
@@ -338,7 +334,6 @@ const OrganizationFollowerNotification = ({ notification, hubUrl }) => {
       avatar={{
         alt: followerName,
         image: notification.organization_follower.thumbnail_image,
-        image_variants: notification.organization_follower.image_variants,
       }}
       primaryText={`${followerName} ${texts.now_follows_your_organization} "${notification.organization.name}"`}
       secondaryText={texts.congratulations}

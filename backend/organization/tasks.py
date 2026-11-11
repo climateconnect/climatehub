@@ -9,6 +9,10 @@ Currently includes:
     - notify_admins_of_registration_change: async notification emails to all
       team admins when a member registers or self-cancels (gated by
       EventRegistrationConfig.notify_admins).
+    - generate_image_variants: WebP variants for a changed project or
+      organization image.
+    - regenerate_missing_image_variants: periodic (Celery beat) repair of
+      recently saved rows that still lack variants.
 """
 
 import logging
@@ -459,7 +463,7 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
     """Generate resized WebP variants for image fields on a model instance.
 
     Dispatched asynchronously (via ``transaction.on_commit``) whenever an
-    image field on ``Project``, ``Organization``, or ``UserProfile`` changes.
+    image field on ``Project`` or ``Organization`` changes.
 
     The task re-fetches the instance from the database so it always operates
     on committed data.  Processing errors are caught and logged — a variant-
@@ -470,7 +474,8 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
     retried, up to ``max_retries`` times, for just the affected fields — but
     only while the row still holds that same file. A field whose image was
     replaced meanwhile already has its own task. Once the retries are used up
-    the row keeps no variants for that field until the next backfill.
+    the row keeps no variants for that field until
+    :func:`regenerate_missing_image_variants` (or the backfill) picks it up.
 
     Args:
         app_label: Django app label of the model (e.g. ``"organization"``).
@@ -554,3 +559,84 @@ def generate_image_variants(self, app_label, model_name, pk, field_names):
             retry_fields,
             self.max_retries,
         )
+
+
+# Rows saved more recently than this are left to the generate_image_variants
+# task their save enqueued; it normally finishes within seconds.
+IMAGE_VARIANT_REPAIR_MIN_AGE = timedelta(hours=1)
+# Rows untouched for longer are the backfill command's job. The window also
+# keeps an image that can never be decoded from being retried forever.
+IMAGE_VARIANT_REPAIR_MAX_AGE = timedelta(days=7)
+# Upper bound of rows processed per model and run, to cap the work per run.
+IMAGE_VARIANT_REPAIR_MAX_ROWS = 50
+
+
+@app.task
+def regenerate_missing_image_variants():
+    """Generate missing WebP variants for recently saved rows (Celery beat).
+
+    Picks up ``Project`` and ``Organization`` rows that hold an image but lack
+    some of its variants and were updated between
+    :data:`IMAGE_VARIANT_REPAIR_MIN_AGE` and :data:`IMAGE_VARIANT_REPAIR_MAX_AGE`
+    ago. That covers saves whose ``generate_image_variants`` task was never
+    enqueued (broker down during the save), was lost, or gave up after its
+    retries — so those rows recover without anyone running the backfill.
+
+    The work is done inline, at most :data:`IMAGE_VARIANT_REPAIR_MAX_ROWS` rows
+    per model, newest first. Failures are logged per row and never abort the
+    run. Generation is idempotent and never deletes a file the committed map
+    still references, so overlapping with an on-save task is harmless.
+    """
+    from django.apps import apps
+
+    from climateconnect_main.utility.image_variants import (
+        ImageVariantsModelMixin,
+        generate_and_store_variants,
+        incomplete_variant_fields,
+        rows_with_images,
+    )
+
+    now = timezone.now()
+    for model in apps.get_models():
+        if not issubclass(model, ImageVariantsModelMixin):
+            continue
+
+        queryset = (
+            rows_with_images(model)
+            .filter(
+                updated_at__lt=now - IMAGE_VARIANT_REPAIR_MIN_AGE,
+                updated_at__gte=now - IMAGE_VARIANT_REPAIR_MAX_AGE,
+            )
+            .order_by("-updated_at")
+        )
+
+        repaired = 0
+        for instance in queryset.iterator():
+            if repaired >= IMAGE_VARIANT_REPAIR_MAX_ROWS:
+                logger.info(
+                    "[ImageVariants] Repair limit of %s %s rows reached; "
+                    "continuing on the next run",
+                    IMAGE_VARIANT_REPAIR_MAX_ROWS,
+                    model.__name__,
+                )
+                break
+            field_names = incomplete_variant_fields(instance)
+            if not field_names:
+                continue
+            repaired += 1
+            try:
+                generate_and_store_variants(instance, field_names=field_names)
+            except Exception:  # noqa: BLE001 — one bad row must not stop the run
+                logger.exception(
+                    "[ImageVariants] Repair failed for %s pk=%s fields=%s",
+                    model.__name__,
+                    instance.pk,
+                    field_names,
+                )
+
+        if repaired:
+            logger.info(
+                "[ImageVariants] Repaired variants of %s %s rows",
+                repaired,
+                model.__name__,
+            )

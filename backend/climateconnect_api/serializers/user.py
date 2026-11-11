@@ -2,7 +2,6 @@ from django.utils.translation import get_language
 from rest_framework import serializers
 
 from climateconnect_api.models import UserProfile
-from climateconnect_main.utility.image_variants import ImageVariantsField
 from climateconnect_api.models.donation import Donation
 from climateconnect_api.models.user import UserProfileTranslation
 from climateconnect_api.serializers.badge import BadgeSerializer
@@ -24,7 +23,6 @@ from location.utility import (
 
 
 class PersonalProfileSerializer(serializers.ModelSerializer):
-    image_variants = ImageVariantsField()
     id = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
@@ -44,7 +42,6 @@ class PersonalProfileSerializer(serializers.ModelSerializer):
             "last_name",
             "url_slug",
             "image",
-            "image_variants",
             "background_image",
             "location",
             "biography",
@@ -111,7 +108,6 @@ class PersonalProfileSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    image_variants = ImageVariantsField()
     id = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
@@ -131,7 +127,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "last_name",
             "url_slug",
             "image",
-            "image_variants",
             "background_image",
             "thumbnail_image",  # I had to add this to get the change to it being set to null when restting the avatar
             "biography",
@@ -212,7 +207,6 @@ class EditUserProfileSerializer(UserProfileSerializer):
 
 
 class UserProfileMinimalSerializer(serializers.ModelSerializer):
-    image_variants = ImageVariantsField()
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
     id = serializers.SerializerMethodField()
@@ -228,7 +222,6 @@ class UserProfileMinimalSerializer(serializers.ModelSerializer):
             "last_name",
             "url_slug",
             "image",
-            "image_variants",
             "background_image",
             "location",
             "website",
@@ -272,7 +265,6 @@ class UserProfileMinimalSerializer(serializers.ModelSerializer):
 
 
 class UserProfileStubSerializer(serializers.ModelSerializer):
-    image_variants = ImageVariantsField()
     id = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
@@ -287,7 +279,6 @@ class UserProfileStubSerializer(serializers.ModelSerializer):
             "last_name",
             "url_slug",
             "thumbnail_image",
-            "image_variants",
             "location",
             "badges",
         )

@@ -2,10 +2,6 @@ import logging
 
 from django.core.cache import cache
 from django.db import models
-
-from climateconnect_main.utility.image_variant_models import (
-    ImageVariantsModelMixin,
-)
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -24,7 +20,7 @@ def background_image_path(instance, filename):
     return "background_images/{}/{}".format(instance.id, filename)
 
 
-class UserProfile(ImageVariantsModelMixin, models.Model):
+class UserProfile(models.Model):
     user = models.OneToOneField(
         "auth.User",
         help_text="Points to user table",
@@ -73,19 +69,6 @@ class UserProfile(ImageVariantsModelMixin, models.Model):
         upload_to=background_image_path,
         null=True,
         blank=True,
-    )
-
-    image_variants = models.JSONField(
-        help_text="Map of generated WebP variants, keyed by image field and "
-        "then by variant. Values are storage-relative paths, resolved to URLs "
-        "by ImageVariantsField. "
-        'e.g. {"image": {"1200": "<path>", "600": "<path>"}, '
-        '"thumbnail_image": {"webp": "<path>"}, '
-        '"background_image": {"1200": "<path>", "600": "<path>"}}',
-        verbose_name="Image variants",
-        null=True,
-        blank=True,
-        default=dict,
     )
 
     # Field not in use. Keeping temporarily for backwards compatibility

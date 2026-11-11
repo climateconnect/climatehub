@@ -21,7 +21,7 @@ from io import BytesIO
 from PIL import Image
 from rest_framework.test import APITestCase
 
-from climateconnect_api.models import Language, UserProfile
+from climateconnect_api.models import Language
 from organization.models import Organization, Project
 from django.core.management import call_command
 
@@ -104,8 +104,41 @@ def make_png_with_alpha(width=400, height=300):
     return ContentFile(buf.getvalue(), name="alpha_test.png")
 
 
+def make_variant(field_file, max_width):
+    """Read, decode and encode one variant, as generate_and_store_variants does.
+
+    Returns a ``BytesIO`` with the WebP bytes, or ``None`` when any step fails.
+    """
+    from climateconnect_main.utility.images import (
+        decode_image,
+        encode_webp_variant,
+        read_source_bytes,
+    )
+
+    source = read_source_bytes(field_file)
+    if source is None:
+        return None
+    image = decode_image(source, name=field_file.name)
+    if image is None:
+        return None
+    data = encode_webp_variant(image, max_width=max_width)
+    return BytesIO(data) if data is not None else None
+
+
+def webp_files_of(storage, original_name):
+    """Every WebP variant file on *storage* derived from *original_name*."""
+    directory, filename = original_name.rsplit("/", 1)
+    base = filename.rsplit(".", 1)[0]
+    _dirs, files = storage.listdir(directory)
+    return sorted(
+        "{}/{}".format(directory, name)
+        for name in files
+        if name.startswith(base + "_") and name.endswith(".webp")
+    )
+
+
 # ---------------------------------------------------------------------------
-# generate_webp_variant unit tests
+# decode_image / encode_webp_variant unit tests
 # ---------------------------------------------------------------------------
 
 
@@ -125,14 +158,12 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
 
     def test_generates_webp_format(self):
         """Variant should be in WebP format."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         content_file = make_test_image(
             width=2000, height=1000, mode="RGB", color="green"
         )
         self.project.image.save("test.png", content_file, save=True)
 
-        variant = generate_webp_variant(self.project.image, max_width=1200)
+        variant = make_variant(self.project.image, max_width=1200)
 
         self.assertIsNotNone(variant)
         image = Image.open(BytesIO(variant.read()))
@@ -140,12 +171,10 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
 
     def test_no_upscaling(self):
         """An image smaller than max_width should not be upscaled."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         content_file = make_test_image(width=500, height=400, mode="RGB", color="red")
         self.project.image.save("small.png", content_file, save=True)
 
-        variant = generate_webp_variant(self.project.image, max_width=1200)
+        variant = make_variant(self.project.image, max_width=1200)
 
         self.assertIsNotNone(variant)
         image = Image.open(BytesIO(variant.read()))
@@ -153,14 +182,12 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
 
     def test_resizing_large_image(self):
         """A large image should be resized to max_width."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         content_file = make_test_image(
             width=4000, height=2000, mode="RGB", color="blue"
         )
         self.project.image.save("large.png", content_file, save=True)
 
-        variant = generate_webp_variant(self.project.image, max_width=1200)
+        variant = make_variant(self.project.image, max_width=1200)
 
         self.assertIsNotNone(variant)
         image = Image.open(BytesIO(variant.read()))
@@ -169,12 +196,10 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
 
     def test_exif_orientation(self):
         """EXIF orientation should be applied."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         content_file = make_exif_test_image(width=800, height=600, orientation=6)
         self.project.image.save("exif_test.jpg", content_file, save=True)
 
-        variant = generate_webp_variant(self.project.image, max_width=1200)
+        variant = make_variant(self.project.image, max_width=1200)
 
         self.assertIsNotNone(variant)
         image = Image.open(BytesIO(variant.read()))
@@ -184,12 +209,10 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
 
     def test_alpha_channel_handling(self):
         """RGBA images should be handled without error."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         content_file = make_png_with_alpha(width=400, height=300)
         self.project.image.save("alpha.png", content_file, save=True)
 
-        variant = generate_webp_variant(self.project.image, max_width=300)
+        variant = make_variant(self.project.image, max_width=300)
 
         self.assertIsNotNone(variant)
         image = Image.open(BytesIO(variant.read()))
@@ -197,9 +220,7 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
         self.assertEqual(image.mode, "RGBA")
 
     def test_storage_agnostic_no_path_access(self):
-        """Function must work when storage raises on .path (AzureStorage)."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
+        """Reading must work when storage raises on .path (AzureStorage)."""
         content_file = make_test_image(
             width=2000, height=1000, mode="RGB", color="yellow"
         )
@@ -213,36 +234,42 @@ class TestGenerateWebPVariant(TempMediaRootMixin, APITestCase):
         with mock_patch.object(
             type(self.project.image), "path", property(raising_path)
         ):
-            variant = generate_webp_variant(self.project.image, max_width=1200)
+            variant = make_variant(self.project.image, max_width=1200)
 
         self.assertIsNotNone(variant)
 
     def test_undecodable_image_returns_none(self):
         """An undecodable image should log an error and return None."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         bad_content = ContentFile(b"not an image", name="bad.jpg")
         self.project.image.save("bad.jpg", bad_content, save=True)
 
         with self.assertLogs("climateconnect_main.utility.images", level="ERROR"):
-            variant = generate_webp_variant(self.project.image, max_width=1200)
+            variant = make_variant(self.project.image, max_width=1200)
 
         self.assertIsNone(variant)
 
-    def test_none_field_file_returns_none(self):
-        from climateconnect_main.utility.images import generate_webp_variant
+    def test_encoding_leaves_the_decoded_original_untouched(self):
+        """Several widths are derived from one decoded image, so encoding a
+        smaller width must not resize the original in place."""
+        from climateconnect_main.utility.images import (
+            decode_image,
+            encode_webp_variant,
+        )
 
-        result = generate_webp_variant(None, max_width=1200)
-        self.assertIsNone(result)
+        source = make_test_image(width=2000, height=1000).read()
+        image = decode_image(source)
+
+        small = encode_webp_variant(image, max_width=600)
+
+        self.assertEqual(Image.open(BytesIO(small)).width, 600)
+        self.assertEqual(image.size, (2000, 1000))
 
     def test_format_only_conversion_for_thumbnail(self):
         """When max_width is None, image is converted without resizing."""
-        from climateconnect_main.utility.images import generate_webp_variant
-
         content_file = make_test_image(width=300, height=200, mode="RGB", color="red")
         self.project.thumbnail_image.save("thumb.png", content_file, save=True)
 
-        variant = generate_webp_variant(self.project.thumbnail_image, max_width=None)
+        variant = make_variant(self.project.thumbnail_image, max_width=None)
 
         self.assertIsNotNone(variant)
         image = Image.open(BytesIO(variant.read()))
@@ -391,28 +418,76 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
         self.assertEqual(build_variant_urls(self.project), {})
 
     def test_regeneration_does_not_leak_orphan_files(self):
-        """Regenerating reuses the deterministic name instead of suffixing it.
-
-        ``storage.save()`` appends a random suffix when the target name is
-        taken, so without deleting first every backfill re-run would leave an
-        extra copy of every variant behind.
-        """
+        """Regenerating writes new names and deletes the previous files once
+        the new map is committed, so exactly one set of variants remains."""
         from climateconnect_main.utility.image_variants import (
             generate_and_store_variants,
         )
 
         content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
         self.project.image.save("test.png", content, save=True)
+        storage = self.project.image.storage
 
         generate_and_store_variants(self.project)
         self.project.refresh_from_db()
         first = dict(self.project.image_variants["image"])
 
-        generate_and_store_variants(self.project)
+        with self.captureOnCommitCallbacks(execute=True):
+            generate_and_store_variants(self.project)
         self.project.refresh_from_db()
         second = self.project.image_variants["image"]
 
-        self.assertEqual(first, second)
+        self.assertEqual(set(first), set(second))
+        self.assertFalse(set(first.values()) & set(second.values()))
+        self.assertEqual(
+            webp_files_of(storage, self.project.image.name), sorted(second.values())
+        )
+
+    def test_regeneration_keeps_recorded_files_until_the_new_map_commits(self):
+        """While a regeneration runs, every file the committed map lists stays
+        readable; the previous files are only deleted after the commit."""
+        from django.core.files.storage import Storage
+
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
+        self.project.image.save("test.png", content, save=True)
+        storage = self.project.image.storage
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        first = dict(self.project.image_variants["image"])
+
+        original_save = Storage.save
+        checked = []
+
+        def checking_save(storage_self, name, content, *args, **kwargs):
+            recorded = Project.objects.get(pk=self.project.pk).image_variants
+            for path in recorded["image"].values():
+                self.assertTrue(storage.exists(path), "Recorded file missing: " + path)
+            checked.append(name)
+            return original_save(storage_self, name, content, *args, **kwargs)
+
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            with mock_patch.object(
+                Storage, "save", autospec=True, side_effect=checking_save
+            ):
+                generate_and_store_variants(self.project)
+
+            # The map points at the new files; the old ones are still there.
+            second = Project.objects.get(pk=self.project.pk).image_variants["image"]
+            self.assertFalse(set(first.values()) & set(second.values()))
+            for path in [*first.values(), *second.values()]:
+                self.assertTrue(storage.exists(path), path)
+
+        self.assertEqual(len(checked), 2)
+        for callback in callbacks:
+            callback()
+        for path in first.values():
+            self.assertFalse(storage.exists(path), path)
+        for path in second.values():
+            self.assertTrue(storage.exists(path), path)
 
     def test_clearing_a_field_drops_its_variant_entry(self):
         """An emptied image field must not leave URLs to deleted files.
@@ -468,8 +543,72 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
         self.project.thumbnail_image.save("thumb.png", thumb, save=True)
         self.assertFalse(has_all_variants(self.project))
 
-    def test_storage_failure_clears_entry_instead_of_serving_404s(self):
-        """A failed re-store must not leave paths to deleted files behind."""
+    def test_failed_store_keeps_the_previous_variant_referenced(self):
+        """If storing a regenerated variant fails, the previous file stays in
+        place and in the map — nothing was deleted to make room for it."""
+        from django.core.files.storage import Storage
+
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
+        self.project.image.save("test.png", content, save=True)
+        storage = self.project.image.storage
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        first = dict(self.project.image_variants["image"])
+
+        original_save = Storage.save
+
+        def failing_600(storage_self, name, content, *args, **kwargs):
+            if "_600_" in name:
+                raise OSError("storage unavailable")
+            return original_save(storage_self, name, content, *args, **kwargs)
+
+        with (
+            self.captureOnCommitCallbacks(execute=True),
+            mock_patch.object(Storage, "save", autospec=True, side_effect=failing_600),
+            self.assertLogs("climateconnect_main.utility.image_variants", "ERROR"),
+        ):
+            generate_and_store_variants(self.project)
+
+        self.project.refresh_from_db()
+        second = self.project.image_variants["image"]
+        self.assertEqual(second["600"], first["600"])
+        self.assertNotEqual(second["1200"], first["1200"])
+        for path in second.values():
+            self.assertTrue(storage.exists(path), path)
+        self.assertFalse(storage.exists(first["1200"]))
+
+    def test_total_store_failure_keeps_the_previous_entry(self):
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
+        self.project.image.save("test.png", content, save=True)
+        generate_and_store_variants(self.project)
+        self.project.refresh_from_db()
+        first = dict(self.project.image_variants["image"])
+
+        with (
+            self.captureOnCommitCallbacks(execute=True),
+            mock_patch(
+                "django.core.files.storage.Storage.save",
+                side_effect=OSError("storage unavailable"),
+            ),
+            self.assertLogs("climateconnect_main.utility.image_variants", "ERROR"),
+        ):
+            generate_and_store_variants(self.project)
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.image_variants["image"], first)
+        for path in first.values():
+            self.assertTrue(self.project.image.storage.exists(path), path)
+
+    def test_source_is_decoded_once_and_every_width_from_the_original(self):
+        from climateconnect_main.utility import images
         from climateconnect_main.utility.image_variants import (
             generate_and_store_variants,
         )
@@ -477,18 +616,42 @@ class TestGenerateAndStoreVariants(TempMediaRootMixin, APITestCase):
         content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
         self.project.image.save("test.png", content, save=True)
 
-        generate_and_store_variants(self.project)
-        self.project.refresh_from_db()
-        self.assertIn("image", self.project.image_variants)
-
-        with mock_patch(
-            "django.core.files.storage.Storage.save",
-            side_effect=OSError("storage unavailable"),
+        with (
+            mock_patch.object(
+                images, "decode_image", wraps=images.decode_image
+            ) as decode_spy,
+            mock_patch.object(
+                images, "encode_webp_variant", wraps=images.encode_webp_variant
+            ) as encode_spy,
         ):
-            generate_and_store_variants(self.project)
+            generate_and_store_variants(self.project, field_names=["image"])
+
+        decode_spy.assert_called_once()
+        self.assertEqual(
+            [call.kwargs["max_width"] for call in encode_spy.call_args_list],
+            [1200, 600],
+        )
+        decoded = {id(call.args[0]) for call in encode_spy.call_args_list}
+        self.assertEqual(len(decoded), 1)
 
         self.project.refresh_from_db()
-        self.assertNotIn("image", self.project.image_variants)
+        storage = self.project.image.storage
+        for key, width in (("1200", 1200), ("600", 600)):
+            with storage.open(self.project.image_variants["image"][key]) as fh:
+                self.assertEqual(Image.open(fh).width, width)
+
+    def test_variant_names_are_unique_per_generation(self):
+        from climateconnect_main.utility.image_variants import _variant_filename
+
+        first = _variant_filename("projects/7/abc.png", 1200)
+        second = _variant_filename("projects/7/abc.png", 1200)
+
+        self.assertRegex(first, r"^projects/7/abc_1200_[0-9a-f]{8}\.webp$")
+        self.assertNotEqual(first, second)
+        self.assertRegex(
+            _variant_filename("projects/7/abc.png", None),
+            r"^projects/7/abc_webp_[0-9a-f]{8}\.webp$",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -533,12 +696,6 @@ class TestImageVariantsSerialization(TempMediaRootMixin, APITestCase):
 
     def test_serializers_declare_the_variant_field(self):
         """Guard against reverting to the raw model field, which leaks paths."""
-        from climateconnect_api.serializers.user import (
-            PersonalProfileSerializer,
-            UserProfileMinimalSerializer,
-            UserProfileSerializer,
-            UserProfileStubSerializer,
-        )
         from climateconnect_main.utility.image_variants import ImageVariantsField
         from organization.serializers.organization import (
             OrganizationCardSerializer,
@@ -558,10 +715,6 @@ class TestImageVariantsSerialization(TempMediaRootMixin, APITestCase):
             OrganizationSerializer,
             OrganizationStubSerializer,
             OrganizationCardSerializer,
-            PersonalProfileSerializer,
-            UserProfileSerializer,
-            UserProfileMinimalSerializer,
-            UserProfileStubSerializer,
         ):
             field = serializer_class().fields["image_variants"]
             self.assertIsInstance(
@@ -668,6 +821,64 @@ class TestSignalDispatch(TempMediaRootMixin, APITestCase):
         call_kwargs = mock_task.delay.call_args.kwargs
         self.assertIn("image", call_kwargs["field_names"])
 
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_broker_error_does_not_fail_the_save(self, mock_task):
+        """Redis down while enqueueing: the save succeeds (in autocommit, the
+        callback runs inside the request), the error is logged with model and
+        pk, and the row serves the original until the repair task runs."""
+        from kombu.exceptions import OperationalError
+
+        mock_task.delay.side_effect = OperationalError("Error 111 connecting")
+        project = Project.objects.create(
+            name="Broker Down Project",
+            url_slug="broker-down-project",
+            is_active=True,
+            language=self.default_language,
+        )
+        content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
+
+        with (
+            mock_patch(
+                "django.db.transaction.on_commit",
+                side_effect=_run_on_commit_immediately,
+            ),
+            self.assertLogs(
+                "climateconnect_main.utility.image_variants", level="ERROR"
+            ) as logs,
+        ):
+            project.image.save("broker_down.png", content, save=True)
+
+        mock_task.delay.assert_called_once()
+        self.assertIn("Project pk={}".format(project.pk), logs.output[0])
+        stored = Project.objects.get(pk=project.pk)
+        self.assertEqual(stored.image.name, project.image.name)
+        self.assertNotIn("image", stored.image_variants or {})
+
+    @mock_patch("organization.tasks.generate_image_variants")
+    def test_enqueue_callback_is_registered_robust(self, mock_task):
+        from django.db import transaction
+
+        project = Project.objects.create(
+            name="Robust Project",
+            url_slug="robust-project",
+            is_active=True,
+            language=self.default_language,
+        )
+        content = make_test_image(width=200, height=100, mode="RGB", color="red")
+
+        with mock_patch(
+            "django.db.transaction.on_commit", wraps=transaction.on_commit
+        ) as spy:
+            project.image.save("robust.png", content, save=True)
+
+        enqueue_calls = [
+            call
+            for call in spy.call_args_list
+            if getattr(call.args[0], "__name__", "") == "_enqueue"
+        ]
+        self.assertEqual(len(enqueue_calls), 1)
+        self.assertIs(enqueue_calls[0].kwargs.get("robust"), True)
+
 
 # ---------------------------------------------------------------------------
 # Backfill command tests
@@ -734,7 +945,7 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
 
         call_command("backfill_image_variants", "--sleep", "0")
 
-    @mock_patch("climateconnect_main.utility.images.generate_webp_variant")
+    @mock_patch("climateconnect_main.utility.images.encode_webp_variant")
     def test_backfill_does_not_break_on_generation_error(self, mock_generate):
         """Backfill should continue even if variant generation fails."""
         mock_generate.return_value = None
@@ -751,10 +962,8 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
         call_command("backfill_image_variants", "--sleep", "0")
         project.refresh_from_db()
 
-    def test_backfill_organization_and_userprofile(self):
-        """Backfill handles Organization and UserProfile models."""
-        from django.contrib.auth.models import User
-
+    def test_backfill_organization(self):
+        """Backfill handles the Organization model, background image included."""
         content = make_test_image(width=3000, height=1500, mode="RGB", color="blue")
         org = Organization.objects.create(
             name="Backfill Org",
@@ -763,26 +972,12 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
         org.image.save("org.png", content, save=True)
         org.background_image.save("org_bg.png", content, save=True)
 
-        user = User.objects.create_user(
-            username="backfill_user",
-            password="testpass",
-        )
-        profile = UserProfile.objects.get_or_create(
-            user=user,
-            defaults={"url_slug": "backfill-profile"},
-        )[0]
-        profile.image.save("profile.png", content, save=True)
-
         call_command("backfill_image_variants", "--sleep", "0")
 
         org.refresh_from_db()
         self.assertIn("image", org.image_variants)
         self.assertIn("1200", org.image_variants["image"])
         self.assertIn("background_image", org.image_variants)
-
-        profile.refresh_from_db()
-        self.assertIn("image", profile.image_variants)
-        self.assertIn("1200", profile.image_variants["image"])
 
     def test_backfill_skips_rows_that_already_have_variants(self):
         """A second run must not re-encode rows that are already complete.
@@ -823,14 +1018,19 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
         project.refresh_from_db()
         before = dict(project.image_variants["image"])
 
-        call_command("backfill_image_variants", "--sleep", "0", "--force")
+        with self.captureOnCommitCallbacks(execute=True):
+            call_command("backfill_image_variants", "--sleep", "0", "--force")
         project.refresh_from_db()
 
-        # Same deterministic paths, regenerated in place.
-        self.assertEqual(before, project.image_variants["image"])
+        # Regenerated under new names; the previous files are gone.
+        after = project.image_variants["image"]
+        self.assertEqual(set(before), set(after))
+        self.assertFalse(set(before.values()) & set(after.values()))
         storage = project.image.storage
-        for stored in project.image_variants["image"].values():
+        for stored in after.values():
             self.assertTrue(storage.exists(stored))
+        for stored in before.values():
+            self.assertFalse(storage.exists(stored))
 
     def test_backfill_dry_run_writes_nothing(self):
         content = make_test_image(width=2000, height=1000, mode="RGB", color="red")
@@ -875,61 +1075,6 @@ class TestBackfillCommand(TempMediaRootMixin, APITestCase):
 
 
 # ---------------------------------------------------------------------------
-# Members-list cache invalidation
-# ---------------------------------------------------------------------------
-
-
-class TestMemberListCacheInvalidation(TempMediaRootMixin, APITestCase):
-    """Changing an avatar must refresh the cached /api/members/ pages.
-
-    ``ListMemberProfilesView`` is wrapped in ``cache_page`` with a two-day TTL
-    and ``remove_cache_keys`` only fires on profile *creation*, so without the
-    receiver in ``climateconnect_api.signals`` a new avatar stays invisible in
-    the members list for up to two days.
-    """
-
-    def setUp(self):
-        from django.contrib.auth.models import User
-
-        # Tests run on LocMemCache, which has no keys()/delete_many(), so the
-        # real invalidation path short-circuits. Patch the cache the signal
-        # module uses, mirroring climateconnect_api/tests/test_registered_event_slugs.py.
-        self.cache_patcher = mock_patch("climateconnect_api.signals.cache")
-        self.mock_cache = self.cache_patcher.start()
-        self.addCleanup(self.cache_patcher.stop)
-        self.mock_cache.keys.return_value = ["LIST_MEMBERS.page1"]
-
-        self.default_language = Language.objects.get_or_create(
-            language_code="en",
-            defaults={"name": "English", "native_name": "English"},
-        )[0]
-        user = User.objects.create_user(username="cache_user", password="pw")
-        self.profile = UserProfile.objects.get_or_create(
-            user=user, defaults={"url_slug": "cache-user"}
-        )[0]
-        self.mock_cache.reset_mock()
-
-    def test_image_change_invalidates(self):
-        content = make_test_image(width=400, height=400, mode="RGB", color="red")
-        self.profile.image.save("avatar.png", content, save=True)
-
-        self.mock_cache.delete_many.assert_called_once_with(["LIST_MEMBERS.page1"])
-
-    def test_variant_write_invalidates(self):
-        """The Celery task writing image_variants must also refresh the list."""
-        self.profile.save(update_fields=["image_variants"])
-
-        self.mock_cache.delete_many.assert_called_once_with(["LIST_MEMBERS.page1"])
-
-    def test_unrelated_save_does_not_invalidate(self):
-        """A save that touches no image field must not thrash the cache."""
-        self.profile.url_slug = "cache-user-renamed"
-        self.profile.save()
-
-        self.mock_cache.delete_many.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
 # Orphan cleanup tests
 # ---------------------------------------------------------------------------
 
@@ -953,8 +1098,6 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
     def test_old_variant_files_deleted_on_image_replace(self, mock_task):
         """Replacing an image deletes the old variant files from storage."""
         from climateconnect_main.utility.image_variants import (
-            IMAGE_VARIANT_CONFIGS,
-            _variant_filename,
             generate_and_store_variants,
         )
 
@@ -966,11 +1109,8 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         self.project.refresh_from_db()
         self.assertIn("image", self.project.image_variants)
 
-        # Collect the variant file paths from the stored URLs
-        old_name = self.project.image.name  # e.g. "projects/1/old_image.png"
-        config = IMAGE_VARIANT_CONFIGS["Project"]
-        widths = config["image"]["widths"]
-        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
+        # Cleanup works from the recorded variant paths.
+        old_variant_paths = list(self.project.image_variants["image"].values())
         # Confirm the files exist on storage before the replace
         for path in old_variant_paths:
             self.assertTrue(
@@ -1004,8 +1144,6 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
     def test_no_cleanup_on_non_image_change(self, mock_task):
         """Replacing a non-image field should not delete variant files."""
         from climateconnect_main.utility.image_variants import (
-            IMAGE_VARIANT_CONFIGS,
-            _variant_filename,
             generate_and_store_variants,
         )
 
@@ -1014,11 +1152,7 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         generate_and_store_variants(self.project)
         self.project.refresh_from_db()
 
-        old_name = self.project.image.name
-        config = IMAGE_VARIANT_CONFIGS["Project"]
-        widths = config["image"]["widths"]
-
-        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
+        old_variant_paths = list(self.project.image_variants["image"].values())
 
         with self.captureOnCommitCallbacks(execute=True):
             self.project.name = "Updated Name"
@@ -1034,8 +1168,6 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
     def test_cleanup_on_image_clear(self, mock_task):
         """Clearing an image field deletes its variant files."""
         from climateconnect_main.utility.image_variants import (
-            IMAGE_VARIANT_CONFIGS,
-            _variant_filename,
             generate_and_store_variants,
         )
 
@@ -1044,11 +1176,7 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
         generate_and_store_variants(self.project)
         self.project.refresh_from_db()
 
-        old_name = self.project.image.name
-
-        config = IMAGE_VARIANT_CONFIGS["Project"]
-        widths = config["image"]["widths"]
-        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
+        old_variant_paths = list(self.project.image_variants["image"].values())
 
         with self.captureOnCommitCallbacks(execute=True):
             self.project.image.delete(save=True)
@@ -1059,18 +1187,14 @@ class TestOrphanCleanup(TempMediaRootMixin, APITestCase):
     def test_cleanup_logs_error_but_does_not_raise(self):
         """A storage delete failure is logged, not raised."""
         from climateconnect_main.utility.image_variants import (
-            IMAGE_VARIANT_CONFIGS,
-            _variant_filename,
             generate_and_store_variants,
         )
 
         content = make_test_image(width=4000, height=2000, mode="RGB", color="green")
         self.project.image.save("test_image.png", content, save=True)
         generate_and_store_variants(self.project)
-        old_name = self.project.image.name
 
-        widths = IMAGE_VARIANT_CONFIGS["Project"]["image"]["widths"]
-        old_variant_paths = [_variant_filename(old_name, w) for w in widths]
+        old_variant_paths = list(self.project.image_variants["image"].values())
 
         # Patch storage.delete to raise
         def raising_delete(name):
@@ -1231,25 +1355,6 @@ class TestDeleteImageFiles(TempMediaRootMixin, APITestCase):
         for name in names:
             self.assertFalse(storage.exists(name), "Should be deleted: %s" % name)
 
-    def test_user_delete_cascades_to_profile_image_files(self):
-        """Deleting a User deletes its UserProfile, and with it the images."""
-        from django.contrib.auth.models import User
-
-        user = User.objects.create_user(username="delete_user", password="pw")
-        profile = UserProfile.objects.get_or_create(
-            user=user, defaults={"url_slug": "delete-user"}
-        )[0]
-        storage, names = self._add_images(
-            profile, ["image", "thumbnail_image", "background_image"]
-        )
-
-        with self.captureOnCommitCallbacks(execute=True):
-            user.delete()
-
-        self.assertFalse(UserProfile.objects.filter(pk=profile.pk).exists())
-        for name in names:
-            self.assertFalse(storage.exists(name), "Should be deleted: %s" % name)
-
     def test_rolled_back_delete_keeps_files(self):
         from django.db import transaction
 
@@ -1389,8 +1494,6 @@ class TestStaleInstanceSaves(TempMediaRootMixin, APITestCase):
         """A task that generated variants for an image that was replaced in the
         meantime records nothing and deletes the files it wrote."""
         from climateconnect_main.utility.image_variants import (
-            IMAGE_VARIANT_CONFIGS,
-            _variant_filename,
             generate_and_store_variants,
         )
 
@@ -1409,8 +1512,7 @@ class TestStaleInstanceSaves(TempMediaRootMixin, APITestCase):
         self.project.refresh_from_db()
         self.assertNotIn("image", self.project.image_variants)
         storage = self.project.image.storage
-        for width in IMAGE_VARIANT_CONFIGS["Project"]["image"]["widths"]:
-            self.assertFalse(storage.exists(_variant_filename(old_name, width)))
+        self.assertEqual(webp_files_of(storage, old_name), [])
         self.assertTrue(storage.exists(self.project.image.name))
 
     def test_concurrent_fields_are_merged_not_overwritten(self):
@@ -1433,8 +1535,6 @@ class TestStaleInstanceSaves(TempMediaRootMixin, APITestCase):
 
     def test_variants_for_a_deleted_row_are_discarded(self):
         from climateconnect_main.utility.image_variants import (
-            IMAGE_VARIANT_CONFIGS,
-            _variant_filename,
             generate_and_store_variants,
         )
 
@@ -1447,8 +1547,7 @@ class TestStaleInstanceSaves(TempMediaRootMixin, APITestCase):
 
         generate_and_store_variants(stale)
 
-        for width in IMAGE_VARIANT_CONFIGS["Project"]["image"]["widths"]:
-            self.assertFalse(storage.exists(_variant_filename(name, width)))
+        self.assertEqual(webp_files_of(storage, name), [])
 
 
 # ---------------------------------------------------------------------------
@@ -1867,3 +1966,120 @@ def _quiet_stdout():
     from io import StringIO
 
     return StringIO()
+
+
+# ---------------------------------------------------------------------------
+# Periodic repair task (review finding 1, follow-up)
+# ---------------------------------------------------------------------------
+
+
+class TestRegenerateMissingImageVariants(TempMediaRootMixin, APITestCase):
+    def setUp(self):
+        self.default_language = Language.objects.get_or_create(
+            language_code="en",
+            defaults={"name": "English", "native_name": "English"},
+        )[0]
+
+    def _project(self, slug, updated_ago, with_image=True):
+
+        from django.utils import timezone
+
+        project = Project.objects.create(
+            name=slug, url_slug=slug, language=self.default_language
+        )
+        if with_image:
+            content = make_test_image(width=1600, height=800, color="red")
+            project.image.save("{}.png".format(slug), content, save=True)
+        # update() bypasses auto_now.
+        Project.objects.filter(pk=project.pk).update(
+            updated_at=timezone.now() - updated_ago
+        )
+        return Project.objects.get(pk=project.pk)
+
+    def _run(self):
+        from organization.tasks import regenerate_missing_image_variants
+
+        regenerate_missing_image_variants()
+
+    def test_repairs_rows_inside_the_window_only(self):
+        from datetime import timedelta
+
+        missed = self._project("repair-missed", timedelta(hours=2))
+        fresh = self._project("repair-fresh", timedelta(minutes=5))
+        old = self._project("repair-old", timedelta(days=30))
+
+        self._run()
+
+        for project, expect_variants in ((missed, True), (fresh, False), (old, False)):
+            project.refresh_from_db()
+            self.assertEqual(
+                "image" in (project.image_variants or {}),
+                expect_variants,
+                project.url_slug,
+            )
+
+    def test_only_incomplete_fields_are_regenerated(self):
+        from datetime import timedelta
+
+        from climateconnect_main.utility.image_variants import (
+            generate_and_store_variants,
+        )
+
+        project = self._project("repair-complete", timedelta(hours=2))
+        generate_and_store_variants(project)
+        content = make_test_image(width=120, height=120, color="blue")
+        Project.objects.filter(pk=project.pk).update(
+            thumbnail_image=project.image.storage.save(
+                "projects/{}/thumb.png".format(project.pk), content
+            )
+        )
+
+        with mock_patch(
+            "climateconnect_main.utility.image_variants.generate_and_store_variants"
+        ) as mock_generate:
+            self._run()
+
+        mock_generate.assert_called_once()
+        self.assertEqual(
+            mock_generate.call_args.kwargs["field_names"], ["thumbnail_image"]
+        )
+
+    def test_row_limit_per_run(self):
+        from datetime import timedelta
+
+        for index in range(3):
+            self._project("repair-limit-{}".format(index), timedelta(hours=2))
+
+        with (
+            mock_patch("organization.tasks.IMAGE_VARIANT_REPAIR_MAX_ROWS", 2),
+            mock_patch(
+                "climateconnect_main.utility.image_variants.generate_and_store_variants"
+            ) as mock_generate,
+        ):
+            self._run()
+
+        self.assertEqual(mock_generate.call_count, 2)
+
+    def test_failing_row_is_logged_and_the_run_continues(self):
+        from datetime import timedelta
+
+        self._project("repair-fail-a", timedelta(hours=2))
+        self._project("repair-fail-b", timedelta(hours=3))
+
+        with (
+            mock_patch(
+                "climateconnect_main.utility.image_variants.generate_and_store_variants",
+                side_effect=[RuntimeError("Azure down"), []],
+            ) as mock_generate,
+            self.assertLogs("organization.tasks", level="ERROR") as logs,
+        ):
+            self._run()
+
+        self.assertEqual(mock_generate.call_count, 2)
+        self.assertIn("Repair failed", logs.output[0])
+
+    def test_scheduled_in_celery_beat(self):
+        from climateconnect_main.celery import app
+
+        tasks = {entry["task"] for entry in app.conf.beat_schedule.values()}
+        self.assertIn("organization.tasks.regenerate_missing_image_variants", tasks)

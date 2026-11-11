@@ -10,7 +10,7 @@ import {
 import { styled, SxProps } from "@mui/material/styles";
 import React, { useContext } from "react";
 import { getLocalePrefix } from "../../../../public/lib/apiOperations";
-import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../../general/ResponsiveImage";
+import { getImageUrl } from "../../../../public/lib/imageOperations";
 import UserContext from "../../context/UserContext";
 import { StyledMenuItem } from "./Notification";
 import CloseIcon from "@mui/icons-material/Close";
@@ -75,10 +75,7 @@ export default function GenericNotification({
         <Content>
           {avatar ? (
             <ListItemAvatar>
-              <Avatar
-                alt={avatar.alt}
-                src={resolveVariantUrl(avatar.image_variants, THUMBNAIL_SOURCES, avatar.image)}
-              />
+              <Avatar alt={avatar.alt} src={getImageUrl(avatar.image)} />
             </ListItemAvatar>
           ) : (
             <ListItemIcon>

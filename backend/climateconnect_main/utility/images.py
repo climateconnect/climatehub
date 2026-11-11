@@ -10,7 +10,6 @@ so they work correctly on Azure Blob Storage (where ``.path`` raises
 import io
 import logging
 
-from django.core.files.base import ContentFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 logger = logging.getLogger(__name__)
@@ -45,20 +44,53 @@ def read_source_bytes(field_file):
         return None
 
 
-def generate_webp_variant(
-    field_file,
+def decode_image(source_bytes, name="<unknown>"):
+    """Decode *source_bytes* once into an upright image ready for encoding.
+
+    Applies the EXIF orientation and normalises the mode WebP can store:
+    images with transparency (``RGBA`` / ``LA`` / ``P``) become ``RGBA``,
+    everything else ``RGB``. The pixel data is loaded eagerly, so the result
+    does not depend on the byte buffer staying open.
+
+    Every width of a field is resized from this one decoded original
+    (:func:`encode_webp_variant`), so a field costs one decode instead of one
+    per width — and no variant is ever resized from another, already resized
+    variant.
+
+    Returns ``None`` (and logs) when the bytes cannot be decoded.
+    """
+    try:
+        with io.BytesIO(source_bytes) as fh:
+            image = Image.open(fh)
+            # Respect EXIF orientation so the variants are correctly oriented.
+            image = ImageOps.exif_transpose(image)
+            if image.mode in ("RGBA", "LA", "P"):
+                image = image.convert("RGBA")
+            elif image.mode != "RGB":
+                image = image.convert("RGB")
+            image.load()
+            return image
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        logger.error("decode_image: could not decode %s: %s", name, exc)
+        return None
+    except Exception as exc:  # noqa: BLE001 – log and swallow; never break a save
+        logger.error("decode_image: unexpected error for %s: %s", name, exc)
+        return None
+
+
+def encode_webp_variant(
+    image,
     max_width=None,
     quality=WEBP_QUALITY,
     method=WEBP_METHOD,
-    source_bytes=None,
 ):
-    """Generate a resized WebP variant from an ``ImageField`` value.
+    """Encode a WebP variant of a decoded image (see :func:`decode_image`).
 
     Parameters
     ----------
-    field_file : django.db.models.fields.files.FieldFile
-        The image field file (e.g. ``instance.image``).  Must support
-        ``.open()`` / ``.name``; ``.path`` is never called.
+    image : PIL.Image.Image
+        The decoded original. It is never modified, so the caller can derive
+        several widths from the same image.
     max_width : int | None
         Target maximum width in CSS pixels.  If ``None`` the image is
         converted to WebP *without* resizing (used for already-capped
@@ -69,75 +101,26 @@ def generate_webp_variant(
     method : int
         WebP encoding method (0–6, slower = better).  Defaults to
         :data:`WEBP_METHOD`.
-    source_bytes : bytes | None
-        The original image's bytes, when the caller has already read them.
-        Generating several widths for one field would otherwise download the
-        original once per width — on Azure that is a real egress cost during a
-        backfill.  When ``None`` the bytes are read via :func:`read_source_bytes`.
 
     Returns
     -------
-    ContentFile | None
-        A ``ContentFile`` containing the WebP bytes, with a ``.name``
-        attribute reflecting the derived storage path.  ``None`` is returned
-        when *field_file* is falsy or the image cannot be decoded.
+    bytes | None
+        The WebP bytes, or ``None`` (logged) when encoding fails. Naming and
+        storing the file is up to the caller
+        (:func:`climateconnect_main.utility.image_variants.generate_and_store_variants`).
     """
-    if not field_file:
-        return None
-
-    if source_bytes is None:
-        source_bytes = read_source_bytes(field_file)
-    if source_bytes is None:
-        return None
-
     try:
-        with io.BytesIO(source_bytes) as fh:
-            image = Image.open(fh)
-            # Respect EXIF orientation so the variant is correctly oriented.
-            image = ImageOps.exif_transpose(image)
+        # Resize only when the source is wider than the target (no upscaling).
+        if max_width is not None and image.width > max_width:
+            w_percent = max_width / float(image.width)
+            h_size = int(float(image.height) * w_percent)
+            image = image.resize((max_width, h_size), Image.Resampling.LANCZOS)
 
-            # Resize only when the source is wider than the target (no upscaling).
-            if max_width is not None and image.width > max_width:
-                w_percent = max_width / float(image.width)
-                h_size = int(float(image.height) * w_percent)
-                image = image.resize((max_width, h_size), Image.Resampling.LANCZOS)
-
-            # WebP needs a flatten-friendly mode.
-            # RGBA / LA / P with transparency → keep RGBA (lossless alpha).
-            # Everything else → RGB (smaller, no alpha channel).
-            if image.mode in ("RGBA", "LA", "P"):
-                image = image.convert("RGBA")
-            elif image.mode != "RGB":
-                image = image.convert("RGB")
-
-            image_io = io.BytesIO()
-            image.save(image_io, format="WEBP", quality=quality, method=method)
-
-            # Derive the variant filename from the original storage path.
-            original_name = field_file.name
-            base = (
-                original_name.rsplit(".", 1)[0]
-                if "." in original_name
-                else original_name
-            )
-            if max_width:
-                variant_name = "{}_{}.webp".format(base, max_width)
-            else:
-                variant_name = "{}_webp.webp".format(base)
-
-            return ContentFile(image_io.getvalue(), name=variant_name)
-
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
-        logger.error(
-            "generate_webp_variant: could not process %s: %s",
-            getattr(field_file, "name", "<unknown>"),
-            exc,
-        )
-        return None
+        image_io = io.BytesIO()
+        image.save(image_io, format="WEBP", quality=quality, method=method)
+        return image_io.getvalue()
     except Exception as exc:  # noqa: BLE001 – log and swallow; never break a save
         logger.error(
-            "generate_webp_variant: unexpected error for %s: %s",
-            getattr(field_file, "name", "<unknown>"),
-            exc,
+            "encode_webp_variant: could not encode width %s: %s", max_width, exc
         )
         return None

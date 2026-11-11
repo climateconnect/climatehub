@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import React, { useContext, useState } from "react";
-import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
+import { getImageUrl } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
 import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
@@ -115,11 +115,7 @@ function CommentInput({
   };
 
   const avatarProps = {
-    src: resolveVariantUrl(
-      user?.image_variants,
-      THUMBNAIL_SOURCES,
-      user?.thumbnail_image || user?.image
-    ),
+    src: getImageUrl(user?.image),
   };
 
   if (user)

@@ -2,7 +2,7 @@ import { Avatar, IconButton, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ClearIcon from "@mui/icons-material/Clear";
 import React from "react";
-import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
+import { getImageUrl } from "./../../../public/lib/imageOperations";
 import AppLink from "../general/AppLink";
 import ProfileBadge from "./ProfileBadge";
 
@@ -104,7 +104,7 @@ export default function MiniProfilePreview({
 
 function Content({ profile, avatarClassName, size, title }) {
   const avatarProps = {
-    src: resolveVariantUrl(profile.image_variants, THUMBNAIL_SOURCES, profile.thumbnail_image),
+    src: getImageUrl(profile.thumbnail_image),
     className: avatarClassName,
     $size: size,
   };

@@ -20,18 +20,12 @@ IMAGE_VARIANT_CONFIGS = {
         "thumbnail_image": {"widths": [None]},
         "background_image": {"widths": [1200, 600]},
     },
-    "UserProfile": {
-        "image": {"widths": [1200, 600]},
-        "thumbnail_image": {"widths": [None]},
-        "background_image": {"widths": [1200, 600]},
-    },
 }
 
-# Image fields monitored for changes (trigger variant generation).
+# Image fields monitored for changes (trigger variant generation). Derived from
+# the config so the two can never drift apart.
 IMAGE_FIELD_NAMES = {
-    "Project": ["image", "thumbnail_image"],
-    "Organization": ["image", "thumbnail_image", "background_image"],
-    "UserProfile": ["image", "thumbnail_image", "background_image"],
+    model: list(fields) for model, fields in IMAGE_VARIANT_CONFIGS.items()
 }
 
 # Instance attribute holding ``{field_name: storage name}`` as last loaded from

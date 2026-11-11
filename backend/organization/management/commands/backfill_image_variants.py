@@ -1,6 +1,6 @@
 """
 Management command to backfill WebP image variants for existing
-``Project``, ``Organization``, and ``UserProfile`` rows.
+``Project`` and ``Organization`` rows.
 
 The command is **idempotent** and **resumable**: rows that already have every
 configured variant are skipped, so a re-run after an interruption only does the
@@ -31,12 +31,12 @@ import logging
 import time
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Q
 
 from climateconnect_main.utility.image_variants import (
     IMAGE_VARIANT_CONFIGS,
     generate_and_store_variants,
     incomplete_variant_fields,
+    rows_with_images,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = (
-        "Backfill WebP image variants for existing Project, Organization, "
-        "and UserProfile rows whose images have no variants yet. "
+        "Backfill WebP image variants for existing Project and Organization "
+        "rows whose images have no variants yet. "
         "Idempotent — safe to re-run; already-complete rows are skipped."
     )
 
@@ -68,7 +68,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--model",
             choices=sorted(IMAGE_VARIANT_CONFIGS.keys()),
-            help="Only backfill this model (default: all three).",
+            help="Only backfill this model (default: all).",
         )
         parser.add_argument(
             "--limit",
@@ -95,13 +95,11 @@ class Command(BaseCommand):
         )
 
     def _models_to_backfill(self, selected):
-        from climateconnect_api.models import UserProfile
         from organization.models import Organization, Project
 
         available = {
             "Project": Project,
             "Organization": Organization,
-            "UserProfile": UserProfile,
         }
 
         if selected:
@@ -127,13 +125,8 @@ class Command(BaseCommand):
         totals = {"processed": 0, "skipped": 0, "failed": 0}
 
         for model_name, model in self._models_to_backfill(options.get("model")):
-            image_fields = list(IMAGE_VARIANT_CONFIGS[model_name].keys())
-
             # Only rows that actually have at least one image are candidates.
-            filter_q = Q()
-            for field in image_fields:
-                filter_q |= Q(**{"{}__gt".format(field): ""})
-            queryset = model.objects.filter(filter_q).order_by("pk")
+            queryset = rows_with_images(model).order_by("pk")
 
             candidates = queryset.count()
             self.stdout.write(

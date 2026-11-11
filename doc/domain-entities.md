@@ -38,18 +38,6 @@ This document provides comprehensive documentation of the main domain entities i
 **Auth fields (added US-2)**:
 - `auth_method` — `password` (default) or `otp`. Determines which login flow the user is routed to. Exposed via API in Phase B US-9.
 
-**Image fields**:
-- `image`, `thumbnail_image`, `background_image` — the stored originals, as uploaded.
-- `image_variants` (JSON) — map of generated WebP variants, keyed by image
-  field and then by variant: `{"image": {"1200": "<path>", "600": "<path>"},
-  "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
-  paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
-  asynchronously by the `generate_image_variants` Celery task on upload, and by
-  the `backfill_image_variants` management command for existing rows; a plain
-  `save()` never writes it (`ImageVariantsModelMixin`). Empty
-  (`{}`) on rows that predate the feature — every consumer falls back to the
-  original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
-
 ---
 
 ### Skill
@@ -181,9 +169,12 @@ This document provides comprehensive documentation of the main domain entities i
   field and then by variant: `{"image": {"1200": "<path>", "600": "<path>"},
   "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
   paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
-  asynchronously by the `generate_image_variants` Celery task on upload, and by
-  the `backfill_image_variants` management command for existing rows; a plain
-  `save()` never writes it (`ImageVariantsModelMixin`). Empty
+  asynchronously by the `generate_image_variants` Celery task on upload, by the
+  hourly `regenerate_missing_image_variants` beat task for recent rows whose
+  task never ran, and by the `backfill_image_variants` management command for
+  existing rows; a plain `save()` never writes it (`ImageVariantsModelMixin`).
+  Every listed path exists in storage; variant file names carry a random token,
+  so file cleanup uses the recorded paths. Empty
   (`{}`) on rows that predate the feature — every consumer falls back to the
   original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 
@@ -217,9 +208,12 @@ This document provides comprehensive documentation of the main domain entities i
   field and then by variant: `{"image": {"1200": "<path>", "600": "<path>"},
   "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
   paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
-  asynchronously by the `generate_image_variants` Celery task on upload, and by
-  the `backfill_image_variants` management command for existing rows; a plain
-  `save()` never writes it (`ImageVariantsModelMixin`). Empty
+  asynchronously by the `generate_image_variants` Celery task on upload, by the
+  hourly `regenerate_missing_image_variants` beat task for recent rows whose
+  task never ran, and by the `backfill_image_variants` management command for
+  existing rows; a plain `save()` never writes it (`ImageVariantsModelMixin`).
+  Every listed path exists in storage; variant file names carry a random token,
+  so file cleanup uses the recorded paths. Empty
   (`{}`) on rows that predate the feature — every consumer falls back to the
   original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 

@@ -9,7 +9,9 @@ export function parseOrganization(organization, editMode: boolean = false) {
     name: organization.name,
     image: getImageUrl(organization.image),
     thumbnail_image: getImageUrl(organization.thumbnail_image),
-    image_variants: organization.image_variants,
+    // Display only: the edit form diffs its state against a freshly fetched
+    // copy, so a (never identical) variants object would end up in every PATCH.
+    ...(editMode ? {} : { image_variants: organization.image_variants }),
     types: organization.types.map((t) => ({ ...t.organization_tag, key: t.organization_tag.id })),
     language: organization.language,
     translations: organization.translations,

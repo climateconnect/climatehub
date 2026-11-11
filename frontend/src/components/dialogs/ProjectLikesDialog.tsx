@@ -15,7 +15,7 @@ import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import ReactTimeago from "react-timeago";
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
-import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
+import { getImageUrl } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import GenericDialog from "./GenericDialog";
@@ -97,11 +97,7 @@ const ProjectLikes = ({ likes, texts, locale }) => {
                     underline="hover"
                   >
                     <UserAvatar
-                      src={resolveVariantUrl(
-                        l.user_profile.image_variants,
-                        THUMBNAIL_SOURCES,
-                        l.user_profile.thumbnail_image || l.user_profile.image
-                      )}
+                      src={getImageUrl(l.user_profile.thumbnail_image)}
                       alt={l.user_profile.first_name + " " + l.user_profile.last_name}
                     />
                     <Username component="span" color="secondary">

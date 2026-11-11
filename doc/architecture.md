@@ -494,7 +494,7 @@ const response = await apiRequest({
 
 #### Responsive WebP image variants
 
-`Project`, `Organization`, and `UserProfile` images are uploaded at whatever
+`Project` and `Organization` images are uploaded at whatever
 resolution the uploader's crop produced, which is far larger than any surface
 renders. Rather than serve those bytes, the backend generates resized WebP
 **variants** at upload time and the frontend picks the smallest one that fits.
@@ -509,19 +509,24 @@ Upload (data URL) ──► ImageField ──► post_save signal
                          organization.tasks.generate_image_variants  (Celery)
                                           │
                                           ▼
-                    climateconnect_main.utility.images.generate_webp_variant
+      read once ─► decode_image (once per field) ─► encode_webp_variant (per width)
                                           │
-                     storage.save(...)    ▼     image_variants = {paths}
+                     storage.save(new name) ▼  image_variants = {paths}  (row lock)
                                    Azure Blob Storage
+                                          │
+                       on_commit: delete the files the map no longer lists
+
+   Celery beat (hourly) ─► regenerate_missing_image_variants
+                           (rows updated 1 h – 7 days ago with missing variants)
 ```
 
 | Concern | Where |
 |---|---|
-| Pillow encode/resize | `climateconnect_main/utility/images.py` |
+| Pillow decode/resize/encode | `climateconnect_main/utility/images.py` |
 | Orchestration, change detection, cleanup | `climateconnect_main/utility/image_variants.py` |
 | Config, load tracking, `ImageVariantsModelMixin` | `climateconnect_main/utility/image_variant_models.py` |
-| Celery task | `organization/tasks.py` → `generate_image_variants` |
-| Signal wiring | `organization/signals.py`, `climateconnect_api/signals.py` |
+| Celery tasks | `organization/tasks.py` → `generate_image_variants`, `regenerate_missing_image_variants` (beat, `climateconnect_main/celery.py`) |
+| Signal wiring | `organization/signals.py` |
 | Backfill | `manage.py backfill_image_variants` |
 | Frontend consumption | `frontend/src/components/general/ResponsiveImage.tsx` |
 
@@ -530,24 +535,33 @@ and 600px WebP at quality 80; `thumbnail_image` gets a format-only WebP
 conversion, since the frontend already caps it at 290x160 on upload.
 
 **Frontend surfaces**: large images (project hero) render through
-`<ResponsiveImage>`; CSS-background banners and every user/organization avatar
-(header, comments, notifications, chat, member lists, dialogs, ambassadors,
-donor forest) pick a single URL with `resolveVariantUrl(..., THUMBNAIL_SOURCES,
-thumbnail_image || image)`. Avatars must never load the stored `image` original
-directly — it is the uploader's full-size crop, often well over 1000px for a
-~40px slot.
+`<ResponsiveImage>`; the organization page banner (a CSS background), project
+cards and organization avatars pick a single URL with `resolveVariantUrl(...)`.
+User profile images are out of scope and have no variants.
 
 **Constraints that shaped this design**
 
+- **`image_variants` only lists files that exist.** `<picture>` does not fall
+  back to its `<img>` when a `<source>` 404s, and CSS background banners do
+  not fall back at all. Every rule below about naming, regenerating and
+  deleting exists to keep this true.
 - **Never touch `FieldFile.path`.** It raises `NotImplementedError` on
-  `AzureStorage`, so everything goes through `FieldFile.open()`, `ContentFile`,
+  `AzureStorage`, so everything goes through `storage.open()`, `ContentFile`,
   and `storage.save()`. An earlier attempt at this feature used `.path` and was
   a silent no-op in every environment except a local dev filesystem.
 - **Never break a save.** Variant generation runs in a Celery task, and both
-  the task and the Pillow helper catch and log their errors. A corrupt or
-  undecodable upload leaves the entity saved with its original image.
+  the task and the Pillow helpers catch and log their errors. A corrupt or
+  undecodable upload leaves the entity saved with its original image. The
+  enqueue itself runs in a `transaction.on_commit(..., robust=True)` callback
+  that also catches and logs broker errors (with model and pk): with Redis
+  down, the save still returns success and the row serves its original until
+  the hourly `regenerate_missing_image_variants` beat task generates the
+  variants. That task only looks at rows updated between 1 hour and 7 days ago
+  (at most 50 per model and run); older rows are the backfill's job.
+- **Decode once per field.** The original is read and decoded once; every
+  width is resized from that decoded original, never from another variant.
 - **Never re-encode on an unrelated save — and never query for one.**
-  `ImageVariantsModelMixin` (on `Project`, `Organization`, `UserProfile`)
+  `ImageVariantsModelMixin` (on `Project` and `Organization`)
   remembers the image names each instance was loaded with. The `pre_save`
   receiver compares in memory, and only when an image field changed does it
   run one narrow `SELECT` for the row's current names (what is being
@@ -570,6 +584,16 @@ directly — it is the uploader's full-size crop, often well over 1000px for a
   of a replaced image are deleted instead of recorded. An original that cannot
   be read is retried by the task (up to 3 times, 60 s apart) while the row
   still holds that file.
+- **Every variant file gets a new name.** `_variant_filename` (the only place
+  variants are named) produces `<base>_<1200|600|webp>_<random token>.webp`.
+  Regenerating an unchanged original (`--force`, `--verify`, a retry) saves
+  new files, switches the map over under the row lock, and deletes the
+  previous files only once that commit is done. A width that fails to encode
+  or store keeps its previous file. So the map never points at a missing file
+  mid-regeneration, and CDN or browser caches never serve stale bytes under a
+  reused name. The upload's own random name does not help here: it identifies
+  the original, so without the token a regeneration would reuse the variant
+  names.
 - **`image_variants` stores storage-relative paths, not URLs.** URLs are built
   per-request by `ImageVariantsField` (see `build_variant_urls`), so changing
   the storage account or putting a CDN in front does not invalidate every row.
@@ -580,12 +604,17 @@ rolled-back or failed save or delete keeps its files; outside a transaction
 `on_commit` runs immediately, which is why nothing is deleted from `pre_save`):
 
 - **Image replaced or cleared** — `capture_image_field_changes` (`pre_save`)
-  collects the old original *and* its variants while the old row is still
-  readable; `handle_image_field_changes` (`post_save`) drops the stale
+  collects the old original *and* its variants (the paths recorded in
+  `image_variants`) while the old row is still readable; `handle_image_field_changes` (`post_save`) drops the stale
   `image_variants` entries, deletes the files and then enqueues the task.
 - **Row deleted** — `delete_image_files` (`post_delete`) deletes every image
-  field's original and variants for `Project`, `Organization` and `UserProfile`.
-  Deleting a `User` cascades to its `UserProfile`, so profile images go too.
+  field's original and recorded variants for `Project` and `Organization`,
+  cascaded deletes included.
+- **Variants regenerated** — `_commit_variants` deletes the files the new map
+  no longer lists, after the commit.
+
+A variant written but never recorded (a worker crash between upload and
+commit) is not found by cleanup and stays as an orphan file.
 
 No reference check is needed: `get_image_from_data_url` gives every upload a
 fresh random name, so a file is never shared between rows or fields, even when

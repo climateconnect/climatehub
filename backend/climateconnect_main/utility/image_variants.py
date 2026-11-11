@@ -15,15 +15,27 @@ Provides:
   original and variant of a deleted row.
 * :func:`generate_and_store_variants` — generates WebP variants for an
   instance and persists them in ``image_variants``.
+* :func:`rows_with_images` / :func:`incomplete_variant_fields` — find the
+  rows and fields that still need variants (backfill command and the periodic
+  repair task).
+
+**Key invariant:** ``image_variants`` only ever lists files that exist.
+``<picture>`` does not fall back to its ``<img>`` when a ``<source>`` 404s, and
+CSS background banners do not fall back at all. Hence every variant file gets a
+fresh name (:func:`_variant_filename`), a file is only deleted once no committed
+map references it, and file cleanup is driven by the names *recorded* in the
+map.
 
 This module is intentionally storage-agnostic (reads through ``storage.open()``,
 never ``.path``) so it works on Azure Blob Storage.
 """
 
 import logging
+import secrets
 
+from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import F, Func, JSONField, TextField, Value
+from django.db.models import F, Func, JSONField, Q, TextField, Value
 from django.db.models.functions import Cast, Coalesce
 from rest_framework import serializers
 
@@ -45,34 +57,38 @@ _FIELD_CHANGES_ATTR = "_image_variant_changes"
 _FILES_TO_DELETE_ATTR = "_image_files_to_delete"
 
 
+def variant_key(width):
+    """The ``image_variants`` key of a configured width (``"1200"``, ``"webp"``)."""
+    return str(width) if width is not None else "webp"
+
+
 def _variant_filename(original_name, width):
-    """Compute the storage name for a WebP variant of *original_name*.
+    """A new, unique storage name for a WebP variant of *original_name*.
 
-    Mirrors the naming convention used by
-    :func:`climateconnect_main.utility.images.generate_webp_variant` so
-    that cleanup can locate files without reading them back.
+    ``<base>_<key>_<token>.webp``, e.g. ``projects/7/3fa9…_1200_9c1e04ab.webp``.
+    This is the only place variant files are named.
 
-    * ``width`` of ``None`` → format-only conversion (``name_webp.webp``)
-    * ``width`` of ``1200`` → ``name_1200.webp``
+    The random token gives every generated file a name of its own, also when
+    the variants of an unchanged original are regenerated (``--force``,
+    ``--verify``, a task retry). So a regeneration never has to delete or
+    overwrite a file the committed map still points at, and CDN or browser
+    caches can never serve stale content under a reused name. The flip side is
+    that names cannot be recomputed: cleanup must use the names recorded in
+    ``image_variants``.
     """
     base = original_name.rsplit(".", 1)[0] if "." in original_name else original_name
-    if width is not None:
-        return "{}_{}.webp".format(base, width)
-    else:
-        return "{}_webp.webp".format(base)
+    return "{}_{}_{}.webp".format(base, variant_key(width), secrets.token_hex(4))
 
 
-def _image_file_names(field_name, original_name, recorded_variants, widths):
+def _image_file_names(field_name, original_name, recorded_variants):
     """Every storage name belonging to one image field: original + variants.
 
-    Prefers the variant paths actually recorded in ``image_variants``:
-    ``storage.save()`` may have had to suffix a name to avoid a collision, in
-    which case the recomputed name would not match the file on disk. Computed
-    names are added as well, for variants that were never recorded.
+    Variant names carry a random token (:func:`_variant_filename`), so they are
+    taken from ``image_variants``. A variant that was written but never
+    recorded (a crash between upload and commit) is not found here.
     """
     names = {original_name}
-    names.update(recorded_variants.get(field_name, {}).values())
-    names.update(_variant_filename(original_name, width) for width in widths)
+    names.update((recorded_variants.get(field_name) or {}).values())
     return names
 
 
@@ -131,9 +147,7 @@ def capture_image_field_changes(sender, instance, update_fields=None, **kwargs):
         changed.append(field_name)
         if old_name and field_name in config:
             storage = sender._meta.get_field(field_name).storage
-            names = _image_file_names(
-                field_name, old_name, recorded, config[field_name]["widths"]
-            )
+            names = _image_file_names(field_name, old_name, recorded)
             to_delete.extend((storage, name) for name in names)
         # Keep the in-memory instance consistent for the response serialized
         # after this save; the database entry is dropped in post_save.
@@ -168,6 +182,16 @@ def _dispatch_image_variant_task(sender, instance, changed):
 
     ``transaction.on_commit`` ensures the task never observes an uncommitted
     row (spec constraint).
+
+    Enqueueing must never fail the save: by the time the callback runs, the row
+    and the new image are committed (in autocommit mode the callback runs right
+    away, inside the request). So a broker error (Redis down) is logged with
+    the model and pk, and ``robust=True`` additionally keeps any other error in
+    the callback from turning the successful save into a 500. Nothing is
+    retried here: the row simply has no variants for these fields — the API
+    serves the original, since ``post_save`` already dropped the stale entries
+    — until the periodic ``regenerate_missing_image_variants`` task (or the
+    backfill command) picks it up.
     """
     model_name = sender.__name__
     app_label = sender._meta.app_label
@@ -177,14 +201,23 @@ def _dispatch_image_variant_task(sender, instance, changed):
         # Local import avoids circular dependency at module load time.
         from organization.tasks import generate_image_variants
 
-        generate_image_variants.delay(
-            app_label=app_label,
-            model_name=model_name,
-            pk=pk,
-            field_names=changed,
-        )
+        try:
+            generate_image_variants.delay(
+                app_label=app_label,
+                model_name=model_name,
+                pk=pk,
+                field_names=changed,
+            )
+        except Exception:
+            logger.exception(
+                "Could not enqueue generate_image_variants for %s pk=%s "
+                "fields=%s; the periodic repair task will pick it up",
+                model_name,
+                pk,
+                changed,
+            )
 
-    transaction.on_commit(_enqueue)
+    transaction.on_commit(_enqueue, robust=True)
 
 
 def handle_image_field_changes(sender, instance, created, **kwargs):
@@ -255,9 +288,9 @@ def delete_image_files(sender, instance, **kwargs):
 
     Removes each image field's original and all of its variants. Django never
     deletes files when a row is deleted, so without this they would stay in
-    storage forever. Fires for cascaded deletes too (deleting a ``User``
-    deletes its ``UserProfile``). Files are removed only once the delete
-    commits, so a rolled-back delete keeps its images.
+    storage forever. Fires for cascaded deletes too. Variant names come from
+    ``image_variants`` (see :func:`_image_file_names`). Files are removed only
+    once the delete commits, so a rolled-back delete keeps its images.
     """
     model_name = sender.__name__
     config = IMAGE_VARIANT_CONFIGS.get(model_name)
@@ -270,9 +303,7 @@ def delete_image_files(sender, instance, **kwargs):
         field_file = getattr(instance, field_name, None)
         if not field_file or not field_file.name:
             continue
-        names = _image_file_names(
-            field_name, field_file.name, recorded, config[field_name]["widths"]
-        )
+        names = _image_file_names(field_name, field_file.name, recorded)
         to_delete.extend((field_file.storage, name) for name in names)
 
     _delete_files_on_commit(to_delete, "delete_image_files", model_name, instance.pk)
@@ -306,10 +337,7 @@ def incomplete_variant_fields(instance, verify=False):
             if recorded:
                 incomplete.append(field_name)
             continue
-        expected = {
-            str(width) if width is not None else "webp"
-            for width in field_config["widths"]
-        }
+        expected = {variant_key(width) for width in field_config["widths"]}
         if not expected.issubset(recorded):
             incomplete.append(field_name)
             continue
@@ -340,6 +368,20 @@ def has_all_variants(instance, verify=False):
     return not incomplete_variant_fields(instance, verify=verify)
 
 
+def rows_with_images(model):
+    """Rows of *model* with at least one configured image field set.
+
+    The candidates of the backfill command and the periodic repair task.
+    """
+    image_fields = IMAGE_VARIANT_CONFIGS.get(model.__name__, {})
+    if not image_fields:
+        return model.objects.none()
+    filter_q = Q()
+    for field_name in image_fields:
+        filter_q |= Q(**{"{}__gt".format(field_name): ""})
+    return model.objects.filter(filter_q)
+
+
 def generate_and_store_variants(instance, field_names=None):
     """Generate WebP variants for *instance* and persist them.
 
@@ -354,10 +396,17 @@ def generate_and_store_variants(instance, field_names=None):
     locked, current row (see :func:`_commit_variants`), and only for fields that
     still hold the image the variants were generated from.
 
+    Regenerating the variants of an unchanged original (``--force``,
+    ``--verify``, a task retry) never touches the files the map currently
+    references: each new variant is saved under a new name, the map is
+    switched over, and only then — after that commit — are the previous files
+    deleted. A variant that could not be encoded or stored keeps its previous
+    file. So the API never lists a file that does not exist.
+
     Parameters
     ----------
     instance : Model
-        A ``Project``, ``Organization``, or ``UserProfile`` instance.
+        A ``Project`` or ``Organization`` instance.
     field_names : list[str] | None
         Subset of image fields to process.  If ``None``, all configured
         image fields are processed.
@@ -369,7 +418,8 @@ def generate_and_store_variants(instance, field_names=None):
         be read, so the Celery task can retry them.  Empty on success.
     """
     from climateconnect_main.utility.images import (
-        generate_webp_variant,
+        decode_image,
+        encode_webp_variant,
         read_source_bytes,
     )
 
@@ -381,10 +431,8 @@ def generate_and_store_variants(instance, field_names=None):
     if field_names is None:
         field_names = list(config.keys())
 
-    recorded = instance.image_variants or {}
-
-    # field_name -> (source name the variants belong to, {key: path}).
-    # An empty dict means "no variants": the entry is dropped on commit.
+    # field_name -> (source name the variants belong to, {key: new path}).
+    # A source name of None means the field is empty: the entry is dropped.
     outcomes = {}
     unreadable = []
 
@@ -394,70 +442,46 @@ def generate_and_store_variants(instance, field_names=None):
 
         field_file = getattr(instance, field_name)
         if not field_file:
-            # The field was cleared. cleanup_orphaned_variants already deleted
-            # the files and popped the entry, but that pop is only persisted if
-            # the save wrote image_variants — a save(update_fields=["image"])
-            # would drop it, leaving the API serving URLs for deleted files.
-            # The task re-reads from the database, so make it authoritative.
+            # The field was cleared. The save that cleared it already dropped
+            # the entry, but the task re-reads from the database, so make it
+            # authoritative for rows that still carry one.
             outcomes[field_name] = (None, {})
             continue
 
-        widths = config[field_name]["widths"]
-        storage = field_file.storage
-        previous = recorded.get(field_name, {})
-        variants = {}
-
-        # Read the original once, not once per width — on Azure each read is a
-        # blob download, and a backfill does this for every row in the table.
+        # Read and decode the original once, not once per width — on Azure each
+        # read is a blob download, and a backfill does this for every row.
         source_bytes = read_source_bytes(field_file)
         if source_bytes is None:
             unreadable.append((field_name, field_file.name))
             continue
+        image = decode_image(source_bytes, name=field_file.name)
+        del source_bytes
 
-        for width in widths:
-            content_file = generate_webp_variant(
-                field_file, max_width=width, source_bytes=source_bytes
-            )
-            if content_file is None:
-                continue
+        variants = {}
+        if image is not None:
+            storage = field_file.storage
+            for width in config[field_name]["widths"]:
+                # Every width is resized from the decoded original, never from
+                # another (already resized) variant.
+                data = encode_webp_variant(image, max_width=width)
+                if data is None:
+                    continue
+                name = _variant_filename(field_file.name, width)
+                try:
+                    variants[variant_key(width)] = storage.save(name, ContentFile(data))
+                except Exception as exc:
+                    # Nothing was deleted, so the previous variant (if any)
+                    # stays in place and referenced; see _commit_variants.
+                    logger.error(
+                        "generate_and_store_variants: could not store %s for "
+                        "%s pk=%s: %s",
+                        name,
+                        model_name,
+                        instance.pk,
+                        exc,
+                    )
+            image.close()
 
-            key = str(width) if width is not None else "webp"
-
-            # Delete the file we are about to replace so storage.save() reuses
-            # the deterministic name instead of suffixing it to dodge the
-            # collision — otherwise every regeneration leaks an orphan file.
-            for stale_name in {previous.get(key), content_file.name}:
-                if stale_name:
-                    try:
-                        storage.delete(stale_name)
-                    except Exception as exc:
-                        logger.warning(
-                            "generate_and_store_variants: could not delete "
-                            "stale variant %s: %s",
-                            stale_name,
-                            exc,
-                        )
-
-            try:
-                variants[key] = storage.save(content_file.name, content_file)
-            except Exception as exc:
-                # The previous file for this key was just deleted, so leaving
-                # its path in the map would serve a 404. Drop the key instead
-                # and let the client fall back to the original; the next
-                # backfill run repairs the row.
-                logger.error(
-                    "generate_and_store_variants: could not store %s for "
-                    "%s pk=%s: %s",
-                    content_file.name,
-                    model_name,
-                    instance.pk,
-                    exc,
-                )
-
-        # Replace rather than merge: a key missing from this run is a variant
-        # that no longer exists on storage. If everything failed, the old files
-        # are gone too, so the entry is dropped and the API falls back to the
-        # original instead of serving 404s.
         outcomes[field_name] = (field_file.name, variants)
 
     _commit_variants(instance, outcomes)
@@ -474,6 +498,10 @@ def _commit_variants(instance, outcomes):
       variants generated for the old image are deleted. The new image has its
       own task; recording the old variants would serve the wrong (or a deleted)
       picture.
+    * Otherwise each configured variant key points at the newly generated file,
+      or — if that one could not be generated or stored — keeps its previous
+      file. Files the map no longer references are deleted with
+      ``transaction.on_commit``, i.e. only once the new map is committed.
     * Entries of fields not processed here are kept as they are, so a
       concurrent task for another field is not overwritten.
 
@@ -484,6 +512,7 @@ def _commit_variants(instance, outcomes):
         return
 
     model = instance.__class__
+    config = IMAGE_VARIANT_CONFIGS[model.__name__]
     discard = []
 
     with transaction.atomic():
@@ -495,6 +524,7 @@ def _commit_variants(instance, outcomes):
                 discard.extend((field_name, name) for name in variants.values())
         else:
             current = dict(row.image_variants or {})
+            superseded = []
             for field_name, (source_name, variants) in outcomes.items():
                 current_name = getattr(row, field_name).name or None
                 if current_name != source_name:
@@ -509,16 +539,38 @@ def _commit_variants(instance, outcomes):
                     )
                     discard.extend((field_name, name) for name in variants.values())
                     continue
-                if variants:
-                    current[field_name] = variants
+
+                # Entries are dropped whenever the image changes, so a recorded
+                # entry belongs to this same source.
+                previous = current.get(field_name) or {}
+                merged = {}
+                if source_name is not None:
+                    for width in config[field_name]["widths"]:
+                        key = variant_key(width)
+                        path = variants.get(key) or previous.get(key)
+                        if path:
+                            merged[key] = path
+                if merged:
+                    current[field_name] = merged
                 else:
                     current.pop(field_name, None)
+
+                storage = model._meta.get_field(field_name).storage
+                superseded.extend(
+                    (storage, name)
+                    for name in set(previous.values()) - set(merged.values())
+                )
 
             if current != (row.image_variants or {}):
                 row.image_variants = current
                 row.save(update_fields=["image_variants"])
             instance.image_variants = current
 
+            _delete_files_on_commit(
+                superseded, "generate_and_store_variants", model.__name__, row.pk
+            )
+
+    # Files this run wrote but did not record: nothing references them.
     for field_name, name in discard:
         storage = model._meta.get_field(field_name).storage
         try:
