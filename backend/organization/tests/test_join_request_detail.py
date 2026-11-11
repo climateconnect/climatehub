@@ -33,10 +33,10 @@ class TestJoinRequestDetail(APITestCase):
         self.join_request = self._request(self.requester, message="Hi there")
 
     def _user(self, name):
-        user = User.objects.create_user(username=name, password="pw")
-        UserProfile.objects.create(
-            user=user, url_slug=name, name=name, first_name=name, last_name="x"
+        user = User.objects.create_user(
+            username=name, password="pw", first_name=name, last_name="x"
         )
+        UserProfile.objects.create(user=user, url_slug=name, name=name)
         return user
 
     def _request(self, user, project=None, **kwargs):
