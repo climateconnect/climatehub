@@ -494,5 +494,38 @@ export default function getOrganizationTexts({ organization, locale, user, hubNa
         </>
       ),
     },
+    leave_team: {
+      en: "Leave team",
+      de: "Team verlassen",
+    },
+    do_you_really_want_to_leave_this_organization: {
+      en: "Do you really want to leave this organisation?",
+      de: "Möchtest du diese Organisation wirklich verlassen?",
+    },
+    are_you_sure_that_you_want_to_leave_this_organization: {
+      en:
+        "Are you sure that you want to leave this organisation? You won't be part of the team anymore.",
+      de:
+        "Bist du dir sicher, dass du diese Organisation verlassen möchtest? Du wirst kein Teil des Teams mehr sein.",
+    },
+    you_cant_leave_an_organization_as_the_super_admin: {
+      en:
+        'You can\'t leave an organisation as the Super Admin. Please give the Super Admin role to another team member by clicking "Manage Members" first.',
+      de:
+        'Du kannst eine Organisation nicht als Super Admin verlassen. Bitte übertrage zuerst die Super-Admin-Rolle an ein anderes Teammitglied, indem du auf "Mitglieder verwalten" klickst.',
+    },
+    you_have_successfully_left_the_organization: {
+      en: "You have successfully left the organisation.",
+      de: "Du hast die Organisation erfolgreich verlassen.",
+    },
+    you_are_the_last_member_delete_organization_instead: {
+      en: "You are the last member of this organisation. Please delete the organisation instead.",
+      de:
+        "Du bist das letzte Mitglied dieser Organisation. Bitte lösche stattdessen die Organisation.",
+    },
+    could_not_leave_the_organization: {
+      en: "Something went wrong while leaving the organisation. Please try again.",
+      de: "Beim Verlassen der Organisation ist etwas schiefgelaufen. Bitte versuche es erneut.",
+    },
   };
 }

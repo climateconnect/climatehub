@@ -107,6 +107,7 @@ export function parseOrganizationMembers(members) {
       name: member.first_name + " " + member.last_name,
       role: m.permission,
       permission: m.permission.role_type,
+      is_super_admin: !!m.is_super_admin,
       time_per_week: m.time_per_week,
       role_in_organization: m.role_in_organization ? m.role_in_organization : "",
       location: member.location,
