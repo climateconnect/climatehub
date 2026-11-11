@@ -47,6 +47,7 @@ export default function MarburgCrowdfundingPage({ hubData }: { hubData: HubData 
       isHubPage={true}
       hubUrl={HUB_URL}
       isLandingPage={true}
+      hideFooter={true}
       isLocationHub={hubData ? isLocationHubLikeHub(hubData.hub_type) : true}
     >
       {!!donationGoal?.goal_amount && (
