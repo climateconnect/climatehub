@@ -1291,8 +1291,8 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       de: "Beitrittsanfrage",
     },
     join_request_requested_on: {
-      en: "Requested on",
-      de: "Angefragt am",
+      en: "Requested",
+      de: "Angefragt",
     },
     join_request_status_pending: {
       en: "Pending",

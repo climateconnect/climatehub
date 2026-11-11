@@ -189,10 +189,12 @@ export default function JoinRequestDetailDialog({
           </ProfileLink>
         </Section>
         <Section>
-          <Typography variant="body2" color="text.secondary">
-            {texts.join_request_requested_on}
+          <Typography>
+            <Typography component="span" color="text.secondary">
+              {texts.join_request_requested_on}:
+            </Typography>{" "}
+            {formatDate(request.requested_at)}
           </Typography>
-          <Typography>{formatDate(request.requested_at)}</Typography>
         </Section>
         <Section>
           <Chip
