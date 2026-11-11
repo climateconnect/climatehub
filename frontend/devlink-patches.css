@@ -2,7 +2,9 @@
  * CSS patches for the Webflow devlink V2 export migration.
  *
  * 1. .w-layout-blockcontainer — scoped rules for a Webflow layout class
- *    that the V2 export omits but components still depend on.
+ *    that the V2 export omits but components still depend on. On Webflow
+ *    sites these containers also carry .w-container (width and clearfix);
+ *    DevLink's BlockContainer drops that class.
  *
  * 2. img display — the old V1 global.css applied `display: inline-block`
  *    to all img tags on the page. The app's header (and likely other
@@ -25,6 +27,20 @@
     margin-left: auto;
     margin-right: auto;
     max-width: 940px;
+  }
+  /* Webflow's clearfix for .w-container. Without it, the top margin of a container's first
+     child collapses through the container and its section, leaving a gap above the section. */
+  .w-layout-blockcontainer:before,
+  .w-layout-blockcontainer:after {
+    content: " ";
+    display: table;
+    grid-column-start: 1;
+    grid-row-start: 1;
+    grid-column-end: 2;
+    grid-row-end: 2;
+  }
+  .w-layout-blockcontainer:after {
+    clear: both;
   }
 }
 
