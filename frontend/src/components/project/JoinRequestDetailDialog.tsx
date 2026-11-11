@@ -119,7 +119,7 @@ export default function JoinRequestDetailDialog({
             ? generalTexts.no_permission
             : code === 409
             ? texts.join_request_already_decided
-            : texts.join_request_load_error,
+            : texts.join_request_decision_error,
         error: true,
       });
       if (code === 409) await load();
@@ -158,7 +158,7 @@ export default function JoinRequestDetailDialog({
       </>
     );
   } else if (loading || (!request && !error)) {
-    content = <LinearProgress aria-label="loading" />;
+    content = <LinearProgress aria-label={texts.join_request_loading} />;
   } else if (error === "not_found") {
     content = <Typography>{texts.join_request_not_found}</Typography>;
   } else if (error === "no_permission") {

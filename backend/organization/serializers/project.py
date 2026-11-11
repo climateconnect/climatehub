@@ -22,12 +22,13 @@ from organization.models import (
     ProjectMember,
     ProjectParents,
 )
-from organization.models.event_registration import EventRegistrationConfig
+from organization.models.event_registration import (
+    EventRegistration,
+    EventRegistrationConfig,
+)
 from organization.models.members import MembershipRequests
-from organization.utility import RequestStatus
 from organization.models.translations import ProjectTranslation
 from organization.models.type import PROJECT_TYPES
-from organization.models.event_registration import EventRegistration
 from organization.serializers.event_registration import (
     EventRegistrationConfigSerializer,
     EventRegistrationSerializer,
@@ -38,6 +39,7 @@ from organization.serializers.sector import (
     ProjectSectorMappingSerializer,
 )
 from organization.serializers.translation import ProjectTranslationSerializer
+from organization.utility import RequestStatus
 from organization.utility.project import (
     get_project_description,
     get_project_name,

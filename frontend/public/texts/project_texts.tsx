@@ -1350,6 +1350,14 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "The join request could not be loaded.",
       de: "Die Beitrittsanfrage konnte nicht geladen werden.",
     },
+    join_request_loading: {
+      en: "Loading",
+      de: "Wird geladen",
+    },
+    join_request_decision_error: {
+      en: "The decision could not be saved. Please try again.",
+      de: "Die Entscheidung konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    },
     join_request_already_decided: {
       en: "This request has already been decided.",
       de: "Über diese Anfrage wurde bereits entschieden.",
