@@ -3,6 +3,7 @@ import Head from "next/head";
 import React, { useContext } from "react";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
+import { Box } from "@mui/material";
 import WideLayout from "../layouts/WideLayout";
 
 export default function WebflowPage({
@@ -15,6 +16,7 @@ export default function WebflowPage({
   title,
   description,
   showDonationGoal = true,
+  mobilePadding = false,
 }: any) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "navigation", locale: locale });
@@ -31,7 +33,9 @@ export default function WebflowPage({
         noHeader={noHeader}
         showDonationGoal={showDonationGoal}
       >
-        <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
+        <Box sx={mobilePadding ? { px: { xs: 2, md: 0 } } : undefined}>
+          <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
+        </Box>
       </WideLayout>
     </>
   );
