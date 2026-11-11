@@ -10,7 +10,7 @@ import PlaceIcon from "@mui/icons-material/Place";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 // Relative imports
-import { getImageUrl } from "./../../../public/lib/imageOperations";
+import ResponsiveImage from "../general/ResponsiveImage";
 import { getParams } from "../../../public/lib/generalOperations";
 import { getDateTimeRange } from "../../../public/lib/dateOperations";
 import ContactCreatorButton from "./Buttons/ContactCreatorButton";
@@ -74,7 +74,10 @@ const ActionButtonsGroup = styled("div")(({ theme }) => ({
   gap: theme.spacing(0.5),
 }));
 
-const FullWidthImage = styled("img")(({ theme }) => projectOverviewStyles(theme).fullWidthImage);
+// styled() hands its className to ResponsiveImage, which puts it on the <picture>.
+const FullWidthImage = styled(ResponsiveImage)(
+  ({ theme }) => projectOverviewStyles(theme).fullWidthImage
+);
 
 const BlockProjectInfo = styled("div")(
   ({ theme }) => projectOverviewStyles(theme).blockProjectInfo
@@ -104,7 +107,9 @@ const LargeScreenHeader = styled(Typography)(({ theme }) => ({
 
 const FlexContainer = styled("div")(({ theme }) => projectOverviewStyles(theme).flexContainer);
 
-const InlineImage = styled("img")(({ theme }) => projectOverviewStyles(theme).inlineImage);
+const InlineImage = styled(ResponsiveImage)(
+  ({ theme }) => projectOverviewStyles(theme).inlineImage
+);
 
 const InlineProjectInfo = styled("div")(
   ({ theme }) => projectOverviewStyles(theme).inlineProjectInfo
@@ -397,7 +402,9 @@ function SmallScreenOverview({
           />
         </ActionButtonsGroup>
         <FullWidthImage
-          src={getImageUrl(project.image)}
+          src={project.image}
+          variants={project.image_variants}
+          sizes="100vw"
           alt={texts.project_image_of_project + " " + project.name}
         />
       </ImageContainer>
@@ -451,7 +458,10 @@ function LargeScreenOverview({
       </HeaderContainer>
       <FlexContainer>
         <InlineImage
-          src={getImageUrl(project.image)}
+          src={project.image}
+          variants={project.image_variants}
+          // inlineImage: 50% of the container, capped at 550px.
+          sizes="(min-width: 1100px) 550px, 50vw"
           alt={texts.project_image_of_project + " " + project.name}
         />
         <InlineProjectInfo>

@@ -2,7 +2,7 @@ import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import getTexts from "../../../public/texts/texts";
 import { getProjectTypes } from "../../../public/data/projectTypes";
 import UserContext from "../context/UserContext";
@@ -141,6 +141,8 @@ export default function ProjectPreview({
     ? `/editProject/${project.url_slug}`
     : `/projects/${project.url_slug}`;
 
+  const cardImageUrl = resolveVariantUrl(project.image_variants, THUMBNAIL_SOURCES, project.image);
+
   return (
     <Wrapper href={projectUrl} underline="hover">
       {projectType.type_id === "event" && project.start_date && project.end_date && (
@@ -157,15 +159,18 @@ export default function ProjectPreview({
         <CardMedia
           /*TODO(undefined) className={classes.media} */
           title={project.name}
-          image={getImageUrl(project.image)}
+          image={cardImageUrl}
         >
           {project.is_draft ? (
             <DraftTriangle>
               <DraftText>Draft</DraftText>
             </DraftTriangle>
           ) : (
+            // Invisible spacer that gives CardMedia its height. It must point
+            // at the same URL as the background above, or the browser
+            // downloads the card image twice.
             <PlaceholderImg
-              src={getImageUrl(project.image)}
+              src={cardImageUrl}
               alt={texts.project_image_of_project + " " + project.name}
             />
           )}

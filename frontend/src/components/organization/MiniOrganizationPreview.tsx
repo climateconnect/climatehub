@@ -5,7 +5,7 @@ import React, { useContext } from "react";
 import AppLink from "../general/AppLink";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
-import { getImageUrl } from "./../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 
 const shouldForwardProp = (prop: string) => !prop.startsWith("$");
 
@@ -122,7 +122,11 @@ function Content({ organization, size, onDelete, doNotShowName, inline }) {
       <AvatarWrapper>
         <OrgAvatar
           alt={texts.organizations_logo}
-          src={getImageUrl(organization.thumbnail_image)}
+          src={resolveVariantUrl(
+            organization.image_variants,
+            THUMBNAIL_SOURCES,
+            organization.thumbnail_image
+          )}
           $avatarSize={avatarSize}
           $showBorder={doNotShowName}
         />

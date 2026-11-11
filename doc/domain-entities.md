@@ -163,6 +163,21 @@ This document provides comprehensive documentation of the main domain entities i
 - **ManyToMany**: `Hub` (hubs and related_hubs - primary and followed hubs)
 - **Referenced by**: `OrganizationTranslation`, `OrganizationMember`, `OrganizationTagging`, `OrganizationSectorMapping`, `OrganizationFollower`, `ProjectParents`, `ProjectCollaborators`, `HubSupporter`, `Idea`, `ContentShares`
 
+**Image fields**:
+- `image`, `thumbnail_image`, `background_image` — the stored originals, as uploaded.
+- `image_variants` (JSON) — map of generated WebP variants, keyed by image
+  field and then by variant: `{"image": {"1200": "<path>", "600": "<path>"},
+  "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
+  paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
+  asynchronously by the `generate_image_variants` Celery task on upload, by the
+  hourly `regenerate_missing_image_variants` beat task for recent rows whose
+  task never ran, and by the `backfill_image_variants` management command for
+  existing rows; a plain `save()` never writes it (`ImageVariantsModelMixin`).
+  Every listed path exists in storage; variant file names carry a random token,
+  so file cleanup uses the recorded paths. Empty
+  (`{}`) on rows that predate the feature — every consumer falls back to the
+  original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
+
 ---
 
 ### Project
@@ -186,6 +201,21 @@ This document provides comprehensive documentation of the main domain entities i
 - **ForeignKey**: `ProjectStatus`, `Location`, `Language`
 - **ManyToMany**: `Hub` (related_hubs)
 - **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `EventRegistrationConfig`, `ProjectTagging` (**deprecated** — see [ProjectTags & OrganizationTags](#projecttags--organizationtags))
+
+**Image fields**:
+- `image`, `thumbnail_image` — the stored originals, as uploaded.
+- `image_variants` (JSON) — map of generated WebP variants, keyed by image
+  field and then by variant: `{"image": {"1200": "<path>", "600": "<path>"},
+  "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
+  paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
+  asynchronously by the `generate_image_variants` Celery task on upload, by the
+  hourly `regenerate_missing_image_variants` beat task for recent rows whose
+  task never ran, and by the `backfill_image_variants` management command for
+  existing rows; a plain `save()` never writes it (`ImageVariantsModelMixin`).
+  Every listed path exists in storage; variant file names carry a random token,
+  so file cleanup uses the recorded paths. Empty
+  (`{}`) on rows that predate the feature — every consumer falls back to the
+  original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 
 ---
 

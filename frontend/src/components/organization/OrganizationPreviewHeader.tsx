@@ -1,7 +1,7 @@
 import React from "react";
 import { Avatar, Box, Chip, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { getImageUrl } from "../../../public/lib/imageOperations";
+import { THUMBNAIL_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 
 const Media = styled(Avatar)(({ theme }) => ({
   height: 80,
@@ -46,7 +46,11 @@ export default function OrganizationPreviewHeader({ organization }) {
       <Media
         alt={organization.name}
         //TODO(unused) size="large"
-        src={getImageUrl(organization.thumbnail_image)}
+        src={resolveVariantUrl(
+          organization.image_variants,
+          THUMBNAIL_SOURCES,
+          organization.thumbnail_image
+        )}
         component="div"
       />
       {organization.types?.length > 0 && (

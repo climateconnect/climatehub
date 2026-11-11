@@ -1,6 +1,10 @@
 from location.models import Location
 from django.db import models
 
+from climateconnect_main.utility.image_variant_models import (
+    ImageVariantsModelMixin,
+)
+
 #
 from climateconnect_api.models.language import Language
 
@@ -13,7 +17,7 @@ def organization_background_image_path(instance, filename):
     return "organization_images/{}/background/{}".format(instance.id, filename)
 
 
-class Organization(models.Model):
+class Organization(ImageVariantsModelMixin, models.Model):
     name = models.CharField(
         help_text="Points to name of the organization",
         verbose_name="Organization",
@@ -51,6 +55,19 @@ class Organization(models.Model):
         upload_to=organization_background_image_path,
         null=True,
         blank=True,
+    )
+
+    image_variants = models.JSONField(
+        help_text="Map of generated WebP variants, keyed by image field and "
+        "then by variant. Values are storage-relative paths, resolved to URLs "
+        "by ImageVariantsField. "
+        'e.g. {"image": {"1200": "<path>", "600": "<path>"}, '
+        '"thumbnail_image": {"webp": "<path>"}, '
+        '"background_image": {"1200": "<path>", "600": "<path>"}}',
+        verbose_name="Image variants",
+        null=True,
+        blank=True,
+        default=dict,
     )
 
     parent_organization = models.ForeignKey(
