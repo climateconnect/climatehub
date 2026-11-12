@@ -7,10 +7,9 @@ import UserContext from "../../../src/components/context/UserContext";
 import DevlinkPage from "../../../src/components/devlink/DevlinkPage";
 import StaticDevlinkComponent from "../../../src/components/devlink/StaticDevlinkComponent";
 import DonationGoal from "../../../src/components/staticpages/donate/DonationGoal";
-import { getLocalePrefix } from "../../../public/lib/apiOperations";
 import { getHubData } from "../../../public/lib/getHubData";
 import isLocationHubLikeHub from "../../../public/lib/isLocationHubLikeHub";
-import { HubData, LocaleType } from "../../../src/types";
+import { CcLocale, HubData, LocaleType } from "../../../src/types";
 
 const HUB_URL = "marburg";
 
@@ -19,25 +18,21 @@ const DonationGoalContainer = styled(Container)(({ theme }) => ({
   paddingBottom: theme.spacing(1),
 }));
 
-// This page only exists in German. Other locales (e.g. after switching the
-// language) are redirected to the hub's browse page.
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-  const locale = ctx.locale ?? "en";
-  if (locale !== "de") {
-    return {
-      redirect: {
-        destination: `${getLocalePrefix(locale)}/hubs/${HUB_URL}/browse`,
-        permanent: false,
-      },
-    };
-  }
+// The Webflow component to show per locale. There is only a German version so
+// far, so English shows it too; swap in an English component once one exists.
+const CONTENT_BY_LOCALE: Record<CcLocale, React.ComponentType> = {
+  de: SpendenMarburg,
+  en: SpendenMarburg,
+};
 
-  const hubData = await getHubData(HUB_URL, locale as LocaleType);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const hubData = await getHubData(HUB_URL, ctx.locale as LocaleType);
   return { props: { hubData: hubData ?? null } };
 }
 
 export default function MarburgCrowdfundingPage({ hubData }: { hubData: HubData | null }) {
-  const { donationGoals } = useContext(UserContext);
+  const { donationGoals, locale } = useContext(UserContext);
+  const content = CONTENT_BY_LOCALE[locale];
   // Only show the hub's own goal: the backend only returns goals that are currently running
   const donationGoal = donationGoals?.find((goal) => goal.hub === HUB_URL);
 
@@ -59,7 +54,7 @@ export default function MarburgCrowdfundingPage({ hubData }: { hubData: HubData 
           />
         </DonationGoalContainer>
       )}
-      <StaticDevlinkComponent component={SpendenMarburg} />
+      <StaticDevlinkComponent component={content} />
     </DevlinkPage>
   );
 }
