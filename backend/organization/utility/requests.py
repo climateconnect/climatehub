@@ -62,6 +62,7 @@ class MembershipRequestsManager:
     def __init__(self, **kwargs):
         self.validation_failed = False
         self.duplicate_request = False
+        self.already_decided = False
 
         self.errors = list()
 
@@ -116,6 +117,14 @@ class MembershipRequestsManager:
                 )
             else:
                 self.membership_request = self.membership_request.first()
+                if (
+                    self.membership_request.request_status
+                    != RequestStatus.PENDING.value
+                ):
+                    self.validation_failed = True
+                    self.already_decided = True
+                    self.errors.append("Request has already been decided")
+
                 user_in_project = is_part_of_project(
                     user=self.membership_request.user,
                     project=self.membership_request.target_project,

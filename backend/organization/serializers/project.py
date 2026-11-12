@@ -22,11 +22,13 @@ from organization.models import (
     ProjectMember,
     ProjectParents,
 )
-from organization.models.event_registration import EventRegistrationConfig
+from organization.models.event_registration import (
+    EventRegistration,
+    EventRegistrationConfig,
+)
 from organization.models.members import MembershipRequests
 from organization.models.translations import ProjectTranslation
 from organization.models.type import PROJECT_TYPES
-from organization.models.event_registration import EventRegistration
 from organization.serializers.event_registration import (
     EventRegistrationConfigSerializer,
     EventRegistrationSerializer,
@@ -37,6 +39,7 @@ from organization.serializers.sector import (
     ProjectSectorMappingSerializer,
 )
 from organization.serializers.translation import ProjectTranslationSerializer
+from organization.utility import RequestStatus
 from organization.utility.project import (
     get_project_description,
     get_project_name,
@@ -628,12 +631,61 @@ class ProjectRequesterSerializer(serializers.ModelSerializer):
 
         # Locally defined variables take precedence
         # over what's defined on the model
-        fields = ("user_profile", "id")
+        fields = ("user_profile", "id", "message", "requested_at")
 
     def get_user_profile(self, obj):
         user_profile = UserProfile.objects.get(user=obj.user)
         serializer = UserProfileStubSerializer(user_profile)
         return serializer.data
+
+
+class JoinRequestDetailSerializer(serializers.ModelSerializer):
+    """Single join request. `decided_by` is only included for project admins
+    (context flag `include_decided_by`)."""
+
+    user_profile = serializers.SerializerMethodField()
+    message = serializers.SerializerMethodField()
+    request_status = serializers.SerializerMethodField()
+    decided_at = serializers.SerializerMethodField()
+    decided_by = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MembershipRequests
+        fields = (
+            "id",
+            "user_profile",
+            "message",
+            "requested_at",
+            "request_status",
+            "decided_at",
+            "decided_by",
+        )
+
+    def _stub(self, user):
+        return UserProfileStubSerializer(user.user_profile).data
+
+    def get_user_profile(self, obj):
+        return self._stub(obj.user)
+
+    def get_message(self, obj):
+        return obj.message or ""
+
+    def get_request_status(self, obj):
+        return RequestStatus(obj.request_status).name.lower()
+
+    def get_decided_at(self, obj):
+        return obj.approved_at or obj.rejected_at
+
+    def get_decided_by(self, obj):
+        if obj.decided_by is None:
+            return None
+        return self._stub(obj.decided_by)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self.context.get("include_decided_by", False):
+            data.pop("decided_by", None)
+        return data
 
 
 class ProjectLikeSerializer(serializers.ModelSerializer):

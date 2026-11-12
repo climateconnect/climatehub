@@ -12,14 +12,16 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404
 from django.db.models import Case, Prefetch, Q, When
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
     ListAPIView,
+    RetrieveAPIView,
     RetrieveUpdateAPIView,
     RetrieveUpdateDestroyAPIView,
 )
@@ -96,6 +98,7 @@ from organization.serializers.project import (
     ProjectLikeSerializer,
     ProjectMemberSerializer,
     ProjectRequesterSerializer,
+    JoinRequestDetailSerializer,
     ProjectSerializer,
     ProjectSitemapEntrySerializer,
     ProjectStubSerializer,
@@ -1729,6 +1732,44 @@ class ListProjectFollowersView(ListAPIView):
         return get_list_of_project_followers(self)
 
 
+class JoinRequestDetailView(RetrieveAPIView):
+    """Returns a single join request of a project.
+
+    Readable by project admins (full payload) and by the requesting user
+    (without `decided_by`).
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = JoinRequestDetailSerializer
+
+    def get_object(self):
+        project = get_object_or_404(Project, url_slug=self.kwargs["url_slug"])
+        join_request = get_object_or_404(
+            MembershipRequests.objects.select_related(
+                "user__user_profile", "decided_by__user_profile"
+            ),
+            id=self.kwargs["request_id"],
+            target_project=project,
+        )
+        user = self.request.user
+        self.is_admin = ProjectMember.objects.filter(
+            Q(user=user)
+            & Q(project=project)
+            & Q(
+                Q(role__role_type=Role.ALL_TYPE)
+                | Q(role__role_type=Role.READ_WRITE_TYPE)
+            )
+        ).exists()
+        if not self.is_admin and join_request.user_id != user.id:
+            raise PermissionDenied()
+        return join_request
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["include_decided_by"] = getattr(self, "is_admin", False)
+        return context
+
+
 class ListProjectRequestersView(ListAPIView):
     permission_classes = [ReadWriteSensibleProjectDataPermission]
     """This is the endpoint view to return a list of users
@@ -1751,7 +1792,7 @@ class ListProjectRequestersView(ListAPIView):
             target_project=project,
             rejected_at=None,
             approved_at=None,
-        )
+        ).order_by("-requested_at")
 
         print(
             f"Total number of OPEN membership requests for this project: {len(open_membership_requests)}"
@@ -1983,6 +2024,12 @@ class ManageJoinProjectView(RetrieveUpdateDestroyAPIView):
                 return Response(
                     {"message": "Request Does Not Exist"},
                     status=status.HTTP_404_NOT_FOUND,
+                )
+
+            if request_manager.already_decided:
+                return Response(
+                    {"message": "Request has already been decided"},
+                    status=status.HTTP_409_CONFLICT,
                 )
 
             if request_manager.validation_failed:
