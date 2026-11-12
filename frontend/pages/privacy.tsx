@@ -7,7 +7,14 @@ import WebflowPage from "../src/components/webflow/WebflowPage";
 import { retrievePage } from "../src/utils/webflow";
 
 export default function Privacy({ bodyContent, headContent }) {
-  return <WebflowPage bodyContent={bodyContent} headContent={headContent} pageKey="privacy" />;
+  return (
+    <WebflowPage
+      bodyContent={bodyContent}
+      headContent={headContent}
+      pageKey="privacy"
+      mobilePadding
+    />
+  );
 }
 
 export async function getServerSideProps(ctx) {
