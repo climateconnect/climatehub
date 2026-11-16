@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+
 const DEVELOPMENT = ["development", "develop", "test"].includes(process.env.ENVIRONMENT!);
 
 export function getLogoSrc(variant: "normal" | "white" = "normal", locale?: string): string {
@@ -211,6 +213,19 @@ export async function blobFromObjectUrl(objectUrl: string): Promise<string> {
     });
   } catch (error) {
     console.error("Image compression failed:", error);
-    throw new Error(`Failed to compress image from ${objectUrl}: ${error}`);
+    Sentry.captureException(error, { tags: { feature: "image-upload" } });
+    // Describe the source instead of embedding the raw URL: blob: URLs are
+    // in-memory references whose UUIDs churn per session (they would make every
+    // error message unique), and remote URLs can carry signed query strings.
+    const source = objectUrl.startsWith("blob:")
+      ? "in-memory image"
+      : `image ${objectUrl.split("?")[0]}`;
+    const wrappedError = new Error(`Failed to compress ${source}: ${error}`) as Error & {
+      sentryReported?: boolean;
+    };
+    // Mark the rethrown error so callers that report failures to Sentry
+    // themselves (e.g. the share-project save flow) don't double-report it.
+    wrappedError.sentryReported = true;
+    throw wrappedError;
   }
 }

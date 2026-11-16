@@ -69,8 +69,8 @@
 ## 7. Contact From an Organization Page Flow (introduced in [#2327](https://github.com/climateconnect/climateconnect/issues/2327))
 - **Trigger**: Logged-in user clicks "Contact" on an organization page
 - **Actions**:
-   1. The user is taken to the private chat with the organization's creator at `/chat/<uuid>/?origin_organization=<url_slug>` (`hub` kept when set).
-   2. Every message sent from the chat page while the param is present carries `origin_organization_url_slug` (POST `send_message` or WebSocket payload).
+   1. A chat drawer opens on the organization page with the organization's creator as recipient (no navigation; the drawer creates or fetches the private chat).
+   2. Every message sent from the drawer carries `origin_organization_url_slug` (POST `send_message` or WebSocket payload).
    3. The backend validates the organization and that an organization admin is in the chat, then stores `origin_type="organization"` and `origin_id=<organization id>`.
    4. Both participants see a chip ("This message is about the organization {name}") linking to the organization page, resolved through `GET /api/organization-origin/{id}/`.
 - **Notes**:
@@ -100,3 +100,13 @@
    3. The attendee list and CSV keep showing the row with its former seat count, excluded from capacity.
 - **Notes**:
    - Re-registration re-uses the row and replaces the answers and the seat count.
+
+## 10. Leave Organization Flow (introduced in [#2368](https://github.com/climateconnect/climatehub/issues/2368))
+- **Actor**: Organization member (Member, Admin or Super-Admin)
+- **Trigger**: Member clicks "Leave team" in the members section of the organization page
+- **Actions**:
+   1. If the member is a Super-Admin, the UI shows an error (hand over the role via "Manage Members" first, or delete the organization if they are the last member). No request is sent.
+   2. Otherwise a confirmation dialog is shown; cancel sends nothing.
+   3. On confirm the frontend calls `POST /api/organizations/<slug>/leave/`.
+   4. System deletes the member's own `OrganizationMember` row. (If the API still returns 400, the `code` — `super_admin_must_hand_over` or `last_member` — selects the translated error.)
+   5. The organization page reloads and shows a success message.

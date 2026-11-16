@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import React, { useContext, useMemo } from "react";
 import { DeAgbs } from "../devlink/DeAgbs";
 import { EnAgbs } from "../devlink/EnAgbs";
@@ -10,7 +11,7 @@ export default function Terms() {
   const texts = useMemo(() => getTexts({ page: "navigation", locale }), [locale]);
   return (
     <WideLayout title={texts.terms} isStaticPage noSpaceBottom>
-      {locale === "de" ? <DeAgbs /> : <EnAgbs />}
+      <Box sx={{ px: { xs: 2, md: 0 } }}>{locale === "de" ? <DeAgbs /> : <EnAgbs />}</Box>
     </WideLayout>
   );
 }

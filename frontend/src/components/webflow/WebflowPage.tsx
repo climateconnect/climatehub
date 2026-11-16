@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import parseHtml from "html-react-parser";
 import Head from "next/head";
 import React, { useContext } from "react";
@@ -15,9 +16,11 @@ export default function WebflowPage({
   title,
   description,
   showDonationGoal = true,
+  mobilePadding = false,
 }: any) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "navigation", locale: locale });
+  const content = <div dangerouslySetInnerHTML={{ __html: bodyContent }} />;
   return (
     <>
       <Head>{parseHtml(headContent)}</Head>
@@ -31,7 +34,7 @@ export default function WebflowPage({
         noHeader={noHeader}
         showDonationGoal={showDonationGoal}
       >
-        <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
+        {mobilePadding ? <Box sx={{ px: { xs: 2, md: 0 } }}>{content}</Box> : content}
       </WideLayout>
     </>
   );

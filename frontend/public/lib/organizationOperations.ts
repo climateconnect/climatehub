@@ -4,6 +4,7 @@ import ROLE_TYPES from "../../public/data/role_types";
 
 export function parseOrganization(organization, editMode: boolean = false) {
   const org = {
+    id: organization.id,
     url_slug: organization.url_slug,
     background_image: getImageUrl(organization.background_image),
     name: organization.name,
@@ -110,6 +111,7 @@ export function parseOrganizationMembers(members) {
       name: member.first_name + " " + member.last_name,
       role: m.permission,
       permission: m.permission.role_type,
+      is_super_admin: !!m.is_super_admin,
       time_per_week: m.time_per_week,
       role_in_organization: m.role_in_organization ? m.role_in_organization : "",
       location: member.location,

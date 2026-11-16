@@ -135,7 +135,7 @@ function drawerTree({
   contactRole?: string;
   chatSocket?: any;
   socketConnectionState?: string;
-  origin?: { type: "project"; urlSlug: string; id: number };
+  origin?: { type: "project" | "organization"; urlSlug: string; id: number };
 } = {}) {
   return (
     <ThemeProvider theme={theme}>
@@ -318,6 +318,38 @@ describe("ChatDrawer", () => {
         );
         expect(sendCall![0].payload.origin_project_url_slug).toBe("test-project");
       });
+    });
+
+    it("sends the organization origin slug (not the project one) in the POST payload", async () => {
+      renderDrawer({ origin: { type: "organization", urlSlug: "test-org", id: 3 } });
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await waitFor(() => {
+        const sendCall = mockApiRequest.mock.calls.find(
+          (call: any[]) => call[0].url === "/api/chat/chat-1/send_message/"
+        );
+        expect(sendCall![0].payload.origin_organization_url_slug).toBe("test-org");
+        expect(sendCall![0].payload).not.toHaveProperty("origin_project_url_slug");
+      });
+    });
+
+    it("tags the sender's own message with the organization origin (type and id)", async () => {
+      renderDrawer({ origin: { type: "organization", urlSlug: "test-org", id: 913 } });
+      await waitFor(() => expect(screen.getByPlaceholderText("Message")).toBeInTheDocument());
+      fireEvent.change(screen.getByPlaceholderText("Message"), { target: { value: "Hello org" } });
+      fireEvent.click(document.querySelector('button[type="submit"]')!);
+
+      await screen.findByText("Hello org");
+      // Message.tsx only looks up the label when the message carries origin_type and origin_id
+      await waitFor(() =>
+        expect(
+          mockApiRequest.mock.calls.some(
+            (call: any[]) => call[0].url === "/api/organization-origin/913/"
+          )
+        ).toBe(true)
+      );
     });
 
     it("omits the origin slug when no origin is set", async () => {

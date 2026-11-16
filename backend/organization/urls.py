@@ -52,6 +52,11 @@ urlpatterns = [
         name="change-organization-creator-view",
     ),
     path(
+        "organizations/<str:url_slug>/leave/",
+        organization_views.LeaveOrganization.as_view(),
+        name="leave-organization",
+    ),
+    path(
         "organizationtags/",
         organization_views.ListOrganizationTags.as_view(),
         name="list-organization-tags",
