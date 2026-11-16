@@ -7,7 +7,14 @@ import WebflowPage from "../src/components/webflow/WebflowPage";
 import { retrievePage } from "../src/utils/webflow";
 
 export default function Imprint({ bodyContent, headContent }) {
-  return <WebflowPage bodyContent={bodyContent} headContent={headContent} pageKey="imprint" />;
+  return (
+    <WebflowPage
+      bodyContent={bodyContent}
+      headContent={headContent}
+      pageKey="imprint"
+      mobilePadding
+    />
+  );
 }
 
 export async function getServerSideProps(ctx) {
