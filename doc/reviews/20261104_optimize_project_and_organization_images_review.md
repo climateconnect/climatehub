@@ -173,3 +173,121 @@ The custom test runner now points `MEDIA_ROOT` at a temporary directory for the 
 - [ ] Variant naming has a single implementation; `IMAGE_FIELD_NAMES` is derived from the config.
 - [ ] The `MEDIA_ROOT` test runner change is called out in the PR or split out.
 - [ ] `make format`, `yarn lint`, `yarn format` clean; **full** backend suite and frontend tests pass.
+
+---
+
+# Follow-up review (2026-11-16)
+
+**Reviewed against:** `master`, branch head `7730a1cb6` (fixes in `81bae58cf`)
+**Reviewer:** Claude (main session; the avatar finding was checked against production with the maintainer)
+
+## Summary
+
+Every finding of the first review has been addressed correctly. One regression came in with this iteration: the organisation page avatar now shows the small thumbnail. It needs a small frontend change. After that, the branch is ready for manual testing.
+
+**Verdict: fix finding A, update the PR description, then hand over for manual testing.**
+
+### Verification
+
+- Full backend suite: `Ran 1204 tests … OK (skipped=15)`, with Postgres and Redis running locally.
+- `makemigrations --check`: no changes.
+- Frontend: `ResponsiveImage.test.tsx` and `organizationOperations.test.ts` pass (24 tests). `yarn lint` shows no errors and no warnings in branch files. Prettier and `tsc --noEmit` are clean.
+- `black --check` flags three files, but this branch does not touch them (`test_project_join_request_message.py`, `test_project_crud_views.py`, `serializers/event_registration.py`).
+
+## Status of the first review's findings
+
+| #   | Finding                                       | Status                                                                                                                                                                                                                                                               |
+| --- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Broker error fails the save                   | ✅ `.delay()` is wrapped in `try/except` and logged with model, pk and fields, and `on_commit(…, robust=True)` is set. Tests: `test_broker_error_does_not_fail_the_save`, `test_enqueue_callback_is_registered_robust`.                                                  |
+| 2   | Regeneration deletes the live file            | ✅ Each variant gets a new name with a random token (`_variant_filename`). The map is switched under `select_for_update`, and superseded files are deleted only `on_commit`. A failed `storage.save` keeps the previous file. Tests: `test_regeneration_keeps_recorded_files_until_the_new_map_commits`, `test_failed_store_keeps_the_previous_variant_referenced`, `test_total_store_failure_keeps_the_previous_entry`. |
+| 3   | Scope creep                                   | ✅ Removed: UserProfile variants, migration 0103, `climateconnect_api/signals.py`, the user serializer fields, the profile frontend changes and the members-list cache invalidation. The docs state that profiles have no variants.                                                     |
+| 4   | Source decoded once per width                 | ✅ `decode_image` runs once per field, and `encode_webp_variant` derives every width from that original. Test: `test_source_is_decoded_once_and_every_width_from_the_original`.                                                                                    |
+| 5   | `image_variants` in every org PATCH           | ✅ Left out of `parseOrganization` when `editMode` is true. Tested.                                                                                                                                                                                                 |
+| 6   | Variant naming implemented twice              | ✅ `_variant_filename` is the only implementation. Cleanup uses the names recorded in `image_variants`.                                                                                                                                                                      |
+| 7   | `IMAGE_FIELD_NAMES` duplicates the config     | ✅ Derived from `IMAGE_VARIANT_CONFIGS`.                                                                                                                                                                                                                             |
+| 8   | Unused variant keys in list serializers       | Unchanged. It was optional, so this is fine.                                                                                                                                                                                                                         |
+| 9   | Test runner `MEDIA_ROOT` override             | ⚠️ The code is kept and the full suite passes, but the PR description does not mention it yet (see below).                                                                                                                                                          |
+
+The optional follow-up from finding 1 was also built: an hourly Celery beat task, `regenerate_missing_image_variants`. It only picks up rows whose `updated_at` lies between 1 hour and 7 days ago, at most 50 rows per model per run. Writing the variants uses `update_fields=["image_variants"]`, so `updated_at` does not change and repaired rows are not picked up again. This is beyond what was required, but the review suggested it, and it closes the gap that `robust=True` leaves. Mention it in the PR description.
+
+## New findings
+
+| #   | Severity | Finding                                                                 | Decision                 |
+| --- | -------- | ----------------------------------------------------------------------- | ------------------------ |
+| A   | Must fix | The organisation page avatar now shows the thumbnail, which is too small | Fix (option 1)           |
+| B   | Cleanup  | `parseOrganization` adds a `thumbnail_image` that is always `undefined` | Fix together with A      |
+| C   | Low      | A row deleted from a stale instance can leave orphaned variant files     | No change in this PR     |
+| –   | Out of scope | The avatar border makes the image smaller (142 instead of 150px)     | Separate issue if wanted |
+
+### A. The organisation page avatar shows the thumbnail (must fix)
+
+`frontend/src/components/account/AccountPage.tsx:472` (`avatarUrl`)
+
+In this iteration the header avatar on the organisation page started using `THUMBNAIL_SOURCES`, so it now shows the thumbnail WebP first. On `master` it showed the full `image`, which was a waste of bytes but always sharp.
+
+The thumbnail is too small for this slot:
+
+- It is made in the browser (`UserAvatar.tsx:147`) with `getResizedImage(url, 120, 120)`. That function only halves the image and stops once halving again would go below 120px (`forceExactSize` is not passed). So the thumbnail ends up between 121 and 240px wide, for example 1859 → 232px and 1000 → 125px. Uploads under 240px stay as they are.
+- The backend thumbnail WebP keeps that size (`"widths": [None]`) and only changes the format.
+- The avatar is 150px with a 4px border inside (`border-box`). The image area is **142×142**, which needs **284px** at 2× DPR.
+
+With a thumbnail of about 125px, the avatar is upscaled even on normal screens and looks soft on retina. The problem only shows **after** variants exist. Before the backfill, the page falls back to the original, as on production.
+
+Sizes checked on production:
+
+| Where                               | Component                   | Size on screen | Source on this branch | OK? |
+| ----------------------------------- | --------------------------- | -------------- | --------------------- | --- |
+| Organisation page header            | `AccountPage` → `UserAvatar` | 142×142        | thumbnail WebP        | ❌  |
+| Organisation card (browse)          | `OrganizationPreviewHeader` | 80×80          | thumbnail WebP        | ✅  |
+| Mini avatar (project page, lists)   | `MiniOrganizationPreview`   | 20×20 (30 for `medium`) | thumbnail WebP | ✅  |
+
+Making the thumbnail bigger is not the fix. The cards and mini avatars would then download larger files on every browse page.
+
+**Fix (option 1, agreed):** give the header avatar its own source list in `AccountPage`, which prefers the 600 variant of the 1:1 org `image`:
+
+```ts
+const AVATAR_SOURCES: VariantSource[] = [
+  { field: "image", key: "600" },
+  { field: "thumbnail_image", key: "webp" },
+];
+```
+
+Use `account.image` as the original fallback. The 600×600 WebP is sharp at 142px on any screen and is still only a fraction of the original. The cards and mini avatars keep `THUMBNAIL_SOURCES`. Add a test for the chosen URL. User profiles have no `image_variants`, so they still fall back to `account.image`, as before.
+
+**Considered and rejected (option 2):** change the org config to `"image": {"widths": [300]}` or `[600, 300]` and use the 300 variant. It would match the size better, and the 1200 variant of the org `image` is not used anywhere in the frontend. But it changes the backend config, the tests and the `THUMBNAIL_SOURCES` fallback, and it needs a `--force` backfill for organisations. It only saves a few KB per visit on one page. Possible follow-up.
+
+### B. `thumbnail_image` in `parseOrganization` has no effect (cleanup)
+
+`frontend/public/lib/organizationOperations.ts:12`
+
+`parseOrganization` now sets `thumbnail_image: getImageUrl(organization.thumbnail_image)`. But `OrganizationSerializer` and `EditOrganizationSerializer` do not return `thumbnail_image`, so the value is always `undefined`. It does no harm: the edit form diff treats `undefined` on both sides as equal, so nothing extra is PATCHed. But it is misleading, and with A fixed the `account.thumbnail_image || account.image` fallback in `AccountPage` is not needed any more. Remove both.
+
+### C. A stale instance on delete can leave orphaned variants (low)
+
+`backend/climateconnect_main/utility/image_variants.py` (`delete_image_files`)
+
+`delete_image_files` takes the variant names from the in-memory `instance.image_variants`. If the variant task commits after the delete view loaded the row but before the delete, the new variant files are never deleted. This only leaves extra files: nothing references them and no page points at a missing file. The window is small. It could be closed by re-reading `image_variants` in a `pre_delete` receiver. Not required for this PR.
+
+### Out of scope: the avatar border makes the image smaller
+
+`frontend/src/components/account/UserAvatar.tsx:34`
+
+`UserAvatar` is 150px with a 4px white border inside it (`border-box`), so the image area is only 142px. Nothing is cut off: the upload is a square crop inside a round crop frame (`borderRadius={10000}`), and `object-fit: cover` only scales it down. Showing the full 150px image with the border around it (`boxSizing: "content-box"`, or 158px outer size) would be a reasonable design change. But it also affects user profiles and the edit overlay (`calc(${dimensions}px - 4px)`), and it is not part of #2199. Handle it as its own issue. The 600 variant from A also covers a 150px image at 2× (300px).
+
+## Before manual testing
+
+- [ ] Fix A (header avatar uses `AVATAR_SOURCES`) and B, with a test.
+- [ ] Update the PR #2349 description:
+  - the `MEDIA_ROOT` test runner change (finding 9)
+  - the new hourly beat task `regenerate_missing_image_variants`
+  - the deployment step: run `backfill_image_variants --dry-run` first, then `backfill_image_variants`
+
+## Manual test plan
+
+- Project hero on mobile and desktop: the WebP variant loads after the task finishes, and the original is shown until then.
+- Project and organisation cards, and mini avatars on the project page: the thumbnail WebP loads.
+- Organisation page: the banner loads the 600 variant on mobile and the 1200 variant on desktop. The avatar is sharp on a retina screen after the backfill (A).
+- Replace and remove a project image and an organisation image: the old original and its variants are deleted from storage, and the new variants appear.
+- Delete a project and an organisation: their originals and variants are deleted.
+- Save an image while Redis or Celery is stopped: the save succeeds and the original is shown. After restarting, the beat task (or the backfill) generates the variants.
+- Run `backfill_image_variants --dry-run`, then a real run on a copy of production data. A second run reports every row as already complete.
