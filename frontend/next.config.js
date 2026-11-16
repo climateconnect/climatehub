@@ -110,6 +110,11 @@ module.exports = withBundleAnalyzer({
         permanent: true,
       },
       {
+        source: "/mikrowald-erlangen",
+        destination: "/de/organizations/mikrowald-erlangen?hub=erlangen",
+        permanent: true,
+      },
+      {
         source: "/hitzefrei",
         destination: "/de/projects/wurzburg-entsiegeln?hub=wuerzburg",
         permanent: true,
