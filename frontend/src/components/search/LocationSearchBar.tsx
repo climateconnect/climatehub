@@ -65,6 +65,9 @@ type Props = {
   hideHelperText?: boolean;
   filterMode?: boolean;
   color?: TextFieldProps["color"];
+  // Optional extra element rendered at the end of the input (e.g. a clear
+  // button). Rendered before the Autocomplete's own end adornment.
+  endAdornment?: React.ReactNode;
 };
 
 export default function LocationSearchBar({
@@ -90,6 +93,7 @@ export default function LocationSearchBar({
   enableAdditionalInfo,
   filterMode = false, //Are we filtering any content by this location?
   color,
+  endAdornment,
 }: Props) {
   const { locale, hubUrl } = useContext(UserContext);
   const { isEnabled, isLoading: togglesLoading } = useFeatureToggles();
@@ -476,7 +480,12 @@ export default function LocationSearchBar({
             color={color || "contrast"}
             InputProps={{
               ...params.InputProps,
-              endAdornment: <Fragment>{params.InputProps.endAdornment}</Fragment>,
+              endAdornment: (
+                <Fragment>
+                  {endAdornment}
+                  {params.InputProps.endAdornment}
+                </Fragment>
+              ),
               className: `${textFieldClassName}`,
             }}
           />

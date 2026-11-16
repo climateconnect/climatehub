@@ -15,7 +15,7 @@ from climateconnect_api.utility.common import create_unique_slug
 from climateconnect_api.utility.translation import get_translations
 from climateconnect_main.utility.general import get_image_from_data_url
 from hubs.models.hub import Hub
-from location.utility import get_location
+from location.utility import get_location, get_location_with_range
 from organization.models import Organization, Project, ProjectMember
 from organization.models.type import ProjectTypesChoices
 
@@ -77,6 +77,70 @@ def apply_hub_filter(queryset, hub_url_slug: str):
         elif current_hub.hub_type == Hub.CUSTOM_HUB_TYPE:
             queryset = queryset.filter(related_hubs=current_hub)
 
+    return queryset
+
+
+def has_location_filter_params(query_params) -> bool:
+    """True if the request identifies a location to filter by.
+
+    Mirrors the browse page contract: either the OSM composite
+    (``osm_id`` + ``osm_type``, ``osm_class`` optional for backwards
+    compatibility) or the deprecated ``place_id``.
+    """
+    return (
+        "osm_id" in query_params and "osm_type" in query_params
+    ) or "place_id" in query_params
+
+
+def get_location_filter_data(query_params):
+    """Resolve the location (+ optional ``radius`` in km) from query params.
+
+    Returns ``None`` when no location identifier is present. Otherwise returns
+    the dict produced by ``location.utility.get_location_with_range``
+    (``location``, ``radius``, ``country``, ``name``). Raises
+    ``django.core.exceptions.ValidationError`` if the location can't be
+    resolved — callers decide how to surface that (e.g. HTTP 400).
+    """
+    if not has_location_filter_params(query_params):
+        return None
+    return get_location_with_range(query_params)
+
+
+def apply_location_filter(queryset, location_data, *, annotate_distance=False):
+    """Restrict a Project queryset to projects in/near ``location_data``.
+
+    Shared by the browse project listing and the event calendar endpoints so
+    both use identical location semantics: same country, and either the
+    project's polygon or its centre point within ``radius`` of the location.
+
+    ``annotate_distance=True`` additionally annotates ``distance`` and orders
+    by it (browse behaviour). Event endpoints keep their own chronological
+    ordering and must not pass it.
+    """
+    if not location_data:
+        return queryset
+
+    queryset = queryset.filter(
+        Q(loc__country=location_data["country"])
+        & (
+            Q(
+                loc__multi_polygon__distance_lte=(
+                    location_data["location"],
+                    location_data["radius"],
+                )
+            )
+            | Q(
+                loc__centre_point__distance_lte=(
+                    location_data["location"],
+                    location_data["radius"],
+                )
+            )
+        )
+    )
+    if annotate_distance:
+        queryset = queryset.annotate(
+            distance=Distance("loc__centre_point", location_data["location"])
+        ).order_by("distance")
     return queryset
 
 

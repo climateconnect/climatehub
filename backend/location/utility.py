@@ -767,7 +767,12 @@ def get_location_with_range(query_params):
     if "radius" in query_params:
         radius_value = query_params.get("radius")
         radius = D(km=radius_value)
-    return {"location": location_in_db, "radius": radius, "country": location.country}
+    return {
+        "location": location_in_db,
+        "radius": radius,
+        "country": location.country,
+        "name": location.name,
+    }
 
 
 def get_global_location():
