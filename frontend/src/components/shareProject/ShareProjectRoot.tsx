@@ -1,5 +1,6 @@
 import { Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import React, { useContext, useEffect, useState } from "react";
 import ROLE_TYPES from "../../../public/data/role_types";
@@ -59,6 +60,25 @@ function extractErrorMessage(error: unknown): string | null {
   if (messages.length === 0) return null;
   const status = axiosError.response.status;
   return status ? `Error ${status}: ${messages.join("; ")}` : messages.join("; ");
+}
+
+/**
+ * Report a save/submit failure to Sentry so silent frontend failures stay
+ * visible. Validation errors (4xx responses) are user-fixable and reported as
+ * warnings; everything else (JS exceptions, network failures, 5xx) as errors.
+ */
+function reportSaveError(error: unknown) {
+  const anyError = error as {
+    response?: { status?: number };
+    sentryReported?: boolean;
+  };
+  // Failures from the image pipeline are already reported by blobFromObjectUrl.
+  if (anyError?.sentryReported) return;
+  const status = anyError?.response?.status;
+  Sentry.captureException(error, {
+    level: status && status < 500 ? "warning" : "error",
+    tags: { feature: "share-project" },
+  });
 }
 
 const Headline = styled(Typography)(({ theme }) => ({
@@ -263,6 +283,7 @@ export default function ShareProjectRoot({
       setFinished(true);
     } catch (error: any) {
       console.log(error?.response?.data);
+      reportSaveError(error);
       const detailedMessage = extractErrorMessage(error);
       if (detailedMessage) {
         setErrorMessage(detailedMessage);
@@ -293,6 +314,7 @@ export default function ShareProjectRoot({
       setFinished(true);
     } catch (error: any) {
       console.log(error);
+      reportSaveError(error);
       const detailedMessage = extractErrorMessage(error);
       if (detailedMessage) {
         setErrorMessage(detailedMessage);
@@ -466,7 +488,7 @@ export default function ShareProjectRoot({
         <GenericDialog
           open={errorDialogOpen}
           onClose={handleCloseErrorDialog}
-          title={texts.internal_server_error}
+          title={texts.error_when_saving}
         >
           <Typography>
             {errorMessage ? errorMessage : texts.error_when_publishing_project}

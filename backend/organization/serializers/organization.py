@@ -303,6 +303,7 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
             "id": instance.id,
             "user": user_profile,
             "permission": permission,
+            "is_super_admin": instance.role.name == "Super-Admin",
             "organization": instance.organization.name,
             "time_per_week": (
                 None if not instance.time_per_week else instance.time_per_week.name

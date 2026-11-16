@@ -1109,6 +1109,10 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "Internal Server Error",
       de: "Interner Serverfehler",
     },
+    error_when_saving: {
+      en: "Something went wrong while saving",
+      de: "Beim Speichern ist ein Fehler aufgetreten",
+    },
     number_of_likes: {
       en: "Number of likes",
       de: "Anzahl der Likes",
