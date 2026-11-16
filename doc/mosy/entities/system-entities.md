@@ -225,3 +225,22 @@ This document defines the core system entities for Climate Connect, serving as t
   - `updated_at`: DateTime
 - **Relationships**: None (standalone configuration entity)
 - **Usage**: Used to control feature availability without deployment. Supports environment-specific toggling (production, staging, development).
+
+## 8. Donations
+
+### DonationGoal
+- **Definition**: A crowdfunding target shown as a progress bar ("current/goal") on hub crowdfunding pages during its period. Managed in the Django admin.
+- **Properties**:
+  - `name` (+ German translation), `description`: String
+  - `start_date`, `end_date`: DateTime (period, inclusive at both ends)
+  - `current_amount`, `goal_amount`: Positive integer (counted in units)
+  - `unit`: String (display unit, optional)
+  - call-to-action text (+ German translation) and link: String (optional)
+  - Twingle project id mapping: String (optional, e.g. `tw6a3547480226a`; blank = manual only). Introduced in [#2388](https://github.com/climateconnect/climatehub/issues/2388)
+  - Unit price: Decimal, € per month, > 0, default 7. Introduced in [#2388](https://github.com/climateconnect/climatehub/issues/2388)
+  - `twingle_last_delivery_at`: DateTime (nullable, read-only in admin). Last validly signed Twingle delivery for the mapped project, counted or not; liveness check. Introduced in [#2388](https://github.com/climateconnect/climatehub/issues/2388)
+- **Relationships**: Optionally belongs to `Hub`.
+- **Rules**:
+  - At most one goal per Twingle project id (unique constraint on non-blank values).
+  - `current_amount` is edited by admins and incremented by the Twingle webhook (flow 11). The Twingle project mapping and the unit price aren't exposed by the public API.
+
