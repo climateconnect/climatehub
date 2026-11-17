@@ -1,6 +1,6 @@
 # Update donation goals automatically from a Twingle webhook
 
-**Status**: IMPLEMENTATION (spec complete: all decisions T1–T12 settled, System impact by Archie done; implementation not started)
+**Status**: IMPLEMENTATION (spec complete: all decisions T1–T13 settled, System impact by Archie done; implementation in progress on branch `twingle-webhook`)
 **Type**: Backend: new unauthenticated, signed webhook endpoint plus three new `DonationGoal` fields. No frontend change.
 **Date created**: 2026-11-16
 
@@ -407,3 +407,4 @@ Frontend, the public GET endpoints, Celery, Channels, and the Sentry and logging
 - 2026-11-16: Q3 resolved by Harald: the Twingle project id is visible in twingleMANAGER, so mapping by `project_id` (D2) stands; the `project_name` fallback is dropped.
 - 2026-11-16: Harald decided T13: new field `twingle_last_delivery_at` (liveness check, set on every validly signed delivery for a mapped project); the webhook doesn't touch `updated_at`. Added AC-A7, T-A5, T-N12, ops section "Checking that the webhook is alive"; Archie's `updated_at` recommendation replaced.
 - 2026-11-16: Harald explicitly confirmed the T10 fallback (`traces_sampler` returning 0 for the webhook path) as approved.
+- 2026-11-17: Implementation started on branch `twingle-webhook` (Claude, for Harald).
