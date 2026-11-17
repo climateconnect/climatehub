@@ -484,6 +484,15 @@ toggle rather than by an environment variable — see `FEATURE_TOGGLE_ENVIRONMEN
 
 ---
 
+#### TWINGLE_WEBHOOK_SECRET
+- **Required**: ⚠️ Conditional (required for the Twingle donation webhook)
+- **Type**: String (secret)
+- **Default**: `""`. The webhook **fails closed**: it rejects every delivery with 503 and reports a Sentry error
+- **Description**: Secret for the `X-Hub-Signature-256` HMAC-SHA256 that Twingle sends with every webhook
+  delivery. Must be identical to "Secret für den Validierungshash" in twingleMANAGER.
+- **Production**: Same value on **both** App Service slots, **not** slot-sticky. Never in the repo.
+- **Usage**: `POST /api/webhooks/twingle/`, see [Twingle donation webhook](twingle-donation-webhook.md)
+
 ### Monitoring & Logging
 
 #### SENTRY_DSN
@@ -751,6 +760,7 @@ Frontend environment variables are stored in `.env` file in the `frontend/` dire
 - [ ] `REDIS_PASSWORD`
 - [ ] `SENTRY_DSN`
 - [ ] `SENTRY_ENVIRONMENT`
+- [ ] `TWINGLE_WEBHOOK_SECRET` (if the Twingle donation webhook is used)
 
 ### Frontend - Required for Development
 - [ ] `API_HOST`
@@ -831,3 +841,4 @@ Frontend environment variables are stored in `.env` file in the `frontend/` dire
 - **2026-03-30**: Added `EVENT_REGISTRATION_CONFIRMATION_TEMPLATE_ID` and `EVENT_REGISTRATION_CONFIRMATION_TEMPLATE_ID_DE` for event registration confirmation emails (issue #1845). `StartDate` template variable is now timezone- and language-localised (user location → project location → UTC; `timezonefinder` dependency added via PDM).
 - **2026-04-01**: Added `EVENT_ORGANIZER_MESSAGE_TEMPLATE_ID` and `EVENT_ORGANIZER_MESSAGE_TEMPLATE_ID_DE` for organiser-to-guests emails (issue #1866, spec `20260401_1100_organizer_send_email_to_guests.md`). Both templates default to `""` (empty string) — no emails will be delivered until configured in Mailjet and set in the environment.
 - **2026-04-09**: Added `ADMIN_CANCEL_REGISTRATION_TEMPLATE_ID` and `ADMIN_CANCEL_REGISTRATION_TEMPLATE_ID_DE` for admin-cancellation notification emails sent to guests (issue #1872, spec `20260407_1000_organizer_cancel_guest_registration.md`). Both templates default to `""` (empty string) — no emails will be delivered until configured in Mailjet and set in the environment.
+- **2026-11-17**: Added `TWINGLE_WEBHOOK_SECRET` for the Twingle donation webhook (issue #2388, spec `20261116_1440_issue_2388_twingle_donation_goal_webhook.md`). Unset means the webhook rejects every delivery (503).

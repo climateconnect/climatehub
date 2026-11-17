@@ -1108,6 +1108,35 @@ can't be reached — the rest of the response comes from Postgres and is still s
 }
 ```
 
+### Twingle webhook
+
+Server-to-server endpoint for Twingle, not for the frontend. Operations, setup and go-live:
+[Twingle donation webhook](twingle-donation-webhook.md).
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/webhooks/twingle/` | POST | Signature only | Twingle transaction delivery; adds new recurring donations to the mapped `DonationGoal` |
+
+- **Trailing slash required.** Without it, Django answers a POST with a redirect, which Twingle counts as an error.
+- **Authentication**: only the `X-Hub-Signature-256: sha256=<hex>` header, an HMAC-SHA256 of the raw request
+  body with `TWINGLE_WEBHOOK_SECRET`. It's verified with a constant-time comparison before the body is parsed.
+  Knox tokens, session cookies and CSRF play no role (the view has no authentication classes).
+- **Other headers**: `X-Twingle-Isupdate` (`0` = new transaction, `1` = update).
+- **Body**: Twingle's transaction JSON. Unknown fields are ignored.
+- **Response body**: a fixed status message (`{"detail": "OK."}` etc.), never request content.
+
+| Situation | Status | Goal changed | Sentry |
+|---|---|---|---|
+| Delivery that adds units | 200 | yes | – |
+| Ignored delivery (unmapped project, follow-up booking, one-time, any update, 0 units, non-EUR) | 200 | no | – |
+| Missing, malformed or wrong signature | 401 | no | warning |
+| `TWINGLE_WEBHOOK_SECRET` not set | 503 | no | error |
+| Not a POST | 405 | no | – |
+| Body isn't a JSON object, or a mapped delivery lacks a needed field (`X-Twingle-Isupdate`, a known `donation_rhythm`, `amount`, `currency_code`) | 200 | no | warning |
+| Unexpected error before the change (e.g. database down) | 500 | no | error |
+
+A non-2xx response always means the goal was not changed.
+
 ---
 
 ## Troubleshooting
