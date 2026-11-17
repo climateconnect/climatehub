@@ -1,5 +1,6 @@
 import { styled } from "@mui/material/styles";
 import React, { useContext, useEffect } from "react";
+import getTexts from "../public/texts/texts";
 import { CcLandingpage } from "../devlink/pageComponent/CcLandingpage";
 import { EnLandingpageClimateConnect } from "../devlink/pageComponent/EnLandingpageClimateConnect";
 import UserContext from "../src/components/context/UserContext";
@@ -11,6 +12,7 @@ const Container = styled("div")({
 
 export default function Index() {
   const { locale } = useContext(UserContext);
+  const texts = getTexts({ page: "landing_page", locale: locale });
   // Workaround for a bug with tabs in Webflow's devlink: the generated Tabs wrapper
   // calls `.focus()` on the active tab header whenever it mounts (initial load and on
   // every locale switch, since the landing page component swaps en <-> de). Because the
@@ -38,7 +40,7 @@ export default function Index() {
   }, []);
 
   return (
-    <WideLayout>
+    <WideLayout title={texts.index_page_title} description={texts.index_page_description}>
       <Container>{locale === "de" ? <CcLandingpage /> : <EnLandingpageClimateConnect />}</Container>
     </WideLayout>
   );
