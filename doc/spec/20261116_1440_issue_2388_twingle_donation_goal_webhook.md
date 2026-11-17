@@ -1,6 +1,6 @@
 # Update donation goals automatically from a Twingle webhook
 
-**Status**: IMPLEMENTATION (spec complete: all decisions T1–T13 settled, System impact by Archie done; implementation in progress on branch `twingle-webhook`)
+**Status**: IMPLEMENTATION (spec complete: all decisions T1–T13 settled, System impact by Archie done; Phase 1 implemented on branch `twingle-webhook`, not pushed; awaiting code review)
 **Type**: Backend: new unauthenticated, signed webhook endpoint plus three new `DonationGoal` fields. No frontend change.
 **Date created**: 2026-11-16
 
@@ -257,12 +257,12 @@ Grep the App Service log for `twingle ` and the goal id. Each line is one change
 
 ## Definition of Done
 
-- [ ] Phase 1 acceptance criteria (A, S, N, R, P, D) met. Phase 2 (section X) is not part of this task (Harald, 2026-11-16) and is not implemented.
-- [ ] Migration created and applied; existing goals unaffected.
-- [ ] Tests from the Tests section written; **full** backend suite passes (`cd backend && pdm run python manage.py test --keepdb`).
-- [ ] `make format` run.
-- [ ] Documentation updated (all items above), including the ops guide.
-- [ ] No frontend change (if one turns out to be needed, raise it with Harald first).
+- [x] Phase 1 acceptance criteria (A, S, N, R, P, D) met. Phase 2 (section X) is not part of this task (Harald, 2026-11-16) and is not implemented.
+- [x] Migration created and applied; existing goals unaffected.
+- [x] Tests from the Tests section written; **full** backend suite passes (`cd backend && pdm run python manage.py test --keepdb`).
+- [x] `make format` run.
+- [x] Documentation updated (all items above), including the ops guide.
+- [x] No frontend change (if one turns out to be needed, raise it with Harald first).
 - [ ] Code review done with a focus on AC-P2, AC-S3 and AC-N9.
 - [ ] Go-live checklist (Q1) handed over to Harald. Running it isn't part of code completion.
 
@@ -408,3 +408,7 @@ Frontend, the public GET endpoints, Celery, Channels, and the Sentry and logging
 - 2026-11-16: Harald decided T13: new field `twingle_last_delivery_at` (liveness check, set on every validly signed delivery for a mapped project); the webhook doesn't touch `updated_at`. Added AC-A7, T-A5, T-N12, ops section "Checking that the webhook is alive"; Archie's `updated_at` recommendation replaced.
 - 2026-11-16: Harald explicitly confirmed the T10 fallback (`traces_sampler` returning 0 for the webhook path) as approved.
 - 2026-11-17: Implementation started on branch `twingle-webhook` (Claude, for Harald).
+- 2026-11-17: Phase 1 implemented (branch `twingle-webhook`, 6 commits, not pushed). Fields `twingle_project_id`, `twingle_unit_price`, `twingle_last_delivery_at` (migration 0103, with database defaults for the slot swap, a partial unique constraint and a check constraint `> 0`); own `DonationGoalAdmin`; setting `TWINGLE_WEBHOOK_SECRET`; logger `climateconnect_api.twingle` (T9); endpoint `POST /api/webhooks/twingle/` (`climateconnect_api/views/twingle_webhook_views.py`). Tests in `climateconnect_api/tests/test_twingle_webhook.py` (54); full suite 1176 tests OK (15 skipped) with `--keepdb`. Docs: new ops guide `doc/twingle-donation-webhook.md`, plus domain-entities, api-documentation, environment-variables, sentry, architecture. `doc/mosy/` checked: matches what was built. Open DoD items: code review, Q1 hand-over.
+- 2026-11-17: **Deviation from System impact (Sentry)**: the event processor is registered on the request's isolation scope **and** its current scope. In sentry-sdk 2.59, Django's WSGI-style request processor sits on the current scope, and current-scope processors run after isolation-scope ones. With the isolation scope alone, T-P1 leaked the body on the WSGI path (checked by mutation test). Both scopes are forked per request, so it stays scoped (a test checks that other endpoints keep their request data). T-P1 runs through the real WSGI and ASGI handlers. The `traces_sampler` fallback wasn't needed.
+- 2026-11-17: Implementation choices for Harald to confirm (not in the spec): (1) `amount` above 1,000,000 € is treated as malformed (200 + warning), which keeps the exact arithmetic cheap and `current_amount` in range. (2) A `donation_error` value outside the AC-N10 encodings is treated as malformed (not counted, warning). (3) `currency_code` is compared case-insensitively; the payload's `project_id` is trimmed. (4) The change line also names the rhythm (allowed by AC-P3): `twingle trx=… project=… goal=… +2 units (monthly)`. Values that aren't `[A-Za-z0-9_.:-]{1,64}` are logged as `-`. (5) OPTIONS also returns 405. (6) `DonationGoalFactory` lives in the test module, because `climateconnect_api/factories.py` uses the removed `factory.DjangoModelFactory` API and can't be imported. (7) The ops guide leaves the production API host as a placeholder (`api.climateconnect.earth` in old docs may be stale).
+- 2026-11-17: Note: `make format` (black 26.3.1 in the PDM env) reformats 4 unrelated files that the pre-commit hook (black 23.12.0) formats differently. Those changes were reverted, not committed.
