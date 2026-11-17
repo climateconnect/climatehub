@@ -8,6 +8,8 @@ import hashlib
 import hmac
 import json
 import logging
+import re
+import time
 from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
@@ -28,6 +30,7 @@ from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from knox.models import AuthToken
+from sentry_sdk import scope as scope_module
 from sentry_sdk.transport import Transport
 
 from climateconnect_api.models import DonationGoal
@@ -47,8 +50,10 @@ SENTINELS = {
     "debit_iban": "DE89SENTINEL7731000000",
     "user_street": "Sentinelstrasse 7731",
 }
-# The amount must never be logged (AC-P3); an odd value is easy to grep.
-SENTINEL_AMOUNT = 9317
+# The amount must never be logged (AC-P3). Below MAX_AMOUNT, and searched only
+# as a whole number, so random hex ids and timestamp digits can't match it.
+SENTINEL_AMOUNT = 937163
+SENTINEL_AMOUNT_RE = re.compile(r"(?<![0-9a-fA-F.])%d(?![0-9a-fA-F])" % SENTINEL_AMOUNT)
 
 
 class DonationGoalFactory(factory.django.DjangoModelFactory):
@@ -102,6 +107,12 @@ class TwingleWebhookTestCase(TestCase):
         patcher = mock.patch.object(twingle_webhook_views.sentry_sdk, "capture_message")
         self.capture_message = patcher.start()
         self.addCleanup(patcher.stop)
+        # Records the reason codes; the Sentry call itself is the mock above.
+        patcher = mock.patch.object(
+            twingle_webhook_views, "_report", wraps=twingle_webhook_views._report
+        )
+        self.report = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def deliver(self, payload=None, isupdate="0", signature=None, client=None, **extra):
         body = encode(make_payload() if payload is None else payload)
@@ -124,13 +135,12 @@ class TwingleWebhookTestCase(TestCase):
         self.assertAmount(10)
 
     def assertWarned(self, reason):
-        self.assertTrue(
-            any(
-                c.kwargs.get("level") == "warning"
-                for c in self.capture_message.call_args_list
-            ),
-            "expected a Sentry warning (%s)" % reason,
-        )
+        warnings = [
+            c.args[1]
+            for c in self.report.call_args_list
+            if c.kwargs.get("level", "warning") == "warning"
+        ]
+        self.assertIn(reason, warnings, "expected a Sentry warning (%s)" % reason)
 
     def assertNotWarned(self):
         self.capture_message.assert_not_called()
@@ -268,25 +278,29 @@ class SecurityTests(TwingleWebhookTestCase):
         # T-S1
         response = self.deliver(signature=False)
         self.assertUnchanged(response, 401)
-        self.assertWarned("missing signature")
+        self.assertWarned("signature_missing")
 
     def test_wrong_or_malformed_signatures(self):
         # T-S2
         body = encode(make_payload())
         cases = {
-            "wrong secret": sign(body, "other-secret"),
-            "other body": sign(b'{"project_id": "x"}'),
-            "no prefix": sign(body)[len("sha256=") :],
-            "non-hex": "sha256=" + "z" * 64,
-            "wrong algorithm": sign(body).replace("sha256=", "sha1="),
-            "truncated": sign(body)[:-2],
-            "non-ascii": "sha256=" + "ä" * 64,
+            "wrong secret": (sign(body, "other-secret"), "signature_mismatch"),
+            "other body": (sign(b'{"project_id": "x"}'), "signature_mismatch"),
+            "no prefix": (sign(body)[len("sha256=") :], "signature_malformed"),
+            "non-hex": ("sha256=" + "z" * 64, "signature_malformed"),
+            "wrong algorithm": (
+                sign(body).replace("sha256=", "sha1="),
+                "signature_malformed",
+            ),
+            "truncated": (sign(body)[:-2], "signature_malformed"),
+            "non-ascii": ("sha256=" + "ä" * 64, "signature_malformed"),
         }
-        for name, signature in cases.items():
+        for name, (signature, reason) in cases.items():
             with self.subTest(name):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 self.assertUnchanged(self.deliver(signature=signature), 401)
-                self.assertWarned(name)
+                self.assertWarned(reason)
 
     def test_body_altered_by_one_byte(self):
         # T-S3
@@ -304,6 +318,7 @@ class SecurityTests(TwingleWebhookTestCase):
                 override_settings(TWINGLE_WEBHOOK_SECRET=secret),
             ):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 response = self.deliver(body, signature=sign(body, ""))
                 self.assertUnchanged(response, 503)
                 self.assertEqual(
@@ -407,6 +422,7 @@ class CountingTests(TwingleWebhookTestCase):
         for value in (None, "", "2", "yes"):
             with self.subTest(isupdate=value):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 self.assertUnchanged(self.deliver(isupdate=value))
                 self.assertWarned("isupdate")
 
@@ -440,6 +456,7 @@ class CountingTests(TwingleWebhookTestCase):
         for value in ("weekly", "", None, ABSENT, 1):
             with self.subTest(rhythm=value):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 self.assertUnchanged(self.deliver(make_payload(donation_rhythm=value)))
                 self.assertWarned("donation_rhythm")
 
@@ -538,6 +555,21 @@ class CountingTests(TwingleWebhookTestCase):
         _, kwargs = update.call_args
         self.assertEqual(str(kwargs["current_amount"]), "F(current_amount) + Value(2)")
 
+    def test_sub_cent_amounts_round_down_to_cents(self):
+        # A tiny exponent must not blow up the exact arithmetic.
+        cases = [("13.999", 1), ("6.999", 0), ("1e-999999999", 0), ("14.00000", 2)]
+        for amount, units in cases:
+            with self.subTest(amount=amount):
+                self.goal.current_amount = 10
+                self.goal.save()
+                started = time.monotonic()
+                self.assertEqual(
+                    self.deliver(make_payload(amount=amount)).status_code, 200
+                )
+                self.assertLess(time.monotonic() - started, 5)
+                self.assertAmount(10 + units)
+        self.assertNotWarned()
+
     def test_absurd_amount_is_malformed(self):
         for amount in (
             "1e999999999",
@@ -551,6 +583,7 @@ class CountingTests(TwingleWebhookTestCase):
         ):
             with self.subTest(amount=amount):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 self.assertUnchanged(self.deliver(make_payload(amount=amount)))
                 self.assertWarned("amount")
 
@@ -602,24 +635,26 @@ class LivenessTests(TwingleWebhookTestCase):
 class ResponseContractTests(TwingleWebhookTestCase):
     def test_invalid_json_or_non_object(self):
         # T-R1
-        for body in (
-            b"not json",
-            b"[1, 2]",
-            b'"text"',
-            b"",
-            b"\xff\xfe\x00",
-            b"[" * 100000,
+        for body, reason in (
+            (b"not json", "invalid_json"),
+            (b"[1, 2]", "not_an_object"),
+            (b'"text"', "not_an_object"),
+            (b"", "invalid_json"),
+            (b"\xff\xfe\x00", "invalid_json"),
+            (b"[" * 100000, "invalid_json"),
         ):
             with self.subTest(body=body[:10]):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 self.assertUnchanged(self.deliver(body))
-                self.assertWarned("json")
+                self.assertWarned(reason)
 
     def test_missing_amount_or_currency(self):
         # T-R2
         for field in ("amount", "currency_code"):
             with self.subTest(field):
                 self.capture_message.reset_mock()
+                self.report.reset_mock()
                 self.assertUnchanged(self.deliver(make_payload(**{field: ABSENT})))
                 self.assertWarned(field)
 
@@ -670,10 +705,10 @@ class LoggingTests(TwingleWebhookTestCase):
         self.assertTrue(line.startswith("twingle "))
         self.assertEqual(
             line,
-            "twingle trx=52934 project=%s goal=%d +110 units (yearly)"
-            % (PROJECT, self.goal.id),
+            "twingle trx=52934 project=%s goal=%d +%d units (yearly)"
+            % (PROJECT, self.goal.id, SENTINEL_AMOUNT // (12 * 7)),
         )
-        self.assertNotIn(str(SENTINEL_AMOUNT), line)
+        self.assertNotRegex(line, SENTINEL_AMOUNT_RE)
         for value in SENTINELS.values():
             self.assertNotIn(value, line)
 
@@ -816,6 +851,9 @@ class SentryPrivacyTests(TestCase):
                 self.assertNotIn(
                     value, serialized, "%s leaked into %s" % (value, item_type)
                 )
+            self.assertNotRegex(
+                serialized, SENTINEL_AMOUNT_RE, "amount leaked into %s" % item_type
+            )
 
     def run_scenarios(self, post, check_amount=True):
         payload = make_payload(amount=SENTINEL_AMOUNT)
@@ -855,7 +893,6 @@ class SentryPrivacyTests(TestCase):
                 bad_signature.split("=")[1],
                 SECRET,
                 body.decode()[20:60],
-                str(SENTINEL_AMOUNT),
             ],
         )
         if check_amount:
@@ -876,9 +913,24 @@ class SentryPrivacyTests(TestCase):
         ):
             self.run_scenarios(self.asgi_post, check_amount=False)
 
-    def test_other_endpoints_keep_their_request_data(self):
-        # The processor is scoped to the webhook request.
-        self.wsgi_post(b"{}", "sha256=" + "0" * 64)
+    def test_processor_stays_on_the_webhook_request(self):
+        # The processor is scoped to the webhook request: the request's scopes
+        # are forks, so the scopes outside it don't gain it. Asserting on
+        # another endpoint's events can't show this, because Django re-adds
+        # the request data after any leaked processor.
+        def registered():
+            lists = [
+                scope_module.global_event_processors,
+                sentry_sdk.get_global_scope()._event_processors,
+                sentry_sdk.get_isolation_scope()._event_processors,
+                sentry_sdk.get_current_scope()._event_processors,
+            ]
+            processor = twingle_webhook_views._strip_request_data
+            return [processors.count(processor) for processors in lists]
+
+        before = registered()
+        self.assertEqual(self.wsgi_post(b"{}", "sha256=" + "0" * 64), 401)
+        self.assertEqual(registered(), before)
         self.transport.envelopes.clear()
         environ = (
             RequestFactory().get("/api/donation_goals_progresses/?probe=1").environ

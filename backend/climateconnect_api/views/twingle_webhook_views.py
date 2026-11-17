@@ -19,7 +19,7 @@ import hmac
 import json
 import logging
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_DOWN, Decimal, InvalidOperation
 from fractions import Fraction
 
 import sentry_sdk
@@ -46,10 +46,11 @@ RHYTHM_MONTHS = {
     "yearly": 12,
 }
 ONE_TIME_RHYTHM = "one_time"
-# No real donation comes near this. The bound keeps the exact arithmetic cheap
-# and current_amount within its integer column, so an absurd value is treated
-# as malformed (200) instead of failing with a 500 on every retry.
+# No real donation comes near this. The bound keeps current_amount within its
+# integer column, so an absurd value is treated as malformed (200) instead of
+# failing with a 500 on every retry.
 MAX_AMOUNT = Decimal(1_000_000)
+CENT = Decimal("0.01")
 
 _SIGNATURE_RE = re.compile(r"sha256=([0-9a-fA-F]{64})")
 # Values that end up in a log line are reduced to a safe charset, so a signed
@@ -131,7 +132,9 @@ def _read_amount(value):
         raise _Malformed("amount") from None
     if not amount.is_finite() or amount < 0 or amount > MAX_AMOUNT:
         raise _Malformed("amount")
-    return amount
+    # Whole cents keep the exact arithmetic in compute_units small: an exponent
+    # like 1e-999999999 would otherwise become a billion-digit fraction.
+    return amount.quantize(CENT, rounding=ROUND_DOWN)
 
 
 def compute_units(amount, months, unit_price):
