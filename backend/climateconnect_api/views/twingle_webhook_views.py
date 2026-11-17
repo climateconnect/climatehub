@@ -179,6 +179,15 @@ def _decide(payload, isupdate_header, unit_price):
     return compute_units(amount, RHYTHM_MONTHS[rhythm], unit_price), rhythm, None
 
 
+def find_mapped_goal(project_id):
+    """The goal mapped to a Twingle project, as {id, twingle_unit_price}."""
+    return (
+        DonationGoal.objects.filter(twingle_project_id=project_id)
+        .values("id", "twingle_unit_price")
+        .first()
+    )
+
+
 class TwingleWebhookView(APIView):
     """POST /api/webhooks/twingle/: signed Twingle transaction delivery.
 
@@ -258,13 +267,7 @@ class TwingleWebhookView(APIView):
     def _process(self, payload, isupdate_header):
         project_id = payload.get("project_id")
         project_id = project_id.strip() if isinstance(project_id, str) else ""
-        goal = (
-            DonationGoal.objects.filter(twingle_project_id=project_id)
-            .values("id", "twingle_unit_price")
-            .first()
-            if project_id
-            else None
-        )
+        goal = find_mapped_goal(project_id) if project_id else None
         if goal is None:
             # Unmapped projects are ignored without validating the rest, so
             # other Twingle projects create no Sentry noise.
