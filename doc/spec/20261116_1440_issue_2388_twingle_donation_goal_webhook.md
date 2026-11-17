@@ -1,6 +1,6 @@
 # Update donation goals automatically from a Twingle webhook
 
-**Status**: IMPLEMENTATION (spec complete: all decisions T1–T13 settled, System impact by Archie done; Phase 1 implemented on branch `twingle-webhook`, not pushed; awaiting code review)
+**Status**: IMPLEMENTATION (spec complete: all decisions T1–T13 settled, System impact by Archie done; Phase 1 implemented and reviewed on branch `twingle-webhook`, not pushed)
 **Type**: Backend: new unauthenticated, signed webhook endpoint plus three new `DonationGoal` fields. No frontend change.
 **Date created**: 2026-11-16
 
@@ -263,7 +263,7 @@ Grep the App Service log for `twingle ` and the goal id. Each line is one change
 - [x] `make format` run.
 - [x] Documentation updated (all items above), including the ops guide.
 - [x] No frontend change (if one turns out to be needed, raise it with Harald first).
-- [ ] Code review done with a focus on AC-P2, AC-S3 and AC-N9.
+- [x] Code review done with a focus on AC-P2, AC-S3 and AC-N9.
 - [ ] Go-live checklist (Q1) handed over to Harald. Running it isn't part of code completion.
 
 ---
@@ -412,3 +412,4 @@ Frontend, the public GET endpoints, Celery, Channels, and the Sentry and logging
 - 2026-11-17: **Deviation from System impact (Sentry)**: the event processor is registered on the request's isolation scope **and** its current scope. In sentry-sdk 2.59, Django's WSGI-style request processor sits on the current scope, and current-scope processors run after isolation-scope ones. With the isolation scope alone, T-P1 leaked the body on the WSGI path (checked by mutation test). Both scopes are forked per request, so it stays scoped (a test checks that other endpoints keep their request data). T-P1 runs through the real WSGI and ASGI handlers. The `traces_sampler` fallback wasn't needed.
 - 2026-11-17: Implementation choices for Harald to confirm (not in the spec): (1) `amount` above 1,000,000 € is treated as malformed (200 + warning), which keeps the exact arithmetic cheap and `current_amount` in range. (2) A `donation_error` value outside the AC-N10 encodings is treated as malformed (not counted, warning). (3) `currency_code` is compared case-insensitively; the payload's `project_id` is trimmed. (4) The change line also names the rhythm (allowed by AC-P3): `twingle trx=… project=… goal=… +2 units (monthly)`. Values that aren't `[A-Za-z0-9_.:-]{1,64}` are logged as `-`. (5) OPTIONS also returns 405. (6) `DonationGoalFactory` lives in the test module, because `climateconnect_api/factories.py` uses the removed `factory.DjangoModelFactory` API and can't be imported. (7) The ops guide leaves the production API host as a placeholder (`api.climateconnect.earth` in old docs may be stale).
 - 2026-11-17: Note: `make format` (black 26.3.1 in the PDM env) reformats 4 unrelated files that the pre-commit hook (black 23.12.0) formats differently. Those changes were reverted, not committed.
+- 2026-11-17: Code review (independent reviewer plus Claude, read against the sentry-sdk 2.59 source). AC-S3, AC-N9 and AC-P2 confirmed; no production blocker. Fixed: (1) a signed `amount` such as `1e-999999999` passed the range check and made the exact arithmetic build a billion-digit fraction (timeout or 500, then retries); amounts are now rounded down to whole cents before computing units, with a new test. (2) T-P1 was flaky: the amount sentinel `9317` sometimes appeared in random span ids, so it is now `937163` and matched only as a whole number (0 failures in 30 runs). (3) The scoping test couldn't detect a leaked processor, because Django re-adds the request data afterwards; it now checks the global, isolation and current processor lists (caught by mutation tests). (4) `assertWarned` now asserts the `twingle_reason` code. Full suite: 1177 tests OK (15 skipped). Not fixed, noted: test-client requests attach the processor to the process-wide test scopes (tests only; production forks per request); 503 and 500 also produce a second Sentry event from Django's `django.request` logger (stripped, noise only); a surrounding-whitespace secret is trimmed (use `token_hex`); a NUL in `project_id` probably gives a 500 instead of 200.
