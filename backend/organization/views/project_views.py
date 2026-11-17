@@ -12,8 +12,8 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
-from django.shortcuts import get_object_or_404
 from django.db.models import Case, Prefetch, Q, When
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
 from rest_framework import status
@@ -94,11 +94,11 @@ from organization.serializers.event_registration import (
 from organization.serializers.project import (
     EditProjectSerializer,
     InsertProjectMemberSerializer,
+    JoinRequestDetailSerializer,
     ProjectFollowerSerializer,
     ProjectLikeSerializer,
     ProjectMemberSerializer,
     ProjectRequesterSerializer,
-    JoinRequestDetailSerializer,
     ProjectSerializer,
     ProjectSitemapEntrySerializer,
     ProjectStubSerializer,
@@ -1755,6 +1755,7 @@ class JoinRequestDetailView(RetrieveAPIView):
         self.is_admin = ProjectMember.objects.filter(
             Q(user=user)
             & Q(project=project)
+            & Q(is_active=True)
             & Q(
                 Q(role__role_type=Role.ALL_TYPE)
                 | Q(role__role_type=Role.READ_WRITE_TYPE)

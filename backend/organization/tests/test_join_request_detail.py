@@ -72,12 +72,14 @@ class TestJoinRequestDetail(APITestCase):
         self.assertIsNotNone(res.data["decided_at"])
         self.assertEqual(res.data["decided_by"]["url_slug"], "jr_admin")
         self.assertEqual(res.data["user_profile"]["url_slug"], "jr_requester")
+        self.assertTrue(res.data["is_admin"])
 
     def test_requester_sees_own_without_decided_by(self):
         self.client.force_authenticate(self.requester)
         res = self.client.get(self._url())
         self.assertEqual(res.status_code, 200)
         self.assertNotIn("decided_by", res.data)
+        self.assertFalse(res.data["is_admin"])
 
     def test_other_user_member_and_anonymous_denied(self):
         self.client.force_authenticate(self.other)
@@ -148,6 +150,39 @@ class TestJoinRequestDetail(APITestCase):
         self.join_request.refresh_from_db()
         self.assertEqual(self.join_request.request_status, RequestStatus.REJECTED.value)
         self.assertEqual(self.join_request.rejected_at, decided_at)
+
+    def test_inactive_admin_cannot_read_others_request(self):
+        ProjectMember.objects.filter(user=self.admin, project=self.project).update(
+            is_active=False
+        )
+        self.client.force_authenticate(self.admin)
+        self.assertEqual(self.client.get(self._url()).status_code, 403)
+
+    def test_inactive_admin_own_request_has_no_decided_by(self):
+        ProjectMember.objects.filter(user=self.admin, project=self.project).update(
+            is_active=False
+        )
+        own = self._request(self.admin)
+        self.client.force_authenticate(self.admin)
+        res = self.client.get(self._url(request_id=own.id))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotIn("decided_by", res.data)
+
+    def test_decision_with_other_projects_request_is_400_not_409(self):
+        other_req = self._request(self.other, project=self.other_project)
+        other_req.request_status = RequestStatus.REJECTED.value
+        other_req.rejected_at = timezone.now()
+        other_req.save()
+        self.client.force_authenticate(self.admin)
+        url = reverse(
+            "organization:request-membership-action-entity",
+            kwargs={
+                "url_slug": self.project.url_slug,
+                "request_action": "approve",
+                "request_id": other_req.id,
+            },
+        )
+        self.assertEqual(self.client.post(url).status_code, 400)
 
     def test_list_includes_message_and_requested_at(self):
         self.client.force_authenticate(self.admin)

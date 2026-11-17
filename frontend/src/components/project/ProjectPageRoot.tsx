@@ -766,7 +766,11 @@ export default function ProjectPageRoot({
           </TabContent>
         )}
         <TabContent value={tabValue} index={showRegistrationsTab ? 2 : 1}>
-          <ProjectTeamContent project={project} handleReadNotifications={handleReadNotifications} />
+          <ProjectTeamContent
+            project={project}
+            handleReadNotifications={handleReadNotifications}
+            onMembersRefreshed={onMembersRefreshed}
+          />
         </TabContent>
 
         <TabContent value={tabValue} index={showRegistrationsTab ? 3 : 2}>

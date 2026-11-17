@@ -79,7 +79,7 @@ Add a **join request dialog** that shows one request in full, lets a project adm
 - **AC-3.4** After approve/decline in the dialog the list refreshes and the row disappears; the team member list also refreshes after an approval.
 - **AC-3.5** The legacy `ProjectRequestersDialog` and its entry point (`show_join_requests`) are **unchanged** and do not open the new dialog. With the toggle on, both coexist until the old one is retired in a later task.
 - **AC-3.6** Deep link: the project **team** page with `?join_request=<id>` opens the dialog on load (SSR-safe: opens client-side after mount). It works for requests not in the list (e.g. already decided).
-- **AC-3.7** Opening/closing the dialog updates the URL (`join_request` param added/removed with `router.replace`, shallow) so the state is shareable and browser back closes it.
+- **AC-3.7** Opening/closing the dialog updates the URL (`join_request` param added/removed with `router.replace`, shallow) so the state is shareable ; `replace` adds no history entry, so browser back leaves the page rather than closing the dialog (decision: keep `replace`).
 - **AC-3.8** An invalid id in the URL shows the not-found state and does not break the page.
 
 ### AC-4: Feature toggle

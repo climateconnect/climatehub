@@ -61,7 +61,7 @@ describe("JoinRequestDetailDialog", () => {
   });
 
   it("renders fields, message as text, and admin actions for a pending request", async () => {
-    mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null });
+    mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null, is_admin: true });
     renderDialog();
     expect(await screen.findByText(/alice Doe/)).toBeInTheDocument();
     expect(screen.getByText("Berlin")).toBeInTheDocument();
@@ -72,12 +72,15 @@ describe("JoinRequestDetailDialog", () => {
   });
 
   it("approves, reloads, and notifies the parent", async () => {
-    mockedGet.mockResolvedValueOnce({ ...baseRequest, decided_by: null }).mockResolvedValueOnce({
-      ...baseRequest,
-      request_status: "approved",
-      decided_at: "2026-11-02T10:00:00Z",
-      decided_by: profile("boss"),
-    });
+    mockedGet
+      .mockResolvedValueOnce({ ...baseRequest, decided_by: null, is_admin: true })
+      .mockResolvedValueOnce({
+        ...baseRequest,
+        request_status: "approved",
+        decided_at: "2026-11-02T10:00:00Z",
+        decided_by: profile("boss"),
+        is_admin: true,
+      });
     mockedDecide.mockResolvedValue({});
     const { onDecided } = renderDialog();
     fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
@@ -90,7 +93,7 @@ describe("JoinRequestDetailDialog", () => {
   });
 
   it("declines with the reject endpoint", async () => {
-    mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null });
+    mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null, is_admin: true });
     mockedDecide.mockResolvedValue({});
     renderDialog();
     fireEvent.click(await screen.findByRole("button", { name: "Decline" }));
@@ -99,11 +102,31 @@ describe("JoinRequestDetailDialog", () => {
     );
   });
 
+  it("shows the current status when the request was already decided (409)", async () => {
+    mockedGet.mockResolvedValueOnce({ ...baseRequest, decided_by: null, is_admin: true });
+    mockedGet.mockResolvedValueOnce({
+      ...baseRequest,
+      request_status: "rejected",
+      decided_at: "2026-11-02T10:00:00Z",
+      decided_by: profile("boss"),
+      is_admin: true,
+    });
+    mockedDecide.mockRejectedValue({ response: { status: 409 } });
+    const { showFeedbackMessage, onDecided } = renderDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    await waitFor(() =>
+      expect(showFeedbackMessage).toHaveBeenCalledWith(expect.objectContaining({ error: true }))
+    );
+    expect(await screen.findByText(/Declined by/)).toBeInTheDocument();
+    expect(onDecided).not.toHaveBeenCalled();
+  });
+
   it("shows no actions and no decider to the requester", async () => {
     mockedGet.mockResolvedValue({
       ...baseRequest,
       request_status: "approved",
       decided_at: "2026-11-02T10:00:00Z",
+      is_admin: false,
     });
     renderDialog();
     expect(await screen.findByText(/Approved/)).toBeInTheDocument();
@@ -112,7 +135,7 @@ describe("JoinRequestDetailDialog", () => {
   });
 
   it("shows no message placeholder when empty", async () => {
-    mockedGet.mockResolvedValue({ ...baseRequest, message: "", decided_by: null });
+    mockedGet.mockResolvedValue({ ...baseRequest, message: "", decided_by: null, is_admin: true });
     renderDialog();
     expect(await screen.findByText("No message")).toBeInTheDocument();
   });

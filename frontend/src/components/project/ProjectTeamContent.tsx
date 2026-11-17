@@ -15,6 +15,7 @@ import UserContext from "../context/UserContext";
 import LoginNudge from "../general/LoginNudge";
 import ProfilePreviews from "./../profile/ProfilePreviews";
 import { useFeatureToggles } from "../featureToggle";
+import { JOIN_REQUESTS_CHANGED_EVENT } from "../../../public/lib/joinRequestOperations";
 import { getMembershipRequests } from "../../../public/lib/projectOperations";
 import JoinRequestDetailDialog from "./JoinRequestDetailDialog";
 import OpenJoinRequestsList, { OpenJoinRequest } from "./OpenJoinRequestsList";
@@ -58,7 +59,7 @@ function getTeamWithAdditionalInfo(team, texts) {
   });
 }
 
-export default function TeamContent({ project, handleReadNotifications }) {
+export default function TeamContent({ project, handleReadNotifications, onMembersRefreshed }: any) {
   const { user, locale } = useContext(UserContext);
   const { hubUrl } = useContext(HubContext);
   const texts = getTexts({ page: "project", locale: locale });
@@ -114,8 +115,10 @@ export default function TeamContent({ project, handleReadNotifications }) {
 
   const handleDecided = async (action: "approve" | "reject") => {
     await loadOpenRequests();
-    // refresh the team (server-side props) after an approval
-    if (action === "approve") void router.replace(router.asPath, undefined, { scroll: false });
+    // keep the open-requests badge in the side buttons in sync
+    window.dispatchEvent(new Event(JOIN_REQUESTS_CHANGED_EVENT));
+    // refresh the team members after an approval
+    if (action === "approve" && onMembersRefreshed) await onMembersRefreshed();
   };
 
   const dialog = joinRequestsEnabled ? (
@@ -141,12 +144,7 @@ export default function TeamContent({ project, handleReadNotifications }) {
 
   // Not logged in
   if (!user) {
-    return (
-      <>
-        <LoginNudge whatToDo={texts.to_see_this_projects_team_members} />
-        {dialog}
-      </>
-    );
+    return <LoginNudge whatToDo={texts.to_see_this_projects_team_members} />;
   }
 
   // TODO: admin access, review members

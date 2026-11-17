@@ -1,5 +1,8 @@
 import { apiRequest } from "./apiOperations";
 
+// Dispatched on window after a request was decided, so other views can refresh.
+export const JOIN_REQUESTS_CHANGED_EVENT = "join-requests-changed";
+
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
 
 export type JoinRequestUserStub = {
@@ -17,6 +20,8 @@ export type JoinRequestDetail = {
   requested_at: string;
   request_status: JoinRequestStatus;
   decided_at: string | null;
+  // true if the viewer is a project admin
+  is_admin: boolean;
   // only present for project admins
   decided_by?: JoinRequestUserStub | null;
 };

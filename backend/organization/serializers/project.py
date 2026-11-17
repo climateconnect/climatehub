@@ -641,7 +641,8 @@ class ProjectRequesterSerializer(serializers.ModelSerializer):
 
 class JoinRequestDetailSerializer(serializers.ModelSerializer):
     """Single join request. `decided_by` is only included for project admins
-    (context flag `include_decided_by`)."""
+    (context flag `include_decided_by`). `is_admin` tells the client explicitly
+    whether the viewer may decide, so it doesn't depend on the payload shape."""
 
     user_profile = serializers.SerializerMethodField()
     message = serializers.SerializerMethodField()
@@ -683,8 +684,10 @@ class JoinRequestDetailSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if not self.context.get("include_decided_by", False):
+        is_admin = self.context.get("include_decided_by", False)
+        if not is_admin:
             data.pop("decided_by", None)
+        data["is_admin"] = bool(is_admin)
         return data
 
 

@@ -117,14 +117,6 @@ class MembershipRequestsManager:
                 )
             else:
                 self.membership_request = self.membership_request.first()
-                if (
-                    self.membership_request.request_status
-                    != RequestStatus.PENDING.value
-                ):
-                    self.validation_failed = True
-                    self.already_decided = True
-                    self.errors.append("Request has already been decided")
-
                 user_in_project = is_part_of_project(
                     user=self.membership_request.user,
                     project=self.membership_request.target_project,
@@ -149,6 +141,17 @@ class MembershipRequestsManager:
                     ):
                         self.validation_failed = True
                         self.errors.append("Inconsistent Project and Request")
+
+                # Only report "already decided" once the request is known to
+                # belong to this project, so other projects' statuses don't leak.
+                if (
+                    self.membership_request.request_status
+                    != RequestStatus.PENDING.value
+                    and "Inconsistent Project and Request" not in self.errors
+                ):
+                    self.validation_failed = True
+                    self.already_decided = True
+                    self.errors.append("Request has already been decided")
         return
 
     def create_membership_request(self, **kwargs):

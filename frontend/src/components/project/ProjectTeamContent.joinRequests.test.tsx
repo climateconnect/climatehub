@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -11,12 +11,14 @@ import { getMembershipRequests } from "../../../public/lib/projectOperations";
 import ROLE_TYPES from "../../../public/data/role_types";
 
 let mockQuery: any = {};
+const mockReplace = jest.fn();
+let mockAsPath = "/projects/proj?join_request=9";
 jest.mock("next/router", () => ({
   useRouter: () => ({
     query: mockQuery,
     pathname: "/projects/[id]",
-    asPath: "/",
-    replace: jest.fn(),
+    asPath: mockAsPath,
+    replace: mockReplace,
   }),
 }));
 jest.mock("universal-cookie", () => jest.fn().mockImplementation(() => ({ get: () => "token" })));
@@ -24,7 +26,14 @@ jest.mock("../featureToggle");
 jest.mock("../../../public/lib/projectOperations");
 jest.mock("./JoinRequestDetailDialog", () => ({
   __esModule: true,
-  default: ({ open, requestId }) => (open ? <div>dialog-{requestId}</div> : null),
+  default: ({ open, requestId, onClose, onDecided }) =>
+    open ? (
+      <div>
+        dialog-{requestId}
+        <button onClick={onClose}>close-dialog</button>
+        <button onClick={() => onDecided("approve")}>approve-dialog</button>
+      </div>
+    ) : null,
 }));
 jest.mock("../../../public/lib/joinRequestOperations");
 jest.mock("./../profile/ProfilePreviews", () => ({ __esModule: true, default: () => null }));
@@ -41,11 +50,15 @@ const project = (permission) => ({
   team: [{ id: 1, permission }],
 });
 
-const renderTeam = (permission) =>
+const renderTeam = (permission, onMembersRefreshed = jest.fn()) =>
   render(
     <ThemeProvider theme={theme}>
       <UserContext.Provider value={{ locale: "en", user: { id: 1 } } as any}>
-        <ProjectTeamContent project={project(permission)} handleReadNotifications={jest.fn()} />
+        <ProjectTeamContent
+          project={project(permission)}
+          handleReadNotifications={jest.fn()}
+          onMembersRefreshed={onMembersRefreshed}
+        />
       </UserContext.Provider>
     </ThemeProvider>
   );
@@ -85,5 +98,33 @@ describe("ProjectTeamContent join requests", () => {
     mockQuery = { join_request: "9" };
     renderTeam(ROLE_TYPES.all_type);
     expect(await screen.findByText("dialog-9")).toBeInTheDocument();
+  });
+
+  it("removes the param and keeps the hash when the dialog is closed", async () => {
+    setToggle(true);
+    mockQuery = { join_request: "9" };
+    mockAsPath = "/projects/proj?foo=1&join_request=9";
+    window.location.hash = "#team";
+    renderTeam(ROLE_TYPES.all_type);
+    fireEvent.click(await screen.findByText("close-dialog"));
+    expect(mockReplace).toHaveBeenCalledWith("/projects/proj?foo=1#team", undefined, {
+      shallow: true,
+      scroll: false,
+    });
+    window.location.hash = "";
+  });
+
+  it("reloads the list and refreshes members after an approval", async () => {
+    setToggle(true);
+    mockQuery = { join_request: "9" };
+    const onMembersRefreshed = jest.fn();
+    const changed = jest.fn();
+    window.addEventListener("join-requests-changed", changed);
+    renderTeam(ROLE_TYPES.all_type, onMembersRefreshed);
+    fireEvent.click(await screen.findByText("approve-dialog"));
+    await waitFor(() => expect(onMembersRefreshed).toHaveBeenCalled());
+    expect(getMembershipRequests).toHaveBeenCalledTimes(2);
+    expect(changed).toHaveBeenCalled();
+    window.removeEventListener("join-requests-changed", changed);
   });
 });

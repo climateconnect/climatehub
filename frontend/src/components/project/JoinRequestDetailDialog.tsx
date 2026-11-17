@@ -4,6 +4,7 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 
 import { getLocalePrefix } from "../../../public/lib/apiOperations";
+import { appHref } from "../../../public/lib/appLink";
 import { getImageUrl } from "../../../public/lib/imageOperations";
 import {
   decideJoinRequest,
@@ -12,6 +13,7 @@ import {
 } from "../../../public/lib/joinRequestOperations";
 import getTexts from "../../../public/texts/texts";
 import FeedbackContext from "../context/FeedbackContext";
+import { HubContext } from "../context/HubContext";
 import UserContext from "../context/UserContext";
 import GenericDialog from "../dialogs/GenericDialog";
 
@@ -63,6 +65,7 @@ export default function JoinRequestDetailDialog({
 }: Props) {
   const { user, locale } = useContext(UserContext);
   const { showFeedbackMessage } = useContext(FeedbackContext);
+  const { hubUrl } = useContext(HubContext);
   const texts = getTexts({ page: "project", locale: locale });
   const generalTexts = getTexts({ page: "general", locale: locale });
   const token = new Cookies().get("auth_token");
@@ -93,8 +96,7 @@ export default function JoinRequestDetailDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, requestId, !!user]);
 
-  // decided_by is only sent to admins
-  const isAdmin = !!request && "decided_by" in request;
+  const isAdmin = !!request?.is_admin;
 
   const handleDecision = async (action: "approve" | "reject") => {
     if (submitting || !request) return;
@@ -142,15 +144,15 @@ export default function JoinRequestDetailDialog({
         <Actions>
           <Button
             variant="contained"
-            href={
-              getLocalePrefix(locale) +
+            href={appHref(
               "/signin?redirect=" +
-              encodeURIComponent(
-                typeof window !== "undefined"
-                  ? window.location.pathname + window.location.search + window.location.hash
-                  : ""
-              )
-            }
+                encodeURIComponent(
+                  typeof window !== "undefined"
+                    ? window.location.pathname + window.location.search + window.location.hash
+                    : ""
+                ),
+              { hubUrl, locale }
+            )}
           >
             {generalTexts.log_in}
           </Button>
