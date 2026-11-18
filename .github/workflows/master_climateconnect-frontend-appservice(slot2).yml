@@ -106,8 +106,9 @@ jobs:
           cp -R frontend/.next/static/. release/frontend/.next/static/
           cp frontend/build_info.json release/frontend/
 
-      # The file tracer can miss modules (e.g. "module-sync" exports), which
-      # only shows up at runtime, so render a few pages before shipping.
+      # The file tracer can miss modules (e.g. "module-sync" exports) or files
+      # read at runtime, which only shows up when a page renders, so render a
+      # few pages before shipping.
       - name: Smoke test standalone server
         run: |
           cd release/frontend
@@ -122,7 +123,7 @@ jobs:
           done
           kill %1
           cat "$RUNNER_TEMP/server.log"
-          ! grep -E "Cannot find module|MODULE_NOT_FOUND" "$RUNNER_TEMP/server.log"
+          ! grep -E "Cannot find module|MODULE_NOT_FOUND|ENOENT" "$RUNNER_TEMP/server.log"
 
       - name: Zip artifact for deployment
         run: cd release && zip -qr ../release.zip frontend/
