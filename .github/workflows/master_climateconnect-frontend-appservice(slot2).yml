@@ -94,13 +94,16 @@ jobs:
 
       # Ship only the standalone output (traced runtime files) instead of the
       # full frontend/ with node_modules. Next leaves public/ and .next/static
-      # out of the standalone folder, so they are copied in here.
+      # out of the standalone folder, so they are copied in here. The standalone
+      # folder may already contain traced files under public/, so merge the
+      # directory contents ("dir/.") instead of copying the directory itself.
       - name: Assemble standalone package
         run: |
           mkdir release
           cp -R frontend/.next/standalone release/frontend
-          cp -R frontend/public release/frontend/public
-          cp -R frontend/.next/static release/frontend/.next/static
+          mkdir -p release/frontend/public release/frontend/.next/static
+          cp -R frontend/public/. release/frontend/public/
+          cp -R frontend/.next/static/. release/frontend/.next/static/
           cp frontend/build_info.json release/frontend/
 
       # The file tracer can miss modules (e.g. "module-sync" exports), which
@@ -110,6 +113,10 @@ jobs:
           cd release/frontend
           PORT=3000 HOSTNAME=127.0.0.1 node server.js > "$RUNNER_TEMP/server.log" 2>&1 &
           for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:3000/ && break; sleep 1; done
+          # Fail if public/ or .next/static did not end up where the server expects them
+          curl -sf -o /dev/null http://127.0.0.1:3000/robots.txt
+          main_js=$(ls .next/static/chunks | grep -m1 '^main-')
+          curl -sf -o /dev/null "http://127.0.0.1:3000/_next/static/chunks/$main_js"
           for p in / /de /browse /about; do
             curl -s -o /dev/null -w "%{http_code} $p\n" "http://127.0.0.1:3000$p"
           done
