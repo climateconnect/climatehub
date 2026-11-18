@@ -131,6 +131,7 @@ export default function ProjectContentSideButtons({
       const userRequests = membershipRequests.map((r) => ({
         requestId: r.id,
         user: r.user_profile,
+        responseChatUuid: r.response_chat_uuid ?? null,
       }));
       setRequesters(userRequests);
       setRequestersRetrieved(true);

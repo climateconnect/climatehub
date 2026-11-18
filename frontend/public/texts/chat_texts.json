@@ -191,6 +191,10 @@
     "en": "This message is about the organization {organization_name}",
     "de": "Diese Nachricht betrifft die Organisation {organization_name}"
   },
+  "chat_message_origin_membership_request": {
+    "en": "via join request for {project_name}",
+    "de": "über die Beitrittsanfrage für {project_name}"
+  },
   "close_chat": {
     "en": "Close chat",
     "de": "Chat schließen"

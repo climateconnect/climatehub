@@ -136,10 +136,16 @@ export default function Message({ message, isPrivateChat }) {
     originTemplate = texts.chat_message_origin_organization as string;
     originName = originContext.organization_name;
     originHref = `${getLocalePrefix(locale)}/organizations/${originContext.organization_url_slug}`;
+  } else if (originContext?.type === "membership_request") {
+    originTemplate = texts.chat_message_origin_membership_request as string;
+    originName = originContext.project_name;
+    originHref = `${getLocalePrefix(locale)}/projects/${originContext.project_url_slug}`;
   }
   const originIconId =
     originContext?.type === "project"
       ? PROJECT_TYPE_ORIGIN_ICON_IDS[originContext.project_type] ?? PROJECT_TYPE_ORIGIN_ICON_IDS.PR
+      : originContext?.type === "membership_request"
+      ? PROJECT_TYPE_ORIGIN_ICON_IDS.PR
       : PROJECT_TYPE_ORIGIN_ICON_IDS.EV;
   const originParts = originTemplate.split(/\{(?:event_name|project_name|organization_name)\}/);
 
