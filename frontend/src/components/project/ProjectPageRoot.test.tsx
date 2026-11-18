@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "../../themes/theme";
@@ -50,7 +50,11 @@ jest.mock("./ProjectOverview", () => {
   };
 });
 jest.mock("./Buttons/ProjectInteractionButtons", () => ({ __esModule: true, default: () => null }));
-jest.mock("./ProjectContent", () => ({ __esModule: true, default: () => null }));
+const mockProjectContent = jest.fn((_props: any) => null);
+jest.mock("./ProjectContent", () => ({
+  __esModule: true,
+  default: (props: any) => mockProjectContent(props),
+}));
 jest.mock("./ProjectRegistrationsContent", () => ({ __esModule: true, default: () => null }));
 jest.mock("./ProjectTeamContent", () => ({ __esModule: true, default: () => null }));
 jest.mock("./ProjectCommentsContent", () => ({ __esModule: true, default: () => null }));
@@ -67,6 +71,16 @@ jest.mock("../shareContent/ProjectSocialMediaShareButton", () => ({
 jest.mock("./EventRegistrationModal", () => ({ __esModule: true, default: () => null }));
 jest.mock("./CancelRegistrationModal", () => ({ __esModule: true, default: () => null }));
 jest.mock("./ViewRegistrationAnswersModal", () => ({ __esModule: true, default: () => null }));
+
+let mockToggles = { joinRequests: false, isLoading: false };
+jest.mock("../featureToggle", () => ({
+  useFeatureToggles: () => ({
+    isEnabled: (name: string, fallback = false) =>
+      name === "PROJECT_JOIN_REQUEST_CONFIRMATION" ? mockToggles.joinRequests : fallback,
+    isLoading: mockToggles.isLoading,
+    toggles: {},
+  }),
+}));
 
 // IntersectionObserver is not available in JSDOM (used by useChatScroll)
 beforeAll(() => {
@@ -200,6 +214,8 @@ function setWindowUrl(path: string) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockToggles = { joinRequests: false, isLoading: false };
+  window.location.hash = "";
   mockChatApiResponses();
   setWindowUrl("/projects/test-project");
 });
@@ -296,5 +312,49 @@ describe("ProjectPageRoot contact chat drawer", () => {
         })
       );
     });
+  });
+});
+
+describe("ProjectPageRoot show_join_requests link", () => {
+  const lastProjectContentProps = () =>
+    mockProjectContent.mock.calls[mockProjectContent.mock.calls.length - 1][0];
+  const teamTab = () => screen.getByRole("tab", { name: /team/i });
+
+  it("opens the legacy requesters modal when the toggle is off", async () => {
+    setWindowUrl("/projects/test-project?show_join_requests=true");
+    renderProjectPage();
+
+    await waitFor(() => expect(lastProjectContentProps().showRequesters).toBe(true));
+    expect(teamTab()).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("switches to the team tab instead of the legacy modal when the toggle is on", async () => {
+    mockToggles = { joinRequests: true, isLoading: false };
+    setWindowUrl("/projects/test-project?show_join_requests=true");
+    renderProjectPage();
+
+    await waitFor(() => expect(teamTab()).toHaveAttribute("aria-selected", "true"));
+    expect(window.location.hash).toBe("#team");
+    expect(lastProjectContentProps().showRequesters).toBe(false);
+  });
+
+  it("waits for the feature toggles before handling the param", async () => {
+    mockToggles = { joinRequests: false, isLoading: true };
+    setWindowUrl("/projects/test-project?show_join_requests=true");
+    renderProjectPage();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(lastProjectContentProps().showRequesters).toBe(false);
+    expect(teamTab()).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("sends the side button to the team tab when the toggle is on", async () => {
+    mockToggles = { joinRequests: true, isLoading: false };
+    renderProjectPage();
+
+    act(() => lastProjectContentProps().toggleShowRequests());
+
+    await waitFor(() => expect(teamTab()).toHaveAttribute("aria-selected", "true"));
+    expect(lastProjectContentProps().showRequesters).toBe(false);
   });
 });

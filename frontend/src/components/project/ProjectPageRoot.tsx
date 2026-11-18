@@ -14,6 +14,7 @@ import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import ElementOnScreen from "../hooks/ElementOnScreen";
 import ElementSpaceToRight from "../hooks/ElementSpaceToRight";
+import { useFeatureToggles } from "../featureToggle";
 import ProjectInteractionButtons from "./Buttons/ProjectInteractionButtons";
 import ProjectCommentsContent from "./ProjectCommentsContent";
 import ProjectContent from "./ProjectContent";
@@ -609,9 +610,18 @@ export default function ProjectPageRoot({
     setLikes(retrievedLikes);
   };
 
+  const { isEnabled, isLoading: featureTogglesLoading } = useFeatureToggles();
+  const joinRequestsEnabled = isEnabled("PROJECT_JOIN_REQUEST_CONFIRMATION", false);
+
   const [showRequesters, setShowRequesters] = useState(false);
   const toggleShowRequests = () => {
-    setShowRequesters(!showRequesters);
+    if (joinRequestsEnabled) {
+      // The open requests are listed on the team tab; the legacy modal isn't used
+      handleTabChange(null, typesByTabValue.indexOf("team"));
+      projectTabsRef.current?.scrollIntoView?.();
+    } else {
+      setShowRequesters(!showRequesters);
+    }
     handleReadNotifications(NOTIFICATION_TYPES.indexOf("join_project_request"));
   };
 
@@ -621,10 +631,21 @@ export default function ProjectPageRoot({
       const params = getParams(window.location.href);
       if (params.show_followers && !showFollowers) toggleShowFollowers();
       if (params.show_likes && !showLikes) toggleShowLikes();
-      if (params.show_join_requests && !showRequesters) toggleShowRequests();
       setGotParams(true);
     }
   });
+
+  // Links in join request emails and notifications use ?show_join_requests=true.
+  // Wait for the feature toggles, since they decide between the team tab and the legacy modal.
+  const [gotJoinRequestsParam, setGotJoinRequestsParam] = useState(false);
+  useEffect(() => {
+    if (featureTogglesLoading || gotJoinRequestsParam) return;
+    setGotJoinRequestsParam(true);
+    if (getParams(window.location.href).show_join_requests && !showRequesters) {
+      toggleShowRequests();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featureTogglesLoading, gotJoinRequestsParam]);
   const bindLike = useLongPress(() => {
     toggleShowLikes();
   });
