@@ -8,15 +8,21 @@ from organization.models import (
     Project,
     ProjectMember,
 )
+from organization.models.members import MembershipRequests
 
 ORIGIN_TYPE_ORGANIZATION = "organization"
 ORIGIN_TYPE_PROJECT = "project"
 ORIGIN_TYPE_EVENT_REGISTRATION = "event_registration"
+ORIGIN_TYPE_MEMBERSHIP_REQUEST = "membership_request"
 
 ADMIN_ROLE_TYPES = [Role.ALL_TYPE, Role.READ_WRITE_TYPE]
 
 # Request fields by which a client can ask for an origin context.
-ORIGIN_SLUG_FIELDS = ("origin_organization_url_slug", "origin_project_url_slug")
+ORIGIN_SLUG_FIELDS = (
+    "origin_organization_url_slug",
+    "origin_project_url_slug",
+    "origin_membership_request_id",
+)
 
 
 def resolve_message_origin(user, chat, data):
@@ -36,6 +42,10 @@ def resolve_message_origin(user, chat, data):
         )
     if requested[0] == "origin_project_url_slug":
         return resolve_project_origin(user, chat, data["origin_project_url_slug"])
+    if requested[0] == "origin_membership_request_id":
+        return resolve_membership_request_origin(
+            user, chat, data["origin_membership_request_id"]
+        )
     raise ValidationError("Invalid origin: unsupported origin type.")
 
 
@@ -90,3 +100,23 @@ def resolve_project_origin(user, chat, project_url_slug):
     if not has_admin_in_chat:
         raise ValidationError("Invalid origin: project does not match this chat.")
     return ORIGIN_TYPE_PROJECT, project.id
+
+
+def resolve_membership_request_origin(user, chat, membership_request_id):
+    """
+    Validate a client-requested membership-request context for a chat message.
+    The chat must be the request's response_chat and the sender an active
+    participant of it. Never trusts a raw origin_id from the client.
+    """
+    try:
+        membership_request = MembershipRequests.objects.get(id=membership_request_id)
+    except (MembershipRequests.DoesNotExist, ValueError, TypeError):
+        raise ValidationError("Invalid origin: membership request not found.")
+
+    if membership_request.response_chat_id != chat.id:
+        raise ValidationError(
+            "Invalid origin: membership request does not match this chat."
+        )
+    if not Participant.objects.filter(chat=chat, user=user, is_active=True).exists():
+        raise ValidationError("Invalid origin: not a participant of this chat.")
+    return ORIGIN_TYPE_MEMBERSHIP_REQUEST, membership_request.id

@@ -127,7 +127,9 @@ from organization.utility.project import (
 )
 from organization.utility.requests import (
     MEMBERSHIP_REQUEST_MESSAGE_MAX_LENGTH,
+    ChatRateLimitExceeded,
     MembershipRequestsManager,
+    start_response_chat,
     is_plain_text,
     remove_approved_membership_request,
 )
@@ -2015,6 +2017,31 @@ class ManageJoinProjectView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         membership_requests = MembershipRequests.objects.all()
         return membership_requests
+
+
+class RespondToJoinRequestView(APIView):
+    """Start (or open) the shared group chat between a join requester and the project admins."""
+
+    permission_classes = [IsAuthenticated, ReadWriteSensibleProjectDataPermission]
+
+    def post(self, request, url_slug, request_id):
+        membership_request = MembershipRequests.objects.filter(
+            id=request_id,
+            target_project__url_slug=url_slug,
+            target_membership_type=MembershipTarget.PROJECT.value,
+        ).first()
+        if membership_request is None:
+            return Response(
+                {"message": "Request Does Not Exist"}, status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            chat, created = start_response_chat(membership_request.id, request.user)
+        except ChatRateLimitExceeded as e:
+            return Response({"message": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"chat_uuid": str(chat.chat_uuid), "created": created},
+            status=status.HTTP_200_OK,
+        )
 
 
 class SetProjectSharedView(APIView):

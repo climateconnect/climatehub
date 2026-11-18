@@ -12,6 +12,7 @@ from organization.models import (
     ProjectMember,
 )
 from organization.models.event_registration import EventRegistration
+from organization.models.members import MembershipRequests
 
 
 class EventRegistrationOriginView(APIView):
@@ -145,6 +146,63 @@ class OrganizationOriginView(APIView):
             {
                 "organization_name": organization.name,
                 "organization_url_slug": organization.url_slug,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MembershipRequestOriginView(APIView):
+    """Resolve join-request context for membership_request-origin chat messages (issue #2311)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, request_id):
+        try:
+            membership_request = MembershipRequests.objects.select_related(
+                "target_project", "target_organization"
+            ).get(id=request_id)
+        except MembershipRequests.DoesNotExist:
+            return Response(
+                {"message": "Membership request not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_chat_participant = (
+            membership_request.response_chat_id is not None
+            and Participant.objects.filter(
+                user=request.user,
+                is_active=True,
+                chat_id=membership_request.response_chat_id,
+            ).exists()
+        )
+        is_admin = False
+        if membership_request.target_project_id:
+            is_admin = ProjectMember.objects.filter(
+                user=request.user,
+                role__role_type__in=[Role.ALL_TYPE, Role.READ_WRITE_TYPE],
+                project=membership_request.target_project,
+            ).exists()
+        elif membership_request.target_organization_id:
+            is_admin = OrganizationMember.objects.filter(
+                user=request.user,
+                role__role_type__in=[Role.ALL_TYPE, Role.READ_WRITE_TYPE],
+                organization=membership_request.target_organization,
+            ).exists()
+
+        if not (is_chat_participant or is_admin):
+            return Response(
+                {
+                    "message": "You do not have permission to access this membership request origin."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        project = membership_request.target_project
+        return Response(
+            {
+                "project_name": project.name if project else None,
+                "project_url_slug": project.url_slug if project else None,
+                "request_status": membership_request.request_status,
             },
             status=status.HTTP_200_OK,
         )

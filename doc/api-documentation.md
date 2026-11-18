@@ -1225,3 +1225,19 @@ Body: `{ "user_availability": <id>, "message": <string> }`
 - A non-string `message` returns `400`.
 
 A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is not returned by the API.
+
+### Respond to a join request (issue #2311)
+
+`POST /api/projects/<url_slug>/request_membership/<request_id>/respond/` (project admins: role `ALL_TYPE`/`READ_WRITE_TYPE`)
+
+Gets or creates the one shared group chat ("Join request for <project>") between the requester and all project admins; stored in `MembershipRequests.response_chat`. On creation the requester's message becomes the first message (sender = requester, `origin_type="membership_request"`). If the chat exists, the caller is (re-)added as participant.
+
+- `200 {"chat_uuid": "<uuid>", "created": true|false}`
+- `403` not an admin, or chat-start rate limit hit (only when a new chat must be created; body `{"message": ...}`)
+- `404` request does not belong to the project
+
+The list of join requesters (`ProjectRequesterSerializer`) additionally returns `response_chat_uuid` (string or `null`).
+
+`GET /api/chat/origin/membership_request/<request_id>/` (chat participants and project/organization admins, else `403`) returns `{"project_name", "project_url_slug", "request_status"}`.
+
+Sending a chat message with `origin_membership_request_id` is accepted only in the request's `response_chat` by one of its active participants.

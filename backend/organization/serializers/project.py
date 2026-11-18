@@ -622,13 +622,18 @@ class ProjectRequesterSerializer(serializers.ModelSerializer):
     """
 
     user_profile = serializers.SerializerMethodField()
+    response_chat_uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = MembershipRequests
 
         # Locally defined variables take precedence
         # over what's defined on the model
-        fields = ("user_profile", "id")
+        fields = ("user_profile", "id", "response_chat_uuid")
+
+    def get_response_chat_uuid(self, obj):
+        chat = obj.response_chat
+        return str(chat.chat_uuid) if chat else None
 
     def get_user_profile(self, obj):
         user_profile = UserProfile.objects.get(user=obj.user)

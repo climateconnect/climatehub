@@ -94,7 +94,7 @@ def create_private_or_group_chat(
     group_chat_name: str,
     participants: Optional[QuerySet] = None,
     related_idea: Optional[Idea] = None,
-) -> None:
+) -> MessageParticipants:
     chat = MessageParticipants.objects.create(
         chat_uuid=uuid.uuid4(), name=group_chat_name, created_by=creator
     )
@@ -113,6 +113,7 @@ def create_private_or_group_chat(
             logger.info(
                 f"NewChat: Participant {participant.id} added to chat {chat.id}"
             )
+    return chat
 
 
 def check_can_start_chat(user_profile: UserProfile) -> bool:

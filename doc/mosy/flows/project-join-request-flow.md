@@ -17,3 +17,9 @@ The backend always (independent of the toggle) treats `message` as optional, rej
 ## Toggle off, or logged-out user
 
 Clicking **Join** sends the request immediately with the default message "Would like to join the project!" (unchanged legacy behaviour).
+
+## Admin responds to a request (issue #2311, backend ready; UI pending #2310)
+
+1. An admin clicks **Respond** on a join request → `POST /api/projects/<url_slug>/request_membership/<request_id>/respond/`.
+2. First call creates a group chat (requester + all project admins) and seeds it with the requester's message; later calls (by any admin) return the same chat and add the caller as participant.
+3. The admin lands in that chat; the requests list returns `response_chat_uuid` so the UI can show a "Conversation started" indicator.
