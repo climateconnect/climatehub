@@ -1224,4 +1224,19 @@ Body: `{ "user_availability": <id>, "message": <string> }`
 - The message must be at most 500 characters, otherwise `400` with a `message` error (not truncated).
 - A non-string `message` returns `400`.
 
-A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is not returned by the API.
+A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is returned by the endpoints below.
+
+### Single join request
+
+`GET /api/projects/<url_slug>/join_requests/<request_id>/` (authenticated)
+
+Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, is_admin }`
+
+- `request_status`: `pending` | `approved` | `rejected`; `decided_at` is the approval/rejection time or `null`; `message` is `""` if none (plain text, returned as stored).
+- Project admins (active members with role type All or ReadWrite; inactive members are treated like any other user) get the full payload including `decided_by` (profile stub or `null`).
+- The requesting user can read their own request; `decided_by` is **omitted** from their response.
+- Anyone else: `403` (`401` if not authenticated). `404` if the project/request doesn't exist or the request belongs to another project or an organization.
+
+`GET /api/projects/<url_slug>/requesters/` (admins) lists open requests, newest first, now with `message` and `requested_at` in addition to `id` and `user_profile`.
+
+`POST .../request_membership/<approve|reject>/<request_id>/` returns `409` if the request was already decided (the decision is not overwritten).
