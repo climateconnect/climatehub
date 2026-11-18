@@ -141,3 +141,49 @@ GROUP BY 1, 2, 3 ORDER BY 3, 4 DESC;
 ### Membership logic derived from the first page of members
 
 The open-requests list appears only for admins found in `project.team`. That list is limited to the first page of members (the known member-list pagination bug), so an admin beyond the first 24 members does not see the list. This existed before the branch; the branch only depends on it.
+
+---
+
+## Second review (2026-11-18)
+
+**Reviewed:** `3d60d9277` ("Address join request dialog review findings") on top of `fe2a26e0d`.
+
+**Verdict: approve.** All Medium and Low findings are resolved. What's left is small cleanup that can go into this PR or be skipped.
+
+**Checks:**
+- Backend: `organization` 813 tests OK (15 skipped), including the 3 new tests in `test_join_request_detail`.
+- Frontend: Jest `JoinRequestDetailDialog`, `OpenJoinRequestsList`, `ProjectTeamContent*`, `Buttons/*`, `appLink` pass, 6 suites / 61 tests. `yarn lint` shows 0 errors (3 warnings, all in files outside this branch). `yarn check-types` reports no errors.
+- Not run: a manual test.
+
+### Status of the first-round findings
+
+| # | Finding | Status |
+|---|---|---|
+| 1 | Admin check ignores `is_active` | **Fixed.** `is_active=True` is in the query. There are tests for an inactive admin: 403 on someone else's request, and no `decided_by` on their own request. The API docs are updated. |
+| 2 | Heavy refresh, stale badge | **Fixed.** `onMembersRefreshed` is passed through `ProjectPageRoot` → `ProjectTeamContent` instead of `router.replace`. The badge listens for a `join-requests-changed` window event. Both have tests. |
+| 3 | 409 runs before the project check | **Fixed**, with a test (a decided request from another project returns 400). See cleanup A. |
+| 4 | Admin status inferred from the payload shape | **Fixed.** There is an explicit `is_admin` field (serializer, type, docs, tests). |
+| 5 | Login button bypasses `AppLink`, double prompt | **Fixed.** The team tab now renders only `LoginNudge` when the user is logged out. `LoginNudge` is hub-aware and redirects to `router.asPath`, so `?join_request=` survives the login. See cleanup B. |
+| 6 | Spec contradiction AC-3.7 | **Fixed.** The spec now says to keep `replace`, so browser back leaves the page. Typo: "shareable ;" has a stray space before the semicolon. |
+| 7 | Frontend test gaps | **Fixed.** Tests now cover closing the dialog (param removed, other query and hash kept), the 409 path, and the refresh and event after an approval. |
+| 8 | Import order | **Fixed.** |
+
+### Remaining cleanup (optional)
+
+**A. `requests.py` detects the inconsistency by matching the error string.** The 409 guard checks `"Inconsistent Project and Request" not in self.errors`. If someone rewords that message, the guard silently stops working. A local flag (`inconsistent_project = True` at the consistency check, then `and not inconsistent_project`) does the same thing without depending on the error text.
+
+**B. The dialog's logged-out branch is now unreachable.** `ProjectTeamContent` mounts `JoinRequestDetailDialog` only for logged-in users. That leaves the dialog's `!user` branch unused: its login button (just switched to `appHref`), its `HubContext` use, and the test "prompts to log in when logged out". Either remove it, or keep it on purpose as a fallback for a future second entry point. The flow doc (`project-join-request-flow.md:31`) still describes the prompt as the dialog's own. The behaviour still holds, but now `LoginNudge` provides it.
+
+**C. `TeamContent(... }: any)`.** The props were untyped before as well. The explicit `any` now also covers the new `onMembersRefreshed`. A small props type (`project`, `handleReadNotifications`, `onMembersRefreshed?: () => Promise<void>`) would be cheap.
+
+### Checked and fine
+
+- `is_admin` comes from the same context flag that controls `decided_by`, so the two can't disagree.
+- The badge listener registers once (on mount), cleans up on unmount and calls the same `refreshRequesters` as the initial load. `refreshRequesters` returns early for non-admins.
+- Reject also sends the event, so the badge count stays right; only approve refreshes the members, which is correct.
+- `onMembersRefreshed` is optional in `handleDecided`, so other render paths without the prop don't break.
+- A logged-out deep link opens the `#team` tab with `LoginNudge` (the documented link format includes `#team`). A link without `#team` doesn't show the prompt, but the app doesn't generate such links.
+
+### Still open from round 1
+
+- The **production impact** notes (409 for the legacy modal, newest-first order, extra list fields) still need to go into the PR description. I didn't check this, because the GitHub MCP isn't connected in this session.

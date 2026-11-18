@@ -77,20 +77,20 @@ Add a **join request dialog** that shows one request in full, lets a project adm
 - **AC-3.2** Each row shows: requester avatar + name, request date, a one-line truncated message preview, and a "View" action. Clicking the row opens `JoinRequestDetailDialog` for that request. No inline approve/decline in the list (they live in the dialog).
 - **AC-3.3** The list loads from the existing `GET /api/projects/<slug>/requesters/`, extended **additively** with `message` and `requested_at` (AC-1.8). Open requests only, newest first.
 - **AC-3.4** After approve/decline in the dialog the list refreshes and the row disappears; the team member list also refreshes after an approval.
-- **AC-3.5** The legacy `ProjectRequestersDialog` and its entry point (`show_join_requests`) are **unchanged** and do not open the new dialog. With the toggle on, both coexist until the old one is retired in a later task.
+- **AC-3.5** With the toggle on, the legacy `ProjectRequestersDialog` is no longer opened: the `?show_join_requests=true` link (existing emails and notifications) and the admin's "show requests" side button switch to the team tab, where the open requests list is. The param is handled once the feature toggles have loaded. With the toggle off both still open the legacy modal. Pointing the email/notification links at the request's own dialog (`?join_request=<id>#team`) is a separate task.
 - **AC-3.6** Deep link: the project **team** page with `?join_request=<id>` opens the dialog on load (SSR-safe: opens client-side after mount). It works for requests not in the list (e.g. already decided).
 - **AC-3.7** Opening/closing the dialog updates the URL (`join_request` param added/removed with `router.replace`, shallow) so the state is shareable ; `replace` adds no history entry, so browser back leaves the page rather than closing the dialog (decision: keep `replace`).
 - **AC-3.8** An invalid id in the URL shows the not-found state and does not break the page.
 
 ### AC-4: Feature toggle
 
-- **AC-4.1** Gated by `PROJECT_JOIN_REQUEST_CONFIRMATION` (the toggle from #2307). Off: the new list is not rendered, `join_request` param ignored, team page and old modal unchanged.
+- **AC-4.1** Gated by `PROJECT_JOIN_REQUEST_CONFIRMATION` (the toggle from #2307). Off: the new list is not rendered, `join_request` param ignored, team page, old modal and its entry points (`show_join_requests`, side button) unchanged.
 - **AC-4.2** The backend endpoint is always available (permissions protect it); the toggle only gates the UI, consistent with #2307.
 
 ### AC-5: Tests
 
 - **AC-5.1** Backend (`organization/tests/test_join_request_detail.py`): admin gets full payload incl. `decided_by`; requester gets own request without `decided_by`; other user/member/anonymous denied; request of another project → 404; org request → 404; pending/approved/rejected status mapping; empty message → `""`; decided request can't be re-decided; query count bounded.
-- **AC-5.2** Frontend (jest): list renders open requests, opens the dialog on click, and is hidden for non-admins; dialog renders all fields; admin sees decider, requester doesn't; Approve/Decline call the right endpoint and update state; buttons hidden when decided; loading/404/403 states; deep link opens dialog; toggle off hides the list.
+- **AC-5.2** Frontend (jest): list renders open requests, opens the dialog on click, and is hidden for non-admins; dialog renders all fields; admin sees decider, requester doesn't; Approve/Decline call the right endpoint and update state; buttons hidden when decided; loading/404/403 states; deep link opens dialog; toggle off hides the list; `show_join_requests` and the side button go to the team tab with the toggle on and open the legacy modal with it off.
 
 ### AC-6: Documentation
 
