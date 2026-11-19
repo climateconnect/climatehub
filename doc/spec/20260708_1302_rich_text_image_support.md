@@ -200,7 +200,7 @@ On `poc-image-description`, with the real editor and project page, on desktop an
 4. Check with 10 images in one description: editing performance, page weight with and without variants (Q5).
 5. Rough check of the HTML size of 10 images against the 20 000-character cap.
 6. Alignment left / centre / right with small images and with presets, on desktop and mobile.
-7. **DeepL and alt text (D29)**: one test translation of a description with images. Does DeepL translate `alt`? Then decide finally on N1. **Result (Harald, 2026-11-19): DeepL does not translate `alt`.** Captions are translated.
+7. **DeepL and alt text (D29)**: one test translation of a description with images. Does DeepL translate `alt`? Then decide finally on N1. **Result (Harald, 2026-11-19): DeepL does not translate `alt`.** Captions are translated. Comparison (2026-11-19, one image block, en→de): with `tag_handling=html` the `<img>` comes back unchanged and `alt` stays English; without it DeepL treats everything as text, translated `alt` too and happened to keep the URLs, but nothing guarantees that. The translation editor's "Automatically translate" button (`/api/translate_many/`) used plain mode for the description; fixed: it now sends `html_keys` and HTML fields are translated with `tag_handling=html`. All automatic translations now behave the same (D29). A safe way to get translated alt texts later: translate only the alt texts in plain mode in a separate request and write them back by image id (N1 option a).
 8. Upload of large originals (12, 48, 108 MP JPEG; a large PNG): time and memory with reduced-scale decoding (D26).
 
 The PoC is **not throwaway**: it becomes the production implementation (D32), built with the usual best practices (tests, docs, review). "PoC" means not everything is known yet; we work in iterations and adjust along the way. Findings and changed values are recorded in this spec ("PoC findings" / Log) as they come up.
@@ -583,3 +583,4 @@ Choices made while building, within the decisions above:
 - 2026-11-19: Frontend implemented and tried in the browser; frontend implementation notes added.
 - 2026-11-19: PoC check: DeepL leaves `alt` untranslated (confirmed by Harald on a real project). N1 final decision pending.
 - 2026-11-19: Create, edit, translation and delete flows tested in the browser with a real test user; fixed image replacement when inserting with the cursor in a caption.
+- 2026-11-19: `/api/translate_many/` translates fields listed in `html_keys` as HTML; TranslateTexts and TranslateProject send the description as HTML. DeepL comparison recorded under the PoC check.
