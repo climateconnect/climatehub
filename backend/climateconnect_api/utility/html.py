@@ -50,7 +50,7 @@ PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES = {
         "rel",
         "start",
     ],
-    "figure": ["class"],
+    "figure": ["class", "style"],
     "img": [
         "src",
         "srcset",
@@ -75,6 +75,10 @@ RICH_TEXT_IMAGE_ALIGN_CLASSES = (
     "image-align-right",
 )
 RICH_TEXT_IMAGE_DIR = "rich_text_images/"
+# An image block's style holds only facts about the image, set by the server:
+# natural width in px (--w) and aspect ratio width/height (--r). All layout
+# rules live in the frontend CSS.
+RICH_TEXT_IMAGE_STYLE_RE = re.compile(r"^--w: \d{1,5}; --r: \d{1,3}(\.\d{1,4})?;?$")
 
 
 def _strip_dangerous_tags(html):
@@ -160,6 +164,15 @@ def _filter_foreign_images(html):
 
     html = re.sub(r"<img\b[^>]*>", _check_img, html, flags=re.IGNORECASE)
 
+    def _check_figure_style(match):
+        tag = match.group(0)
+        style = _attribute(tag, "style")
+        if style is None or RICH_TEXT_IMAGE_STYLE_RE.match(style):
+            return tag
+        return re.sub(r'\s+style="[^"]*"', "", tag)
+
+    html = re.sub(r"<figure\b[^>]*>", _check_figure_style, html, flags=re.IGNORECASE)
+
     def _check_figure_class(match):
         allowed = RICH_TEXT_IMAGE_SIZE_CLASSES + RICH_TEXT_IMAGE_ALIGN_CLASSES
         classes = [c for c in match.group(1).split() if c in allowed]
@@ -207,7 +220,9 @@ def sanitize_html(html_input, allowed_tags=None, allowed_attributes=None):
     has_style_attrs = any("style" in attrs for attrs in allowed_attributes.values())
 
     css_sanitizer = (
-        CSSSanitizer(allowed_css_properties=["text-align", "background-color"])
+        CSSSanitizer(
+            allowed_css_properties=["text-align", "background-color", "--w", "--r"]
+        )
         if has_style_attrs
         else None
     )

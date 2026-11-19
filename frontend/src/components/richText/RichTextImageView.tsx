@@ -23,6 +23,13 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { RICH_TEXT_IMAGE_MAX_ALT_LENGTH } from "./richTextImageUpload";
+import { sizesAttribute } from "./richTextImageStyles";
+
+// The same --w / --r custom properties the stored HTML carries on <figure>.
+function imageStyleProperties(width: number | null, height: number | null) {
+  if (!width || !height) return undefined;
+  return { "--w": width, "--r": Number((width / height).toFixed(4)) } as React.CSSProperties;
+}
 
 const SIZE_LABELS = { small: "S", medium: "M", full: "L" };
 const ALIGN_ICONS = {
@@ -72,10 +79,12 @@ export default function RichTextImageView({
     <NodeViewWrapper
       as="figure"
       className={`image-size-${size} image-align-${align}${selected ? " is-selected" : ""}`}
+      style={imageStyleProperties(width, height)}
     >
       <img
         src={src}
         srcSet={srcset ?? undefined}
+        sizes={sizesAttribute(size, width)}
         width={width ?? undefined}
         height={height ?? undefined}
         alt={alt ?? ""}
@@ -95,8 +104,12 @@ export default function RichTextImageView({
           sx={{
             position: "absolute",
             top: 8,
-            left: "50%",
-            transform: "translateX(-50%)",
+            // Follow the image's alignment so the menu stays next to it.
+            ...(align === "left"
+              ? { left: 0 }
+              : align === "right"
+              ? { right: 0 }
+              : { left: "50%", transform: "translateX(-50%)" }),
             display: "flex",
             alignItems: "center",
             gap: 0.5,

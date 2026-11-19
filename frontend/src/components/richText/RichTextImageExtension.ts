@@ -3,20 +3,13 @@ import { NodeSelection } from "@tiptap/pm/state";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import RichTextImageView from "./RichTextImageView";
 import type { UploadedRichTextImage } from "./richTextImageUpload";
+import { imageStyle, sizesAttribute } from "./richTextImageStyles";
 
 export type RichTextImageSize = "small" | "medium" | "full";
 export type RichTextImageAlign = "left" | "center" | "right";
 
 export const RICH_TEXT_IMAGE_SIZES: RichTextImageSize[] = ["small", "medium", "full"];
 export const RICH_TEXT_IMAGE_ALIGNS: RichTextImageAlign[] = ["left", "center", "right"];
-
-// Which variant the browser should pick: the column is at most 1168 px wide,
-// and on phones every size is shown at full width (D11).
-const SIZES_ATTRIBUTE: Record<RichTextImageSize, string> = {
-  small: "(max-width: 600px) 100vw, 390px",
-  medium: "(max-width: 600px) 100vw, 584px",
-  full: "(max-width: 600px) 100vw, 1168px",
-};
 
 function pickClass<T extends string>(
   element: HTMLElement,
@@ -101,13 +94,16 @@ const RichTextImage = Node.create({
     const { imageId, src, srcset, width, height, alt, size, align } = node.attrs;
     return [
       "figure",
-      mergeAttributes(HTMLAttributes, { class: `image-size-${size} image-align-${align}` }),
+      mergeAttributes(HTMLAttributes, {
+        class: `image-size-${size} image-align-${align}`,
+        style: imageStyle(width, height),
+      }),
       [
         "img",
         {
           src,
           srcset,
-          sizes: SIZES_ATTRIBUTE[size as RichTextImageSize] ?? SIZES_ATTRIBUTE.full,
+          sizes: sizesAttribute(size as RichTextImageSize, width),
           width,
           height,
           alt: alt ?? "",

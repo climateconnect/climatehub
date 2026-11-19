@@ -27,12 +27,19 @@ MAX_IMAGES_PER_TEXT = 10
 MAX_ALT_TEXT_LENGTH = 150
 DEFAULT_SIZE_CLASS = "image-size-full"
 DEFAULT_ALIGN_CLASS = "image-align-center"
-MAX_SIZES_LENGTH = 200
+# Widest slot per size on desktop (the column is at most 1168 px wide) and
+# the phone breakpoint. Same values as sizesAttribute in the frontend's
+# richTextImageStyles.ts; keep both in sync.
+DESKTOP_SLOT = {
+    "image-size-small": 390,
+    "image-size-medium": 584,
+    "image-size-full": 1168,
+}
+MOBILE_BREAKPOINT = 600
 
 _FIGURE_RE = re.compile(r"<figure\b[^>]*>.*?</figure>", re.DOTALL | re.IGNORECASE)
 _IMAGE_ID_RE = re.compile(r'<img\b[^>]*\sdata-image-id="(\d+)"', re.IGNORECASE)
 _IMG_TAG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
-_SIZES_RE = re.compile(r"^[\w\s(),.:%+-]*$")
 
 
 class RichTextImageHtmlError(Exception):
@@ -74,24 +81,49 @@ def _pick(classes, allowed, default):
     return next((c for c in classes if c in allowed), default)
 
 
+def sizes_attribute(size_class, natural_width):
+    """The <img> sizes attribute for an image block.
+
+    Besides picking the variant, sizes sets the size the browser treats as the
+    image's own size, so it must never exceed the natural width (the display
+    rules rely on that to never enlarge an image). On phones every size is
+    shown at full width (D11).
+    """
+    desktop = "%dpx" % min(natural_width, DESKTOP_SLOT[size_class])
+    if natural_width >= MOBILE_BREAKPOINT:
+        return "(max-width: %dpx) 100vw, %s" % (MOBILE_BREAKPOINT, desktop)
+    return "(max-width: %dpx) 100vw, (max-width: %dpx) %dpx, %s" % (
+        natural_width,
+        MOBILE_BREAKPOINT,
+        natural_width,
+        desktop,
+    )
+
+
+def image_style(width, height):
+    """The figure's style: natural width (--w) and aspect ratio (--r)."""
+    return "--w: %d; --r: %s;" % (
+        width,
+        f"{width / height:.4f}".rstrip("0").rstrip("."),
+    )
+
+
 def _render_figure(image, parsed, request):
     variants = variant_urls(image, request)
     largest = variants[-1]
     alt = (parsed.image.get("alt") or "").strip()[:MAX_ALT_TEXT_LENGTH]
-    sizes = (parsed.image.get("sizes") or "").strip()
-    if len(sizes) > MAX_SIZES_LENGTH or not _SIZES_RE.match(sizes):
-        sizes = ""
     caption = " ".join("".join(parsed.caption).split())
+    size_class = _pick(parsed.classes, RICH_TEXT_IMAGE_SIZE_CLASSES, DEFAULT_SIZE_CLASS)
     classes = " ".join(
         (
-            _pick(parsed.classes, RICH_TEXT_IMAGE_SIZE_CLASSES, DEFAULT_SIZE_CLASS),
+            size_class,
             _pick(parsed.classes, RICH_TEXT_IMAGE_ALIGN_CLASSES, DEFAULT_ALIGN_CLASS),
         )
     )
     attributes = [
         ("src", largest["url"]),
         ("srcset", ", ".join(f"{v['url']} {v['width']}w" for v in variants)),
-        ("sizes", sizes or "100vw"),
+        ("sizes", sizes_attribute(size_class, largest["width"])),
         ("width", str(largest["width"])),
         ("height", str(largest["height"])),
         ("alt", alt),
@@ -102,7 +134,10 @@ def _render_figure(image, parsed, request):
         f'{name}="{html.escape(value, quote=True)}"' for name, value in attributes
     )
     figcaption = f"<figcaption>{html.escape(caption)}</figcaption>" if caption else ""
-    return f'<figure class="{classes}">{img}{figcaption}</figure>'
+    # Facts about the image only (natural width, aspect ratio); the layout
+    # rules that use them are in the frontend CSS.
+    style = image_style(largest["width"], largest["height"])
+    return f'<figure class="{classes}" style="{style}">{img}{figcaption}</figure>'
 
 
 def resolve_rich_text_images(

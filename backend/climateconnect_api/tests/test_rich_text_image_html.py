@@ -19,7 +19,10 @@ from climateconnect_api.utility.html import (
     PROJECT_DESCRIPTION_ALLOWED_TAGS,
     sanitize_html,
 )
-from climateconnect_api.utility.rich_text_image_html import rich_text_image_ids
+from climateconnect_api.utility.rich_text_image_html import (
+    rich_text_image_ids,
+    sizes_attribute,
+)
 from organization.models import (
     Project,
     ProjectMember,
@@ -60,6 +63,22 @@ class SanitizerTests(TestCase):
     def test_removes_foreign_and_data_urls(self):
         for src in ("https://tracker.example/p.gif", "data:image/png;base64,AAAA"):
             self.assertEqual(sanitize(figure(5, src=src, srcset="")), "")
+
+    def test_figure_style_only_with_image_facts(self):
+        html = figure(5).replace("<figure", '<figure style="--w: 900; --r: 1.5;"')
+        self.assertIn('style="--w: 900; --r: 1.5;"', sanitize(html))
+        mixed = figure(5).replace(
+            "<figure", '<figure style="--w: 900; --r: 1.5; color: red;"'
+        )
+        self.assertIn('style="--w: 900; --r: 1.5;"', sanitize(mixed))
+        for bad in (
+            "background-image: url(https://tracker.example/x.gif);",
+            "--w: 9e9; --r: 1;",
+        ):
+            html = figure(5).replace("<figure", f'<figure style="{bad}"')
+            cleaned = sanitize(html)
+            self.assertNotIn("style=", cleaned, bad)
+            self.assertIn("data-image-id", cleaned)
 
     def test_removes_image_without_id(self):
         html = f'<figure><img src="{VARIANT}"></figure>'
@@ -183,6 +202,10 @@ class CreateProjectTests(DescriptionTestCase):
         self.assertIn('class="image-size-small image-align-center"', html)
         self.assertIn('alt="Volunteers planting trees"', html)
         self.assertIn('loading="lazy"', html)
+        # Facts about the image for the CSS: natural width and aspect ratio.
+        self.assertIn('style="--w: 900; --r: 1.5;"', html)
+        # Computed on the server from the size and the natural width (900 px).
+        self.assertIn('sizes="(max-width: 600px) 100vw, 390px"', html)
         self.assertIn('width="900" height="600"', html)
         self.assertIn("<figcaption>Photo: Jane</figcaption>", html)
         self.assertNotIn(image.original.name, html)
@@ -199,6 +222,16 @@ class CreateProjectTests(DescriptionTestCase):
         response = self.create(figure(999999))
         project = Project.objects.get(url_slug=response.data["url_slug"])
         self.assertEqual(project.description_html, "")
+
+    def test_client_sizes_are_replaced(self):
+        image = self.upload()
+        html = figure(image.id).replace("<img ", '<img sizes="100vw" ')
+        response = self.create(html)
+        project = Project.objects.get(url_slug=response.data["url_slug"])
+        self.assertNotIn('sizes="100vw"', project.description_html)
+        self.assertIn(
+            'sizes="(max-width: 600px) 100vw, 900px"', project.description_html
+        )
 
     def test_alt_text_is_shortened(self):
         image = self.upload()
@@ -331,3 +364,22 @@ class EditProjectTests(DescriptionTestCase):
         project.refresh_from_db()
         self.assertEqual(project.description_html, "<p>Before</p>")
         self.assertNotEqual(project.short_description, "Changed")
+
+
+class SizesAttributeTests(TestCase):
+    """Same cases as sizesAttribute in the frontend (richTextImageStyles.ts)."""
+
+    def test_never_exceeds_the_natural_width(self):
+        self.assertEqual(
+            sizes_attribute("image-size-full", 1200), "(max-width: 600px) 100vw, 1168px"
+        )
+        self.assertEqual(
+            sizes_attribute("image-size-small", 1200), "(max-width: 600px) 100vw, 390px"
+        )
+        self.assertEqual(
+            sizes_attribute("image-size-full", 800), "(max-width: 600px) 100vw, 800px"
+        )
+        self.assertEqual(
+            sizes_attribute("image-size-full", 220),
+            "(max-width: 220px) 100vw, (max-width: 600px) 220px, 220px",
+        )
