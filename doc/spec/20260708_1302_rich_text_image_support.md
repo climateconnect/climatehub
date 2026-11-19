@@ -200,7 +200,7 @@ On `poc-image-description`, with the real editor and project page, on desktop an
 4. Check with 10 images in one description: editing performance, page weight with and without variants (Q5).
 5. Rough check of the HTML size of 10 images against the 20 000-character cap.
 6. Alignment left / centre / right with small images and with presets, on desktop and mobile.
-7. **DeepL and alt text (D29)**: one test translation of a description with images. Does DeepL translate `alt`? Then decide finally on N1.
+7. **DeepL and alt text (D29)**: one test translation of a description with images. Does DeepL translate `alt`? Then decide finally on N1. **Result (Harald, 2026-11-19): DeepL does not translate `alt`.** Captions are translated.
 8. Upload of large originals (12, 48, 108 MP JPEG; a large PNG): time and memory with reduced-scale decoding (D26).
 
 The PoC is **not throwaway**: it becomes the production implementation (D32), built with the usual best practices (tests, docs, review). "PoC" means not everything is known yet; we work in iterations and adjust along the way. Findings and changed values are recorded in this spec ("PoC findings" / Log) as they come up.
@@ -527,6 +527,16 @@ Choices made while building, within the decisions above:
 - **`decode_image`** (#2349) was split into a raising `decode_image_or_raise(source_bytes, draft_size=None)` and the existing logging wrapper, so upload errors are 400s and not Sentry errors. #2349 behaviour is unchanged (its tests pass).
 - **Linking rule** check uses the image's owner or an existing usage in the same project and field. An image used only in another project can't be copied into this one.
 
+## Implementation notes (frontend, 2026-11-19)
+
+- **Files**: `frontend/src/components/richText/` → `RichTextImageExtension.ts` (Tiptap node, MIT `@tiptap/core`), `RichTextImageView.tsx` (in-editor view with the menu), `RichTextImageUploadDialog.tsx`, `richTextImageUpload.ts` (API call, client checks), `richTextImageStyles.ts` (shared display rules). Wired into `ProjectDescriptionEditor.tsx`; `ProjectContent.tsx` uses the shared styles. Texts in `general_texts.json` (`rich_text_image_*`) so other editors can reuse them.
+- **Contextual menu (D10)** is rendered inside the image's node view when the image is selected (click on the image), not as a floating bubble menu. Size S/M/L, alignment, edit alt text, remove. It stays open while changing several settings.
+- **Save blocking (D16)** is achieved by the upload dialog: it stays open for the whole upload (upload progress, then "Processing image…") and can only be left with Cancel, which aborts the request. So the form's save button can't be reached during an upload, and the four forms needed no changes.
+- **Display values (D11, first PoC values)**: max height `65vh`; small = 33 %, medium = 50 % of the column; below MUI `sm` (600 px) small and medium are full width. The natural size comes from the `width`/`height` attributes (never upscaled); a height-capped image uses `object-fit: contain` with `object-position` following the alignment.
+- **`sizes`** per size: full `(max-width: 600px) 100vw, 1168px`, medium `… 584px`, small `… 390px`.
+- **Gotchas found while testing**: mui-tiptap's `.ProseMirror img { max-width: 100% }` overrides plain `figure img` rules, so the image rules target `img[data-image-id]`. Inserting while an image is selected replaced it; the insert command now adds after a selected block.
+- **Verified in the browser** (local dev, 2026-11-19): upload with progress, insert, size/alignment, caption, alt reminder, save → canonical HTML and usage rows, GPS/camera data removed from the original, reload round-trip, project page on desktop and at 500 px width.
+
 ## Next Steps (workflow)
 
 1. ~~Harald reviews the problem statement and decides Q1–Q13~~ (done 2026-11-19, D1–D24).
@@ -570,3 +580,5 @@ Choices made while building, within the decisions above:
 - 2026-11-19: Upload dialog shows upload progress, then "Processing image…" (D16, AC 1). Variants stay at 600/1200 (D13).
 
 - 2026-11-19: Backend implemented (model, migration 0104, upload endpoint, metadata stripping, sanitiser, resolve step, usage sync, docs). Implementation notes added.
+- 2026-11-19: Frontend implemented and tried in the browser; frontend implementation notes added.
+- 2026-11-19: PoC check: DeepL leaves `alt` untranslated (confirmed by Harald on a real project). N1 final decision pending.
