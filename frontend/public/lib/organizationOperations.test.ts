@@ -1,4 +1,8 @@
-import { getIsUserFollowing, getUserOrganizations } from "./organizationOperations";
+import {
+  getIsUserFollowing,
+  getUserOrganizations,
+  parseOrganization,
+} from "./organizationOperations";
 import { apiRequest } from "./apiOperations";
 
 jest.mock("./apiOperations", () => ({
@@ -62,5 +66,28 @@ describe("getIsUserFollowing", () => {
         locale: "en",
       })
     );
+  });
+});
+
+describe("parseOrganization", () => {
+  const apiOrganization = {
+    url_slug: "my-org",
+    name: "My Org",
+    image: "/media/organization_images/1/a.jpg",
+    thumbnail_image: "/media/organization_images/1/a_thumb.jpg",
+    background_image: null,
+    image_variants: { thumbnail_image: { webp: "https://cdn.example/a_thumb_webp_1a2b.webp" } },
+    types: [],
+    sectors: [],
+  };
+
+  it("keeps image_variants for display", () => {
+    expect(parseOrganization(apiOrganization).image_variants).toEqual(
+      apiOrganization.image_variants
+    );
+  });
+
+  it("leaves image_variants out of the edit state, so it is never PATCHed", () => {
+    expect(parseOrganization(apiOrganization, true)).not.toHaveProperty("image_variants");
   });
 });
