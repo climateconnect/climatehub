@@ -28,6 +28,7 @@ from climateconnect_api.views import (
     donation_views,
     faq_views,
     notifications_views,
+    rich_text_image_views,
     role_views,
     settings_views,
     status_views,
@@ -176,6 +177,11 @@ urls = [
         "api/webhooks/twingle/",
         twingle_webhook_views.TwingleWebhookView.as_view(),
         name="twingle-webhook",
+    ),
+    path(
+        "api/rich-text-images/",
+        rich_text_image_views.RichTextImageUploadView.as_view(),
+        name="rich-text-image-upload-api",
     ),
     path(
         "api/translate/",

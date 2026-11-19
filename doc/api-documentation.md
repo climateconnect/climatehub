@@ -1197,6 +1197,35 @@ Server-to-server endpoint for Twingle, not for the frontend. Operations, setup a
 
 A non-2xx response always means the goal was not changed.
 
+### Rich-text images
+
+Upload of one image for a rich-text field (v1: project description). Spec:
+`doc/spec/20260708_1302_rich_text_image_support.md`.
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/rich-text-images/` | POST | Yes | Upload one image (`multipart/form-data`, file part `image`) |
+
+- **No entity in the request.** The image belongs to the uploader and isn't linked anywhere yet. It's linked when
+  the project is saved with the image in its `description_html` (and in any translation).
+- **Accepted**: JPEG, PNG, WebP up to 20 MB. Type is detected from the content. Pixel limit: about 110 MP for
+  JPEG, 40 MP for PNG/WebP. Location and other metadata are removed from the stored original.
+- **Rate limit**: 20 uploads per user per hour (`429` with `Retry-After`). The first throttled request per user and
+  hour sends a Sentry warning.
+- **Response `201`**: `{"id", "width", "height", "variants": [{"url", "width", "height"}]}`. Variants are WebP,
+  600 and 1200 px wide (never enlarged), smallest first. `width`/`height` are the largest variant's size. The
+  original's URL is never returned.
+- **Errors `400`** with `{"code", "message"}`; `code` is one of `missing_file`, `unsupported_type`,
+  `file_too_large`, `too_many_pixels`, `unreadable_image`.
+
+**Images in `description_html`** (`POST /api/create_project/`, `PATCH /api/projects/<slug>/`, also inside
+`translations.<lang>.description_html`): an image block is
+`<figure class="image-size-{small|medium|full} image-align-{left|center|right}"><img … data-image-id="<id>"><figcaption>…</figcaption></figure>`.
+On save the server keeps only images the user uploaded or that are already used in this project, rewrites
+`src`, `srcset`, `width`, `height` and `loading` from the database, shortens `alt` to 150 characters and makes
+the caption plain text. More than 10 images in one language version → `400`. All of this is checked before
+anything is written.
+
 ---
 
 ## Troubleshooting

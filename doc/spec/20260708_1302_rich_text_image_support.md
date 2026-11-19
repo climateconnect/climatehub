@@ -516,6 +516,17 @@ Project JSON payload and its base64 header images, `DATA_UPLOAD_MAX_MEMORY_SIZE`
 
 ---
 
+## Implementation notes (backend, 2026-11-19)
+
+Choices made while building, within the decisions above:
+- **CSS classes** on `<figure>`: `image-size-small|medium|full` and `image-align-left|center|right`. The server fills in the defaults (`image-size-full image-align-center`, D12) when a class is missing.
+- **`variants`** is stored as a JSON **list** of `{name, width, height}`, smallest first (not a dict keyed by width), because a small original has only one variant and a 900 px original has 600 and 900.
+- **`sizes`** comes from the editor (validated: allowed characters, max 200 chars); `100vw` if missing or invalid. The exact values are set in the frontend PoC.
+- **Alt text** longer than 150 characters is shortened on the server for every save, not only for DeepL output (D25). The editor's counter prevents it for normal input.
+- **Captions** are made plain text on the server (tags stripped, whitespace collapsed), D27.
+- **`decode_image`** (#2349) was split into a raising `decode_image_or_raise(source_bytes, draft_size=None)` and the existing logging wrapper, so upload errors are 400s and not Sentry errors. #2349 behaviour is unchanged (its tests pass).
+- **Linking rule** check uses the image's owner or an existing usage in the same project and field. An image used only in another project can't be copied into this one.
+
 ## Next Steps (workflow)
 
 1. ~~Harald reviews the problem statement and decides Q1–Q13~~ (done 2026-11-19, D1–D24).
@@ -557,3 +568,5 @@ Project JSON payload and its base64 header images, `DATA_UPLOAD_MAX_MEMORY_SIZE`
 - 2026-11-19: D32: the PoC is the production implementation, built iteratively to production standards.
 - 2026-11-19: D14 confirmed: synchronous variant generation; reuse of #2349 limited to helpers; independent variant names; validate before decode.
 - 2026-11-19: Upload dialog shows upload progress, then "Processing image…" (D16, AC 1). Variants stay at 600/1200 (D13).
+
+- 2026-11-19: Backend implemented (model, migration 0104, upload endpoint, metadata stripping, sanitiser, resolve step, usage sync, docs). Implementation notes added.
