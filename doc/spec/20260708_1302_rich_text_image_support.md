@@ -534,7 +534,7 @@ Choices made while building, within the decisions above:
 - **Save blocking (D16)** is achieved by the upload dialog: it stays open for the whole upload (upload progress, then "Processing image…") and can only be left with Cancel, which aborts the request. So the form's save button can't be reached during an upload, and the four forms needed no changes.
 - **Display values (D11, first PoC values)**: max height `65vh`; small = 33 %, medium = 50 % of the column; below MUI `sm` (600 px) small and medium are full width. The natural size comes from the `width`/`height` attributes (never upscaled); a height-capped image uses `object-fit: contain` with `object-position` following the alignment.
 - **`sizes`** per size: full `(max-width: 600px) 100vw, 1168px`, medium `… 584px`, small `… 390px`.
-- **Gotchas found while testing**: mui-tiptap's `.ProseMirror img { max-width: 100% }` overrides plain `figure img` rules, so the image rules target `img[data-image-id]`. Inserting while an image is selected replaced it; the insert command now adds after a selected block.
+- **Gotchas found while testing**: mui-tiptap's `.ProseMirror img { max-width: 100% }` overrides plain `figure img` rules, so the image rules target `img[data-image-id]`. Inserting while an image is selected, or while the cursor is in an image's caption (which is where it lands right after inserting), replaced that image; the insert command now adds the new image after that block.
 - **Verified in the browser** (local dev, 2026-11-19): upload with progress, insert, size/alignment, caption, alt reminder, save → canonical HTML and usage rows, GPS/camera data removed from the original, reload round-trip, project page on desktop and at 500 px width.
 
 ## Next Steps (workflow)
@@ -582,3 +582,4 @@ Choices made while building, within the decisions above:
 - 2026-11-19: Backend implemented (model, migration 0104, upload endpoint, metadata stripping, sanitiser, resolve step, usage sync, docs). Implementation notes added.
 - 2026-11-19: Frontend implemented and tried in the browser; frontend implementation notes added.
 - 2026-11-19: PoC check: DeepL leaves `alt` untranslated (confirmed by Harald on a real project). N1 final decision pending.
+- 2026-11-19: Create, edit, translation and delete flows tested in the browser with a real test user; fixed image replacement when inserting with the cursor in a caption.

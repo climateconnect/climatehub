@@ -138,10 +138,18 @@ const RichTextImage = Node.create({
             alt,
           },
         };
-        // A selected block (e.g. the image inserted just before) would be
-        // replaced; add the new image after it instead.
-        if (state.selection instanceof NodeSelection) {
-          return commands.insertContentAt(state.selection.to, content);
+        // Inserting while a block is selected, or while the cursor is in an
+        // image's caption (e.g. right after inserting an image), would replace
+        // that block. Add the new image after it instead.
+        const { selection } = state;
+        if (selection instanceof NodeSelection) {
+          return commands.insertContentAt(selection.to, content);
+        }
+        const { $from } = selection;
+        for (let depth = $from.depth; depth > 0; depth -= 1) {
+          if ($from.node(depth).type.name === this.name) {
+            return commands.insertContentAt($from.after(depth), content);
+          }
         }
         return commands.insertContent(content);
       },

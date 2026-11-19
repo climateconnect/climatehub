@@ -50,6 +50,22 @@ describe("RichTextImage", () => {
     editor.destroy();
   });
 
+  it("adds a new image after the image whose caption has the cursor", () => {
+    const editor = makeEditor("<p>Text</p>");
+    editor.commands.insertRichTextImage(uploaded(1), "");
+    // Put the cursor into the (empty) caption of the image just inserted.
+    let captionPos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "richTextImage") captionPos = pos + 1;
+    });
+    editor.commands.setTextSelection(captionPos);
+    editor.commands.insertRichTextImage(uploaded(2), "");
+    expect(countRichTextImages(editor.state.doc)).toBe(2);
+    const html = editor.getHTML();
+    expect(html.indexOf('data-image-id="1"')).toBeLessThan(html.indexOf('data-image-id="2"'));
+    editor.destroy();
+  });
+
   it("adds a new image after a selected image instead of replacing it", () => {
     const editor = makeEditor(STORED);
     editor.commands.command(({ tr }) => {
