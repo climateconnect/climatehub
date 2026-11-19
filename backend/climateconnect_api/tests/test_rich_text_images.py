@@ -354,3 +354,40 @@ class DeletionTests(UploadTestCase):
         used.refresh_from_db()
         self.assertIsNone(used.owner)
         self.assertTrue(default_storage.exists(used.original.name))
+
+
+class AdminTests(UploadTestCase):
+    def setUp(self):
+        super().setUp()
+        self.admin = User.objects.create_superuser(username="admin", password="x")
+        self.client.force_login(self.admin)
+
+    def test_list_and_detail_pages_never_show_the_original(self):
+        response = self.upload(encode(photo(800, 600), "JPEG"))
+        image = RichTextImage.objects.get(id=response.data["id"])
+        language = Language.objects.get(language_code="en")
+        project = Project.objects.create(
+            name="Admin project", url_slug="admin-rich-text", language=language
+        )
+        RichTextImageUsage.objects.create(
+            image=image, project=project, field=RichTextImageUsage.PROJECT_DESCRIPTION
+        )
+
+        pages = [
+            reverse("admin:climateconnect_api_richtextimage_changelist"),
+            reverse("admin:climateconnect_api_richtextimage_change", args=[image.id]),
+        ]
+        for url in pages:
+            page = self.client.get(url)
+            self.assertEqual(page.status_code, 200, url)
+            content = page.content.decode()
+            self.assertIn(image.variants[0]["name"], content)
+            self.assertNotIn(image.original.name, content)
+
+        detail = self.client.get(pages[1]).content.decode()
+        self.assertIn("Admin project", detail)
+        self.assertIn("Still used", detail)
+
+    def test_images_cannot_be_added_in_the_admin(self):
+        page = self.client.get(reverse("admin:climateconnect_api_richtextimage_add"))
+        self.assertEqual(page.status_code, 403)
