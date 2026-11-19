@@ -231,6 +231,12 @@ module.exports = withBundleAnalyzer({
         destination: `https://climatehub.org/de/hubs/potsdam/crowdfunding`,
         permanent: false,
       },
+      {
+        source: "/100",
+        has: [{ type: "host", value: "em.climatehub.org" }],
+        destination: `https://climatehub.org/de/hubs/em/crowdfunding`,
+        permanent: false,
+      },
       // 2. Cross-domain subdomain redirects (German first, then English fallback)
       // Must be permanent: false (302) — 301s are cached by browsers, breaking language switching.
       ...LOCATION_HUBS.map((hubSlug) => ({
