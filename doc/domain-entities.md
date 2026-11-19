@@ -76,6 +76,11 @@ This document provides comprehensive documentation of the main domain entities i
 - **DonationGoal**:
   - **ForeignKey**: `Hub` (optional - hub-specific fundraising)
   - **Referenced by**: `Donation`
+  - **Twingle fields** ([#2388](https://github.com/climateconnect/climatehub/issues/2388), see [Twingle donation webhook](twingle-donation-webhook.md)):
+    - `twingle_project_id`: Twingle project the goal is mapped to (blank = maintained by hand only). Unique among non-blank values: a Twingle project maps to at most one goal.
+    - `twingle_unit_price`: € per month that make one unit (decimal, > 0, default 7). A new recurring donation adds ⌊monthly amount ÷ unit price⌋ to `current_amount`.
+    - `twingle_last_delivery_at`: last validly signed Twingle delivery for the mapped project, counted or not (liveness check, read-only in the admin). The webhook doesn't touch `updated_at`.
+    - None of them is exposed by the public goal endpoints.
 - **Donation**:
   - **ForeignKey**: `User` (donor), `DonationGoal` (optional - associated campaign)
 

@@ -16,6 +16,20 @@ const LOCATION_HUBS = (process.env.LOCATION_HUBS || "").split(",").filter(Boolea
 
 module.exports = withBundleAnalyzer({
   generateBuildId: async () => process.env.BUILD_SHA || "dev",
+  // Emit .next/standalone with only the traced runtime files. The App Service
+  // deploy ships that instead of the full node_modules (~150k files), which
+  // made Kudu's rsync step run into its timeout.
+  output: "standalone",
+  outputFileTracingRoot: __dirname,
+  // The tracer ignores the "module-sync" export condition, but Node 22 resolves
+  // it, so these packages' require.mjs entry points must be added explicitly.
+  outputFileTracingIncludes: {
+    "/**": [
+      "./node_modules/async-function/*.mjs",
+      "./node_modules/async-generator-function/*.mjs",
+      "./node_modules/generator-function/*.mjs",
+    ],
+  },
   // Workaround for Next 15 pages-router dev HMR crash when receiving malformed
   // `isrManifest` payloads (data can be `{}` before router is ready).
   devIndicators: false,
@@ -107,6 +121,11 @@ module.exports = withBundleAnalyzer({
         source: "/balkonien-mr",
         destination:
           "/de/projects/alles-muss-raus-ubrige-pv-module-von-balkonien-26-zu-verschenken?hub=marburg",
+        permanent: true,
+      },
+      {
+        source: "/mikrowald-erlangen",
+        destination: "/de/organizations/mikrowald-erlangen?hub=erlangen",
         permanent: true,
       },
       {

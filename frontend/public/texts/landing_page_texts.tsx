@@ -159,6 +159,14 @@ export default function getLandingPageTexts({ classes, isNarrowScreen }) {
       de:
         "Finde Mitstreiter:innen, um in deiner Region gemeinsam für den Klimaschutz anzupacken und etwas für eine nachhaltige Zukunft zu bewirken.",
     },
+    index_page_title: {
+      en: "Act for a Good Climate",
+      de: "Gemeinsam gutes Klima schaffen",
+    },
+    index_page_description: {
+      en: "Your starting point to take local climate action together.",
+      de: "Dein Ort, um gemeinsam für den Klimaschutz anzupacken.",
+    },
     hub_landing_page_description_em: {
       en:
         "Find projects and initiatives in the Emmendingen district to get involved with and make a difference. The ClimateHub is the place to start if you want to find your group and make an impact.",

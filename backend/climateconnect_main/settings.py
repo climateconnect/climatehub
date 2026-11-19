@@ -551,7 +551,17 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {"simple": {"format": "{levelname} {message}", "style": "{"}},
     "handlers": {"console": {"level": "INFO", "class": "logging.StreamHandler"}},
-    "loggers": {"django": {"handlers": ["console"], "level": "INFO"}},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO"},
+        # The web process has no root handler, so INFO lines of other loggers
+        # are dropped. The Twingle webhook's change log (FR11) must be visible
+        # in the App Service log stream: see doc/twingle-donation-webhook.md.
+        "climateconnect_api.twingle": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }
 
 # Custom test runner to set up global test data
@@ -667,6 +677,12 @@ sentry_sdk.init(
 CLIMATE_CONNECT_CONTACT_EMAIL = env(
     "CLIMATE_CONNECT_CONTACT_EMAIL", "contact@climatehub.org"
 )
+
+# Secret for the X-Hub-Signature-256 HMAC of Twingle webhook deliveries
+# ("Secret für den Validierungshash" in twingleMANAGER). Unset or empty means
+# the webhook rejects every request (fail closed): see
+# doc/twingle-donation-webhook.md.
+TWINGLE_WEBHOOK_SECRET = env("TWINGLE_WEBHOOK_SECRET", "")
 # --- GLOBAL TEST SETTINGS ---
 # This ensures that tests don't require a running Redis/RabbitMQ broker
 if "test" in sys.argv or env("ENVIRONMENT") == "test":

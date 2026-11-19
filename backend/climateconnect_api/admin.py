@@ -28,7 +28,6 @@ pass_through_models = (
     UserNotification,
     EmailNotification,
     Donation,
-    DonationGoal,
     Badge,
     DonorBadge,
     UserBadge,
@@ -68,6 +67,24 @@ class FeedbackAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Feedback, FeedbackAdmin)
+
+
+class DonationGoalAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "hub",
+        "start_date",
+        "end_date",
+        "current_amount",
+        "goal_amount",
+        "twingle_project_id",
+        "twingle_last_delivery_at",
+    ]
+    # Set by the Twingle webhook only (doc/twingle-donation-webhook.md).
+    readonly_fields = ["twingle_last_delivery_at"]
+
+
+admin.site.register(DonationGoal, DonationGoalAdmin)
 
 
 class UserProfileAdmin(admin.ModelAdmin):
