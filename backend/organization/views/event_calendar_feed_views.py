@@ -3,6 +3,7 @@ import zoneinfo
 
 from dateutil.parser import parse as dateutil_parse
 from dateutil.relativedelta import relativedelta
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.utils import translation as dj_translation
@@ -16,6 +17,7 @@ from hubs.models.hub import Hub
 from organization.models import Project
 from organization.models.type import ProjectTypesChoices
 from organization.utility.ical_feed import (
+    FEED_PARAM_KEYS,
     build_feed_calendar,
     build_feed_url,
     canonicalize_query,
@@ -23,7 +25,11 @@ from organization.utility.ical_feed import (
     sign_feed_token,
     verify_feed_token,
 )
-from organization.utility.project import apply_hub_filter
+from organization.utility.project import (
+    apply_hub_filter,
+    apply_location_filter,
+    get_location_filter_data,
+)
 from organization.utility.sector import sanitize_sector_inputs
 
 
@@ -76,6 +82,12 @@ class EventCalendarFeedView(APIView):
         if hub_slug:
             hub = Hub.objects.filter(url_slug=hub_slug).first()
             queryset = apply_hub_filter(queryset, hub_slug)
+
+        try:
+            location_data = get_location_filter_data(request.query_params)
+        except DjangoValidationError:
+            return HttpResponse("Invalid location", status=400)
+        queryset = apply_location_filter(queryset, location_data)
 
         if "sectors" in request.query_params:
             sector_names, err = sanitize_sector_inputs(request.query_params["sectors"])
@@ -130,6 +142,11 @@ class EventCalendarFeedView(APIView):
             filter_parts.append(f"search={search}")
         if "sectors" in request.query_params:
             filter_parts.append(f"sectors={request.query_params['sectors']}")
+        if location_data:
+            filter_parts.append(f"location={location_data['name']}")
+            radius_param = request.query_params.get("radius")
+            if radius_param:
+                filter_parts.append(f"radius={radius_param}km")
         if date_param:
             filter_parts.append(f"date={date_param}")
         filters_summary = "; ".join(filter_parts) if filter_parts else ""
@@ -152,7 +169,7 @@ class EventFeedTokenView(APIView):
 
     def post(self, request):
         params = {}
-        for key in ("hub", "sectors", "search", "date", "tz", "lang"):
+        for key in FEED_PARAM_KEYS:
             val = request.data.get(key)
             if val is not None and val != "":
                 params[key] = str(val)

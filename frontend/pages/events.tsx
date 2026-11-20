@@ -12,6 +12,7 @@ import WideLayout from "../src/components/layouts/WideLayout";
 import PageNav from "../src/components/pageNav/PageNav";
 import EventCalendarContent from "../src/components/eventCalendar/EventCalendarContent";
 import MobilePageNav from "../src/components/pageNav/MobilePageNav";
+import { getInitialEventLocationFilter } from "../public/lib/locationOperations";
 
 const toOffsetIso = (d: Date): string => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -34,7 +35,10 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const locale = ctx.locale ?? "en";
   const token = NextCookies(ctx).auth_token;
 
-  const [sectorOptions] = await Promise.all([getSectorOptions(locale)]);
+  const [sectorOptions, { initialLocation, initialRadius, locationParams }] = await Promise.all([
+    getSectorOptions(locale),
+    getInitialEventLocationFilter(ctx.query, locale as any),
+  ]);
 
   const querySearch = (ctx.query.search as string) || "";
   const querySectors = (ctx.query.sectors as string) || "";
@@ -62,6 +66,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     });
     if (querySearch) params.set("search", querySearch);
     if (querySectors) params.set("sectors", querySectors);
+    Object.entries(locationParams).forEach(([key, value]) => params.set(key, value));
     const { data } = await apiRequest({
       method: "get",
       url: `/api/events/?${params.toString()}`,
@@ -82,6 +87,8 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       initialSearch: querySearch,
       initialSectors: querySectors ? querySectors.split(",") : [],
       initialSelectedDay: initialSelectedDay || null,
+      initialLocation,
+      initialRadius,
     },
   };
 };
@@ -93,6 +100,8 @@ export default function EventsPage({
   initialSearch,
   initialSectors,
   initialSelectedDay,
+  initialLocation,
+  initialRadius,
 }: any) {
   const { locale, hubUrl } = useContext(UserContext);
   const { hubs } = useContext(HubContext);
@@ -124,6 +133,9 @@ export default function EventsPage({
         initialSelectedDay={initialSelectedDay}
         filterChoices={filterChoices}
         hubUrl={hubUrl}
+        showLocationFilter
+        initialLocation={initialLocation}
+        initialRadius={initialRadius}
       />
       {isNarrowScreen && <MobilePageNav activeEntry={null} hubUrl={hubUrl} hubAmbassador={null} />}
     </WideLayout>

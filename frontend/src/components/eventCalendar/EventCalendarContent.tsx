@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { styled, Theme } from "@mui/material/styles";
 import TuneIcon from "@mui/icons-material/Tune";
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getImageUrl } from "../../../public/lib/imageOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
@@ -18,6 +18,8 @@ import FilterSearchBar from "../filter/FilterSearchBar";
 import GenericDialog from "../dialogs/GenericDialog";
 import EventCalendarEventList from "./EventCalendarEventList";
 import SubscribeToCalendarButton from "./SubscribeToCalendarButton";
+import EventCalendarLocationFilter from "./EventCalendarLocationFilter";
+import { locationToQueryParams } from "../../../public/lib/locationOperations";
 import { useFeatureToggles } from "../featureToggle/FeatureToggleProvider";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/de";
@@ -151,10 +153,16 @@ const EventDot = styled("span")(({ theme }) => ({
   marginTop: 2,
 }));
 
-function syncFiltersToUrl(search: string, sectors: string[], selectedDay: Dayjs) {
+function syncFiltersToUrl(
+  search: string,
+  sectors: string[],
+  selectedDay: Dayjs,
+  locationParams: Record<string, string>
+) {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (sectors.length) params.set("sectors", sectors.join(","));
+  Object.entries(locationParams).forEach(([key, value]) => params.set(key, value));
   params.set("date", selectedDay.format("YYYY-MM-DD"));
   const qs = params.toString();
   const origin = window.location.origin;
@@ -181,6 +189,16 @@ function readFiltersFromUrl() {
   return { search, sectors, selectedDay };
 }
 
+/**
+ * Location filter query params, memoized by value so that object identity
+ * only changes when the effective params change. A radius change without a
+ * selected location therefore doesn't trigger refetches.
+ */
+function useLocationParams(location: any, radius: string): Record<string, string> {
+  const key = JSON.stringify(locationToQueryParams(location, radius));
+  return useMemo(() => JSON.parse(key), [key]);
+}
+
 export default function EventCalendarContent({
   initialEvents = [],
   initialHasMore = false,
@@ -192,6 +210,9 @@ export default function EventCalendarContent({
   hubName,
   subHubName,
   autoOpenSubscribe = false,
+  showLocationFilter = false,
+  initialLocation = null,
+  initialRadius = "",
 }: any) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "hub", locale: locale });
@@ -210,6 +231,15 @@ export default function EventCalendarContent({
     urlFilters.current.sectors?.length ? urlFilters.current.sectors : initialSectors
   );
   const [selectedDay, setSelectedDay] = useState<Dayjs>(initialDay);
+  // Location filter: `location` is the selected location object, the text
+  // being typed, or null. Ignored entirely when the filter isn't shown
+  // (e.g. on location hubs).
+  const [location, setLocation] = useState<any>(showLocationFilter ? initialLocation : null);
+  const [radius, setRadius] = useState<string>(
+    showLocationFilter && initialLocation ? initialRadius || "" : ""
+  );
+  const locationParams = useLocationParams(location, radius);
+  const hasLocationFilter = Object.keys(locationParams).length > 0;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState<Dayjs>(initialDay.startOf("month"));
   const [dayCounts, setDayCounts] = useState<Record<string, number>>({});
@@ -218,6 +248,9 @@ export default function EventCalendarContent({
   const [draftSectors, setDraftSectors] = useState<string[]>(sectors);
   const [draftSelectedDay, setDraftSelectedDay] = useState<Dayjs>(selectedDay);
   const [draftViewMonth, setDraftViewMonth] = useState<Dayjs>(viewMonth);
+  const [draftLocation, setDraftLocation] = useState<any>(location);
+  const [draftRadius, setDraftRadius] = useState<string>(radius);
+  const draftLocationParams = useLocationParams(draftLocation, draftRadius);
   const overlayOpenRef = useRef(false);
 
   // Snapshot applied filters into draft when the dialog opens
@@ -226,6 +259,8 @@ export default function EventCalendarContent({
       setDraftSectors([...sectors]);
       setDraftSelectedDay(selectedDay);
       setDraftViewMonth(viewMonth);
+      setDraftLocation(location);
+      setDraftRadius(radius);
       overlayOpenRef.current = true;
     }
     if (!mobileFiltersOpen) {
@@ -233,20 +268,23 @@ export default function EventCalendarContent({
     }
   }, [mobileFiltersOpen]);
 
-  // Active filter count: sectors + non-today date
+  // Active filter count: sectors + non-today date + location (radius alone
+  // doesn't count, and location + radius count as one filter)
   const activeFilterCount =
-    (sectors.length > 0 ? 1 : 0) + (!selectedDay.isSame(dayjs(), "day") ? 1 : 0);
+    (sectors.length > 0 ? 1 : 0) +
+    (!selectedDay.isSame(dayjs(), "day") ? 1 : 0) +
+    (hasLocationFilter ? 1 : 0);
 
   // Sync filter state to URL
   useEffect(() => {
     const handler = setTimeout(
       () => {
-        syncFiltersToUrl(search, sectors, selectedDay);
+        syncFiltersToUrl(search, sectors, selectedDay, locationParams);
       },
       search ? 400 : 0
     );
     return () => clearTimeout(handler);
-  }, [search, sectors, selectedDay]);
+  }, [search, sectors, selectedDay, locationParams]);
 
   const fetchCounts = async () => {
     const token = new Cookies().get("auth_token");
@@ -257,6 +295,7 @@ export default function EventCalendarContent({
     if (search) params.set("search", search);
     if (sectors.length) params.set("sectors", sectors.join(","));
     if (hubUrl) params.set("hub", hubUrl);
+    Object.entries(locationParams).forEach(([key, value]) => params.set(key, value));
     try {
       const { data } = await apiRequest({
         method: "get",
@@ -285,7 +324,7 @@ export default function EventCalendarContent({
     );
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMonth, search, sectors, hubUrl]);
+  }, [viewMonth, search, sectors, hubUrl, locationParams]);
 
   const handleToggleSector = (name: string) => {
     setSectors((prev) => (prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]));
@@ -295,7 +334,19 @@ export default function EventCalendarContent({
     setSearch("");
     setSectors([]);
     setSelectedDay(dayjs());
+    setLocation(null);
+    setRadius("");
   };
+
+  const handleClearLocation = () => {
+    setLocation(null);
+    setRadius("");
+  };
+
+  const handleClearDraftLocation = useCallback(() => {
+    setDraftLocation(null);
+    setDraftRadius("");
+  }, []);
 
   // --- Mobile staged handlers ---
   const handleToggleDraftSector = useCallback((name: string) => {
@@ -323,14 +374,18 @@ export default function EventCalendarContent({
     setDraftSectors([]);
     setDraftSelectedDay(dayjs());
     setDraftViewMonth(dayjs().startOf("month"));
+    setDraftLocation(null);
+    setDraftRadius("");
   }, []);
 
   const handleApplyMobileFilters = useCallback(() => {
     setSectors(draftSectors);
     setSelectedDay(draftSelectedDay);
     setViewMonth(draftViewMonth);
+    setLocation(draftLocation);
+    setRadius(draftRadius);
     setMobileFiltersOpen(false);
-  }, [draftSectors, draftSelectedDay, draftViewMonth]);
+  }, [draftSectors, draftSelectedDay, draftViewMonth, draftLocation, draftRadius]);
 
   const DayWithEvents = (props: any) => {
     const { day, outsideCurrentMonth, ...other } = props;
@@ -383,6 +438,7 @@ export default function EventCalendarContent({
               search={search}
               sectors={sectors}
               date={selectedDay.format("YYYY-MM-DD")}
+              locationParams={locationParams}
               variant="icon"
               defaultOpen={autoOpenSubscribe}
             />
@@ -411,6 +467,17 @@ export default function EventCalendarContent({
                 slots={{ day: DayWithEvents }}
               />
             </LocalizationProvider>
+
+            {showLocationFilter && (
+              <EventCalendarLocationFilter
+                location={draftLocation}
+                radius={draftRadius}
+                onLocationChange={setDraftLocation}
+                onRadiusChange={setDraftRadius}
+                onClear={handleClearDraftLocation}
+                isMobileScreen
+              />
+            )}
 
             <FormControl component="fieldset" fullWidth>
               <FilterLabel component="legend">{texts.topic ?? "Topics"}</FilterLabel>
@@ -449,6 +516,7 @@ export default function EventCalendarContent({
                 search={search}
                 sectors={draftSectors}
                 date={draftSelectedDay.format("YYYY-MM-DD")}
+                locationParams={draftLocationParams}
               />
             )}
           </MobileFilterDialogContent>
@@ -479,6 +547,16 @@ export default function EventCalendarContent({
                 slots={{ day: DayWithEvents }}
               />
             </LocalizationProvider>
+
+            {showLocationFilter && (
+              <EventCalendarLocationFilter
+                location={location}
+                radius={radius}
+                onLocationChange={setLocation}
+                onRadiusChange={setRadius}
+                onClear={handleClearLocation}
+              />
+            )}
 
             <FormControl component="fieldset" fullWidth>
               <FilterLabel component="legend">{texts.topic ?? "Topics"}</FilterLabel>
@@ -517,6 +595,7 @@ export default function EventCalendarContent({
                 search={search}
                 sectors={sectors}
                 date={selectedDay.format("YYYY-MM-DD")}
+                locationParams={locationParams}
                 defaultOpen={autoOpenSubscribe}
               />
             )}
@@ -532,6 +611,7 @@ export default function EventCalendarContent({
             selectedDay={selectedDay}
             hubUrl={hubUrl}
             subHubName={subHubName}
+            locationParams={locationParams}
           />
         </RightPanel>
       </Layout>

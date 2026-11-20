@@ -9,6 +9,10 @@ import HubPageLayout from "../../../../src/components/hub/HubPageLayout";
 import EventCalendarContent from "../../../../src/components/eventCalendar/EventCalendarContent";
 import { getHubData, getLinkedHubsData } from "../../../../public/lib/getHubData";
 import getHubTheme from "../../../../src/themes/fetchHubTheme";
+import {
+  getInitialEventLocationFilter,
+  shouldShowEventLocationFilter,
+} from "../../../../public/lib/locationOperations";
 
 const toOffsetIso = (d: Date): string => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -55,6 +59,15 @@ export async function getHubEventsServerSideProps(ctx: GetServerSidePropsContext
     getLinkedHubsData(hubSlug),
   ]);
 
+  const showLocationFilter = shouldShowEventLocationFilter(
+    hubData,
+    subHub ? hubs?.find((h: any) => h.url_slug === parentHubUrl) : undefined
+  );
+  // Location params in the URL are ignored when the filter is hidden.
+  const { initialLocation, initialRadius, locationParams } = showLocationFilter
+    ? await getInitialEventLocationFilter(ctx.query, locale as any)
+    : { initialLocation: null, initialRadius: "", locationParams: {} };
+
   const querySearch = (ctx.query.search as string) || "";
   const querySectors = (ctx.query.sectors as string) || "";
   const queryDate = ctx.query.date as string | undefined;
@@ -82,6 +95,7 @@ export async function getHubEventsServerSideProps(ctx: GetServerSidePropsContext
     });
     if (querySearch) params.set("search", querySearch);
     if (querySectors) params.set("sectors", querySectors);
+    Object.entries(locationParams).forEach(([key, value]) => params.set(key, value));
     const { data } = await apiRequest({
       method: "get",
       url: `/api/events/?${params.toString()}`,
@@ -109,6 +123,9 @@ export async function getHubEventsServerSideProps(ctx: GetServerSidePropsContext
       hubData,
       hubThemeData,
       linkedHubs: linkedHubs || [],
+      showLocationFilter,
+      initialLocation,
+      initialRadius,
     },
   };
 }
@@ -130,6 +147,9 @@ export default function HubEventsPage({
   hubThemeData,
   linkedHubs,
   autoOpenSubscribe,
+  showLocationFilter,
+  initialLocation,
+  initialRadius,
 }: any) {
   const effectiveHubUrl = subHubUrl || hubUrl;
 
@@ -155,6 +175,9 @@ export default function HubEventsPage({
         hubName={hubData?.name}
         subHubName={hubData?.parent_hub ? hubData?.name : undefined}
         autoOpenSubscribe={autoOpenSubscribe}
+        showLocationFilter={showLocationFilter}
+        initialLocation={initialLocation}
+        initialRadius={initialRadius}
       />
     </HubPageLayout>
   );

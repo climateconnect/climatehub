@@ -218,6 +218,69 @@ describe("EventCalendarEventList", () => {
     });
   });
 
+  describe("location filter", () => {
+    it("sends location params to API", async () => {
+      mockApiRequest.mockResolvedValueOnce(paginatedResponse([]));
+      renderList({
+        locationParams: {
+          osm_id: "1001",
+          osm_type: "relation",
+          osm_class: "boundary",
+          radius: "25",
+        },
+      });
+
+      await waitFor(() => {
+        expect(mockApiRequest).toHaveBeenCalledTimes(1);
+      });
+      const callUrl = mockApiRequest.mock.calls[0][0].url;
+      expect(callUrl).toContain("osm_id=1001");
+      expect(callUrl).toContain("osm_type=relation");
+      expect(callUrl).toContain("osm_class=boundary");
+      expect(callUrl).toContain("radius=25");
+    });
+
+    it("re-fetches when the location params change, even with initial events", async () => {
+      mockApiRequest.mockResolvedValue(paginatedResponse([]));
+      const props = {
+        initialEvents: [makeEvent()],
+        initialHasMore: false,
+        search: "",
+        sectors: [] as string[],
+        selectedDay: dayjs(),
+        hubUrl: "",
+      };
+      const { rerender } = render(
+        <ThemeProvider theme={theme}>
+          <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
+            <UserContext.Provider value={BASE_CONTEXT as any}>
+              <EventCalendarEventList {...props} />
+            </UserContext.Provider>
+          </HubContext.Provider>
+        </ThemeProvider>
+      );
+      expect(mockApiRequest).not.toHaveBeenCalled();
+
+      rerender(
+        <ThemeProvider theme={theme}>
+          <HubContext.Provider value={{ hubUrl: "", hubData: null, hubTheme: null, hubs: [] }}>
+            <UserContext.Provider value={BASE_CONTEXT as any}>
+              <EventCalendarEventList
+                {...props}
+                locationParams={{ osm_id: "1001", osm_type: "relation" }}
+              />
+            </UserContext.Provider>
+          </HubContext.Provider>
+        </ThemeProvider>
+      );
+
+      await waitFor(() => {
+        expect(mockApiRequest).toHaveBeenCalledTimes(1);
+      });
+      expect(mockApiRequest.mock.calls[0][0].url).toContain("osm_id=1001");
+    });
+  });
+
   describe("pagination", () => {
     it("sends page and page_size params to API", async () => {
       mockApiRequest.mockResolvedValueOnce(paginatedResponse([]));

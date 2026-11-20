@@ -70,6 +70,10 @@ export default function getFilterAndSearchTexts({ filterType, hubName, locale, s
       en: "Radius(km)",
       de: "Radius(km)",
     },
+    remove_location: {
+      en: "Remove location",
+      de: "Ort entfernen",
+    },
     selected_filters: {
       en: "Selected Filters",
       de: "Ausgewählte Filter",
