@@ -20,9 +20,9 @@ import IconButton from "@mui/material/IconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import FollowersDialog from "../dialogs/FollowersDialog";
 import {
+  AVATAR_SOURCES,
   BACKGROUND_SOURCES,
   BACKGROUND_SOURCES_SMALL,
-  THUMBNAIL_SOURCES,
   resolveVariantUrl,
 } from "../general/ResponsiveImage";
 import { useLongPress } from "use-long-press";
@@ -468,12 +468,10 @@ export default function AccountPage({
     : default_background;
 
   // The avatar renders at ~142px, but `account.image` is the uploader's
-  // full-size crop — commonly well over 1000px. Prefer the thumbnail's WebP.
-  const avatarUrl = resolveVariantUrl(
-    account.image_variants,
-    THUMBNAIL_SOURCES,
-    account.thumbnail_image || account.image
-  );
+  // full-size crop — commonly well over 1000px. Prefer the 600px variant; the
+  // thumbnail is too small for this slot. Profiles have no variants and keep
+  // showing `account.image`.
+  const avatarUrl = resolveVariantUrl(account.image_variants, AVATAR_SOURCES, account.image);
 
   return (
     <NoPaddingContainer disableGutters maxWidth="lg">

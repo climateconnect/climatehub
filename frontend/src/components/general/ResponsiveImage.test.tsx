@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ResponsiveImage, {
+  AVATAR_SOURCES,
   BACKGROUND_SOURCES,
   BACKGROUND_SOURCES_SMALL,
   THUMBNAIL_SOURCES,
@@ -201,6 +202,21 @@ describe("resolveVariantUrl", () => {
     expect(resolveVariantUrl(noThumb, THUMBNAIL_SOURCES, ORIGINAL)).toBe(
       FULL_VARIANTS.image["600"]
     );
+  });
+
+  it("prefers the 600px image for the header avatar, not the too-small thumbnail", () => {
+    expect(resolveVariantUrl(FULL_VARIANTS, AVATAR_SOURCES, ORIGINAL)).toBe(
+      FULL_VARIANTS.image["600"]
+    );
+  });
+
+  it("falls back to the thumbnail WebP, then the original, for the header avatar", () => {
+    const thumbOnly: ImageVariants = { thumbnail_image: FULL_VARIANTS.thumbnail_image };
+    expect(resolveVariantUrl(thumbOnly, AVATAR_SOURCES, ORIGINAL)).toBe(
+      FULL_VARIANTS.thumbnail_image.webp
+    );
+    // Profiles have no image_variants at all.
+    expect(resolveVariantUrl(undefined, AVATAR_SOURCES, ORIGINAL)).toBe(ORIGINAL);
   });
 
   it("routes the variant URL through getImageUrl, not just the fallback", () => {

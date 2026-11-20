@@ -87,6 +87,11 @@ describe("parseOrganization", () => {
     );
   });
 
+  it("does not add thumbnail_image, which the organization serializers never return", () => {
+    expect(parseOrganization(apiOrganization)).not.toHaveProperty("thumbnail_image");
+    expect(parseOrganization(apiOrganization, true)).not.toHaveProperty("thumbnail_image");
+  });
+
   it("leaves image_variants out of the edit state, so it is never PATCHed", () => {
     expect(parseOrganization(apiOrganization, true)).not.toHaveProperty("image_variants");
   });

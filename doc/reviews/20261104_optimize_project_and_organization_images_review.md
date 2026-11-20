@@ -276,11 +276,15 @@ Use `account.image` as the original fallback. The 600×600 WebP is sharp at 142p
 
 ## Before manual testing
 
-- [ ] Fix A (header avatar uses `AVATAR_SOURCES`) and B, with a test.
-- [ ] Update the PR #2349 description:
-  - the `MEDIA_ROOT` test runner change (finding 9)
-  - the new hourly beat task `regenerate_missing_image_variants`
-  - the deployment step: run `backfill_image_variants --dry-run` first, then `backfill_image_variants`
+- [x] Fix A (header avatar uses `AVATAR_SOURCES`) and B, with a test.
+  - `AVATAR_SOURCES` (`image` 600, then `thumbnail_image` WebP) is defined in `ResponsiveImage.tsx` next to the other source lists. `AccountPage` uses it with `account.image` as the fallback.
+  - The `THUMBNAIL_SOURCES` comment no longer says it serves detail-page avatars.
+  - `parseOrganization` no longer sets `thumbnail_image`. The `account.thumbnail_image || account.image` fallback is removed.
+  - Tests: `ResponsiveImage.test.tsx` (header avatar prefers the 600px variant, then the thumbnail WebP, then the original) and `organizationOperations.test.ts` (no `thumbnail_image` in read or edit mode). Both test files pass (27 tests). Prettier and eslint are clean. `tsc` shows only the existing errors from the `devlink/` imports, which are generated and not on disk.
+- [x] Update the PR #2349 description. 
+  - [x] the `MEDIA_ROOT` test runner change (finding 9)
+  - [x] the new hourly beat task `regenerate_missing_image_variants`
+  - [x] the deployment step: run `backfill_image_variants --dry-run` first, then `backfill_image_variants`
 
 ## Manual test plan
 
