@@ -28,18 +28,15 @@ export const HERO_SOURCES: VariantSource[] = [
 
 /**
  * Header banners are CSS `background-image`s, which cannot use `<picture>`, so
- * the viewport has to be resolved in JS. Pass the matching list to
- * {@link resolveVariantUrl} — each falls back to the other size, then to the
- * original, so a half-backfilled row still renders.
+ * the URL is resolved via {@link resolveVariantUrl}. The 1200px variant is used
+ * on every screen: the banner has a fixed 305px height with `cover`, so on a
+ * phone the 3:1 image is scaled up to ~915px wide and the 600px variant (200px
+ * tall) looks blurry. Falls back to 600, then to the original, so a
+ * half-backfilled row still renders.
  */
 export const BACKGROUND_SOURCES: VariantSource[] = [
   { field: "background_image", key: "1200" },
   { field: "background_image", key: "600" },
-];
-
-export const BACKGROUND_SOURCES_SMALL: VariantSource[] = [
-  { field: "background_image", key: "600" },
-  { field: "background_image", key: "1200" },
 ];
 
 /**

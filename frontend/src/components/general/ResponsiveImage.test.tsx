@@ -4,7 +4,6 @@ import "@testing-library/jest-dom";
 import ResponsiveImage, {
   AVATAR_SOURCES,
   BACKGROUND_SOURCES,
-  BACKGROUND_SOURCES_SMALL,
   THUMBNAIL_SOURCES,
   HERO_SOURCES,
   resolveVariantUrl,
@@ -232,12 +231,16 @@ describe("resolveVariantUrl", () => {
     expect(getImageUrl).toHaveBeenCalledWith("/media/projects/12/a3f9_1200.webp");
   });
 
-  it("picks the banner size matching the viewport", () => {
+  it("prefers the 1200px banner, then the 600px one, then the original", () => {
     expect(resolveVariantUrl(FULL_VARIANTS, BACKGROUND_SOURCES, ORIGINAL)).toBe(
       FULL_VARIANTS.background_image["1200"]
     );
-    expect(resolveVariantUrl(FULL_VARIANTS, BACKGROUND_SOURCES_SMALL, ORIGINAL)).toBe(
+    const smallOnly: ImageVariants = {
+      background_image: { "600": FULL_VARIANTS.background_image["600"] },
+    };
+    expect(resolveVariantUrl(smallOnly, BACKGROUND_SOURCES, ORIGINAL)).toBe(
       FULL_VARIANTS.background_image["600"]
     );
+    expect(resolveVariantUrl(undefined, BACKGROUND_SOURCES, ORIGINAL)).toBe(ORIGINAL);
   });
 });

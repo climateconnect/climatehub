@@ -19,12 +19,7 @@ import IconButton from "@mui/material/IconButton";
 
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import FollowersDialog from "../dialogs/FollowersDialog";
-import {
-  AVATAR_SOURCES,
-  BACKGROUND_SOURCES,
-  BACKGROUND_SOURCES_SMALL,
-  resolveVariantUrl,
-} from "../general/ResponsiveImage";
+import { AVATAR_SOURCES, BACKGROUND_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import { useLongPress } from "use-long-press";
 import { getParams } from "../../../public/lib/generalOperations";
 import FollowButton from "../general/FollowButton";
@@ -458,13 +453,10 @@ export default function AccountPage({
   const locationAdditionalText = location?.additionalText ? location.additionalText : "";
 
   // Header banner is a CSS background, so the variant has to be picked here
-  // rather than by <picture>. Small screens never need the 1200px file.
+  // rather than by <picture>. Phones need the 1200px file too: `cover` on the
+  // fixed 305px height scales the 3:1 banner up well beyond the screen width.
   const backgroundUrl = account.background_image
-    ? resolveVariantUrl(
-        account.image_variants,
-        isSmallScreen ? BACKGROUND_SOURCES_SMALL : BACKGROUND_SOURCES,
-        account.background_image
-      )
+    ? resolveVariantUrl(account.image_variants, BACKGROUND_SOURCES, account.background_image)
     : default_background;
 
   // The avatar renders at ~142px, but `account.image` is the uploader's
