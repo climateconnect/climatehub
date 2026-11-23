@@ -12,6 +12,7 @@ upstream location service.
 from datetime import datetime, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
+import requests
 from django.contrib.gis.geos import MultiPolygon, Point, Polygon
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -199,6 +200,49 @@ class TestEventListLocationFilter(EventLocationFilterFixtures, APITestCase):
             self.url, {"osm_id": "999999", "osm_type": "relation", "osm_class": "x"}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["location"], ["Location could not be resolved."])
+
+    @patch("location.utility.requests.get")
+    def test_unresolvable_location_does_not_leak_upstream_details(self, mock_get):
+        mock_get.return_value.status_code = 500
+        mock_get.return_value.text = "SECRET-UPSTREAM-BODY"
+        response = self.client.get(
+            self.url, {"osm_id": "999999", "osm_type": "relation", "osm_class": "x"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("SECRET-UPSTREAM-BODY", response.content.decode())
+
+    @patch("location.utility.requests.get")
+    def test_upstream_connection_error_does_not_leak_service_url(self, mock_get):
+        mock_get.side_effect = requests.ConnectionError(
+            "Max retries exceeded with url: http://internal-nominatim:8080/lookup"
+        )
+        response = self.client.get(
+            self.url, {"osm_id": "999999", "osm_type": "relation", "osm_class": "x"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("internal-nominatim", response.content.decode())
+
+    @patch("location.utility.requests.get")
+    def test_invalid_radius_returns_400_without_lookup(self, mock_get):
+        for radius in ("abc", "", "-5", "nan", "inf", "25km"):
+            with self.subTest(radius=radius):
+                response = self.client.get(self.url, {**ERLANGEN_OSM, "radius": radius})
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("radius", response.data)
+        mock_get.assert_not_called()
+
+    def test_decimal_and_zero_radius_are_accepted(self):
+        self.assertIn(
+            "Nuremberg Event", self._names({**ERLANGEN_OSM, "radius": "25.5"})
+        )
+        self.assertEqual(
+            self._names({**ERLANGEN_OSM, "radius": "0"}),
+            ["Erlangen Event 1", "Erlangen Event 2"],
+        )
+
+    def test_invalid_radius_without_location_is_ignored(self):
+        self.assertEqual(len(self._names({"radius": "abc"})), 4)
 
     def test_location_is_resolved_once_per_request(self):
         # Note: /api/events/ has a pre-existing per-event N+1 in
@@ -240,6 +284,14 @@ class TestEventCountsLocationFilter(EventLocationFilterFixtures, APITestCase):
             {**self.base, "osm_id": "999999", "osm_type": "relation", "osm_class": "x"},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("not found", response.content.decode())
+
+    def test_counts_invalid_radius_returns_400(self):
+        response = self.client.get(
+            self.url, {**self.base, **ERLANGEN_OSM, "radius": "abc"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("radius", response.data)
 
 
 class TestEventFeedLocationFilter(EventLocationFilterFixtures, APITestCase):
@@ -292,6 +344,30 @@ class TestEventFeedLocationFilter(EventLocationFilterFixtures, APITestCase):
         feed_response = self.client.get(f"{self.url}?{query}")
         self.assertEqual(feed_response.status_code, 200)
         self.assertNotIn("Paris Event", feed_response.content.decode())
+
+    def test_feed_with_signed_invalid_radius_returns_400(self):
+        # The token endpoint signs whatever radius it gets, so the feed must
+        # still reject an invalid one with a 400, not a 500.
+        response = self._signed_get(
+            {**ERLANGEN_OSM, "radius": "abc", "date": "2026-03-01"}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode(), "Invalid radius")
+
+    @patch("location.utility.requests.get")
+    def test_feed_with_unresolvable_location_returns_generic_400(self, mock_get):
+        mock_get.return_value.status_code = 500
+        mock_get.return_value.text = "SECRET-UPSTREAM-BODY"
+        response = self._signed_get(
+            {
+                "osm_id": "999999",
+                "osm_type": "relation",
+                "osm_class": "x",
+                "date": "2026-03-01",
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode(), "Invalid location")
 
     def test_existing_tokens_without_location_still_verify(self):
         response = self._signed_get({"date": "2026-03-01"})

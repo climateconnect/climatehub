@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.utils import translation as dj_translation
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.renderers import BaseRenderer, BrowsableAPIRenderer, JSONRenderer
 from rest_framework.throttling import ScopedRateThrottle
@@ -26,6 +27,7 @@ from organization.utility.ical_feed import (
     verify_feed_token,
 )
 from organization.utility.project import (
+    INVALID_RADIUS_ERROR_CODE,
     apply_hub_filter,
     apply_location_filter,
     get_location_filter_data,
@@ -85,7 +87,11 @@ class EventCalendarFeedView(APIView):
 
         try:
             location_data = get_location_filter_data(request.query_params)
-        except DjangoValidationError:
+        except (DjangoValidationError, DRFValidationError) as e:
+            # location.utility raises DRF's ValidationError for lookup
+            # failures; the radius check raises Django's with a code.
+            if getattr(e, "code", None) == INVALID_RADIUS_ERROR_CODE:
+                return HttpResponse("Invalid radius", status=400)
             return HttpResponse("Invalid location", status=400)
         queryset = apply_location_filter(queryset, location_data)
 

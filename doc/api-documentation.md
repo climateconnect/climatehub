@@ -966,9 +966,16 @@ When `is_test=true`, the subject is prefixed with `[TEST] ` so the organiser can
 | `hub` | Hub `url_slug`. Location hubs restrict by geometry, sector hubs by sector, custom hubs by `related_hubs` |
 | `osm_id`, `osm_type`, `osm_class` | Location filter, the same as on `GET /api/projects/`. `osm_class` is optional (fallback lookup by id + type). `osm_type` accepts `relation`/`way`/`node` or `R`/`W`/`N` |
 | `place_id` | Deprecated location identifier, used only when the OSM params are absent |
-| `radius` | Radius in km around the location (integer, no `km` suffix). Without it, only events inside the location's boundary match. Ignored without a location |
+| `radius` | Radius in km around the location (non-negative number, no `km` suffix; the frontend sends integers). Without it, only events inside the location's boundary match. Ignored without a location |
 
-The location filter uses the same semantics as browse (`organization.utility.project.apply_location_filter`): same country, and either the event's polygon or its centre point lies within `radius` of the location. On `/api/events/` and `/api/events/calendar/`, an unresolvable location returns **400** `{"location": [...]}`. On `/api/events/feed.ics/` it returns 400 `Invalid location`. Results stay ordered by `start_date` and are never sorted by distance.
+The location filter uses the same semantics as browse (`organization.utility.project.apply_location_filter`): same country, and either the event's polygon or its centre point lies within `radius` of the location. Results stay ordered by `start_date` and are never sorted by distance.
+
+Errors (only when a location is given):
+
+| Case | `/api/events/`, `/api/events/calendar/` | `/api/events/feed.ics/` |
+|------|------------------------------------------|-------------------------|
+| Invalid `radius` (not a number, negative, empty, `NaN`/`inf`) | 400 `{"radius": ["radius must be a non-negative number of kilometres."]}` | 400 `Invalid radius` |
+| Location can't be resolved | 400 `{"location": ["Location could not be resolved."]}` (details are logged server-side, not returned) | 400 `Invalid location` |
 
 `/api/events/` also accepts `start_date` (ISO datetime, events starting at or after it), and `/api/events/feed.ics/` accepts `date`, `tz` and `lang`. With a location filter, the feed's calendar description includes `location=<name>; radius=<n>km`. See [Event Calendar Location Filter spec](./spec/20261116_1005_event_calendar_location_filter.md).
 

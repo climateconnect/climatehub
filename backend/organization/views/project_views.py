@@ -119,6 +119,7 @@ from organization.utility.notification import (
 )
 from organization.utility.organization import check_organization
 from organization.utility.project import (
+    INVALID_RADIUS_ERROR_CODE,
     apply_hub_filter,
     apply_location_filter,
     create_new_project,
@@ -389,16 +390,29 @@ class ListProjectsView(ListAPIView):
         return context
 
 
+LOCATION_UNRESOLVABLE_MESSAGE = "Location could not be resolved."
+
+
 def _resolve_location_filter_or_400(query_params):
     """Resolve location filter params for the event endpoints.
 
-    Returns None when no location is requested. Converts Django's
-    ValidationError from the location lookup into a DRF 400 instead of a 500.
+    Returns None when no location is requested. An invalid ``radius`` (Django
+    ValidationError with code ``invalid_radius``) becomes a 400 on ``radius``.
+
+    Lookup errors from ``location.utility`` (DRF ValidationError) can contain
+    upstream details (internal service URL, raw upstream response), so they're
+    logged and replaced by a generic 400 on ``location``.
     """
     try:
         return get_location_filter_data(query_params)
     except DjangoValidationError as e:
-        raise ValidationError({"location": e.messages})
+        if getattr(e, "code", None) == INVALID_RADIUS_ERROR_CODE:
+            raise ValidationError({"radius": e.messages})
+        logger.warning("Could not resolve event location filter: %s", e)
+        raise ValidationError({"location": [LOCATION_UNRESOLVABLE_MESSAGE]})
+    except ValidationError as e:
+        logger.warning("Could not resolve event location filter: %s", e.detail)
+        raise ValidationError({"location": [LOCATION_UNRESOLVABLE_MESSAGE]})
 
 
 class ListEventsView(ListAPIView):
