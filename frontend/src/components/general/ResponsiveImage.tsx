@@ -28,34 +28,41 @@ export const HERO_SOURCES: VariantSource[] = [
 
 /**
  * Header banners are CSS `background-image`s, which cannot use `<picture>`, so
- * the viewport has to be resolved in JS. Pass the matching list to
- * {@link resolveVariantUrl} — each falls back to the other size, then to the
- * original, so a half-backfilled row still renders.
+ * the URL is resolved via {@link resolveVariantUrl}. The 1200px variant is used
+ * on every screen: the banner has a fixed 305px height with `cover`, so on a
+ * phone the 3:1 image is scaled up to ~915px wide and the 600px variant (200px
+ * tall) looks blurry. Falls back to 600, then to the original, so a
+ * half-backfilled row still renders.
  */
 export const BACKGROUND_SOURCES: VariantSource[] = [
   { field: "background_image", key: "1200" },
   { field: "background_image", key: "600" },
 ];
 
-export const BACKGROUND_SOURCES_SMALL: VariantSource[] = [
-  { field: "background_image", key: "600" },
-  { field: "background_image", key: "1200" },
-];
-
 /**
  * Any surface small enough to be served by the thumbnail: project/organization
- * cards, and the avatars on organization and profile detail pages.
+ * cards (80px org avatars, 290x160 project images) and mini avatars.
  *
- * Both want the format-only thumbnail WebP. For cards the 600px variant of the
- * full image would be a *larger* download than the 290x160 thumbnail they are
- * already fed; for detail-page avatars the `image` field holds the uploader's
- * full-size crop (1859px for a 142px slot is typical), so the thumbnail has to
- * be asked for explicitly. The `image` entry is the fallback for rows with no
- * thumbnail.
+ * They want the format-only thumbnail WebP: the 600px variant of the full image
+ * would be a *larger* download than the thumbnail they are already fed. The
+ * `image` entry is the fallback for rows with no thumbnail.
  */
 export const THUMBNAIL_SOURCES: VariantSource[] = [
   { field: "thumbnail_image", key: "webp" },
   { field: "image", key: "600" },
+];
+
+/**
+ * The large avatar in the organization page header (142x142 image area, so
+ * ~284px at 2x DPR). The thumbnail is too small for it: the browser only halves
+ * the upload down towards 120px, leaving it anywhere between 121 and 240px wide.
+ * The 600px variant of the 1:1 org `image` is sharp at any density and still a
+ * fraction of the original. The thumbnail WebP is the fallback for rows whose
+ * `image` variants are missing.
+ */
+export const AVATAR_SOURCES: VariantSource[] = [
+  { field: "image", key: "600" },
+  { field: "thumbnail_image", key: "webp" },
 ];
 
 function lookupVariant(

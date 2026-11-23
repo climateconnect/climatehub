@@ -2,8 +2,8 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ResponsiveImage, {
+  AVATAR_SOURCES,
   BACKGROUND_SOURCES,
-  BACKGROUND_SOURCES_SMALL,
   THUMBNAIL_SOURCES,
   HERO_SOURCES,
   resolveVariantUrl,
@@ -203,6 +203,21 @@ describe("resolveVariantUrl", () => {
     );
   });
 
+  it("prefers the 600px image for the header avatar, not the too-small thumbnail", () => {
+    expect(resolveVariantUrl(FULL_VARIANTS, AVATAR_SOURCES, ORIGINAL)).toBe(
+      FULL_VARIANTS.image["600"]
+    );
+  });
+
+  it("falls back to the thumbnail WebP, then the original, for the header avatar", () => {
+    const thumbOnly: ImageVariants = { thumbnail_image: FULL_VARIANTS.thumbnail_image };
+    expect(resolveVariantUrl(thumbOnly, AVATAR_SOURCES, ORIGINAL)).toBe(
+      FULL_VARIANTS.thumbnail_image.webp
+    );
+    // Profiles have no image_variants at all.
+    expect(resolveVariantUrl(undefined, AVATAR_SOURCES, ORIGINAL)).toBe(ORIGINAL);
+  });
+
   it("routes the variant URL through getImageUrl, not just the fallback", () => {
     // Local dev storage returns "/media/..."; without getImageUrl the browser
     // resolves that against the frontend origin (:3000) instead of the backend
@@ -216,12 +231,16 @@ describe("resolveVariantUrl", () => {
     expect(getImageUrl).toHaveBeenCalledWith("/media/projects/12/a3f9_1200.webp");
   });
 
-  it("picks the banner size matching the viewport", () => {
+  it("prefers the 1200px banner, then the 600px one, then the original", () => {
     expect(resolveVariantUrl(FULL_VARIANTS, BACKGROUND_SOURCES, ORIGINAL)).toBe(
       FULL_VARIANTS.background_image["1200"]
     );
-    expect(resolveVariantUrl(FULL_VARIANTS, BACKGROUND_SOURCES_SMALL, ORIGINAL)).toBe(
+    const smallOnly: ImageVariants = {
+      background_image: { "600": FULL_VARIANTS.background_image["600"] },
+    };
+    expect(resolveVariantUrl(smallOnly, BACKGROUND_SOURCES, ORIGINAL)).toBe(
       FULL_VARIANTS.background_image["600"]
     );
+    expect(resolveVariantUrl(undefined, BACKGROUND_SOURCES, ORIGINAL)).toBe(ORIGINAL);
   });
 });

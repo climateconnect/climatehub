@@ -276,18 +276,87 @@ Use `account.image` as the original fallback. The 600×600 WebP is sharp at 142p
 
 ## Before manual testing
 
-- [ ] Fix A (header avatar uses `AVATAR_SOURCES`) and B, with a test.
-- [ ] Update the PR #2349 description:
-  - the `MEDIA_ROOT` test runner change (finding 9)
-  - the new hourly beat task `regenerate_missing_image_variants`
-  - the deployment step: run `backfill_image_variants --dry-run` first, then `backfill_image_variants`
+- [x] Fix A (header avatar uses `AVATAR_SOURCES`) and B, with a test.
+  - `AVATAR_SOURCES` (`image` 600, then `thumbnail_image` WebP) is defined in `ResponsiveImage.tsx` next to the other source lists. `AccountPage` uses it with `account.image` as the fallback.
+  - The `THUMBNAIL_SOURCES` comment no longer says it serves detail-page avatars.
+  - `parseOrganization` no longer sets `thumbnail_image`. The `account.thumbnail_image || account.image` fallback is removed.
+  - Tests: `ResponsiveImage.test.tsx` (header avatar prefers the 600px variant, then the thumbnail WebP, then the original) and `organizationOperations.test.ts` (no `thumbnail_image` in read or edit mode). Both test files pass (27 tests). Prettier and eslint are clean. `tsc` shows only the existing errors from the `devlink/` imports, which are generated and not on disk.
+- [x] Update the PR #2349 description. 
+  - [x] the `MEDIA_ROOT` test runner change (finding 9)
+  - [x] the new hourly beat task `regenerate_missing_image_variants`
+  - [x] the deployment step: run `backfill_image_variants --dry-run` first, then `backfill_image_variants`
 
 ## Manual test plan
 
 - Project hero on mobile and desktop: the WebP variant loads after the task finishes, and the original is shown until then.
 - Project and organisation cards, and mini avatars on the project page: the thumbnail WebP loads.
-- Organisation page: the banner loads the 600 variant on mobile and the 1200 variant on desktop. The avatar is sharp on a retina screen after the backfill (A).
+- Organisation page: the banner loads the 1200 variant on mobile and on desktop (corrected in the third review, finding D). The avatar is sharp on a retina screen after the backfill (A).
 - Replace and remove a project image and an organisation image: the old original and its variants are deleted from storage, and the new variants appear.
 - Delete a project and an organisation: their originals and variants are deleted.
 - Save an image while Redis or Celery is stopped: the save succeeds and the original is shown. After restarting, the beat task (or the backfill) generates the variants.
 - Run `backfill_image_variants --dry-run`, then a real run on a copy of production data. A second run reports every row as already complete.
+
+---
+
+# Third review and manual test (2026-11-23)
+
+**Reviewed against:** `master`, fixes in `a5bc91ba2`, branch head after the `master` merge `b0cb71eb5`
+**Reviewer:** Claude (main session; the manual tests were run in the browser against the local dev setup with Celery running)
+
+## Summary
+
+Findings A and B are fixed and the PR description is updated. The manual test found one more problem: on phones the organisation banner looked blurrier than on `master` (finding D). It is fixed in `ce4e32287`.
+
+**Verdict: ready to merge after the remaining manual tests below. Run the backfill on a copy of production data before the deployment.**
+
+## Status of the second review's findings
+
+| #   | Finding                                         | Status                                                                                                                                                                                                                       |
+| --- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | Organisation page avatar shows the thumbnail    | ✅ `AVATAR_SOURCES` (`image` 600, then `thumbnail_image` WebP, then `account.image`). Checked in the browser: the 142px avatar loads the 600 variant on desktop and on a phone. The thumbnail of a 2000px upload is only 125×125. |
+| B   | `thumbnail_image` in `parseOrganization`        | ✅ Removed, together with the `account.thumbnail_image \|\| account.image` fallback. `master` never set it either, so the edit flow is unchanged.                                                                             |
+| C   | Stale instance on delete                        | Unchanged, as agreed.                                                                                                                                                                                                        |
+| 9   | PR description                                  | ✅ Mentions the `MEDIA_ROOT` test runner change, the hourly beat task and the deployment steps.                                                                                                                               |
+
+Branch only touches the frontend and the review doc since `7730a1cb6`, so the full backend run from the second review still applies. `ResponsiveImage.test.tsx` and `organizationOperations.test.ts` pass (27 tests), Prettier and eslint are clean. Migration `0151` still follows `master`'s latest migration (`0150`), and `makemigrations --check` reports no changes.
+
+## New finding
+
+### D. The organisation banner on phones is blurrier than on `master` (fixed)
+
+`frontend/src/components/account/AccountPage.tsx` (`backgroundUrl`)
+
+On small screens the banner used `BACKGROUND_SOURCES_SMALL`, so the 600 variant. The code comment said small screens never need the 1200 file. That is wrong for this layout: the banner box has a fixed height of 305px and `background-size: cover`. On a 390px phone the 3:1 image has to be drawn about 915×305 CSS px, which is 4.6× upscaling of the 600×200 file on a 3× screen. The screenshot was clearly soft. On `master` the original is used and the banner is sharp.
+
+**Fix (`ce4e32287`):** use `BACKGROUND_SOURCES` (1200, then 600, then the original) on every screen size, and remove `BACKGROUND_SOURCES_SMALL`. On a 3× phone the 1200 variant is upscaled about 2.3×, similar to desktop at 2×, and it is still a fraction of the original (232 KB instead of 1.6 MB in the test). Checked in the browser: phone and desktop both load the 1200 variant.
+
+`AccountPage` is also used for user profile pages. They have no variants and still get the original banner, as before.
+
+The fixed 305px height that crops a 3:1 banner on phones is old (since 2023) and not part of #2199.
+
+## Manual test results
+
+Done locally with large synthetic test images (4000×2250 project image, 2000×2000 logo, 4500×1500 banner) and Celery running. The test project and organisation were deleted again afterwards.
+
+| Test                                                                            | Result                                                                                                                                                                         |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backfill on the local data (`--dry-run`, real run, second run with `--verify`)  | ✅ 104 rows processed, 0 failed, about 13 s. The second run reports all 105 rows complete. The 1200 variants are 4.6 MB against 24.6 MB of originals.                              |
+| Create a project with an image                                                  | ✅ 1200, 600 and thumbnail WebP variants are written a few seconds after the save.                                                                                               |
+| Project page                                                                    | ✅ The hero `<picture>` lists the 1200 and 600 WebP variants, and the browser picks the 1200 one at 550px on a 2× screen. Similar-project cards and mini org avatars use the thumbnail WebP. |
+| Replace the project image                                                       | ✅ The old original, thumbnail and their three variants are deleted, the new variants appear. The PATCH has no `image_variants`.                                                 |
+| Edit only the project text                                                      | ✅ Image and variants are unchanged.                                                                                                                                            |
+| Create an organisation with logo and banner                                     | ✅ All five variants are written.                                                                                                                                              |
+| Organisation page, desktop and phone                                            | ✅ Avatar loads the 600 variant. Banner loads the 1200 variant after the fix for D.                                                                                              |
+| Replace the organisation logo                                                   | ✅ The old logo, thumbnail and their variants are deleted, the banner is untouched. The PATCH has no `image_variants`.                                                           |
+| Browse cards (projects and organisations)                                       | ✅ The thumbnail WebP loads.                                                                                                                                                    |
+| Delete the project and the organisation                                         | ✅ Rows and all files are deleted (only empty directories remain in local file storage).                                                                                        |
+| Thumbnail WebP size                                                             | ✅ On the real local rows the thumbnail WebP is about 40% smaller than the JPEG and never larger. (A synthetic noise image was the only case where it was slightly larger.)       |
+
+**Observation, no change:** for an organisation logo narrower than 600px, the 600 and 1200 variants are identical files, because images are not upscaled. It costs only a little storage. Skipping a width when the source is already narrower is a possible follow-up.
+
+## Not tested yet
+
+- Removing a project or organisation image without replacing it.
+- The original being shown before the variant task has finished. The task finished before the page was opened, so this could not be observed.
+- Saving while Redis or Celery is stopped, and the hourly beat task `regenerate_missing_image_variants` (beat was not running). The unit tests cover both.
+- The backfill on a copy of production data, to see the real duration with the default `--sleep`.

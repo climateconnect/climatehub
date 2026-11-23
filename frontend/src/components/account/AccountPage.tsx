@@ -19,12 +19,7 @@ import IconButton from "@mui/material/IconButton";
 
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import FollowersDialog from "../dialogs/FollowersDialog";
-import {
-  BACKGROUND_SOURCES,
-  BACKGROUND_SOURCES_SMALL,
-  THUMBNAIL_SOURCES,
-  resolveVariantUrl,
-} from "../general/ResponsiveImage";
+import { AVATAR_SOURCES, BACKGROUND_SOURCES, resolveVariantUrl } from "../general/ResponsiveImage";
 import { useLongPress } from "use-long-press";
 import { getParams } from "../../../public/lib/generalOperations";
 import FollowButton from "../general/FollowButton";
@@ -458,22 +453,17 @@ export default function AccountPage({
   const locationAdditionalText = location?.additionalText ? location.additionalText : "";
 
   // Header banner is a CSS background, so the variant has to be picked here
-  // rather than by <picture>. Small screens never need the 1200px file.
+  // rather than by <picture>. Phones need the 1200px file too: `cover` on the
+  // fixed 305px height scales the 3:1 banner up well beyond the screen width.
   const backgroundUrl = account.background_image
-    ? resolveVariantUrl(
-        account.image_variants,
-        isSmallScreen ? BACKGROUND_SOURCES_SMALL : BACKGROUND_SOURCES,
-        account.background_image
-      )
+    ? resolveVariantUrl(account.image_variants, BACKGROUND_SOURCES, account.background_image)
     : default_background;
 
   // The avatar renders at ~142px, but `account.image` is the uploader's
-  // full-size crop — commonly well over 1000px. Prefer the thumbnail's WebP.
-  const avatarUrl = resolveVariantUrl(
-    account.image_variants,
-    THUMBNAIL_SOURCES,
-    account.thumbnail_image || account.image
-  );
+  // full-size crop — commonly well over 1000px. Prefer the 600px variant; the
+  // thumbnail is too small for this slot. Profiles have no variants and keep
+  // showing `account.image`.
+  const avatarUrl = resolveVariantUrl(account.image_variants, AVATAR_SOURCES, account.image);
 
   return (
     <NoPaddingContainer disableGutters maxWidth="lg">

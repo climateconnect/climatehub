@@ -9,7 +9,6 @@ export function parseOrganization(organization, editMode: boolean = false) {
     background_image: getImageUrl(organization.background_image),
     name: organization.name,
     image: getImageUrl(organization.image),
-    thumbnail_image: getImageUrl(organization.thumbnail_image),
     // Display only: the edit form diffs its state against a freshly fetched
     // copy, so a (never identical) variants object would end up in every PATCH.
     ...(editMode ? {} : { image_variants: organization.image_variants }),
