@@ -296,6 +296,7 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_RATES": {
         "event_feed": "20/hour",
+        "rich_text_image_upload": "20/hour",
     },
 }
 

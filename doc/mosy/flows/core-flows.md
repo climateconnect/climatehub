@@ -15,7 +15,7 @@
 - **Trigger**: User clicks "Share"
 - **Actions**:
   1. User selects a type of project (Event, Idea, etc.). 
-  2. User inputs project details (Title, Description, Location).
+  2. User inputs project details (Title, Description, Location). The description may contain images (flow 12).
   3. System validates inputs.
   4. System saves Project as "Draft" or "Published".
   5. System notifies followers (if applicable).
@@ -125,3 +125,20 @@
    - Admins map a goal to a Twingle project and set the unit price (default 7 € per month) in the Django admin. They correct `current_amount` by hand for backfill and deviations. Webhook changes stack on top.
    - Sentry events from this endpoint carry no request body, headers or frame variables.
    - Not implemented (possible later task): subtracting units on stop or error updates. Stops are corrected by hand.
+
+## 12. Rich-Text Image Upload and Usage Flow (spec `20260708_1302_rich_text_image_support.md`)
+- **Actor**: Member (project author, project admin or translator)
+- **Trigger**: Member clicks the image button in the project description editor (share project, edit project or translation editor)
+- **Actions**:
+   1. Member picks a JPEG, PNG or WebP file (max 20 MB) and enters optional alt text. The editor checks type and size and refuses at 10 images in this language version.
+   2. The editor uploads the file at once to `POST /api/rich-text-images/` (multipart). While the upload runs, the project form can't be saved.
+   3. The system checks the throttle (20 uploads per user per hour), size, format and pixel limit, removes location and camera metadata from the original without re-encoding, generates the 600 and 1200 px WebP variants and stores a `RichTextImage` owned by the member, without any usage.
+   4. The system returns the image id, size and variant URLs. The editor inserts an image block (figure with optional caption; size full, alignment centre by default). Size, alignment and alt text are changed in a menu on the selected image.
+   5. Member saves the project (create, edit or translation). Before writing anything the system sanitises each language version of the description, rewrites every image's URLs and size from the database, drops images the member may not use (not owner and not already used in this project) and rejects a language version with more than 10 images.
+   6. After saving, the system reconciles the `RichTextImageUsage` rows with the image ids in the stored original and all translations: new ids are linked, missing ids are unlinked.
+   7. The project page shows the images from the stored HTML; the browser picks the variant via `srcset`.
+- **Notes**:
+   - Over the throttle the member gets a message and Sentry receives one warning grouped per user.
+   - Automatic (DeepL) translations keep the original's images; translators can use different images per language.
+   - Deleting a project unlinks its images; unused images are kept (cleanup is a follow-up).
+   - Pasted external images are removed by the editor; external or unknown images are removed by the server.

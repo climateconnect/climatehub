@@ -155,6 +155,18 @@ This document provides comprehensive documentation of the main domain entities i
 
 ---
 
+### RichTextImage & RichTextImageUsage
+
+**Summary**: Images uploaded into rich-text fields (v1: the project description) and where they are used.
+
+**Description**: `RichTextImage` is one uploaded image, owned by the user who uploaded it. It keeps the original (metadata such as GPS removed, otherwise unchanged; never linked publicly), its 600 and 1200 px WebP `variants` (storage names and real sizes, JSON list), the upright `width`/`height`, `file_size`, `format` (`jpeg`/`png`/`webp`) and `created_at`. `RichTextImageUsage` records one place where an image is used: one nullable foreign key per entity type (v1: `project`, exactly one set) plus the rich-text `field` (v1: `project_description`). One usage row covers all language versions. Usages are synced from the saved HTML (`data-image-id` attributes) on every project create/edit. Spec: `doc/spec/20260708_1302_rich_text_image_support.md`.
+
+**Relationships**:
+- **RichTextImage**: ForeignKey to `User` (`owner`, SET_NULL). Deleting a user deletes their unused images; used ones are kept with the owner cleared.
+- **RichTextImageUsage**: ForeignKey to `RichTextImage` (CASCADE) and `Project` (CASCADE: deleting a project unlinks its images, it doesn't delete them). Unique per (image, project, field).
+
+---
+
 ## 2. Organization & Project Entities (organization)
 
 ### Organization
@@ -205,7 +217,22 @@ This document provides comprehensive documentation of the main domain entities i
 **Relationships**:
 - **ForeignKey**: `ProjectStatus`, `Location`, `Language`
 - **ManyToMany**: `Hub` (related_hubs)
-- **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `EventRegistrationConfig`, `ProjectTagging` (**deprecated** — see [ProjectTags & OrganizationTags](#projecttags--organizationtags))
+- **Referenced by**: `ProjectTranslation`, `ProjectParents`, `ProjectMember`, `ProjectCollaborators`, `ProjectSectorMapping`, `ProjectComment`, `Post`, `ProjectFollower`, `ProjectLike`, `OrgProjectPublished`, `ContentShares`, `RichTextImageUsage`, `EventRegistrationConfig`, `ProjectTagging` (**deprecated** — see [ProjectTags & OrganizationTags](#projecttags--organizationtags))
+
+**Image fields**:
+- `image`, `thumbnail_image` — the stored originals, as uploaded.
+- `image_variants` (JSON) — map of generated WebP variants, keyed by image
+  field and then by variant: `{"image": {"1200": "<path>", "600": "<path>"},
+  "thumbnail_image": {"webp": "<path>"}}`. Values are **storage-relative
+  paths**; the API resolves them to URLs via `ImageVariantsField`. Populated
+  asynchronously by the `generate_image_variants` Celery task on upload, by the
+  hourly `regenerate_missing_image_variants` beat task for recent rows whose
+  task never ran, and by the `backfill_image_variants` management command for
+  existing rows; a plain `save()` never writes it (`ImageVariantsModelMixin`).
+  Every listed path exists in storage; variant file names carry a random token,
+  so file cleanup uses the recorded paths. Empty
+  (`{}`) on rows that predate the feature — every consumer falls back to the
+  original image. See [architecture.md](architecture.md#responsive-webp-image-variants).
 
 **Image fields**:
 - `image`, `thumbnail_image` — the stored originals, as uploaded.
@@ -1057,3 +1084,4 @@ This architecture supports a comprehensive climate action platform with social n
 - **2026-06-10**: Added `last_guest_email_sent_at` field to `EventRegistrationConfig` (DateTimeField, nullable, indexed). Records when the last non-test bulk email was sent to event guests; used to filter "new guests only" recipients. Frontend toggle allows organisers to send emails only to guests who registered after the last bulk send.
 - **2026-07-02**: Added `description_html` field to `Project` (TextField, nullable) and `description_html_translation` to `ProjectTranslation` (TextField, nullable). Project descriptions now use rich-text HTML produced by a Tiptap editor, supporting bold, italic, lists, links, blockquotes, and YouTube embeds. The legacy `description` field is kept (read-only) for backwards compatibility. ICS calendar attachments use `short_description` (plain text) instead of the HTML description. Updated `Project` entity documentation with key fields and rich-text feature.
 - **2026-09-07**: Removed section 7 (Climate Match Entities) and the `climate_match` app — `Question`, `Answer`, `AnswerMetaData`, `UserQuestionAnswer` and their translation models are deleted along with their 8 tables (`organization/0146_remove_climatematch`). Sections 8–11 renumbered to 7–10. `OrganizationTags.show_in_climatematch` removed. Hub relationship list and ER summary updated.
+- **2026-11-19**: Added `RichTextImage` and `RichTextImageUsage` (climateconnect_api) for images in the project description editor. Ownership on the user level, usage table synced from the stored HTML.

@@ -60,22 +60,39 @@ def decode_image(source_bytes, name="<unknown>"):
     Returns ``None`` (and logs) when the bytes cannot be decoded.
     """
     try:
-        with io.BytesIO(source_bytes) as fh:
-            image = Image.open(fh)
-            # Respect EXIF orientation so the variants are correctly oriented.
-            image = ImageOps.exif_transpose(image)
-            if image.mode in ("RGBA", "LA", "P"):
-                image = image.convert("RGBA")
-            elif image.mode != "RGB":
-                image = image.convert("RGB")
-            image.load()
-            return image
+        return decode_image_or_raise(source_bytes)
     except (UnidentifiedImageError, OSError, ValueError) as exc:
         logger.error("decode_image: could not decode %s: %s", name, exc)
         return None
     except Exception as exc:  # noqa: BLE001 – log and swallow; never break a save
         logger.error("decode_image: unexpected error for %s: %s", name, exc)
         return None
+
+
+def decode_image_or_raise(source_bytes, draft_size=None):
+    """Like :func:`decode_image`, but raises instead of logging.
+
+    For callers where a file that cannot be decoded is a user error (e.g. an
+    upload), not something to report.
+
+    *draft_size* ``(width, height)``: for JPEGs, decode at a reduced scale
+    (1/2, 1/4 or 1/8) that is still at least this size in both dimensions
+    (as stored, before the EXIF orientation is applied), so a very large photo
+    is never held in memory at full resolution. ``(1200, 1)`` limits by the
+    width only. Ignored for other formats.
+    """
+    with io.BytesIO(source_bytes) as fh:
+        image = Image.open(fh)
+        if draft_size is not None and image.format == "JPEG":
+            image.draft(image.mode, draft_size)
+        # Respect EXIF orientation so the variants are correctly oriented.
+        image = ImageOps.exif_transpose(image)
+        if image.mode in ("RGBA", "LA", "P"):
+            image = image.convert("RGBA")
+        elif image.mode != "RGB":
+            image = image.convert("RGB")
+        image.load()
+        return image
 
 
 def encode_webp_variant(

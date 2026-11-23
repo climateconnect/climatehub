@@ -257,6 +257,14 @@ export default function TranslateTexts({
         url: "/api/translate_many/",
         payload: {
           texts: payloadTexts,
+          // Rich-text fields are HTML: DeepL must translate the text only and
+          // keep tags and attributes (e.g. image URLs) untouched.
+          html_keys: textsToTranslate
+            .filter((textToTranslate) => textToTranslate.richText)
+            .map((textToTranslate) => {
+              const effectiveKey = textToTranslate.dataKey || textToTranslate.textKey;
+              return effectiveKey.split(".")[effectiveKey.split(".").length - 1];
+            }),
           target_language: "en",
         },
         locale: locale,

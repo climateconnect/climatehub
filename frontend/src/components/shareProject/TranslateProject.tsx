@@ -102,6 +102,7 @@ export default function TranslateProject({
             short_description: projectData.short_description,
             description_html: projectData.description_html,
           },
+          html_keys: ["description_html"],
           target_language: "en",
         },
         locale: locale,

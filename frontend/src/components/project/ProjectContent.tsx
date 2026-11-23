@@ -15,6 +15,7 @@ import UserContext from "../context/UserContext";
 import ProjectContentSideButtons from "./Buttons/ProjectContentSideButtons";
 import { getDevlinkComponent } from "../../utils/getDevlinkComponent";
 import { getEditorStyles } from "mui-tiptap";
+import { richTextImageStyles } from "../richText/richTextImageStyles";
 
 const CreatedBy = styled("div")({
   fontSize: 16,
@@ -103,6 +104,7 @@ const projectDescriptionStyles = (theme: Theme) => ({
     height: "auto",
     aspectRatio: "16 / 9",
   },
+  ...richTextImageStyles(theme),
 });
 
 const DescriptionWrapper = styled(Typography)<{ component?: React.ElementType }>(({ theme }) =>

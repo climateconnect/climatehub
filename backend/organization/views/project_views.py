@@ -37,6 +37,11 @@ from climateconnect_api.models import (
 from climateconnect_api.models.language import Language
 from climateconnect_api.tasks import calculate_project_rankings
 from climateconnect_api.utility.content_shares import save_content_shared
+from climateconnect_api.utility.rich_text_image_html import (
+    RichTextImageHtmlError,
+    resolve_rich_text_images,
+    sync_project_description_usages,
+)
 from climateconnect_api.utility.html import (
     PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
     PROJECT_DESCRIPTION_ALLOWED_TAGS,
@@ -713,6 +718,39 @@ class ListUpcomingEventsView(APIView):
             return None
 
 
+def _check_description_html_length(raw):
+    """Return an error message if a description is too long, else None."""
+    if len(raw) > 20000:
+        return "Description HTML is too long (max 20000 characters)."
+    if len(re.sub(r"<[^>]+>", "", raw)) > 4000:
+        return "Your description text is too long (max 4000 characters). Please shorten it."
+    return None
+
+
+def _resolve_translated_descriptions(request, project):
+    """Resolve the images in every description_html of request.data["translations"].
+
+    Runs before anything is written, so a rejected translation never leaves a
+    half-saved project. Returns an error message or None.
+    """
+    translations = request.data.get("translations")
+    if not isinstance(translations, dict):
+        return None
+    for texts in translations.values():
+        if not isinstance(texts, dict) or not texts.get("description_html"):
+            continue
+        error = _check_description_html_length(texts["description_html"])
+        if error:
+            return error
+        try:
+            texts["description_html"] = resolve_rich_text_images(
+                texts["description_html"], request.user, request, project=project
+            )
+        except RichTextImageHtmlError as exc:
+            return exc.message
+    return None
+
+
 class CreateProjectView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -813,13 +851,19 @@ class CreateProjectView(APIView):
                 )
         # --- end registration_config validation ---
 
-        # Sanitize description_html before saving
-        if "description_html" in request.data:
-            request.data["description_html"] = sanitize_html(
-                request.data["description_html"],
-                allowed_tags=PROJECT_DESCRIPTION_ALLOWED_TAGS,
-                allowed_attributes=PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
+        # Sanitize description_html and resolve its images before saving
+        try:
+            if "description_html" in request.data:
+                request.data["description_html"] = resolve_rich_text_images(
+                    request.data["description_html"], request.user, request
+                )
+        except RichTextImageHtmlError as exc:
+            return Response(
+                {"message": exc.message}, status=status.HTTP_400_BAD_REQUEST
             )
+        error = _resolve_translated_descriptions(request, None)
+        if error:
+            return Response({"message": error}, status=status.HTTP_400_BAD_REQUEST)
 
         translations_object = None
         # Only process translations if both source_language and translations are provided
@@ -882,6 +926,8 @@ class CreateProjectView(APIView):
                                 language
                             )
                         )
+
+        sync_project_description_usages(project)
 
         project_parents = ProjectParents.objects.create(
             project=project, parent_user=request.user
@@ -1089,24 +1135,21 @@ class ProjectAPIView(APIView):
 
         if "description_html" in request.data:
             raw = request.data["description_html"]
-            if len(raw) > 20000:
-                return Response(
-                    {"message": "Description HTML is too long (max 20000 characters)."},
-                    status=status.HTTP_400_BAD_REQUEST,
+            error = _check_description_html_length(raw)
+            if error:
+                return Response({"message": error}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                project.description_html = resolve_rich_text_images(
+                    raw, request.user, request, project=project
                 )
-            stripped = re.sub(r"<[^>]+>", "", raw)
-            if len(stripped) > 4000:
+            except RichTextImageHtmlError as exc:
                 return Response(
-                    {
-                        "message": "Your description text is too long (max 4000 characters). Please shorten it."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"message": exc.message}, status=status.HTTP_400_BAD_REQUEST
                 )
-            project.description_html = sanitize_html(
-                raw,
-                allowed_tags=PROJECT_DESCRIPTION_ALLOWED_TAGS,
-                allowed_attributes=PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
-            )
+        # Before any write below (sectors, save, translations).
+        error = _resolve_translated_descriptions(request, project)
+        if error:
+            return Response({"message": error}, status=status.HTTP_400_BAD_REQUEST)
 
         if "name" in request.data and request.data["name"] != project.name:
             project.name = request.data["name"]
@@ -1252,6 +1295,11 @@ class ProjectAPIView(APIView):
                 project_parents.save()
 
         project.save()
+        # Right after the save: this request is not atomic, so an error in the
+        # translations below must not leave saved images without usage rows.
+        # Unconditional, because the legacy "description" also replaces
+        # description_html.
+        sync_project_description_usages(project)
 
         items_to_translate = [
             {"key": "name", "translation_key": "name_translation"},
@@ -1271,6 +1319,7 @@ class ProjectAPIView(APIView):
         ]
         if "translations" in request.data:
             edit_translations(items_to_translate, request.data, project, "project")
+            sync_project_description_usages(project)
         calculate_project_rankings([project.id])
         return Response(
             {
