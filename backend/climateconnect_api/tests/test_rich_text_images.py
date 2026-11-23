@@ -2,6 +2,7 @@
 
 import io
 import struct
+import zlib
 from unittest import mock
 
 from django.contrib.auth.models import User
@@ -113,6 +114,35 @@ class StripMetadataTests(TestCase):
         assert_no_secrets(self, stripped)
         self.assert_same_pixels(original, stripped)
         self.assertEqual(read_orientation(stripped), 3)
+
+    def test_png_unknown_chunks_removed(self):
+        # Keep-only list: e.g. content credentials (caBX) or vendor chunks.
+        buffer = io.BytesIO()
+        photo(300, 200).save(buffer, "PNG")
+        original = buffer.getvalue()
+        iend = original.rindex(b"IEND") - 4
+        extra = b"".join(
+            struct.pack(">I", len(SECRET_COMMENT))
+            + chunk_type
+            + SECRET_COMMENT
+            + struct.pack(">I", zlib.crc32(chunk_type + SECRET_COMMENT) & 0xFFFFFFFF)
+            for chunk_type in (b"caBX", b"vpAg")
+        )
+        original = original[:iend] + extra + original[iend:]
+        stripped = strip_metadata(original, "PNG")
+        self.assertNotIn(SECRET_COMMENT, stripped)
+        self.assert_same_pixels(original, stripped)
+
+    def test_webp_unknown_chunks_removed(self):
+        buffer = io.BytesIO()
+        photo(300, 200).save(buffer, "WEBP", lossless=True, exif=exif_bytes(1))
+        clean = buffer.getvalue()
+        extra = b"C2PA" + struct.pack("<I", len(SECRET_COMMENT)) + SECRET_COMMENT
+        body = clean[8:] + extra
+        original = b"RIFF" + struct.pack("<I", len(body)) + body
+        stripped = strip_metadata(original, "WEBP")
+        self.assertNotIn(SECRET_COMMENT, stripped)
+        self.assert_same_pixels(clean, stripped)
 
     def test_webp_without_orientation_has_no_exif(self):
         buffer = io.BytesIO()
@@ -258,18 +288,46 @@ class UploadEndpointTests(UploadTestCase):
         decode.assert_not_called()
 
     def test_large_jpeg_is_decoded_at_reduced_size(self):
-        with mock.patch.object(
-            rich_text_images,
-            "decode_image_or_raise",
-            wraps=rich_text_images.decode_image_or_raise,
-        ) as decode:
-            response = self.upload(encode(photo(5000, 3750), "JPEG"))
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(decode.call_args.kwargs["draft_size"], (1200, 1200))
-        self.assertEqual(
-            [(v["width"], v["height"]) for v in response.data["variants"]],
-            [(600, 450), (1200, 900)],
+        decoded = []
+        original = rich_text_images.decode_image_or_raise
+
+        def spy(*args, **kwargs):
+            image = original(*args, **kwargs)
+            decoded.append(image.size)
+            return image
+
+        cases = [
+            # (stored size, orientation, upright size after reduced decoding)
+            ((5000, 3750), 1, (1250, 938)),
+            # A wide panorama: its height alone would keep the full scale.
+            ((9600, 1100), 1, (1200, 138)),
+            # Rotated: reduced by the upright width (stored height).
+            ((5000, 3750), 6, (1875, 2500)),
+        ]
+        for size, orientation, expected in cases:
+            decoded.clear()
+            with mock.patch.object(rich_text_images, "decode_image_or_raise", spy):
+                response = self.upload(encode(photo(*size), "JPEG", orientation))
+            self.assertEqual(response.status_code, 201, response.data)
+            self.assertEqual(decoded, [expected], size)
+            self.assertEqual(response.data["variants"][-1]["width"], 1200, size)
+
+    def test_jpeg_with_extra_pictures_is_accepted(self):
+        # Cameras and HDR exports store extra pictures in an MPF block (MPO).
+        buffer = io.BytesIO()
+        photo(800, 600).save(
+            buffer, "MPO", save_all=True, append_images=[photo(400, 300)]
         )
+        with Image.open(io.BytesIO(buffer.getvalue())) as check:
+            self.assertEqual(check.format, "MPO")
+        response = self.upload(buffer.getvalue())
+        self.assertEqual(response.status_code, 201, response.data)
+        image = RichTextImage.objects.get(id=response.data["id"])
+        self.assertEqual(image.format, "jpeg")
+        self.assertTrue(image.original.name.endswith(".jpg"))
+        with Image.open(default_storage.open(image.original.name)) as stored:
+            self.assertEqual(stored.format, "JPEG")
+            self.assertEqual(stored.size, (800, 600))
 
     def test_corrupt_image_is_a_user_error_not_logged(self):
         data = encode(photo(800, 600), "JPEG")

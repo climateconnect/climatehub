@@ -1,6 +1,10 @@
+import html
 import re
+from dataclasses import dataclass, field
+from functools import partial
 
 import bleach
+from bleach import html5lib_shim
 from bleach.css_sanitizer import CSSSanitizer
 from django.core.files.storage import default_storage
 
@@ -129,71 +133,131 @@ def _rich_text_image_url_re():
     return re.compile("^" + prefix + r"[0-9a-f]{32}\.webp$")
 
 
-def _attribute(tag, name):
-    match = re.search(r'\s%s="([^"]*)"' % re.escape(name), tag)
-    return match.group(1) if match else None
+@dataclass
+class RichTextImageBlock:
+    """One image block: <figure> with an <img> and an optional plain-text caption.
 
-
-def _filter_foreign_images(html):
-    """Keep only <img> elements that show a stored rich-text image.
-
-    An <img> needs a numeric data-image-id, and its src and every srcset URL
-    must point to a stored variant. bleach checks the protocol of src but not of
-    srcset, so without this filter srcset could carry any URL. Everything else
-    (other hosts, data: URLs, tracking pixels) is removed.
+    Attribute values and the caption are plain text (entities decoded).
     """
-    url_re = _rich_text_image_url_re()
 
-    def _check_img(match):
-        tag = match.group(0)
-        image_id = _attribute(tag, "data-image-id")
-        src = _attribute(tag, "src")
-        srcset = _attribute(tag, "srcset") or ""
-        urls = [src] + [
-            candidate.strip().split(" ")[0]
-            for candidate in srcset.split(",")
+    classes: list = field(default_factory=list)
+    style: str = None
+    image: dict = field(default_factory=dict)
+    caption: str = ""
+
+    def tokens(self):
+        """The block as html5lib tokens, in its canonical form."""
+        figure = {"class": " ".join(self.classes) or None, "style": self.style}
+        yield _start_tag("StartTag", "figure", figure)
+        yield _start_tag("EmptyTag", "img", self.image)
+        if self.caption:
+            yield _start_tag("StartTag", "figcaption", {})
+            yield {"type": "Characters", "data": self.caption}
+            yield {"type": "EndTag", "name": "figcaption", "namespace": None}
+        yield {"type": "EndTag", "name": "figure", "namespace": None}
+
+
+def _start_tag(kind, name, attributes):
+    # bleach keeps entities in attribute values as text and only escapes a "&"
+    # that does not start an entity, so a literal "&" is written as "&amp;".
+    data = {
+        (None, key): value.replace("&", "&amp;")
+        for key, value in attributes.items()
+        if value is not None
+    }
+    return {"type": kind, "name": name, "namespace": None, "data": data}
+
+
+def _plain_attributes(token):
+    return {key: html.unescape(value) for (_ns, key), value in token["data"].items()}
+
+
+class RichTextImageFilter(html5lib_shim.Filter):
+    """Keep only valid image blocks, in their canonical form.
+
+    Runs inside bleach on the parsed tokens, after sanitising, so attribute
+    values are read as values (quotes and characters such as ">" in an alt
+    text don't matter). An image block keeps the first <img> that shows a
+    stored rich-text image: a numeric data-image-id, and src and every srcset
+    URL pointing to a stored variant (bleach checks the protocol of src but not
+    of srcset). The figure keeps only known classes and a style that matches
+    RICH_TEXT_IMAGE_STYLE_RE; the caption becomes plain text. Blocks without
+    such an image and images outside a block are removed.
+
+    *resolve_block*, if given, receives each :class:`RichTextImageBlock` and
+    returns the block to write, or ``None`` to remove it.
+    """
+
+    def __init__(self, source, resolve_block=None):
+        super().__init__(source)
+        self.resolve_block = resolve_block
+        self.url_re = _rich_text_image_url_re()
+
+    def __iter__(self):
+        block, depth = None, 0
+        for token in super().__iter__():
+            kind, name = token["type"], token.get("name")
+            is_tag = kind in ("StartTag", "EmptyTag", "EndTag")
+            if block is None:
+                if kind == "StartTag" and name == "figure":
+                    block, depth = [token], 1
+                elif not (is_tag and name == "img"):
+                    yield token
+                continue
+            block.append(token)
+            if is_tag and name == "figure":
+                depth += 1 if kind == "StartTag" else -1
+                if depth == 0:
+                    yield from self._image_block(block)
+                    block = None
+        if block:
+            yield from self._image_block(block)
+
+    def _is_stored_image(self, image):
+        image_id = image.get("data-image-id") or ""
+        urls = [image.get("src")] + [
+            candidate.split()[0]
+            for candidate in (image.get("srcset") or "").split(",")
             if candidate.strip()
         ]
-        if (
-            image_id
-            and image_id.isdigit()
-            and all(url and url_re.match(url) for url in urls)
-        ):
-            return tag
-        return ""
+        return image_id.isdigit() and all(
+            url and self.url_re.match(url) for url in urls
+        )
 
-    html = re.sub(r"<img\b[^>]*>", _check_img, html, flags=re.IGNORECASE)
-
-    def _check_figure_style(match):
-        tag = match.group(0)
-        style = _attribute(tag, "style")
-        if style is None or RICH_TEXT_IMAGE_STYLE_RE.match(style):
-            return tag
-        return re.sub(r'\s+style="[^"]*"', "", tag)
-
-    html = re.sub(r"<figure\b[^>]*>", _check_figure_style, html, flags=re.IGNORECASE)
-
-    def _check_figure_class(match):
+    def _image_block(self, tokens):
+        figure = _plain_attributes(tokens[0])
+        image, caption, in_caption = None, [], False
+        for token in tokens[1:]:
+            kind, name = token["type"], token.get("name")
+            if kind == "EmptyTag" and name == "img" and image is None:
+                attributes = _plain_attributes(token)
+                if self._is_stored_image(attributes):
+                    image = attributes
+            elif kind in ("StartTag", "EndTag") and name == "figcaption":
+                in_caption = kind == "StartTag"
+            elif in_caption and kind in ("Characters", "SpaceCharacters"):
+                caption.append(token["data"])
+            elif in_caption and kind == "Entity":
+                caption.append(html.unescape("&%s;" % name))
+        if image is None:
+            return
         allowed = RICH_TEXT_IMAGE_SIZE_CLASSES + RICH_TEXT_IMAGE_ALIGN_CLASSES
-        classes = [c for c in match.group(1).split() if c in allowed]
-        return ' class="%s"' % " ".join(classes) if classes else ""
-
-    html = re.sub(
-        r'(?<=<figure)\s+class="([^"]*)"',
-        _check_figure_class,
-        html,
-        flags=re.IGNORECASE,
-    )
-    # A figure without an image is left over from a removed <img>.
-    return re.sub(
-        r"<figure\b[^>]*>(?:(?!<img\b).)*?</figure>",
-        "",
-        html,
-        flags=re.DOTALL | re.IGNORECASE,
-    )
+        style = figure.get("style")
+        block = RichTextImageBlock(
+            classes=[c for c in (figure.get("class") or "").split() if c in allowed],
+            style=style if style and RICH_TEXT_IMAGE_STYLE_RE.match(style) else None,
+            image=image,
+            caption=" ".join("".join(caption).split()),
+        )
+        if self.resolve_block is not None:
+            block = self.resolve_block(block)
+        if block is not None:
+            yield from block.tokens()
 
 
-def sanitize_html(html_input, allowed_tags=None, allowed_attributes=None):
+def sanitize_html(
+    html_input, allowed_tags=None, allowed_attributes=None, resolve_image_block=None
+):
     """
     Sanitize HTML using bleach, stripping disallowed tags and attributes.
     Forces rel="noopener noreferrer" on every <a> tag.
@@ -203,6 +267,9 @@ def sanitize_html(html_input, allowed_tags=None, allowed_attributes=None):
 
     Callers may pass a custom allowlist to support different rich-text fields.
     The defaults cover the checkbox description (bold + links only).
+
+    If the allowlist includes ``img``, image blocks are filtered by
+    :class:`RichTextImageFilter`; *resolve_image_block* is passed on to it.
     """
     if not html_input or not html_input.strip():
         return ""
@@ -227,21 +294,21 @@ def sanitize_html(html_input, allowed_tags=None, allowed_attributes=None):
         else None
     )
 
-    cleaned = bleach.clean(
-        cleaned,
+    filters = []
+    if "img" in allowed_tags:
+        filters.append(partial(RichTextImageFilter, resolve_block=resolve_image_block))
+
+    cleaned = bleach.Cleaner(
         tags=allowed_tags,
         attributes=allowed_attributes,
         css_sanitizer=css_sanitizer,
         strip=True,
-    )
+        filters=filters,
+    ).clean(cleaned)
 
     # Post-bleach: filter iframes to only allow YouTube-nocookie embeds.
     if "iframe" in allowed_tags:
         cleaned = _filter_non_youtube_iframes(cleaned)
-
-    # Post-bleach: only images stored by the platform.
-    if "img" in allowed_tags:
-        cleaned = _filter_foreign_images(cleaned)
 
     # Force rel="noopener noreferrer" on every <a> tag, replacing any existing rel.
     def _force_rel(match):

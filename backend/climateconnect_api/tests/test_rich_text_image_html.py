@@ -93,6 +93,38 @@ class SanitizerTests(TestCase):
         self.assertNotIn("style", cleaned)
         self.assertIn('class="image-size-small"', cleaned)
 
+    def test_attribute_values_are_parsed_not_matched(self):
+        # A raw ">" in a value is valid HTML; the attribute order is free.
+        html = (
+            f'<figure><img alt="CO2 > 400 ppm" data-image-id="5" src="{VARIANT}">'
+            "</figure><p>after</p>"
+        )
+        cleaned = sanitize(html)
+        self.assertIn('data-image-id="5"', cleaned)
+        self.assertIn('alt="CO2 > 400 ppm"', cleaned)
+        self.assertIn("<p>after</p>", cleaned)
+
+    def test_alt_and_caption_text_round_trip(self):
+        html = figure(5, alt="A &amp; B &lt; C", caption="Fotos &amp; Text &lt;x&gt;")
+        cleaned = sanitize(html)
+        self.assertEqual(cleaned, html)
+        self.assertEqual(sanitize(cleaned), cleaned)
+
+    def test_caption_is_plain_text(self):
+        cleaned = sanitize(figure(5, caption="Photo: <b>Jane</b>"))
+        self.assertIn("<figcaption>Photo: Jane</figcaption>", cleaned)
+
+    def test_removes_images_outside_a_figure(self):
+        html = f'<p>a<img src="{VARIANT}" data-image-id="5">b</p>'
+        self.assertEqual(sanitize(html), "<p>ab</p>")
+
+    def test_keeps_one_image_per_block(self):
+        nested = figure(5).replace("</figure>", figure(6) + "</figure>")
+        cleaned = sanitize(nested + "<p>after</p>")
+        self.assertEqual(rich_text_image_ids(cleaned), {5})
+        self.assertEqual(cleaned.count("<figure"), cleaned.count("</figure>"))
+        self.assertTrue(cleaned.endswith("<p>after</p>"))
+
 
 class DescriptionTestCase(TestCase):
     def setUp(self):
@@ -240,6 +272,37 @@ class CreateProjectTests(DescriptionTestCase):
         self.assertIn('alt="%s"' % ("x" * 150), project.description_html)
         self.assertNotIn("x" * 151, project.description_html)
 
+    def test_alt_text_with_reserved_characters_is_kept(self):
+        image = self.upload()
+        html = (
+            f'<figure><img alt="CO2 > 400 ppm & more" data-image-id="{image.id}"'
+            f' src="{VARIANT}"></figure>'
+        )
+        response = self.create(html)
+        project = Project.objects.get(url_slug=response.data["url_slug"])
+        self.assertIn('alt="CO2 > 400 ppm &amp; more"', project.description_html)
+        self.assertEqual(self.usage_ids(project), {image.id})
+
+    def test_someone_elses_image_in_a_translation_is_removed(self):
+        own, foreign = self.upload(), self.upload(self.other)
+        response = self.create(
+            figure(own.id),
+            {
+                "de": {
+                    "is_manual_translation": True,
+                    "name": "Entwurf",
+                    "description_html": figure(foreign.id) + "<p>Text</p>",
+                }
+            },
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        project = Project.objects.get(url_slug=response.data["url_slug"])
+        translation = ProjectTranslation.objects.get(
+            project=project, language=self.german
+        )
+        self.assertEqual(translation.description_html_translation, "<p>Text</p>")
+        self.assertEqual(self.usage_ids(project), {own.id})
+
     def test_more_than_ten_images_is_rejected(self):
         image = self.upload()
         response = self.create("".join(figure(image.id) for _ in range(11)))
@@ -329,6 +392,27 @@ class EditProjectTests(DescriptionTestCase):
         self.patch(project, {"description_html": "<p>No images in English</p>"})
         self.assertEqual(self.usage_ids(project), {image.id})
 
+    def test_someone_elses_image_in_a_translation_edit_is_removed(self):
+        foreign = self.upload(self.other)
+        project = self.make_project()
+        response = self.patch(
+            project,
+            {
+                "translations": {
+                    "de": {
+                        "is_manual_translation": True,
+                        "description_html": "<p>Text</p>" + figure(foreign.id),
+                    }
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        translation = ProjectTranslation.objects.get(
+            project=project, language=self.german
+        )
+        self.assertEqual(translation.description_html_translation, "<p>Text</p>")
+        self.assertEqual(self.usage_ids(project), set())
+
     def test_ten_images_per_language_version(self):
         project = self.make_project()
         image = self.upload()
@@ -364,6 +448,38 @@ class EditProjectTests(DescriptionTestCase):
         project.refresh_from_db()
         self.assertEqual(project.description_html, "<p>Before</p>")
         self.assertNotEqual(project.short_description, "Changed")
+
+    def test_usages_are_synced_even_if_translating_fails(self):
+        # The edit is not atomic: the project is saved before the translations.
+        project = self.make_project()
+        image = self.upload()
+        with (
+            mock.patch(
+                "organization.views.project_views.edit_translations",
+                side_effect=RuntimeError("DeepL down"),
+            ),
+            self.assertRaises(RuntimeError),
+        ):
+            self.patch(
+                project,
+                {
+                    "description_html": figure(image.id),
+                    "translations": {"de": {"is_manual_translation": False}},
+                },
+            )
+        project.refresh_from_db()
+        self.assertEqual(rich_text_image_ids(project.description_html), {image.id})
+        self.assertEqual(self.usage_ids(project), {image.id})
+
+    def test_legacy_description_unlinks_images(self):
+        project = self.make_project()
+        image = self.upload()
+        self.patch(project, {"description_html": figure(image.id)})
+        self.assertEqual(self.usage_ids(project), {image.id})
+
+        response = self.patch(project, {"description": "Plain text only"})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(self.usage_ids(project), set())
 
 
 class SizesAttributeTests(TestCase):

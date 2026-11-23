@@ -642,16 +642,19 @@ one at a time to `POST /api/rich-text-images/`, separately from the project's JS
   the variant URLs to write the image into the HTML, and the original may not be used as a fallback. Order:
   size check → header-only check of type and pixel count → lossless metadata removal → one decode → 600/1200 px
   WebP variants → store → create row.
-- **Memory**: JPEGs are decoded at a reduced scale (Pillow `draft()`, `decode_image_or_raise(draft_size=…)`), so a
-  48 or 108 MP photo is never held at full size. PNG/WebP are limited to about 40 MP.
+- **Memory**: JPEGs are decoded at a reduced scale chosen by the upright width (Pillow `draft()`,
+  `decode_image_or_raise(draft_size=…)`), so a 48 or 108 MP photo or a wide panorama is never held at full size. PNG/WebP are limited to about 40 MP.
 - **Metadata**: `climateconnect_main/utility/image_metadata.py` filters JPEG segments, PNG chunks and WebP chunks
-  on the bytes (no re-encode). It drops EXIF/GPS, XMP, IPTC, comments and data appended after the image, keeps ICC
-  profiles, and writes back a minimal EXIF block with only the orientation.
+  on the bytes (no re-encode), each with a keep-only list (image data, colour/ICC, transparency, animation). So
+  EXIF/GPS, XMP, IPTC, comments, content credentials, vendor chunks and data appended after the image are dropped. It
+  writes back a minimal EXIF block with only the orientation.
 - **Storage**: `rich_text_images/<random>.<ext>` for the original, an independent random name per WebP variant, so
   the original can't be derived from a public URL. The original is never linked.
 - **Reused from the WebP variants work**: only the Pillow helpers in `climateconnect_main/utility/images.py`.
 - **HTML**: the stored `<img>` lists the variants in `srcset` and carries `data-image-id`. The sanitiser keeps an
-  `<img>` only if all its URLs point to stored variants (bleach doesn't check `srcset`). On project create/edit,
+  `<img>` only if all its URLs point to stored variants (bleach doesn't check `srcset`). This runs as an html5lib
+  filter (`RichTextImageFilter` in `climateconnect_api/utility/html.py`) inside bleach, on parsed tokens rather
+  than with regexes on the markup. On project create/edit,
   `climateconnect_api/utility/rich_text_image_html.py` resolves every image against the database (linking rule,
   canonical attributes, max 10 per language version) and syncs `RichTextImageUsage` from the saved HTML of all
   language versions.

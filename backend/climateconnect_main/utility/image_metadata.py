@@ -177,7 +177,28 @@ def _copy_jpeg_scans(data, pos, out):
 # --- PNG --------------------------------------------------------------------
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-_PNG_DROPPED_CHUNKS = {b"eXIf", b"tEXt", b"zTXt", b"iTXt", b"tIME"}
+# Only chunks that describe the image or how to display it are kept; anything
+# else (text, EXIF, time, content credentials, vendor chunks) is dropped.
+_PNG_KEPT_CHUNKS = {
+    b"IHDR",
+    b"PLTE",
+    b"IDAT",
+    b"IEND",
+    b"tRNS",  # transparency
+    b"gAMA",  # colour: gamma, chromaticities, sRGB, ICC, bit depth, HDR
+    b"cHRM",
+    b"sRGB",
+    b"iCCP",
+    b"sBIT",
+    b"cICP",
+    b"mDCv",
+    b"cLLi",
+    b"bKGD",  # background colour
+    b"pHYs",  # pixel aspect ratio
+    b"acTL",  # animation (APNG)
+    b"fcTL",
+    b"fdAT",
+}
 
 
 def _png_chunk(chunk_type, chunk_data):
@@ -213,7 +234,7 @@ def _strip_png(data, orientation):
             # "Exif\0\0" header.
             out += _png_chunk(b"eXIf", _minimal_exif(orientation)[len(EXIF_HEADER) :])
             exif_inserted = True
-        if chunk_type not in _PNG_DROPPED_CHUNKS:
+        if chunk_type in _PNG_KEPT_CHUNKS:
             out += chunk
         if chunk_type == b"IEND":
             return bytes(out)  # anything appended after IEND is dropped
@@ -225,6 +246,8 @@ def _strip_png(data, orientation):
 
 _VP8X_FLAG_EXIF = 0x08
 _VP8X_FLAG_XMP = 0x04
+# Image data, alpha, animation and colour profile; everything else is dropped.
+_WEBP_KEPT_CHUNKS = {b"VP8X", b"VP8 ", b"VP8L", b"ALPH", b"ANIM", b"ANMF", b"ICCP"}
 
 
 def _webp_chunk(fourcc, chunk_data):
@@ -253,10 +276,10 @@ def _strip_webp(data, orientation):
         raise MetadataStripError("WebP has no chunks")
 
     kept = [
-        (fourcc, payload)
-        for fourcc, payload in chunks
-        if fourcc not in (b"EXIF", b"XMP ")
+        (fourcc, payload) for fourcc, payload in chunks if fourcc in _WEBP_KEPT_CHUNKS
     ]
+    if not kept:
+        raise MetadataStripError("WebP has no image data")
     has_vp8x = kept[0][0] == b"VP8X"
     if has_vp8x:
         kept[0][1][0] &= ~(_VP8X_FLAG_EXIF | _VP8X_FLAG_XMP) & 0xFF

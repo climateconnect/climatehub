@@ -1295,6 +1295,11 @@ class ProjectAPIView(APIView):
                 project_parents.save()
 
         project.save()
+        # Right after the save: this request is not atomic, so an error in the
+        # translations below must not leave saved images without usage rows.
+        # Unconditional, because the legacy "description" also replaces
+        # description_html.
+        sync_project_description_usages(project)
 
         items_to_translate = [
             {"key": "name", "translation_key": "name_translation"},
@@ -1314,7 +1319,6 @@ class ProjectAPIView(APIView):
         ]
         if "translations" in request.data:
             edit_translations(items_to_translate, request.data, project, "project")
-        if "description_html" in request.data or "translations" in request.data:
             sync_project_description_usages(project)
         calculate_project_rankings([project.id])
         return Response(

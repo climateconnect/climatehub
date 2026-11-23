@@ -69,6 +69,10 @@ def inspect_image(source_bytes):
         raise RichTextImageError(
             "unsupported_type", "The file is not a supported image."
         )
+    # A JPEG with extra pictures in an MPF block (many cameras, HDR gain maps)
+    # is reported as MPO. strip_metadata keeps only the first picture.
+    if image_format == "MPO":
+        image_format = "JPEG"
 
     if image_format not in MAX_PIXELS:
         raise RichTextImageError(
@@ -84,10 +88,16 @@ def inspect_image(source_bytes):
 def _encode_variants(source_bytes):
     """Return the WebP variants as a list of ``(bytes, width, height)``, smallest first."""
     largest = max(VARIANT_WIDTHS)
+    # Reduce the JPEG decoding scale by the upright width only, so a wide
+    # panorama is reduced too (its height alone would keep the full scale).
+    if read_orientation(source_bytes) in _TRANSPOSED_ORIENTATIONS:
+        draft_size = (1, largest)
+    else:
+        draft_size = (largest, 1)
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", Image.DecompressionBombWarning)
-            image = decode_image_or_raise(source_bytes, draft_size=(largest, largest))
+            image = decode_image_or_raise(source_bytes, draft_size=draft_size)
     except Exception:  # noqa: BLE001 – a broken file is a user error, not a bug
         raise RichTextImageError("unreadable_image", "The image could not be read.")
 

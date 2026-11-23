@@ -76,10 +76,10 @@ def decode_image_or_raise(source_bytes, draft_size=None):
     upload), not something to report.
 
     *draft_size* ``(width, height)``: for JPEGs, decode at a reduced scale
-    (1/2, 1/4 or 1/8) that is still at least this size in both dimensions, so
-    a very large photo is never held in memory at full resolution. Pass a
-    square size to stay safe for orientations that swap width and height.
-    Ignored for other formats.
+    (1/2, 1/4 or 1/8) that is still at least this size in both dimensions
+    (as stored, before the EXIF orientation is applied), so a very large photo
+    is never held in memory at full resolution. ``(1200, 1)`` limits by the
+    width only. Ignored for other formats.
     """
     with io.BytesIO(source_bytes) as fh:
         image = Image.open(fh)
