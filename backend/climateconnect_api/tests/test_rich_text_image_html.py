@@ -205,7 +205,7 @@ class CreateProjectTests(DescriptionTestCase):
         # Facts about the image for the CSS: natural width and aspect ratio.
         self.assertIn('style="--w: 900; --r: 1.5;"', html)
         # Computed on the server from the size and the natural width (900 px).
-        self.assertIn('sizes="(max-width: 600px) 100vw, 390px"', html)
+        self.assertIn('sizes="(max-width: 600px) 50vw, 390px"', html)
         self.assertIn('width="900" height="600"', html)
         self.assertIn("<figcaption>Photo: Jane</figcaption>", html)
         self.assertNotIn(image.original.name, html)
@@ -374,7 +374,10 @@ class SizesAttributeTests(TestCase):
             sizes_attribute("image-size-full", 1200), "(max-width: 600px) 100vw, 1168px"
         )
         self.assertEqual(
-            sizes_attribute("image-size-small", 1200), "(max-width: 600px) 100vw, 390px"
+            sizes_attribute("image-size-small", 1200), "(max-width: 600px) 50vw, 390px"
+        )
+        self.assertEqual(
+            sizes_attribute("image-size-medium", 1200), "(max-width: 600px) 75vw, 584px"
         )
         self.assertEqual(
             sizes_attribute("image-size-full", 800), "(max-width: 600px) 100vw, 800px"
@@ -382,4 +385,8 @@ class SizesAttributeTests(TestCase):
         self.assertEqual(
             sizes_attribute("image-size-full", 220),
             "(max-width: 220px) 100vw, (max-width: 600px) 220px, 220px",
+        )
+        self.assertEqual(
+            sizes_attribute("image-size-small", 220),
+            "(max-width: 440px) 50vw, (max-width: 600px) 220px, 220px",
         )

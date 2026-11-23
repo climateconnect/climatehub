@@ -27,13 +27,19 @@ MAX_IMAGES_PER_TEXT = 10
 MAX_ALT_TEXT_LENGTH = 150
 DEFAULT_SIZE_CLASS = "image-size-full"
 DEFAULT_ALIGN_CLASS = "image-align-center"
-# Widest slot per size on desktop (the column is at most 1168 px wide) and
-# the phone breakpoint. Same values as sizesAttribute in the frontend's
+# Widest slot per size on desktop (the column is at most 1168 px wide), the
+# share of the screen per size on phones and the phone breakpoint. Same values as sizesAttribute in the frontend's
 # richTextImageStyles.ts; keep both in sync.
 DESKTOP_SLOT = {
     "image-size-small": 390,
     "image-size-medium": 584,
     "image-size-full": 1168,
+}
+# Share of the screen width per size on phones.
+MOBILE_SLOT_VW = {
+    "image-size-small": 50,
+    "image-size-medium": 75,
+    "image-size-full": 100,
 }
 MOBILE_BREAKPOINT = 600
 
@@ -86,14 +92,18 @@ def sizes_attribute(size_class, natural_width):
 
     Besides picking the variant, sizes sets the size the browser treats as the
     image's own size, so it must never exceed the natural width (the display
-    rules rely on that to never enlarge an image). On phones every size is
-    shown at full width (D11).
+    rules rely on that to never enlarge an image). On phones each size takes a
+    share of the screen width (D11).
     """
     desktop = "%dpx" % min(natural_width, DESKTOP_SLOT[size_class])
-    if natural_width >= MOBILE_BREAKPOINT:
-        return "(max-width: %dpx) 100vw, %s" % (MOBILE_BREAKPOINT, desktop)
-    return "(max-width: %dpx) 100vw, (max-width: %dpx) %dpx, %s" % (
-        natural_width,
+    vw = MOBILE_SLOT_VW[size_class]
+    # Screen width at which the image reaches its natural width.
+    limit = natural_width * 100 // vw
+    if limit >= MOBILE_BREAKPOINT:
+        return "(max-width: %dpx) %dvw, %s" % (MOBILE_BREAKPOINT, vw, desktop)
+    return "(max-width: %dpx) %dvw, (max-width: %dpx) %dpx, %s" % (
+        limit,
+        vw,
         MOBILE_BREAKPOINT,
         natural_width,
         desktop,

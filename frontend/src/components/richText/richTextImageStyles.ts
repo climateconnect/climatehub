@@ -23,6 +23,13 @@ export const RICH_TEXT_IMAGE_BOXES = {
   full: { "--box-w": "100%", "--box-h": "65vh" },
 };
 
+// Phones: wider boxes than on desktop, so small images don't get too small,
+// but the sizes still differ.
+export const RICH_TEXT_IMAGE_BOXES_MOBILE = {
+  small: { "--box-w": "50%", "--box-h": "30vh" },
+  medium: { "--box-w": "75%", "--box-h": "45vh" },
+};
+
 // min(natural width, box width, box height × aspect ratio)
 const IMAGE_WIDTH = "min(calc(var(--w) * 1px), var(--box-w), calc(var(--box-h) * var(--r)))";
 
@@ -37,9 +44,9 @@ export const richTextImageStyles = (theme: Theme) => ({
   },
   "& figure.image-size-medium": RICH_TEXT_IMAGE_BOXES.medium,
   "& figure.image-size-small": RICH_TEXT_IMAGE_BOXES.small,
-  // On phones every size uses the full column width and height limit (D11).
   [theme.breakpoints.down("sm")]: {
-    "& figure.image-size-medium, & figure.image-size-small": RICH_TEXT_IMAGE_BOXES.full,
+    "& figure.image-size-medium": RICH_TEXT_IMAGE_BOXES_MOBILE.medium,
+    "& figure.image-size-small": RICH_TEXT_IMAGE_BOXES_MOBILE.small,
   },
   "& figure.image-align-left": { alignItems: "flex-start" },
   "& figure.image-align-right": { alignItems: "flex-end" },
@@ -64,22 +71,27 @@ export const richTextImageStyles = (theme: Theme) => ({
 
 // Widest slot per size on desktop: the column is at most 1168 px wide.
 const DESKTOP_SLOT: Record<RichTextImageSize, number> = { small: 390, medium: 584, full: 1168 };
+// Share of the screen width per size on phones (RICH_TEXT_IMAGE_BOXES_MOBILE).
+const MOBILE_SLOT_VW: Record<RichTextImageSize, number> = { small: 50, medium: 75, full: 100 };
 const MOBILE_BREAKPOINT = 600;
 
 /**
  * The `sizes` attribute does two things: it lets the browser pick the right
  * variant, and with srcset it sets the size the browser treats as the image's
  * own size. It must therefore never exceed the natural width, or a small image
- * would be enlarged. On phones every size is shown at full width (D11).
+ * would be enlarged. On phones each size takes a share of the screen width (D11).
  */
 export function sizesAttribute(size: RichTextImageSize, naturalWidth: number | null) {
   const width = naturalWidth && naturalWidth > 0 ? naturalWidth : DESKTOP_SLOT.full;
   const desktop = `${Math.min(width, DESKTOP_SLOT[size] ?? DESKTOP_SLOT.full)}px`;
-  if (width >= MOBILE_BREAKPOINT) {
-    return `(max-width: ${MOBILE_BREAKPOINT}px) 100vw, ${desktop}`;
+  const vw = MOBILE_SLOT_VW[size] ?? MOBILE_SLOT_VW.full;
+  // Screen width at which the image reaches its natural width.
+  const limit = Math.floor((width * 100) / vw);
+  if (limit >= MOBILE_BREAKPOINT) {
+    return `(max-width: ${MOBILE_BREAKPOINT}px) ${vw}vw, ${desktop}`;
   }
-  // Narrower than a phone breakpoint: full width only below its own width.
-  return `(max-width: ${width}px) 100vw, (max-width: ${MOBILE_BREAKPOINT}px) ${width}px, ${desktop}`;
+  // Small image: its share of the screen only below that width.
+  return `(max-width: ${limit}px) ${vw}vw, (max-width: ${MOBILE_BREAKPOINT}px) ${width}px, ${desktop}`;
 }
 
 /** The figure's style: natural width (--w) and aspect ratio (--r). Same as image_style on the server. */

@@ -14,7 +14,7 @@ const STORED = `<figure class="image-size-medium image-align-left" style="--w: 1
   "b"
 )}" srcset="${VARIANT("a")} 600w, ${VARIANT(
   "b"
-)} 1200w" sizes="(max-width: 600px) 100vw, 584px" width="1200" height="800" alt="Trees" data-image-id="7" loading="lazy"><figcaption>Photo: Jane</figcaption></figure>`;
+)} 1200w" sizes="(max-width: 600px) 75vw, 584px" width="1200" height="800" alt="Trees" data-image-id="7" loading="lazy"><figcaption>Photo: Jane</figcaption></figure>`;
 
 function makeEditor(content = "") {
   return new Editor({ extensions: [StarterKit, HeadlessRichTextImage], content });
@@ -84,10 +84,14 @@ describe("RichTextImage", () => {
 describe("sizesAttribute", () => {
   it("never exceeds the natural width", () => {
     expect(sizesAttribute("full", 1200)).toBe("(max-width: 600px) 100vw, 1168px");
-    expect(sizesAttribute("small", 1200)).toBe("(max-width: 600px) 100vw, 390px");
+    expect(sizesAttribute("small", 1200)).toBe("(max-width: 600px) 50vw, 390px");
+    expect(sizesAttribute("medium", 1200)).toBe("(max-width: 600px) 75vw, 584px");
     expect(sizesAttribute("full", 800)).toBe("(max-width: 600px) 100vw, 800px");
     expect(sizesAttribute("full", 220)).toBe(
       "(max-width: 220px) 100vw, (max-width: 600px) 220px, 220px"
+    );
+    expect(sizesAttribute("small", 220)).toBe(
+      "(max-width: 440px) 50vw, (max-width: 600px) 220px, 220px"
     );
   });
 });
