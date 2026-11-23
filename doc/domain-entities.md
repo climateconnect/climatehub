@@ -76,6 +76,11 @@ This document provides comprehensive documentation of the main domain entities i
 - **DonationGoal**:
   - **ForeignKey**: `Hub` (optional - hub-specific fundraising)
   - **Referenced by**: `Donation`
+  - **Twingle fields** ([#2388](https://github.com/climateconnect/climatehub/issues/2388), see [Twingle donation webhook](twingle-donation-webhook.md)):
+    - `twingle_project_id`: Twingle project the goal is mapped to (blank = maintained by hand only). Unique among non-blank values: a Twingle project maps to at most one goal.
+    - `twingle_unit_price`: € per month that make one unit (decimal, > 0, default 7). A new recurring donation adds ⌊monthly amount ÷ unit price⌋ to `current_amount`.
+    - `twingle_last_delivery_at`: last validly signed Twingle delivery for the mapped project, counted or not (liveness check, read-only in the admin). The webhook doesn't touch `updated_at`.
+    - None of them is exposed by the public goal endpoints.
 - **Donation**:
   - **ForeignKey**: `User` (donor), `DonationGoal` (optional - associated campaign)
 
@@ -254,6 +259,7 @@ This document provides comprehensive documentation of the main domain entities i
 
 **Relationships**:
 - **ForeignKey**: `User`, `User` (`decided_by`, nullable: admin who approved/rejected), `Project` (nullable), `Organization` (nullable), `Availability`
+- **Exposed via API**: `message` and `decided_by` are returned by `GET /api/projects/<slug>/join_requests/<id>/` (`decided_by` for admins only).
 - **Referenced by**: `Notification` (notifies admins of requests)
 
 **Lifecycle**: An approved project request is deleted when the membership ends (user leaves or an admin removes them), so the user can request again; its notifications are deleted by cascade. Rejected and pending requests are kept and keep blocking new requests. Leaving a project is a soft delete of `ProjectMember` (`is_active = False`); approving a new request reactivates that row with role `Member`.

@@ -110,3 +110,18 @@
    3. On confirm the frontend calls `POST /api/organizations/<slug>/leave/`.
    4. System deletes the member's own `OrganizationMember` row. (If the API still returns 400, the `code` — `super_admin_must_hand_over` or `last_member` — selects the translated error.)
    5. The organization page reloads and shows a success message.
+
+## 11. Twingle Donation Goal Update Flow (introduced in [#2388](https://github.com/climateconnect/climatehub/issues/2388))
+- **Actor**: Twingle (external system); Admin (one-time setup and corrections)
+- **Trigger**: Twingle sends a new or changed donation transaction of an enabled Twingle project to `POST /api/webhooks/twingle/`
+- **Actions**:
+   1. The system verifies the request signature against the raw body with the configured secret. If the signature is missing or wrong, it rejects the request with 401 and nothing changes. If no secret is configured, it rejects every request with 503.
+   2. The system reads the transaction and finds the `DonationGoal` mapped to the transaction's Twingle project (no period check). Deliveries for unmapped projects are acknowledged and ignored. For a mapped project, the system records the time in the goal's `twingle_last_delivery_at` (liveness check), whether or not the delivery is counted.
+   3. If the delivery is a new, first payment of a recurring EUR donation without an error, the system normalises the amount to a monthly amount and converts it into units with the goal's unit price (rounded down).
+   4. The system adds the units to the goal's `current_amount` in one atomic database update and writes one log line (`twingle trx=… project=… goal=… +N units`).
+   5. The crowdfunding page shows the new value on the next page load.
+- **Notes**:
+   - Stateless: no transaction or donor data is stored. The log line is the only trail.
+   - Admins map a goal to a Twingle project and set the unit price (default 7 € per month) in the Django admin. They correct `current_amount` by hand for backfill and deviations. Webhook changes stack on top.
+   - Sentry events from this endpoint carry no request body, headers or frame variables.
+   - Not implemented (possible later task): subtracting units on stop or error updates. Stops are corrected by hand.

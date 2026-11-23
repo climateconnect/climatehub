@@ -97,7 +97,7 @@ Climate Connect is a full-stack online climate action platform that connects act
 │  - Google Maps API (geocoding, maps)                            │
 │  - OpenStreetMap (location data)                                │
 │  - Email Service (notifications)                                │
-│  - Payment Gateway (donations)                                  │
+│  - Twingle (inbound signed webhook, donation goal progress)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1198,9 +1198,10 @@ def send_notification_email(user_id, notification_id):
 - **Purpose**: Transactional emails (notifications, password reset)
 - **Implementation**: Django email backend (SMTP or service like SendGrid)
 
-### Payment Gateway
-- **Purpose**: Donation processing
-- **Implementation**: Integration in `climateconnect_api/donations`
+### Twingle (donations)
+- **Purpose**: Donations are collected in Twingle. Twingle pushes new and changed transactions to an inbound, signed webhook that adds new recurring donations to the mapped `DonationGoal`.
+- **Implementation**: `POST /api/webhooks/twingle/` in `climateconnect_api/views/twingle_webhook_views.py` (HMAC-SHA256 signature, no other authentication, nothing stored except the goal's `current_amount`)
+- **Docs**: [Twingle donation webhook](twingle-donation-webhook.md)
 
 ---
 

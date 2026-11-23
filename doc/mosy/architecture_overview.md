@@ -27,6 +27,7 @@ Climate Connect is a full-stack online climate action platform that connects act
 - **Organization**: Organization represented by a user.
 - **Admin**: Platform administrator.
 - **Networker**: Platform administrator of a specific climate hub.
+- **Twingle** (external system): Donation platform. It pushes new and changed donation transactions to Climate Connect through a signed webhook (introduced in [#2388](https://github.com/climateconnect/climatehub/issues/2388)).
 
 ### 2. Technical Stack
 - **Frontend**: Next.js (React), TypeScript, Tailwind CSS.
@@ -38,6 +39,7 @@ Climate Connect is a full-stack online climate action platform that connects act
   - Mailjet (Email).
   - OpenStreetMap/Nominatim (Geocoding).
   - Sentry (Monitoring).
+  - Twingle (Donations): inbound signed webhook that updates donation goal progress. No donor data is stored.
 
 ### 3. Documentation Map
 - **[System Entities](./entities/system-entities.md)**: Data models and domain objects.

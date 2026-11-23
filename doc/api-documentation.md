@@ -1168,6 +1168,35 @@ can't be reached — the rest of the response comes from Postgres and is still s
 }
 ```
 
+### Twingle webhook
+
+Server-to-server endpoint for Twingle, not for the frontend. Operations, setup and go-live:
+[Twingle donation webhook](twingle-donation-webhook.md).
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/webhooks/twingle/` | POST | Signature only | Twingle transaction delivery; adds new recurring donations to the mapped `DonationGoal` |
+
+- **Trailing slash required.** Without it, Django answers a POST with a redirect, which Twingle counts as an error.
+- **Authentication**: only the `X-Hub-Signature-256: sha256=<hex>` header, an HMAC-SHA256 of the raw request
+  body with `TWINGLE_WEBHOOK_SECRET`. It's verified with a constant-time comparison before the body is parsed.
+  Knox tokens, session cookies and CSRF play no role (the view has no authentication classes).
+- **Other headers**: `X-Twingle-Isupdate` (`0` = new transaction, `1` = update).
+- **Body**: Twingle's transaction JSON. Unknown fields are ignored.
+- **Response body**: a fixed status message (`{"detail": "OK."}` etc.), never request content.
+
+| Situation | Status | Goal changed | Sentry |
+|---|---|---|---|
+| Delivery that adds units | 200 | yes | – |
+| Ignored delivery (unmapped project, follow-up booking, one-time, any update, 0 units, non-EUR) | 200 | no | – |
+| Missing, malformed or wrong signature | 401 | no | warning |
+| `TWINGLE_WEBHOOK_SECRET` not set | 503 | no | error |
+| Not a POST | 405 | no | – |
+| Body isn't a JSON object, or a mapped delivery lacks a needed field (`X-Twingle-Isupdate`, a known `donation_rhythm`, `amount`, `currency_code`) | 200 | no | warning |
+| Unexpected error before the change (e.g. database down) | 500 | no | error |
+
+A non-2xx response always means the goal was not changed.
+
 ---
 
 ## Troubleshooting
@@ -1255,4 +1284,19 @@ Body: `{ "user_availability": <id>, "message": <string> }`
 - The message must be at most 500 characters, otherwise `400` with a `message` error (not truncated).
 - A non-string `message` returns `400`.
 
-A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is not returned by the API.
+A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is returned by the endpoints below.
+
+### Single join request
+
+`GET /api/projects/<url_slug>/join_requests/<request_id>/` (authenticated)
+
+Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, is_admin }`
+
+- `request_status`: `pending` | `approved` | `rejected`; `decided_at` is the approval/rejection time or `null`; `message` is `""` if none (plain text, returned as stored).
+- Project admins (active members with role type All or ReadWrite; inactive members are treated like any other user) get the full payload including `decided_by` (profile stub or `null`).
+- The requesting user can read their own request; `decided_by` is **omitted** from their response.
+- Anyone else: `403` (`401` if not authenticated). `404` if the project/request doesn't exist or the request belongs to another project or an organization.
+
+`GET /api/projects/<url_slug>/requesters/` (admins) lists open requests, newest first, now with `message` and `requested_at` in addition to `id` and `user_profile`.
+
+`POST .../request_membership/<approve|reject>/<request_id>/` returns `409` if the request was already decided (the decision is not overwritten).

@@ -113,6 +113,15 @@ export default function LayoutWrapper({
     }
   }, []);
   const defaultDescription = texts.defaultDescription;
+  const resolvedTitle = title ? title : texts.default_title;
+  const resolvedDescription = description ? description : defaultDescription;
+  const siteTitle = `ClimateHub ${locale === "de" ? "Netzwerk" : "Network"}`;
+  const isHomePage = router.pathname === "/";
+  const fullTitle = isHomePage
+    ? `${siteTitle} - ${resolvedTitle}`
+    : title
+    ? `${resolvedTitle} | ${siteTitle}`
+    : siteTitle;
 
   //if promptLogIn is true, the user will be shown a button to log in.
   //Otherwise the caller of the function can also set a custom action that should be shown to the user
@@ -152,11 +161,7 @@ export default function LayoutWrapper({
   return (
     <>
       <Head>
-        <title>
-          {title
-            ? title + ` | ClimateHub ${locale === "de" ? "Netzwerk" : "Network"}`
-            : `ClimateHub ${locale === "de" ? "Netzwerk" : "Network"}`}
-        </title>
+        <title>{fullTitle}</title>
         {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link href="/fonts/openSans.css" rel="stylesheet" />
         <meta
@@ -165,12 +170,19 @@ export default function LayoutWrapper({
         />
         <meta
           property="og:image"
-          content={image ? image : "https://climatehub.org/images/landing_image_small.jpg"}
+          content={
+            image
+              ? image
+              : locale === "de"
+              ? "https://climatehub.org/images/climatehub-og-image.png"
+              : "https://climatehub.org/images/climatehub-og-image-en.png"
+          }
         />
-        <meta property="og:title" content={title ? title : texts.default_title} />
+        <meta property="og:title" content={fullTitle} />
         <meta property="og:type" content="website" />
 
-        <meta name="description" content={description ? description : defaultDescription} />
+        <meta name="description" content={resolvedDescription} />
+        <meta property="og:description" content={resolvedDescription} />
       </Head>
       {/* If theme is falsy, slience the MUI console.warning for having an undefined theme */}
       <ThemeProvider theme={theme}>
