@@ -25,6 +25,7 @@ import ChatDrawer from "../communication/chat/ChatDrawer";
 import { ProjectSocialMediaShareButton } from "../shareContent/ProjectSocialMediaShareButton";
 import ProjectAddToCalendarButton from "../calendar/ProjectAddToCalendarButton";
 import { trackGA4Event } from "../../utils/analytics";
+import { replaceUrlKeepingRouterState } from "../../utils/replaceUrl";
 import ProjectRegistrationsContent from "./ProjectRegistrationsContent";
 import EventRegistrationModal from "./EventRegistrationModal";
 import CancelRegistrationModal from "./CancelRegistrationModal";
@@ -304,7 +305,7 @@ export default function ProjectPageRoot({
     const url = new URL(window.location.href);
     if (url.searchParams.has("openContactChat")) {
       url.searchParams.delete("openContactChat");
-      window.history.replaceState({}, "", url.toString());
+      replaceUrlKeepingRouterState(url.toString());
     }
   };
 
@@ -660,7 +661,7 @@ export default function ProjectPageRoot({
     // Remove the openRegistration query param from the URL when closing the modal
     const url = new URL(window.location.href);
     url.searchParams.delete("openRegistration");
-    window.history.replaceState({}, "", url.toString());
+    replaceUrlKeepingRouterState(url.toString());
   };
 
   return (
