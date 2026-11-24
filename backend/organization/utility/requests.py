@@ -220,7 +220,7 @@ def start_response_chat(membership_request_id, acting_user):
 
     with transaction.atomic():
         membership_request = (
-            MembershipRequests.objects.select_for_update()
+            MembershipRequests.objects.select_for_update(of=("self",))
             .select_related("target_project", "user")
             .get(id=membership_request_id)
         )
@@ -229,7 +229,9 @@ def start_response_chat(membership_request_id, acting_user):
             participant, was_created = Participant.objects.get_or_create(
                 chat=chat,
                 user=acting_user,
-                defaults={"role": Role.objects.get(role_type=Role.READ_ONLY_TYPE)},
+                defaults={
+                    "role": Role.objects.filter(role_type=Role.READ_ONLY_TYPE).first()
+                },
             )
             if not was_created and not participant.is_active:
                 participant.is_active = True

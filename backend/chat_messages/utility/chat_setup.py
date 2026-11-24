@@ -102,8 +102,9 @@ def create_private_or_group_chat(
         chat.related_idea = related_idea
         chat.is_public = True
         chat.save()
-    creator_role = Role.objects.get(role_type=Role.ALL_TYPE)
-    member_role = Role.objects.get(role_type=Role.READ_ONLY_TYPE)
+    # filter().first() because some databases contain several roles per type
+    creator_role = Role.objects.filter(role_type=Role.ALL_TYPE).first()
+    member_role = Role.objects.filter(role_type=Role.READ_ONLY_TYPE).first()
     # Adding creator to the group chat.
     Participant.objects.create(user=creator, chat=chat, role=creator_role)
     logger.info(f"NewChat: Creator {creator.id} added to chat {chat.id}")
