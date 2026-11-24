@@ -16,13 +16,8 @@ from climateconnect_api.utility.timezone_utils import (
     get_event_display_timezone,
 )
 from django.conf import settings
-from mailjet_rest import Client
 
 logger = logging.getLogger(__name__)
-
-mailjet = Client(
-    auth=(settings.MJ_APIKEY_PUBLIC, settings.MJ_APIKEY_PRIVATE), version="v3.1"
-)
 
 
 def linkify_mentions(content):
