@@ -758,9 +758,12 @@ class SentryPrivacyTests(TestCase):
         self.transport = _CapturingTransport()
         # The project's own options (scrubber, before_send, integrations,
         # local variables on), but sending everything to a local transport.
+        # "data_collection" is dropped because it is already resolved: fed back
+        # in, sentry-sdk takes it as user-provided and ignores event_scrubber.
+        options = {k: v for k, v in previous.options.items() if k != "data_collection"}
         sentry_sdk.init(
             **{
-                **previous.options,
+                **options,
                 "dsn": "https://public@sentry.example.org/1",
                 "transport": self.transport,
                 "traces_sample_rate": 1.0,
