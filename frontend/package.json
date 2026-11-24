@@ -44,7 +44,7 @@
     "@tiptap/extensions": "3.30.5",
     "@tiptap/pm": "3.30.5",
     "@tiptap/react": "3.30.5",
-    "@tiptap/starter-kit": "3.30.5",
+    "@tiptap/starter-kit": "3.35.0",
     "@tiptap/suggestion": "3.30.5",
     "@types/node": "^18.11.18",
     "axios": "^1.20.0",
