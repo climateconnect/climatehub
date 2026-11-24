@@ -14,6 +14,9 @@ const {
 
 const LOCATION_HUBS = (process.env.LOCATION_HUBS || "").split(",").filter(Boolean);
 
+// Hosts that permanently redirect to https://climatehub.org (regex, anchored by Next.js)
+const CANONICAL_REDIRECT_HOSTS = "(?:(?:www\\.)?climateconnect\\.earth|www\\.climatehub\\.org)";
+
 module.exports = withBundleAnalyzer({
   generateBuildId: async () => process.env.BUILD_SHA || "dev",
   // Emit .next/standalone with only the traced runtime files. The App Service
@@ -304,16 +307,18 @@ module.exports = withBundleAnalyzer({
         permanent: false,
       },
       // 5. Main domain catch-all (locale: false to preserve /de prefix in external redirect)
+      // Covers the old domain and all www aliases. Next.js anchors host values as ^value$,
+      // so www hosts must be listed explicitly.
       {
         source: "/de/:path*",
-        has: [{ type: "host", value: "climateconnect.earth" }],
+        has: [{ type: "host", value: CANONICAL_REDIRECT_HOSTS }],
         destination: `https://climatehub.org/de/:path*`,
         permanent: true,
         locale: false,
       },
       {
         source: "/:path*",
-        has: [{ type: "host", value: "climateconnect.earth" }],
+        has: [{ type: "host", value: CANONICAL_REDIRECT_HOSTS }],
         destination: `https://climatehub.org/:path*`,
         permanent: true,
       },
