@@ -7785,7 +7785,7 @@ __metadata:
     react-youtube: "npm:^7.13.0"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.5.4"
-    universal-cookie: "npm:^4.0.3"
+    universal-cookie: "npm:^8.1.2"
     use-long-press: "npm:^1.1.1"
     youtube-regex: "npm:^1.0.5"
   languageName: unknown
@@ -7987,6 +7987,13 @@ __metadata:
   version: 0.4.2
   resolution: "cookie@npm:0.4.2"
   checksum: 10c0/beab41fbd7c20175e3a2799ba948c1dcc71ef69f23fe14eeeff59fc09f50c517b0f77098db87dbb4c55da802f9d86ee86cdc1cd3efd87760341551838d53fca2
+  languageName: node
+  linkType: hard
+
+"cookie@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "cookie@npm:1.1.1"
+  checksum: 10c0/79c4ddc0fcad9c4f045f826f42edf54bcc921a29586a4558b0898277fa89fb47be95bc384c2253f493af7b29500c830da28341274527328f18eba9f58afa112c
   languageName: node
   linkType: hard
 
@@ -16650,13 +16657,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"universal-cookie@npm:^4.0.2, universal-cookie@npm:^4.0.3":
+"universal-cookie@npm:^4.0.2":
   version: 4.0.4
   resolution: "universal-cookie@npm:4.0.4"
   dependencies:
     "@types/cookie": "npm:^0.3.3"
     cookie: "npm:^0.4.0"
   checksum: 10c0/db5950601c2f0dbb22af930656bd6abe1f3a9eee4c488703fa806c38b27b98e2ad212445c152a4721c84ee05d1a8dd26decd13690f1c9870fac355682e17998a
+  languageName: node
+  linkType: hard
+
+"universal-cookie@npm:^8.1.2":
+  version: 8.1.2
+  resolution: "universal-cookie@npm:8.1.2"
+  dependencies:
+    cookie: "npm:^1.1.1"
+  checksum: 10c0/b0d2df0268d0f99f78bfb68c7dc876310f58d226771bbd5ef844255247a4e7b79142c97fa237bb86063ec9e62e0d08de6be64803d29828b4588b94f57fc14f83
   languageName: node
   linkType: hard
 

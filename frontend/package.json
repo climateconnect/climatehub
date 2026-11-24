@@ -79,7 +79,7 @@
     "react-timeago": "^8.3.0",
     "react-youtube": "^7.13.0",
     "typescript": "^5.5.4",
-    "universal-cookie": "^4.0.3",
+    "universal-cookie": "^8.1.2",
     "use-long-press": "^1.1.1",
     "youtube-regex": "^1.0.5"
   },
