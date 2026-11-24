@@ -3,13 +3,8 @@ import logging
 from climateconnect_api.utility.email_setup import send_email
 from climateconnect_api.utility.translation import get_user_lang_code, get_user_lang_url
 from django.conf import settings
-from mailjet_rest import Client
 
 logger = logging.getLogger(__name__)
-
-mailjet = Client(
-    auth=(settings.MJ_APIKEY_PUBLIC, settings.MJ_APIKEY_PRIVATE), version="v3.1"
-)
 
 
 def send_private_chat_message_notification_email(
