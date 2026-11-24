@@ -250,7 +250,7 @@ export const LocationFilter = ({
   locationInputRef = undefined,
   locationOptionsOpen = undefined,
   handleSetLocationOptionsOpen = undefined,
-  endAdornment = undefined,
+  popperMinWidth = undefined,
 }: {
   isMobileScreen: boolean;
   filter: { key: string; icon: any; title: string };
@@ -261,8 +261,8 @@ export const LocationFilter = ({
   locationInputRef?: any;
   locationOptionsOpen?: boolean;
   handleSetLocationOptionsOpen?: (_open: boolean) => void;
-  // Optional extra element at the end of the place input (e.g. a clear button)
-  endAdornment?: React.ReactNode;
+  // Optional minimum width (px) of the place options dropdown, see LocationSearchBar
+  popperMinWidth?: number;
 }) => {
   const radiusFilterOptions = getRadiusFilterOptions();
 
@@ -278,7 +278,7 @@ export const LocationFilter = ({
         handleSetOpen={handleSetLocationOptionsOpen}
         filterMode
         label={<IconLabel Icon={filter.icon} title={filter.title} />}
-        endAdornment={endAdornment}
+        popperMinWidth={popperMinWidth}
       />
       <RadiusField
         $isMobileScreen={isMobileScreen}

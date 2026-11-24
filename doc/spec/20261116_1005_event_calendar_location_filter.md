@@ -61,7 +61,7 @@ The browse location logic lives inline in `ListProjectsView.get_queryset()` (the
 
 ### Showing / removing the selected place
 
-- [ ] **AC-11**: When a place is selected, its name is shown in the input (as on browse), with a clear "×" button as an end adornment inside the input. The button has an accessible label, e.g. "Remove location". The same control is used on desktop and in the mobile dialog. No chip. See [Decisions §3](#decisions).
+- [ ] **AC-11**: When a place is selected, its name is shown in the input and, as on browse, as a removable location chip (`SelectedFilter`) below the place/radius row. Deleting the chip removes the place. The same control is used on desktop and in the mobile dialog. See [Decisions §3](#decisions).
 - [ ] **AC-12**: Removing the place clears the place and radius from state and URL, then refetches list + counts unfiltered by location.
 - [ ] **AC-13**: The active filter count badge on the mobile filter button includes the location filter as **1** when a place is selected (radius doesn't add a second count).
 
@@ -166,7 +166,7 @@ A small shared helper (e.g. `locationToQueryParams(location, radius)` in `public
 
 **Component**: build a small `EventCalendarLocationFilter` in `src/components/eventCalendar/` that composes `LocationSearchBar` (`filterMode`, `smallInput`) + `SelectField` with `getRadiusFilterOptions()`, styled like `LocationFilter` in `src/components/filter/Filters.tsx`. Reuse or extract that component instead if it can be decoupled from the browse `onChange(filter.key, …)` signature cheaply. The panel is 260 px wide, so stack place input and radius vertically, or put radius on a second row.
 
-**Removing the place**: the browse page uses a `SelectedFilter` chip via `FilterContext`, which the calendar doesn't have. Instead, once a place is selected, show the place input as filled with an end `InputAdornment` containing an `IconButton` with a close icon (aria-label from texts). Clicking it clears place + radius. If `LocationSearchBar` doesn't support a custom end adornment, add an optional prop for it without changing browse behaviour. Use it on desktop and mobile.
+**Removing the place**: reuse the browse page's `SelectedFilter` chip directly (it doesn't need `FilterContext`; pass `currentFilters`, `possibleFilters` and `handleUnselectFilter`). Deleting the chip clears place + radius. Use it on desktop and mobile.
 
 **Placement**: in both the `LeftPanel` (desktop) and `MobileFilterDialogContent` (mobile), insert between `StyledDateCalendar` and the Topics `FormControl`.
 
@@ -229,7 +229,7 @@ Agreed with the product owner on 2026-11-16:
 
 1. **Visibility on sub-hubs and sector hubs:** the filter is hidden when the effective hub **or its parent** is a location hub. It is shown on the global calendar, custom hubs, sector hubs, and sub-hubs without a location-hub parent (AC-3, AC-4, AC-19).
 2. **iCal feed:** in scope. The subscribe button exports the location filter, and the feed applies it (AC-27–AC-27b).
-3. **Remove control:** an "×" end adornment inside the place input, not a chip (AC-11).
+3. **Remove control:** the browse page's location chip below the place/radius row (AC-11). Originally an "×" end adornment inside the input, changed after manual testing: in the 260px desktop sidebar the input is too narrow to show the selected place, the "×" took even more room and made the input taller. The chip shows the place name with more room and matches browse.
 4. **Default radius:** browse parity. Empty, meaning within the place's boundary, with no preselected radius (AC-7).
 
 ---
@@ -248,8 +248,8 @@ What was built, and where it differs from the directional hints above:
 
 **Frontend**
 - `public/lib/locationOperations.ts`: `isSelectedFilterLocation`, `locationToQueryParams`, `getInitialEventLocationFilter` (SSR, never throws), `shouldShowEventLocationFilter` (Decisions §1).
-- `src/components/eventCalendar/EventCalendarLocationFilter.tsx`: a thin wrapper around the browse page's `LocationFilter` (now exported from `src/components/filter/Filters.tsx`), so the calendar looks exactly like browse: the place input with a joined, smaller radius box on the same row (100px on desktop, a third of the row in the mobile dialog), with icon labels. It adds the "×" end adornment. In the 260px desktop panel the place input shrinks, not the radius, so long place names are cut off with an ellipsis.
-- `LocationSearchBar` and `LocationFilter` have a new optional `endAdornment` prop. Browse doesn't pass it.
+- `src/components/eventCalendar/EventCalendarLocationFilter.tsx`: a thin wrapper around the browse page's `LocationFilter` (now exported from `src/components/filter/Filters.tsx`), so the calendar looks exactly like browse: the place input with a joined, smaller radius box on the same row (100px on desktop, a third of the row in the mobile dialog), with icon labels. Once a place is selected it shows browse's `SelectedFilter` chip below. In the 260px desktop panel the place input shrinks, not the radius, so long place names are cut off in the input; the chip shows the name. On desktop the options dropdown is at least 380px wide (aligned left, extending over the event list), so place names don't wrap. If this still isn't enough, the next step is a slightly wider sidebar (and moving the filter into the dialog at a wider breakpoint).
+- `LocationSearchBar` and `LocationFilter` have a new optional `popperMinWidth` prop (dropdown min width, `bottom-start` placement). Browse doesn't pass it.
 - `EventCalendarContent`: `showLocationFilter` / `initialLocation` / `initialRadius` props. Location params are memoized by value (`useLocationParams`), so changing the radius with no place selected doesn't refetch. They're passed as `locationParams` to `EventCalendarEventList` and `SubscribeToCalendarButton` (the mobile dialog passes the draft params).
 - Tests: `EventCalendarContent.test.tsx`, `public/lib/eventLocationFilter.test.ts`, plus new cases in `EventCalendarEventList.test.tsx`.
 

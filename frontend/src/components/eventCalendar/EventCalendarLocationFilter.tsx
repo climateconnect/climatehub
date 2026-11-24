@@ -1,12 +1,15 @@
-import { IconButton, InputAdornment } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import React, { useContext } from "react";
 import { isSelectedFilterLocation } from "../../../public/lib/locationOperations";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { LocationFilter } from "../filter/Filters";
+import SelectedFilter from "../filter/SelectedFilter";
+
+// The desktop sidebar is narrow (260px), so let the place options dropdown
+// extend over the event list instead of wrapping the place names.
+const POPPER_MIN_WIDTH = 380;
 
 // LocationFilter in overlay mode fills the available width, but also adds a
 // bottom margin meant for the browse filter overlay. The calendar panel
@@ -15,13 +18,13 @@ import { LocationFilter } from "../filter/Filters";
 // radius box, so the radius keeps its browse width (100px).
 const Wrapper = styled("div")({
   width: "100%",
-  "& > div": {
+  "& > div:first-of-type": {
     marginBottom: 0,
   },
   "& .MuiAutocomplete-root": {
     minWidth: 0,
   },
-  "& > div > .MuiTextField-root:last-child": {
+  "& > div:first-of-type > .MuiTextField-root:last-child": {
     flexShrink: 0,
   },
 });
@@ -44,7 +47,8 @@ type Props = {
 
 /**
  * Location + radius filter for the event calendar. Renders the browse page's
- * LocationFilter so both look and behave the same, plus a clear ("×") button.
+ * LocationFilter and, once a place is selected, the browse page's removable
+ * location chip below it, so both look and behave the same.
  * Spec: doc/spec/20261116_1005_event_calendar_location_filter.md
  */
 export default function EventCalendarLocationFilter({
@@ -58,6 +62,13 @@ export default function EventCalendarLocationFilter({
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "filter_and_search", locale: locale });
   const hasSelectedLocation = isSelectedFilterLocation(location);
+
+  const filter = {
+    key: "location",
+    type: "location",
+    icon: LocationOnOutlinedIcon,
+    title: texts.location ?? "Location",
+  };
 
   const handleChange = (key: string, value: any) => {
     if (key === "radius") {
@@ -73,29 +84,20 @@ export default function EventCalendarLocationFilter({
       <LocationFilter
         isInOverlay
         isMobileScreen={isMobileScreen}
-        filter={{
-          key: "location",
-          icon: LocationOnOutlinedIcon,
-          title: texts.location ?? "Location",
-        }}
+        filter={filter}
         value={location ?? ""}
         radiusValue={radius ?? ""}
         onChange={handleChange}
-        endAdornment={
-          hasSelectedLocation ? (
-            <InputAdornment position="end">
-              <IconButton
-                size="small"
-                aria-label={texts.remove_location ?? "Remove location"}
-                onClick={onClear}
-                edge="end"
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </InputAdornment>
-          ) : null
-        }
+        popperMinWidth={isMobileScreen ? undefined : POPPER_MIN_WIDTH}
       />
+      {hasSelectedLocation && (
+        <SelectedFilter
+          filterKey="location"
+          currentFilters={{ location: [location] }}
+          possibleFilters={[filter]}
+          handleUnselectFilter={onClear}
+        />
+      )}
     </Wrapper>
   );
 }

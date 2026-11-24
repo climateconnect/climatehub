@@ -43,7 +43,7 @@ jest.mock("../featureToggle/FeatureToggleProvider", () => ({
 jest.mock("../search/LocationSearchBar", () => ({
   __esModule: true,
   // `label` is an icon + text element on browse/calendar, so use a fixed name.
-  default: ({ value, onChange, onSelect, endAdornment }: any) => (
+  default: ({ value, onChange, onSelect }: any) => (
     <div>
       <input
         aria-label="Location"
@@ -53,7 +53,6 @@ jest.mock("../search/LocationSearchBar", () => ({
       <button type="button" onClick={() => onSelect(ERLANGEN)}>
         select-erlangen
       </button>
-      {endAdornment}
     </div>
   ),
 }));
@@ -195,20 +194,24 @@ describe("EventCalendarContent location filter", () => {
 
     it("typing without selecting doesn't filter", () => {
       renderContent({ showLocationFilter: true });
-      fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Erl" } });
+      fireEvent.change(screen.getByRole("textbox", { name: "Location" }), {
+        target: { value: "Erl" },
+      });
       expect(lastListLocationParams()).toEqual({});
     });
 
-    it("the remove button clears place and radius", async () => {
+    it("shows the selected place as a chip; deleting it clears place and radius", async () => {
       renderContent({ showLocationFilter: true });
-      expect(screen.queryByLabelText("Remove location")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("CancelIcon")).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByText("select-erlangen"));
       fireEvent.change(radiusSelect(), { target: { value: "25km" } });
-      fireEvent.click(screen.getByLabelText("Remove location"));
+      // The chip's accessible name is the filter title (from its Tooltip), as on browse.
+      expect(screen.getByRole("button", { name: "Location" })).toHaveTextContent(ERLANGEN.name);
+      fireEvent.click(screen.getByTestId("CancelIcon"));
 
       expect(lastListLocationParams()).toEqual({});
-      expect(screen.getByLabelText("Location")).toHaveValue("");
+      expect(screen.getByRole("textbox", { name: "Location" })).toHaveValue("");
       expect(radiusSelect()).toHaveValue("");
       await waitFor(() => expect(window.location.search).not.toContain("osm_id"));
     });
@@ -218,7 +221,7 @@ describe("EventCalendarContent location filter", () => {
       fireEvent.click(screen.getByText("select-erlangen"));
       fireEvent.click(screen.getByRole("button", { name: "Reset" }));
       expect(lastListLocationParams()).toEqual({});
-      expect(screen.getByLabelText("Location")).toHaveValue("");
+      expect(screen.getByRole("textbox", { name: "Location" })).toHaveValue("");
     });
 
     it("pre-fills the input from the SSR location", () => {
@@ -227,7 +230,7 @@ describe("EventCalendarContent location filter", () => {
         initialLocation: ERLANGEN,
         initialRadius: "25km",
       });
-      expect(screen.getByLabelText("Location")).toHaveValue("Erlangen");
+      expect(screen.getByRole("textbox", { name: "Location" })).toHaveValue("Erlangen");
       expect(radiusSelect()).toHaveValue("25km");
       expect(lastListLocationParams()).toMatchObject({ osm_id: "1001", radius: "25" });
     });
@@ -267,7 +270,7 @@ describe("EventCalendarContent location filter", () => {
       const dialog = screen.getByRole("dialog");
 
       fireEvent.click(within(dialog).getByRole("button", { name: "Clear all" }));
-      expect(within(dialog).getByLabelText("Location")).toHaveValue("");
+      expect(within(dialog).getByRole("textbox", { name: "Location" })).toHaveValue("");
       expect(lastListLocationParams()).toMatchObject({ osm_id: "1001" });
 
       fireEvent.click(within(dialog).getByRole("button", { name: "Apply filters" }));
