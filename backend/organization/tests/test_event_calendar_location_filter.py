@@ -373,3 +373,30 @@ class TestEventFeedLocationFilter(EventLocationFilterFixtures, APITestCase):
         response = self._signed_get({"date": "2026-03-01"})
         self.assertEqual(response.status_code, 200)
         self.assertIn("Paris Event", response.content.decode())
+
+
+class TestSharedLocationFilterErrors(APITestCase):
+    """Browse and upcoming events share the helper: bad input is a 400, not a 500."""
+
+    @patch("location.utility.requests.get")
+    def test_invalid_radius_returns_400(self, mock_get):
+        for url_name in ("organization:list-projects", "organization:events-upcoming"):
+            for radius in ("abc", "-5", "nan"):
+                with self.subTest(url_name=url_name, radius=radius):
+                    response = self.client.get(
+                        reverse(url_name), {**ERLANGEN_OSM, "radius": radius}
+                    )
+                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertIn("radius", response.data)
+        mock_get.assert_not_called()
+
+    @patch("location.utility.requests.get")
+    def test_browse_unresolvable_location_keeps_original_400(self, mock_get):
+        mock_get.return_value.status_code = 404
+        mock_get.return_value.text = "not found"
+        response = self.client.get(
+            reverse("organization:list-projects"),
+            {"osm_id": "999999", "osm_type": "relation", "osm_class": "x"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("location", response.data)

@@ -240,9 +240,9 @@ What was built, and where it differs from the directional hints above:
 
 **Backend**
 - `organization/utility/project.py`: the location logic is split into `has_location_filter_params(query_params)`, `get_location_filter_data(query_params)` (resolves once, returns `None` when there are no params), and `apply_location_filter(queryset, location_data, *, annotate_distance=False)`. Splitting resolution from filtering lets the feed view reuse the resolved location name.
-- `get_location_filter_data` first validates `radius` (`validate_radius_param`: finite, non-negative number) and raises Django's `ValidationError` with code `invalid_radius` before any lookup. Lookup failures come from `location.utility`, which raises **DRF's** `ValidationError` with the raw upstream message. `_resolve_location_filter_or_400` (list + counts) and the feed view catch both: an invalid radius becomes a 400 on `radius`; a lookup failure is logged and becomes a generic 400 (`"Location could not be resolved."` / `Invalid location`), so upstream URLs and response bodies aren't exposed.
+- `get_location_filter_data` first validates `radius` (`validate_radius_param`: finite, non-negative number) and raises DRF's `ValidationError` on `radius` (400) before any lookup. Lookup failures from `location.utility` are re-raised as `LocationLookupError`, a subclass of DRF's `ValidationError`, so every caller gets a 400. `_resolve_location_filter_or_400` (list + counts) and the feed view catch `LocationLookupError`, log it and replace it with a generic 400 (`"Location could not be resolved."` / `Invalid location`), so upstream URLs and response bodies aren't exposed.
 - `location/utility.get_location_with_range` now also returns `name` (used in the feed's `filters_summary`).
-- `ListProjectsView` (browse, `annotate_distance=True`) and `ListUpcomingEventsView` use the helper, with unchanged behaviour. `ListEventsView` and `EventCalendarCountsView` use it via `_resolve_location_filter_or_400`.
+- `ListProjectsView` (browse, `annotate_distance=True`) and `ListUpcomingEventsView` use the helper, with unchanged behaviour for valid input. `ListEventsView` and `EventCalendarCountsView` use it via `_resolve_location_filter_or_400`.
 - Feed: `FEED_PARAM_KEYS` (in `ical_feed.py`) is the single whitelist for `canonicalize_query` and `EventFeedTokenView`, and now includes `osm_id`, `osm_type`, `osm_class`, `place_id` and `radius`. Changing a location param in a signed URL therefore invalidates the token.
 - Tests: `organization/tests/test_event_calendar_location_filter.py`.
 
@@ -254,7 +254,7 @@ What was built, and where it differs from the directional hints above:
 - Tests: `EventCalendarContent.test.tsx`, `public/lib/eventLocationFilter.test.ts`, plus new cases in `EventCalendarEventList.test.tsx`.
 
 **Known pre-existing issues (not fixed here)**
-- `GET /api/projects/` (browse) and `/api/events/upcoming/` return 400 when a location can't be resolved (DRF handles `location.utility`'s `ValidationError`), but the body contains the raw upstream error, including the internal location-service URL or upstream response body. An invalid `radius` there still returns 500 (the radius check raises Django's `ValidationError`, which DRF doesn't convert; before this change it was an uncaught `ValueError`).
+- `GET /api/projects/` (browse) and `/api/events/upcoming/` return 400 when a location can't be resolved, but the body contains the raw upstream error, including the internal location-service URL or upstream response body. (An invalid `radius` there used to return 500; it now returns 400 on `radius` like the event endpoints.)
 - `/api/events/` has a per-event N+1 in `ProjectStubSerializer` (comment/like counts, parents, collaborators: about 4 queries per event). It exists without the location filter too.
 
 ---

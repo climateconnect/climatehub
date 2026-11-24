@@ -7,9 +7,9 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db.models import GeometryField
 from django.contrib.gis.db.models import Union as GISUnion
 from django.contrib.gis.db.models.functions import Distance
-from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.functions import Cast
+from rest_framework.exceptions import ValidationError
 
 from climateconnect_api.models import Role
 from climateconnect_api.models.language import Language
@@ -94,7 +94,14 @@ def has_location_filter_params(query_params) -> bool:
     ) or "place_id" in query_params
 
 
-INVALID_RADIUS_ERROR_CODE = "invalid_radius"
+class LocationLookupError(ValidationError):
+    """The location in the filter params couldn't be resolved.
+
+    Subclass of DRF's ``ValidationError`` so callers that don't care still
+    get a 400. Its detail is the original error from ``location.utility``,
+    which can contain upstream details (internal service URL, raw upstream
+    response), so public endpoints may want to replace it.
+    """
 
 
 def validate_radius_param(query_params) -> None:
@@ -102,7 +109,7 @@ def validate_radius_param(query_params) -> None:
 
     ``get_location_with_range`` passes the raw value to ``D(km=...)``, which
     raises ``ValueError`` for values like ``"abc"`` or ``""``. Validate up
-    front so callers get a ``ValidationError`` (code ``invalid_radius``)
+    front so callers get a ``ValidationError`` on ``radius`` (HTTP 400)
     instead, before any upstream location lookup happens.
     """
     if "radius" not in query_params:
@@ -114,8 +121,7 @@ def validate_radius_param(query_params) -> None:
         radius = None
     if radius is None or not math.isfinite(radius) or radius < 0:
         raise ValidationError(
-            "radius must be a non-negative number of kilometres.",
-            code=INVALID_RADIUS_ERROR_CODE,
+            {"radius": ["radius must be a non-negative number of kilometres."]}
         )
 
 
@@ -125,14 +131,17 @@ def get_location_filter_data(query_params):
     Returns ``None`` when no location identifier is present (a ``radius`` on
     its own is ignored). Otherwise returns the dict produced by
     ``location.utility.get_location_with_range`` (``location``, ``radius``,
-    ``country``, ``name``). Raises ``django.core.exceptions.ValidationError``
-    if the radius is invalid (code ``invalid_radius``) or the location can't
-    be resolved. Callers decide how to surface that (e.g. HTTP 400).
+    ``country``, ``name``). Raises DRF's ``ValidationError`` on ``radius`` if
+    the radius is invalid, or ``LocationLookupError`` if the location can't
+    be resolved.
     """
     if not has_location_filter_params(query_params):
         return None
     validate_radius_param(query_params)
-    return get_location_with_range(query_params)
+    try:
+        return get_location_with_range(query_params)
+    except ValidationError as e:
+        raise LocationLookupError(e.detail) from e
 
 
 def apply_location_filter(queryset, location_data, *, annotate_distance=False):
