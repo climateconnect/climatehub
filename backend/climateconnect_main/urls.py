@@ -28,10 +28,12 @@ from climateconnect_api.views import (
     donation_views,
     faq_views,
     notifications_views,
+    rich_text_image_views,
     role_views,
     settings_views,
     status_views,
     translation_views,
+    twingle_webhook_views,
     user_views,
 )
 
@@ -168,6 +170,18 @@ urls = [
         "api/donation_goals_progresses/",
         donation_views.GetDonationGoalsProgresses.as_view(),
         name="get-donations-this-month",
+    ),
+    path(
+        # Keep the trailing slash: APPEND_SLASH answers a slash-less POST with a
+        # redirect, which Twingle counts as a failed delivery.
+        "api/webhooks/twingle/",
+        twingle_webhook_views.TwingleWebhookView.as_view(),
+        name="twingle-webhook",
+    ),
+    path(
+        "api/rich-text-images/",
+        rich_text_image_views.RichTextImageUploadView.as_view(),
+        name="rich-text-image-upload-api",
     ),
     path(
         "api/translate/",

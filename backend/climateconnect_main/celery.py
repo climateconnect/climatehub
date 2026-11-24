@@ -48,4 +48,8 @@ app.conf.beat_schedule = {
         "task": "location.tasks.aggregate_autocomplete_stats",
         "schedule": crontab(minute="*/10"),
     },
+    "regenerate_missing_image_variants": {
+        "task": "organization.tasks.regenerate_missing_image_variants",
+        "schedule": crontab(minute=15),  # hourly
+    },
 }

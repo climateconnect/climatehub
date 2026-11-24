@@ -29,8 +29,12 @@ class TranslateManyTextsView(APIView):
         for param in required_params:
             if param not in request.data:
                 raise ValidationError("Required parameter missing: " + param)
+        # Keys whose texts are HTML (e.g. a rich-text description). DeepL then
+        # translates only the text and leaves tags and attributes untouched.
+        html_keys = request.data.get("html_keys") or []
         translations = {}
         for key in request.data["texts"].keys():
+            is_html = key in html_keys
             if isinstance(request.data["texts"][key], list):
                 translations[key] = request.data["texts"][key]
                 for i in range(len(request.data["texts"][key])):
@@ -38,11 +42,13 @@ class TranslateManyTextsView(APIView):
                         request.data["texts"][key][i],
                         request.LANGUAGE_CODE,
                         request.data["target_language"],
+                        is_html=is_html,
                     )
             else:
                 translations[key] = translate_text(
                     request.data["texts"][key],
                     request.LANGUAGE_CODE,
                     request.data["target_language"],
+                    is_html=is_html,
                 )
         return Response({"translations": translations}, status=status.HTTP_200_OK)

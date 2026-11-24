@@ -137,6 +137,7 @@ export type Project = {
   description_html?: string;
   creator?: User | Organization | any; //TODO: remove 'any' once User and Organization types are properly defined
   image?: string;
+  image_variants?: ImageVariants;
   hubName?: string;
   related_hubs?: any[];
   hubUrl?: string;
@@ -185,11 +186,29 @@ export type MyEventRegistration = {
 export type BrowseEntity = "projects" | "organizations" | "members";
 export type ProjectType = "project" | "idea" | "event";
 
+/**
+ * WebP variant map returned by the backend ``image_variants`` JSONField.
+ *
+ * Keys are field names (``"image"``, ``"thumbnail_image"``,
+ * ``"background_image"``); values are dicts keyed by variant identifier
+ * (``"1200"``, ``"600"`` for resized variants; ``"webp"`` for format-only
+ * thumbnail conversion).  Absent keys mean the variant is missing and the
+ * frontend should fall back to the original image URL.
+ */
+export type ImageVariants = {
+  [fieldName: string]: {
+    [variantKey: string]: string;
+  };
+};
+
 export type Organization = {
   location: any;
   name: string;
   thumbnail_image: string;
   url_slug: string;
+  image?: string;
+  image_variants?: ImageVariants;
+  background_image?: string;
   is_draft?: boolean;
 };
 

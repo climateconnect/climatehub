@@ -58,6 +58,11 @@ describe("ProjectDescriptionEditor", () => {
       expect(screen.getByLabelText(/Insert YouTube video/i)).toBeInTheDocument();
     });
 
+    it("renders the image button in the toolbar", () => {
+      renderEditor();
+      expect(screen.getByLabelText(/Insert image/i)).toBeInTheDocument();
+    });
+
     it("renders character counter with limit", () => {
       renderEditor();
       expect(screen.getByText(/4000/)).toBeInTheDocument();

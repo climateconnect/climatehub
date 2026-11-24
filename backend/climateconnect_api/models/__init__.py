@@ -10,3 +10,7 @@ from climateconnect_api.models.language import Language
 
 from climateconnect_api.models.badge import Badge, DonorBadge, UserBadge
 from climateconnect_api.models.content_shares import ContentShares
+from climateconnect_api.models.rich_text_image import (
+    RichTextImage,
+    RichTextImageUsage,
+)

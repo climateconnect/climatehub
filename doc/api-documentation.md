@@ -998,6 +998,66 @@ Errors (only when a location is given):
 | `/api/my_profile/` | GET | Yes | Get your own profile |
 | `/api/edit_profile/` | POST | Yes | Update your profile |
 
+### Responsive image variants (`image_variants`)
+
+Project and organization responses carry an **`image_variants`** object
+alongside `image`: pre-generated, resized WebP renditions of the entity's
+images. Serve these instead of `image` where you can — the originals are stored
+at upload resolution and are often several times larger than any surface needs.
+
+**Shape** — keyed by image field, then by variant:
+
+```json
+{
+  "image": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9.jpeg",
+  "image_variants": {
+    "image": {
+      "1200": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9_1200_9c1e04ab.webp",
+      "600": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9_600_51d2f7c0.webp"
+    },
+    "thumbnail_image": {
+      "webp": "https://ccstorage.blob.core.windows.net/media/projects/12/a3f9_thumb_webp_e07b3a19.webp"
+    }
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `"1200"` / `"600"` | WebP resized to that width (never upscaled, so a narrow original yields a smaller file at its own width) |
+| `"webp"` | Format-only WebP conversion, used for `thumbnail_image`, which is already small |
+
+**Which fields appear**
+
+| Serializer | Image fields present |
+|---|---|
+| `ProjectSerializer`, `ProjectMinimalSerializer`, `ProjectStubSerializer` | `image`, `thumbnail_image` |
+| `OrganizationSerializer`, `OrganizationStubSerializer`, `OrganizationCardSerializer` | `image`, `thumbnail_image`, `background_image` |
+
+User profiles have no variants; their responses carry no `image_variants`.
+
+**Consuming it safely**
+
+- **Always keep a fallback to `image`.** Any key may be absent: rows created
+  before this feature have `image_variants: {}`, a row whose variants are still
+  being generated is briefly incomplete, and an undecodable upload never gets
+  variants at all. Treat a missing key as "use the original".
+- **Read-only.** The field is computed; it is ignored on POST/PATCH (the
+  frontend leaves it out of the organization edit state for that reason).
+  Variants are regenerated automatically when you upload a new image.
+- **Don't build or cache variant URLs yourself.** File names carry a random
+  token and change whenever variants are regenerated; always use the URLs from
+  the latest response. Every URL listed points at an existing file.
+- **Eventually consistent.** Generation runs in a Celery task after the save
+  commits, so the response to the request that uploaded an image will usually
+  still show the old or empty variant map.
+- **Cards and previews** are already fed `thumbnail_image` through the `image`
+  field, so the right variant there is `thumbnail_image.webp` — the 600px
+  rendition of the full image would be a *larger* download than the thumbnail.
+
+The frontend does this through `ResponsiveImage` /
+`resolveVariantUrl` (`frontend/src/components/general/ResponsiveImage.tsx`).
+
 ### Hubs
 
 | Endpoint | Method | Auth Required | Description |
@@ -1140,6 +1200,64 @@ can't be reached — the rest of the response comes from Postgres and is still s
 }
 ```
 
+### Twingle webhook
+
+Server-to-server endpoint for Twingle, not for the frontend. Operations, setup and go-live:
+[Twingle donation webhook](twingle-donation-webhook.md).
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/webhooks/twingle/` | POST | Signature only | Twingle transaction delivery; adds new recurring donations to the mapped `DonationGoal` |
+
+- **Trailing slash required.** Without it, Django answers a POST with a redirect, which Twingle counts as an error.
+- **Authentication**: only the `X-Hub-Signature-256: sha256=<hex>` header, an HMAC-SHA256 of the raw request
+  body with `TWINGLE_WEBHOOK_SECRET`. It's verified with a constant-time comparison before the body is parsed.
+  Knox tokens, session cookies and CSRF play no role (the view has no authentication classes).
+- **Other headers**: `X-Twingle-Isupdate` (`0` = new transaction, `1` = update).
+- **Body**: Twingle's transaction JSON. Unknown fields are ignored.
+- **Response body**: a fixed status message (`{"detail": "OK."}` etc.), never request content.
+
+| Situation | Status | Goal changed | Sentry |
+|---|---|---|---|
+| Delivery that adds units | 200 | yes | – |
+| Ignored delivery (unmapped project, follow-up booking, one-time, any update, 0 units, non-EUR) | 200 | no | – |
+| Missing, malformed or wrong signature | 401 | no | warning |
+| `TWINGLE_WEBHOOK_SECRET` not set | 503 | no | error |
+| Not a POST | 405 | no | – |
+| Body isn't a JSON object, or a mapped delivery lacks a needed field (`X-Twingle-Isupdate`, a known `donation_rhythm`, `amount`, `currency_code`) | 200 | no | warning |
+| Unexpected error before the change (e.g. database down) | 500 | no | error |
+
+A non-2xx response always means the goal was not changed.
+
+### Rich-text images
+
+Upload of one image for a rich-text field (v1: project description). Spec:
+`doc/spec/20260708_1302_rich_text_image_support.md`.
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/api/rich-text-images/` | POST | Yes | Upload one image (`multipart/form-data`, file part `image`) |
+
+- **No entity in the request.** The image belongs to the uploader and isn't linked anywhere yet. It's linked when
+  the project is saved with the image in its `description_html` (and in any translation).
+- **Accepted**: JPEG, PNG, WebP up to 20 MB. Type is detected from the content. Pixel limit: about 110 MP for
+  JPEG, 40 MP for PNG/WebP. Location and other metadata are removed from the stored original.
+- **Rate limit**: 20 uploads per user per hour (`429` with `Retry-After`). The first throttled request per user and
+  hour sends a Sentry warning.
+- **Response `201`**: `{"id", "width", "height", "variants": [{"url", "width", "height"}]}`. Variants are WebP,
+  600 and 1200 px wide (never enlarged), smallest first. `width`/`height` are the largest variant's size. The
+  original's URL is never returned.
+- **Errors `400`** with `{"code", "message"}`; `code` is one of `missing_file`, `unsupported_type`,
+  `file_too_large`, `too_many_pixels`, `unreadable_image`.
+
+**Images in `description_html`** (`POST /api/create_project/`, `PATCH /api/projects/<slug>/`, also inside
+`translations.<lang>.description_html`): an image block is
+`<figure class="image-size-{small|medium|full} image-align-{left|center|right}"><img … data-image-id="<id>"><figcaption>…</figcaption></figure>`.
+On save the server keeps only images the user uploaded or that are already used in this project, rewrites
+`src`, `srcset`, `width`, `height` and `loading` from the database, shortens `alt` to 150 characters and makes
+the caption plain text. More than 10 images in one language version → `400`. All of this is checked before
+anything is written.
+
 ---
 
 ## Troubleshooting
@@ -1227,4 +1345,19 @@ Body: `{ "user_availability": <id>, "message": <string> }`
 - The message must be at most 500 characters, otherwise `400` with a `message` error (not truncated).
 - A non-string `message` returns `400`.
 
-A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is not returned by the API.
+A duplicate request returns `400` ("Request already exists to join project"). Success returns `{ "requestId": <id> }`. The message is returned by the endpoints below.
+
+### Single join request
+
+`GET /api/projects/<url_slug>/join_requests/<request_id>/` (authenticated)
+
+Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, is_admin }`
+
+- `request_status`: `pending` | `approved` | `rejected`; `decided_at` is the approval/rejection time or `null`; `message` is `""` if none (plain text, returned as stored).
+- Project admins (active members with role type All or ReadWrite; inactive members are treated like any other user) get the full payload including `decided_by` (profile stub or `null`).
+- The requesting user can read their own request; `decided_by` is **omitted** from their response.
+- Anyone else: `403` (`401` if not authenticated). `404` if the project/request doesn't exist or the request belongs to another project or an organization.
+
+`GET /api/projects/<url_slug>/requesters/` (admins) lists open requests, newest first, now with `message` and `requested_at` in addition to `id` and `user_profile`.
+
+`POST .../request_membership/<approve|reject>/<request_id>/` returns `409` if the request was already decided (the decision is not overwritten).

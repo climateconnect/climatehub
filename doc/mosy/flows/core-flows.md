@@ -15,7 +15,7 @@
 - **Trigger**: User clicks "Share"
 - **Actions**:
   1. User selects a type of project (Event, Idea, etc.). 
-  2. User inputs project details (Title, Description, Location).
+  2. User inputs project details (Title, Description, Location). The description may contain images (flow 12).
   3. System validates inputs.
   4. System saves Project as "Draft" or "Published".
   5. System notifies followers (if applicable).
@@ -110,3 +110,35 @@
    3. On confirm the frontend calls `POST /api/organizations/<slug>/leave/`.
    4. System deletes the member's own `OrganizationMember` row. (If the API still returns 400, the `code` — `super_admin_must_hand_over` or `last_member` — selects the translated error.)
    5. The organization page reloads and shows a success message.
+
+## 11. Twingle Donation Goal Update Flow (introduced in [#2388](https://github.com/climateconnect/climatehub/issues/2388))
+- **Actor**: Twingle (external system); Admin (one-time setup and corrections)
+- **Trigger**: Twingle sends a new or changed donation transaction of an enabled Twingle project to `POST /api/webhooks/twingle/`
+- **Actions**:
+   1. The system verifies the request signature against the raw body with the configured secret. If the signature is missing or wrong, it rejects the request with 401 and nothing changes. If no secret is configured, it rejects every request with 503.
+   2. The system reads the transaction and finds the `DonationGoal` mapped to the transaction's Twingle project (no period check). Deliveries for unmapped projects are acknowledged and ignored. For a mapped project, the system records the time in the goal's `twingle_last_delivery_at` (liveness check), whether or not the delivery is counted.
+   3. If the delivery is a new, first payment of a recurring EUR donation without an error, the system normalises the amount to a monthly amount and converts it into units with the goal's unit price (rounded down).
+   4. The system adds the units to the goal's `current_amount` in one atomic database update and writes one log line (`twingle trx=… project=… goal=… +N units`).
+   5. The crowdfunding page shows the new value on the next page load.
+- **Notes**:
+   - Stateless: no transaction or donor data is stored. The log line is the only trail.
+   - Admins map a goal to a Twingle project and set the unit price (default 7 € per month) in the Django admin. They correct `current_amount` by hand for backfill and deviations. Webhook changes stack on top.
+   - Sentry events from this endpoint carry no request body, headers or frame variables.
+   - Not implemented (possible later task): subtracting units on stop or error updates. Stops are corrected by hand.
+
+## 12. Rich-Text Image Upload and Usage Flow (spec `20260708_1302_rich_text_image_support.md`)
+- **Actor**: Member (project author, project admin or translator)
+- **Trigger**: Member clicks the image button in the project description editor (share project, edit project or translation editor)
+- **Actions**:
+   1. Member picks a JPEG, PNG or WebP file (max 20 MB) and enters optional alt text. The editor checks type and size and refuses at 10 images in this language version.
+   2. The editor uploads the file at once to `POST /api/rich-text-images/` (multipart). While the upload runs, the project form can't be saved.
+   3. The system checks the throttle (20 uploads per user per hour), size, format and pixel limit, removes location and camera metadata from the original without re-encoding, generates the 600 and 1200 px WebP variants and stores a `RichTextImage` owned by the member, without any usage.
+   4. The system returns the image id, size and variant URLs. The editor inserts an image block (figure with optional caption; size full, alignment centre by default). Size, alignment and alt text are changed in a menu on the selected image.
+   5. Member saves the project (create, edit or translation). Before writing anything the system sanitises each language version of the description, rewrites every image's URLs and size from the database, drops images the member may not use (not owner and not already used in this project) and rejects a language version with more than 10 images.
+   6. After saving, the system reconciles the `RichTextImageUsage` rows with the image ids in the stored original and all translations: new ids are linked, missing ids are unlinked.
+   7. The project page shows the images from the stored HTML; the browser picks the variant via `srcset`.
+- **Notes**:
+   - Over the throttle the member gets a message and Sentry receives one warning grouped per user.
+   - Automatic (DeepL) translations keep the original's images; translators can use different images per language.
+   - Deleting a project unlinks its images; unused images are kept (cleanup is a follow-up).
+   - Pasted external images are removed by the editor; external or unknown images are removed by the server.

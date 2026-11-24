@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import YouTubeIcon from "@mui/icons-material/YouTube";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import type { RichTextEditorRef } from "mui-tiptap";
 import {
   RichTextEditor,
@@ -28,10 +29,14 @@ import {
   LinkBubbleMenu,
   LinkBubbleMenuHandler,
 } from "mui-tiptap";
-import { styled } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import getTexts from "../../../public/texts/texts";
 import UserContext from "../context/UserContext";
 import { getLinkBubbleMenuLabels } from "../richText/richTextLabels";
+import RichTextImage, { countRichTextImages } from "../richText/RichTextImageExtension";
+import RichTextImageUploadDialog from "../richText/RichTextImageUploadDialog";
+import { RICH_TEXT_IMAGE_MAX_COUNT } from "../richText/richTextImageUpload";
+import { richTextImageStyles } from "../richText/richTextImageStyles";
 
 const CHARACTER_LIMIT = 4000;
 
@@ -58,6 +63,7 @@ const EXTENSIONS: Extensions = [
   }),
   LinkBubbleMenuHandler,
   CharacterCount.configure({ limit: CHARACTER_LIMIT }),
+  RichTextImage,
 ];
 
 const CharCount = styled("div")(({ theme }) => ({
@@ -81,11 +87,16 @@ export default function ProjectDescriptionEditor({
 }: Props) {
   const { locale } = useContext(UserContext);
   const texts = getTexts({ page: "project", locale });
+  const generalTexts = getTexts({ page: "general", locale });
+  const theme = useTheme();
   const rteRef = useRef<RichTextEditorRef>(null);
   const [charCount, setCharCount] = useState(0);
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubeError, setYoutubeError] = useState("");
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageCount, setImageCount] = useState(0);
+  const imageLimitReached = imageCount >= RICH_TEXT_IMAGE_MAX_COUNT;
 
   // Sync external descriptionHtml changes into the editor without affecting typing
   useEffect(() => {
@@ -138,11 +149,13 @@ export default function ProjectDescriptionEditor({
         editable={!disabled}
         onCreate={({ editor }) => {
           setCharCount((editor.storage as Record<string, any>).characterCount.characters());
+          setImageCount(countRichTextImages(editor.state.doc));
         }}
         onUpdate={({ editor }) => {
           const html = editor.getHTML();
           onChange(html === "<p></p>" ? "" : html);
           setCharCount((editor.storage as Record<string, any>).characterCount.characters());
+          setImageCount(countRichTextImages(editor.state.doc));
         }}
         renderControls={
           disabled
@@ -159,12 +172,34 @@ export default function ProjectDescriptionEditor({
                     IconComponent={YouTubeIcon}
                     onClick={handleOpenYoutubeModal}
                   />
+                  <MenuButton
+                    tooltipLabel={
+                      imageLimitReached
+                        ? generalTexts.rich_text_image_limit_reached
+                        : generalTexts.rich_text_image_insert
+                    }
+                    IconComponent={ImageOutlinedIcon}
+                    disabled={imageLimitReached}
+                    onClick={() => setImageDialogOpen(true)}
+                  />
                 </MenuControlsContainer>
               )
         }
         RichTextFieldProps={{
           disabled: disabled,
           sx: {
+            ...richTextImageStyles(theme),
+            "& figure.is-selected img": {
+              outline: `2px solid ${theme.palette.primary.main}`,
+            },
+            "& figcaption.is-empty::before": {
+              content: "attr(data-placeholder)",
+              color: theme.palette.text.disabled,
+              pointerEvents: "none",
+              float: "left",
+              width: "100%",
+              height: 0,
+            },
             "& iframe": {
               maxWidth: 640,
               width: "100%",
@@ -193,6 +228,14 @@ export default function ProjectDescriptionEditor({
       >
         {() => <LinkBubbleMenu labels={getLinkBubbleMenuLabels(locale)} />}
       </RichTextEditor>
+
+      <RichTextImageUploadDialog
+        open={imageDialogOpen}
+        onClose={() => setImageDialogOpen(false)}
+        onInsert={(image, alt) => {
+          rteRef.current?.editor?.chain().focus().insertRichTextImage(image, alt).run();
+        }}
+      />
 
       <Dialog open={youtubeModalOpen} onClose={handleCloseYoutubeModal} maxWidth="sm" fullWidth>
         <DialogTitle>{texts.project_description_youTube_button}</DialogTitle>

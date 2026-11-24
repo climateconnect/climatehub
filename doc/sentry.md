@@ -169,6 +169,30 @@ Configured in the Sentry project settings as a final safety net for residual PII
 - **Variable names not in the denylist** — a variable named `recipient_email` would NOT be caught by the `email` entry. The scrubber does exact, case-sensitive key matching.
 - **Object attributes** — the scrubber matches dict keys, not object attributes. A Django model's `.email` attribute is only caught if the variable holding the model is itself in the denylist (e.g., `user`).
 
+### Twingle webhook
+
+`POST /api/webhooks/twingle/` receives Twingle's full donor payload (name, email, address, IBAN). The global
+layers above don't cover it: `before_send` and the scrubber redact by field name and only at the top level,
+Twingle's field names aren't on the list, and performance transactions (`traces_sample_rate=0.2`) skip
+`before_send` but carry the request body and headers, including `X-Hub-Signature-256`.
+
+So the view registers one event processor, `_strip_request_data` in
+`climateconnect_api/views/twingle_webhook_views.py`, for its own request only. It runs for errors, messages
+and transactions of that request and removes the request data (body, headers, cookies, query string),
+breadcrumbs, `extra` and the local variables of every stack frame. Stack traces, tags, the fixed message,
+the transaction name, timings and spans are kept. No global Sentry setting was changed.
+
+- The processor is registered on both the request's isolation scope and its current scope. Django's
+  WSGI-style request processor sits on the current scope, and current-scope processors run after
+  isolation-scope ones, so a processor on the isolation scope alone would run too early.
+- Problems caused by the payload are reported as fixed-text messages with a `twingle_reason` tag, never as
+  exceptions, because parser errors echo their input.
+- `test_twingle_webhook.SentryPrivacyTests` sends requests through the real WSGI and ASGI handlers with
+  tracing at 100 % and checks that no payload value or signature appears in any serialized event. If it
+  ever can't pass, the approved fallback is a `traces_sampler` that returns 0 for this path.
+
+See [Twingle donation webhook](twingle-donation-webhook.md) for operations.
+
 ---
 
 ## Maintaining the PII Field List
