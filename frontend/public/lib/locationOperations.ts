@@ -417,3 +417,82 @@ export async function getLocationFilteredBy(query, locale?: CcLocale) {
     console.log(e);
   }
 }
+
+/**
+ * True if `location` is a selected location object (picked from the
+ * autocomplete or resolved via getLocationFilteredBy) that can be used for
+ * filtering. A plain string means the user is still typing.
+ */
+export function isSelectedFilterLocation(location: any): boolean {
+  return (
+    !!location &&
+    typeof location === "object" &&
+    Boolean((location.osm_id && location.osm_type) || location.place_id)
+  );
+}
+
+/**
+ * Builds the location filter query params (same names as the browse pages):
+ * osm_id, osm_type, osm_class, place_id (legacy) and radius in km without
+ * the "km" suffix. Returns an empty object if no location is selected, so a
+ * radius on its own never filters.
+ */
+export function locationToQueryParams(location: any, radius?: string): Record<string, string> {
+  if (!isSelectedFilterLocation(location)) return {};
+  const params: Record<string, string> = {};
+  for (const key of ["osm_id", "osm_type", "osm_class", "place_id"]) {
+    const value = location[key];
+    if (value !== undefined && value !== null && value !== "") params[key] = String(value);
+  }
+  const radiusKm = radius ? String(radius).replace("km", "").trim() : "";
+  if (radiusKm && radiusKm !== "0") params.radius = radiusKm;
+  return params;
+}
+
+/**
+ * Server-side: resolves the event calendar's location filter from the page
+ * query. Returns the location object (for pre-filling the input), the radius
+ * in the "25km" format used by the radius select, and the query params to
+ * forward to /api/events/. Never throws: an unresolvable location yields no
+ * filter so the page still renders (unfiltered).
+ */
+export async function getInitialEventLocationFilter(
+  query: Record<string, any>,
+  locale?: CcLocale
+): Promise<{
+  initialLocation: any;
+  initialRadius: string;
+  locationParams: Record<string, string>;
+}> {
+  const none = { initialLocation: null, initialRadius: "", locationParams: {} };
+  let location: any = null;
+  try {
+    location = await getLocationFilteredBy(query, locale);
+  } catch (e) {
+    return none;
+  }
+  if (!isSelectedFilterLocation(location)) return none;
+
+  const rawRadius = Array.isArray(query.radius) ? query.radius[0] : query.radius;
+  const radiusKm = rawRadius ? String(rawRadius).replace("km", "").trim() : "";
+  const initialRadius = /^\d+$/.test(radiusKm) && radiusKm !== "0" ? `${radiusKm}km` : "";
+  return {
+    initialLocation: location,
+    initialRadius,
+    locationParams: locationToQueryParams(location, initialRadius),
+  };
+}
+
+const LOCATION_HUB_TYPE = "location hub";
+
+/**
+ * Whether a hub's event calendar shows the location filter. Hidden on
+ * location hubs and on sub-hubs of location hubs: those are already
+ * geographically scoped by the hub filter. `parentHub` is a fallback for
+ * when `hubData.parent_hub` isn't available.
+ * Spec: doc/spec/20261116_1005_event_calendar_location_filter.md (Decisions §1)
+ */
+export function shouldShowEventLocationFilter(hubData: any, parentHub?: any): boolean {
+  const parent = hubData?.parent_hub ?? parentHub;
+  return hubData?.hub_type !== LOCATION_HUB_TYPE && parent?.hub_type !== LOCATION_HUB_TYPE;
+}

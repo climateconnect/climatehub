@@ -128,6 +128,9 @@ const buildDayGroups = (events: any[], locale: string): DayGroup[] => {
   return sortedGroups;
 };
 
+// Stable default so `fetchEvents` isn't recreated on every render.
+const NO_LOCATION_PARAMS: Record<string, string> = {};
+
 export default function EventCalendarEventList({
   initialEvents = [],
   initialHasMore = false,
@@ -136,6 +139,7 @@ export default function EventCalendarEventList({
   selectedDay,
   hubUrl,
   subHubName,
+  locationParams = NO_LOCATION_PARAMS,
 }: {
   initialEvents?: any[];
   initialHasMore?: boolean;
@@ -144,6 +148,8 @@ export default function EventCalendarEventList({
   selectedDay: Dayjs;
   hubUrl?: string;
   subHubName?: string;
+  /** Location filter params (osm_id, osm_type, osm_class, radius); must be memoized. */
+  locationParams?: Record<string, string>;
 }) {
   const { locale, CUSTOM_HUB_URLS } = useContext(UserContext);
   const { hubData, hubUrl: contextHubUrl } = useContext(HubContext);
@@ -177,6 +183,7 @@ export default function EventCalendarEventList({
       params.set("page", String(page));
       params.set("page_size", "12");
       if (hubUrl) params.set("hub", hubUrl);
+      Object.entries(locationParams).forEach(([key, value]) => params.set(key, value));
 
       try {
         const { data } = await apiRequest({
@@ -195,7 +202,7 @@ export default function EventCalendarEventList({
         setLoading(false);
       }
     },
-    [search, sectors, selectedDay, hubUrl, locale]
+    [search, sectors, selectedDay, hubUrl, locale, locationParams]
   );
 
   const loadMore = useCallback(async () => {
@@ -229,7 +236,7 @@ export default function EventCalendarEventList({
       return () => clearTimeout(handler);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, sectors, selectedDay, hubUrl]);
+  }, [search, sectors, selectedDay, hubUrl, locationParams]);
 
   const dayGroups = buildDayGroups(allEvents, locale);
 

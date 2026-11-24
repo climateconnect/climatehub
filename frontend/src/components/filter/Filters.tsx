@@ -238,17 +238,31 @@ const MultiSelectDialogFilter = ({
   );
 };
 
-// Location filter component
-const LocationFilter = ({
+// Location filter component: place autocomplete + joined radius select.
+// Also used by the event calendar (eventCalendar/EventCalendarLocationFilter).
+export const LocationFilter = ({
   isMobileScreen,
   filter,
   value,
   radiusValue,
   onChange,
   isInOverlay,
-  locationInputRef,
-  locationOptionsOpen,
-  handleSetLocationOptionsOpen,
+  locationInputRef = undefined,
+  locationOptionsOpen = undefined,
+  handleSetLocationOptionsOpen = undefined,
+  popperMinWidth = undefined,
+}: {
+  isMobileScreen: boolean;
+  filter: { key: string; icon: any; title: string };
+  value: any;
+  radiusValue: any;
+  onChange: (_key: string, _value: any) => void;
+  isInOverlay?: boolean;
+  locationInputRef?: any;
+  locationOptionsOpen?: boolean;
+  handleSetLocationOptionsOpen?: (_open: boolean) => void;
+  // Optional minimum width (px) of the place options dropdown, see LocationSearchBar
+  popperMinWidth?: number;
 }) => {
   const radiusFilterOptions = getRadiusFilterOptions();
 
@@ -264,6 +278,7 @@ const LocationFilter = ({
         handleSetOpen={handleSetLocationOptionsOpen}
         filterMode
         label={<IconLabel Icon={filter.icon} title={filter.title} />}
+        popperMinWidth={popperMinWidth}
       />
       <RadiusField
         $isMobileScreen={isMobileScreen}

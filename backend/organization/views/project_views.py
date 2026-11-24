@@ -9,7 +9,6 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Case, Prefetch, Q, When
@@ -53,7 +52,7 @@ from climateconnect_api.utility.translation import (
 from climateconnect_main.utility.general import get_image_from_data_url
 from hubs.models.hub import Hub
 from location.models import Location
-from location.utility import get_location, get_location_with_range
+from location.utility import get_location
 
 # Organization models
 from organization.models import (
@@ -127,8 +126,11 @@ from organization.utility.notification import (
 )
 from organization.utility.organization import check_organization
 from organization.utility.project import (
+    LocationLookupError,
     apply_hub_filter,
+    apply_location_filter,
     create_new_project,
+    get_location_filter_data,
     get_project_admin_creators,
     get_project_translations,
     get_similar_projects,
@@ -310,33 +312,10 @@ class ListProjectsView(ListAPIView):
             elif has_children_param == "false":
                 projects = projects.filter(has_children=False)
 
-        if (
-            "osm_id" in self.request.query_params
-            and "osm_type" in self.request.query_params
-        ) or "place_id" in self.request.query_params:
-            location_data = get_location_with_range(self.request.query_params)
-            projects = (
-                projects.filter(
-                    Q(loc__country=location_data["country"])
-                    & (
-                        Q(
-                            loc__multi_polygon__distance_lte=(
-                                location_data["location"],
-                                location_data["radius"],
-                            )
-                        )
-                        | Q(
-                            loc__centre_point__distance_lte=(
-                                location_data["location"],
-                                location_data["radius"],
-                            )
-                        )
-                    )
-                )
-                .annotate(
-                    distance=Distance("loc__centre_point", location_data["location"])
-                )
-                .order_by("distance")
+        location_data = get_location_filter_data(self.request.query_params)
+        if location_data:
+            projects = apply_location_filter(
+                projects, location_data, annotate_distance=True
             )
 
         if (
@@ -418,6 +397,26 @@ class ListProjectsView(ListAPIView):
         return context
 
 
+LOCATION_UNRESOLVABLE_MESSAGE = "Location could not be resolved."
+
+
+def _resolve_location_filter_or_400(query_params):
+    """Resolve location filter params for the event endpoints.
+
+    Returns None when no location is requested. An invalid ``radius`` raises
+    a 400 on ``radius`` (from ``get_location_filter_data``).
+
+    Lookup errors can contain upstream details (internal service URL, raw
+    upstream response), so they're logged and replaced by a generic 400 on
+    ``location``.
+    """
+    try:
+        return get_location_filter_data(query_params)
+    except LocationLookupError as e:
+        logger.warning("Could not resolve event location filter: %s", e.detail)
+        raise ValidationError({"location": [LOCATION_UNRESOLVABLE_MESSAGE]})
+
+
 class ListEventsView(ListAPIView):
     """
     Lists event-type projects chronologically for the Event Calendar feature.
@@ -471,6 +470,11 @@ class ListEventsView(ListAPIView):
         # --- Hub scoping ---
         if "hub" in self.request.query_params:
             queryset = apply_hub_filter(queryset, self.request.query_params["hub"])
+
+        # --- Location (+ radius) filter, same semantics as browse ---
+        queryset = apply_location_filter(
+            queryset, _resolve_location_filter_or_400(self.request.query_params)
+        )
 
         # The sector filter joins project_sector_mapping, which can produce
         # multiple rows for a single event (e.g. an event matching several
@@ -579,6 +583,10 @@ class EventCalendarCountsView(APIView):
         if "hub" in request.query_params:
             queryset = apply_hub_filter(queryset, request.query_params["hub"])
 
+        queryset = apply_location_filter(
+            queryset, _resolve_location_filter_or_400(request.query_params)
+        )
+
         # Deduplicate: the sector filter joins project_sector_mapping and can
         # yield multiple rows per event (matching several topics, or a topic
         # and its parent sector). Without this, multi-topic events would be
@@ -680,27 +688,9 @@ class ListUpcomingEventsView(APIView):
                 | Q(translation_project__name_translation__icontains=search)
             )
 
-        if (
-            "osm_id" in request.query_params and "osm_type" in request.query_params
-        ) or "place_id" in request.query_params:
-            location_data = get_location_with_range(request.query_params)
-            queryset = queryset.filter(
-                Q(loc__country=location_data["country"])
-                & (
-                    Q(
-                        loc__multi_polygon__distance_lte=(
-                            location_data["location"],
-                            location_data["radius"],
-                        )
-                    )
-                    | Q(
-                        loc__centre_point__distance_lte=(
-                            location_data["location"],
-                            location_data["radius"],
-                        )
-                    )
-                )
-            )
+        queryset = apply_location_filter(
+            queryset, get_location_filter_data(request.query_params)
+        )
 
         queryset = queryset.distinct().order_by("start_date")[:4]
 
