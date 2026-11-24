@@ -30,6 +30,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PickersDay } from "@mui/x-date-pickers/PickersDay";
 import Cookies from "universal-cookie";
 import { apiRequest } from "../../../public/lib/apiOperations";
+import { replaceUrlKeepingRouterState } from "../../utils/replaceUrl";
 
 const MobileSearchBar = styled(FilterSearchBar)(({ theme }) => ({
   width: "100%",
@@ -169,7 +170,7 @@ function syncFiltersToUrl(
   const pathname = window.location.pathname;
   const newUrl = `${origin}${pathname}?${qs}`;
   if (newUrl !== window.location.href) {
-    window.history.replaceState({}, "", newUrl);
+    replaceUrlKeepingRouterState(newUrl);
   }
 }
 
