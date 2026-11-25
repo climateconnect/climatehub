@@ -4,7 +4,6 @@ import {
   Container,
   Divider,
   IconButton,
-  CircularProgress,
   LinearProgress,
   Link,
   Table,
@@ -17,8 +16,6 @@ import {
 import { styled } from "@mui/material/styles";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckIcon from "@mui/icons-material/Check";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import { useRouter } from "next/router";
 import React, { useContext, useState } from "react";
 import Cookies from "universal-cookie";
 
@@ -29,7 +26,6 @@ import { getMembershipRequests } from "../../../public/lib/projectOperations";
 import getTexts from "../../../public/texts/texts";
 import FeedbackContext from "../context/FeedbackContext";
 import UserContext from "../context/UserContext";
-import { useFeatureToggles } from "../featureToggle";
 import GenericDialog from "./GenericDialog";
 
 const User = styled(Link)({
@@ -134,7 +130,6 @@ const ProjectRequesters = ({ initialRequesters, onRequestersUpdated, project }) 
       const updatedRequesters = membershipRequests.map((r) => ({
         requestId: r.id,
         user: r.user_profile,
-        responseChatUuid: r.response_chat_uuid ?? null,
       }));
       setRequesters(updatedRequesters);
       if (onRequestersUpdated) {
@@ -177,31 +172,6 @@ const ProjectRequesters = ({ initialRequesters, onRequestersUpdated, project }) 
 const Requester = ({ handleUpdateRequesters, locale, project, requester, requestId, token }) => {
   const { showFeedbackMessage } = useContext(FeedbackContext);
   const texts = getTexts({ page: "general", locale: locale });
-  const projectTexts = getTexts({ page: "project", locale: locale });
-  const router = useRouter();
-  const { isEnabled } = useFeatureToggles();
-  const respondEnabled = isEnabled("PROJECT_JOIN_REQUEST_RESPOND_CHAT", false);
-  const [responding, setResponding] = useState(false);
-  const [respondError, setRespondError] = useState(false);
-
-  async function handleRespond(): Promise<void> {
-    setResponding(true);
-    setRespondError(false);
-    try {
-      const response = await apiRequest({
-        method: "post",
-        url: `/api/projects/${project.url_slug}/request_membership/${requestId}/respond/`,
-        locale: locale,
-        token: token,
-        payload: {},
-      });
-      router.push(`${getLocalePrefix(locale)}/chat/${response.data.chat_uuid}/`);
-    } catch (e: any) {
-      console.log(e);
-      setRespondError(true);
-      setResponding(false);
-    }
-  }
 
   async function handleRequest(approve: boolean): Promise<void> {
     const url = `/api/projects/${project.url_slug}/request_membership/${
@@ -255,38 +225,9 @@ const Requester = ({ handleUpdateRequesters, locale, project, requester, request
             {requester.user.first_name + " " + requester.user.last_name}
           </Username>
         </User>
-        {respondError && (
-          <Typography color="error" variant="caption" role="alert" component="div">
-            {projectTexts.could_not_start_join_request_chat}
-          </Typography>
-        )}
       </TableCell>
 
       <TableCell>
-        {respondEnabled && (
-          <>
-            {requester.responseChatUuid && (
-              <Tooltip title={projectTexts.join_request_conversation_started}>
-                <ChatBubbleOutlineIcon
-                  fontSize="small"
-                  color="primary"
-                  aria-label={projectTexts.join_request_conversation_started}
-                  sx={{ verticalAlign: "middle", marginRight: 1 }}
-                />
-              </Tooltip>
-            )}
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={responding}
-              aria-busy={responding}
-              onClick={handleRespond}
-              startIcon={responding ? <CircularProgress size={14} /> : undefined}
-            >
-              {projectTexts.respond_to_join_request}
-            </Button>
-          </>
-        )}
         <Tooltip title="Approve">
           <IconButton
             aria-label="approve project request"
