@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:b7fbc060e734e3010e1181d63bcf198d4ad74b76faceaa83db8b9f554ec87587"
+content_hash = "sha256:d54c5ee4a76a5a345627ce2c68a0798063af4c432d4055cf0cf972aa95458892"
 
 [[metadata.targets]]
 requires_python = ">=3.12"
@@ -311,25 +311,25 @@ files = [
 
 [[package]]
 name = "celery"
-version = "5.7.0"
-requires_python = ">=3.10"
+version = "5.6.3"
+requires_python = ">=3.9"
 summary = "Distributed Task Queue."
 groups = ["default"]
 dependencies = [
-    "billiard>=4.3.2",
-    "click-didyoumean>=0.3.1",
-    "click-plugins>=1.1.1.2",
-    "click-repl>=0.4.1",
-    "click<9.0,>=8.3.1",
-    "exceptiongroup>=1.3.1; python_version < \"3.11\"",
-    "kombu>=5.7.0",
-    "python-dateutil==2.9.0.post0",
+    "billiard<5.0,>=4.2.1",
+    "click-didyoumean>=0.3.0",
+    "click-plugins>=1.1.1",
+    "click-repl>=0.2.0",
+    "click<9.0,>=8.1.2",
+    "exceptiongroup>=1.3.0; python_version < \"3.11\"",
+    "kombu>=5.6.0",
+    "python-dateutil>=2.8.2",
     "tzlocal",
     "vine<6.0,>=5.1.0",
 ]
 files = [
-    {file = "celery-5.7.0-py3-none-any.whl", hash = "sha256:18310a9c919f9029e4735367484d93e6a25cdfd30afdc474622cc263d9b35f6e"},
-    {file = "celery-5.7.0.tar.gz", hash = "sha256:6a5dfcf6662287204f009a02002b9e66c83d4105e47ebabdc7079108772fc6f0"},
+    {file = "celery-5.6.3-py3-none-any.whl", hash = "sha256:0808f42f80909c4d5833202360ffafb2a4f83f4d8e23e1285d926610e9a7afa6"},
+    {file = "celery-5.6.3.tar.gz", hash = "sha256:177006bd2054b882e9f01be59abd8529e88879ef50d7918a7050c5a9f4e12912"},
 ]
 
 [[package]]
@@ -1707,18 +1707,19 @@ files = [
 
 [[package]]
 name = "kombu"
-version = "5.7.0"
-requires_python = ">=3.10"
+version = "5.6.2"
+requires_python = ">=3.9"
 summary = "Messaging library for Python."
 groups = ["default"]
 dependencies = [
-    "amqp>=5.4.2",
-    "tzdata>=2026.2; sys_platform == \"win32\"",
+    "amqp<6.0.0,>=5.1.1",
+    "packaging",
+    "tzdata>=2025.2",
     "vine==5.1.0",
 ]
 files = [
-    {file = "kombu-5.7.0-py3-none-any.whl", hash = "sha256:dede73bff4c89175be382c4203d2f167cf7017c384396ec75c36a1b5678f1587"},
-    {file = "kombu-5.7.0.tar.gz", hash = "sha256:31e62fdfd2381caa3422f8e02b84a491d9a2180ddda74507b57f4cb1e1c2c2c9"},
+    {file = "kombu-5.6.2-py3-none-any.whl", hash = "sha256:efcfc559da324d41d61ca311b0c64965ea35b4c55cc04ee36e55386145dace93"},
+    {file = "kombu-5.6.2.tar.gz", hash = "sha256:8060497058066c6f5aed7c26d7cd0d3b574990b09de842a8c5aaed0b92cc5a55"},
 ]
 
 [[package]]
