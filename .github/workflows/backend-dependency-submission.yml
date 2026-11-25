@@ -1,0 +1,41 @@
+name: Backend Dependency Submission
+
+# Submits the exact versions from backend/pdm.lock to GitHub's dependency
+# graph, so Dependabot raises security alerts for the backend. Dependabot
+# itself cannot read pdm.lock. Alerts only: fixes are done by hand with
+# `pdm update <package>`.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/pdm.lock'
+      - 'backend/pyproject.toml'
+      - '.github/scripts/pdm_lock_snapshot.py'
+      - '.github/workflows/backend-dependency-submission.yml'
+
+permissions:
+  contents: write # required by the dependency submission API
+
+jobs:
+  submit:
+    name: Submit pdm.lock to dependency graph
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Build snapshot
+        run: python .github/scripts/pdm_lock_snapshot.py backend/pdm.lock backend/pyproject.toml > snapshot.json
+
+      - name: Submit snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/${{ github.repository }}/dependency-graph/snapshots" --input snapshot.json
