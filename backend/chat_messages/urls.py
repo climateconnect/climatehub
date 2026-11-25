@@ -69,6 +69,11 @@ urlpatterns = [
         name="project-origin",
     ),
     path(
+        "chat/origin/membership_request/<int:request_id>/",
+        message_origin_views.MembershipRequestOriginView.as_view(),
+        name="membership-request-origin",
+    ),
+    path(
         "organization-origin/<int:organization_id>/",
         message_origin_views.OrganizationOriginView.as_view(),
         name="organization-origin",

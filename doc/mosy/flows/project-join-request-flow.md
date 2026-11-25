@@ -33,3 +33,9 @@ Clicking **Join** sends the request immediately with the default message "Would 
 **Legacy entry points**: with the toggle on, `?show_join_requests=true` (join request emails and notifications) and the admin's "show requests" side button switch to the team tab instead of opening the legacy `ProjectRequestersDialog`. Linking emails/notifications to the request's own dialog is a separate task.
 
 With the toggle off the list and the `join_request` param are ignored, and `show_join_requests` and the side button open the legacy requesters modal as before.
+
+## Admin responds to a request (issue #2311, backend ready; UI pending #2310)
+
+1. An admin clicks **Respond** on a join request → `POST /api/projects/<url_slug>/request_membership/<request_id>/respond/`.
+2. First call creates a group chat (requester + all project admins) and seeds it with the requester's message; later calls (by any admin) return the same chat and add the caller as participant.
+3. The admin lands in that chat; the requests list returns `response_chat_uuid` so the UI can show a "Conversation started" indicator.

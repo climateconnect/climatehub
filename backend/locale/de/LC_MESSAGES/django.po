@@ -34,3 +34,8 @@ msgstr "Dieser Organisationstyp existiert nicht: "
 #: organization/views/organization_views.py:392
 msgid "Successfully updated organisation."
 msgstr "Organisation erfolgreich bearbeitet"
+
+#: organization/utility/requests.py
+#, python-format
+msgid "Join request for %(project_name)s"
+msgstr "Beitrittsanfrage für %(project_name)s"

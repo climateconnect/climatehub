@@ -1,9 +1,14 @@
 from html import unescape
 
+from django.contrib.auth.models import User
+
+from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from climateconnect_api.models import Role
 from climateconnect_api.utility.html import sanitize_html
+from organization.models import ProjectMember
 from organization.utility.project import add_project_member, is_part_of_project
 from organization.utility.organization import add_organization_member
 from organization.models.members import MembershipRequests
@@ -203,3 +208,89 @@ class MembershipRequestsManager:
         self.membership_request.decided_by = decided_by
         self.membership_request.rejected_at = timezone.now()
         self.membership_request.save()
+
+
+class ChatRateLimitExceeded(Exception):
+    """Raised when the acting admin may not start another chat right now."""
+
+
+def start_response_chat(membership_request_id, acting_user):
+    """
+    Get or create the shared group chat for a membership request.
+    Returns (chat, created). Raises ChatRateLimitExceeded (message = user text)
+    if a new chat is needed but the acting user hit the chat-start limit.
+    """
+    from chat_messages.models import Message, Participant
+    from chat_messages.utility.chat_setup import (
+        check_can_start_chat,
+        create_private_or_group_chat,
+    )
+    from chat_messages.utility.message_origin import (
+        ADMIN_ROLE_TYPES,
+        ORIGIN_TYPE_MEMBERSHIP_REQUEST,
+    )
+
+    with transaction.atomic():
+        membership_request = (
+            MembershipRequests.objects.select_for_update(of=("self",))
+            .select_related("target_project", "user")
+            .get(id=membership_request_id)
+        )
+        chat = membership_request.response_chat
+        if chat is not None:
+            participant, was_created = Participant.objects.get_or_create(
+                chat=chat,
+                user=acting_user,
+                defaults={
+                    "role": Role.objects.filter(role_type=Role.READ_ONLY_TYPE).first()
+                },
+            )
+            if not was_created and not participant.is_active:
+                participant.is_active = True
+                participant.save(update_fields=["is_active"])
+            return chat, False
+
+        can_start = check_can_start_chat(acting_user.user_profile)
+        if can_start is not True:
+            raise ChatRateLimitExceeded(can_start)
+
+        if MembershipTarget(membership_request.target_membership_type) != (
+            MembershipTarget.PROJECT
+        ):
+            raise NotImplementedError(
+                "Response chats are only implemented for project requests"
+            )
+        project = membership_request.target_project
+        admins = (
+            ProjectMember.objects.filter(
+                project=project, role__role_type__in=ADMIN_ROLE_TYPES
+            )
+            .exclude(user=acting_user)
+            .values_list("user_id", flat=True)
+        )
+        participants = User.objects.filter(
+            id__in=list(admins) + [membership_request.user_id]
+        ).exclude(id=acting_user.id)
+        chat_name = _("Join request for %(project_name)s") % {
+            "project_name": project.name
+        }
+        chat = create_private_or_group_chat(
+            creator=acting_user,
+            group_chat_name=chat_name,
+            participants=participants,
+        )
+        membership_request.response_chat = chat
+        membership_request.save(update_fields=["response_chat"])
+
+        if membership_request.message:
+            Message.objects.create(
+                message_participant=chat,
+                content=membership_request.message,
+                sender=membership_request.user,
+                sent_at=membership_request.requested_at,
+                origin_type=ORIGIN_TYPE_MEMBERSHIP_REQUEST,
+                origin_id=membership_request.id,
+            )
+            chat.last_message_at = membership_request.requested_at
+            chat.save(update_fields=["last_message_at"])
+        return chat, True

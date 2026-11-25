@@ -20,10 +20,18 @@ export type OrganizationOriginContext = {
   organization_url_slug: string;
 };
 
+export type MembershipRequestOriginContext = {
+  type: "membership_request";
+  project_name: string;
+  project_url_slug: string;
+  request_status: number;
+};
+
 export type OriginContext =
   | EventRegistrationOriginContext
   | ProjectOriginContext
-  | OrganizationOriginContext;
+  | OrganizationOriginContext
+  | MembershipRequestOriginContext;
 export type OriginType = OriginContext["type"];
 
 // eslint-disable-next-line no-unused-vars
@@ -31,6 +39,7 @@ const ORIGIN_URLS: Record<OriginType, (id: number) => string> = {
   event_registration: (id) => `/api/event-registration-origin/${id}/`,
   project: (id) => `/api/project-origin/${id}/`,
   organization: (id) => `/api/organization-origin/${id}/`,
+  membership_request: (id) => `/api/chat/origin/membership_request/${id}/`,
 };
 
 export const isSupportedOriginType = (originType?: string): originType is OriginType =>

@@ -1351,13 +1351,29 @@ A duplicate request returns `400` ("Request already exists to join project"). Su
 
 `GET /api/projects/<url_slug>/join_requests/<request_id>/` (authenticated)
 
-Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, is_admin }`
+Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, response_chat_uuid, is_admin }`
 
 - `request_status`: `pending` | `approved` | `rejected`; `decided_at` is the approval/rejection time or `null`; `message` is `""` if none (plain text, returned as stored).
 - Project admins (active members with role type All or ReadWrite; inactive members are treated like any other user) get the full payload including `decided_by` (profile stub or `null`).
-- The requesting user can read their own request; `decided_by` is **omitted** from their response.
+- The requesting user can read their own request; `decided_by` is **omitted** from their response. `response_chat_uuid` (chat UUID or `null`, issue #2311) is likewise admin-only.
 - Anyone else: `403` (`401` if not authenticated). `404` if the project/request doesn't exist or the request belongs to another project or an organization.
 
 `GET /api/projects/<url_slug>/requesters/` (admins) lists open requests, newest first, now with `message` and `requested_at` in addition to `id` and `user_profile`.
 
 `POST .../request_membership/<approve|reject>/<request_id>/` returns `409` if the request was already decided (the decision is not overwritten).
+
+### Respond to a join request (issue #2311)
+
+`POST /api/projects/<url_slug>/request_membership/<request_id>/respond/` (project admins: role `ALL_TYPE`/`READ_WRITE_TYPE`)
+
+Gets or creates the one shared group chat ("Join request for <project>") between the requester and all project admins; stored in `MembershipRequests.response_chat`. On creation the requester's message becomes the first message (sender = requester, `origin_type="membership_request"`). If the chat exists, the caller is (re-)added as participant.
+
+- `200 {"chat_uuid": "<uuid>", "created": true|false}`
+- `403` not an admin, or chat-start rate limit hit (only when a new chat must be created; body `{"message": ...}`)
+- `404` request does not belong to the project
+
+The list of join requesters (`ProjectRequesterSerializer`) additionally returns `response_chat_uuid` (string or `null`).
+
+`GET /api/chat/origin/membership_request/<request_id>/` (chat participants and project/organization admins, else `403`) returns `{"project_name", "project_url_slug", "request_status"}`.
+
+Sending a chat message with `origin_membership_request_id` is accepted only in the request's `response_chat` by one of its active participants.

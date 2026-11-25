@@ -632,13 +632,24 @@ class ProjectRequesterSerializer(serializers.ModelSerializer):
     """
 
     user_profile = serializers.SerializerMethodField()
+    response_chat_uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = MembershipRequests
 
         # Locally defined variables take precedence
         # over what's defined on the model
-        fields = ("user_profile", "id", "message", "requested_at")
+        fields = (
+            "user_profile",
+            "id",
+            "message",
+            "requested_at",
+            "response_chat_uuid",
+        )
+
+    def get_response_chat_uuid(self, obj):
+        chat = obj.response_chat
+        return str(chat.chat_uuid) if chat else None
 
     def get_user_profile(self, obj):
         user_profile = UserProfile.objects.get(user=obj.user)
@@ -656,6 +667,7 @@ class JoinRequestDetailSerializer(serializers.ModelSerializer):
     request_status = serializers.SerializerMethodField()
     decided_at = serializers.SerializerMethodField()
     decided_by = serializers.SerializerMethodField()
+    response_chat_uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = MembershipRequests
@@ -667,7 +679,12 @@ class JoinRequestDetailSerializer(serializers.ModelSerializer):
             "request_status",
             "decided_at",
             "decided_by",
+            "response_chat_uuid",
         )
+
+    def get_response_chat_uuid(self, obj):
+        chat = obj.response_chat
+        return str(chat.chat_uuid) if chat else None
 
     def _stub(self, user):
         return UserProfileStubSerializer(user.user_profile).data
@@ -694,6 +711,7 @@ class JoinRequestDetailSerializer(serializers.ModelSerializer):
         is_admin = self.context.get("include_decided_by", False)
         if not is_admin:
             data.pop("decided_by", None)
+            data.pop("response_chat_uuid", None)
         data["is_admin"] = bool(is_admin)
         return data
 

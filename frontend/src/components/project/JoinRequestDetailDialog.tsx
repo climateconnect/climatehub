@@ -1,5 +1,15 @@
-import { Avatar, Button, Chip, Link, LinearProgress, Typography } from "@mui/material";
+import {
+  Avatar,
+  Button,
+  Chip,
+  CircularProgress,
+  Link,
+  LinearProgress,
+  Typography,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import { useRouter } from "next/router";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 
@@ -10,11 +20,13 @@ import {
   decideJoinRequest,
   getJoinRequest,
   JoinRequestDetail,
+  respondToJoinRequest,
 } from "../../../public/lib/joinRequestOperations";
 import getTexts from "../../../public/texts/texts";
 import FeedbackContext from "../context/FeedbackContext";
 import { HubContext } from "../context/HubContext";
 import UserContext from "../context/UserContext";
+import { useFeatureToggles } from "../featureToggle";
 import GenericDialog from "../dialogs/GenericDialog";
 
 const Section = styled("div")(({ theme }) => ({
@@ -35,11 +47,31 @@ const MessageText = styled(Typography)({
   overflowWrap: "anywhere",
 });
 
+// below this viewport width the three buttons no longer fit in one row (portrait phones)
+const PORTRAIT_PHONE_MAX_WIDTH = 480;
+
 const Actions = styled("div")(({ theme }) => ({
   display: "flex",
   gap: theme.spacing(2),
   justifyContent: "flex-end",
   marginTop: theme.spacing(3),
+  // on portrait phones: Respond gets its own full-width row, Decline/Approve share the next one
+  [theme.breakpoints.down(PORTRAIT_PHONE_MAX_WIDTH)]: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: theme.spacing(1.5),
+    "& .MuiButton-root": {
+      whiteSpace: "nowrap",
+      paddingLeft: theme.spacing(1),
+      paddingRight: theme.spacing(1),
+    },
+  },
+}));
+
+const RespondButton = styled(Button)(({ theme }) => ({
+  [theme.breakpoints.down(PORTRAIT_PHONE_MAX_WIDTH)]: {
+    gridColumn: "1 / -1",
+  },
 }));
 
 type Props = {
@@ -74,6 +106,11 @@ export default function JoinRequestDetailDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<LoadError>(null);
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
+  const { isEnabled } = useFeatureToggles();
+  const respondEnabled = isEnabled("PROJECT_JOIN_REQUEST_RESPOND_CHAT", false);
+  const [responding, setResponding] = useState(false);
+  const [respondError, setRespondError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,6 +164,26 @@ export default function JoinRequestDetailDialog({
       if (code === 409) await load();
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRespond = async () => {
+    if (responding || !request) return;
+    setResponding(true);
+    setRespondError(null);
+    try {
+      const { chat_uuid } = await respondToJoinRequest(projectUrlSlug, request.id, locale, token);
+      router.push(`${getLocalePrefix(locale)}/chat/${chat_uuid}/`);
+    } catch (e: any) {
+      console.log(e);
+      // 403 carries a user-facing reason from the backend (e.g. chat-start rate limit)
+      const backendMessage = e?.response?.status === 403 ? e?.response?.data?.message : null;
+      setRespondError(
+        typeof backendMessage === "string" && backendMessage
+          ? backendMessage
+          : (texts.could_not_start_join_request_chat as string)
+      );
+      setResponding(false);
     }
   };
 
@@ -221,7 +278,9 @@ export default function JoinRequestDetailDialog({
             </Typography>
           )}
         </Section>
-        <Section>
+        <Section
+          sx={isAdmin && respondEnabled && request.response_chat_uuid ? { mb: 1 } : undefined}
+        >
           <Typography variant="body2" color="text.secondary">
             {texts.join_request_message}
           </Typography>
@@ -233,23 +292,52 @@ export default function JoinRequestDetailDialog({
             </Typography>
           )}
         </Section>
-        {isAdmin && !decided && (
+        {isAdmin && respondEnabled && request.response_chat_uuid && (
+          <Typography variant="body2" color="text.secondary">
+            <ChatBubbleOutlineIcon
+              fontSize="inherit"
+              sx={{ verticalAlign: "middle", marginRight: 0.5 }}
+            />
+            {texts.join_request_conversation_started}
+          </Typography>
+        )}
+        {isAdmin && (respondEnabled || !decided) && (
           <Actions>
-            <Button
-              variant="outlined"
-              disabled={submitting}
-              onClick={() => handleDecision("reject")}
-            >
-              {texts.join_request_decline}
-            </Button>
-            <Button
-              variant="contained"
-              disabled={submitting}
-              onClick={() => handleDecision("approve")}
-            >
-              {texts.join_request_approve}
-            </Button>
+            {respondEnabled && (
+              <RespondButton
+                variant="outlined"
+                disabled={responding}
+                aria-busy={responding}
+                onClick={handleRespond}
+                startIcon={responding ? <CircularProgress size={14} /> : undefined}
+              >
+                {texts.respond_to_join_request}
+              </RespondButton>
+            )}
+            {!decided && (
+              <>
+                <Button
+                  variant="outlined"
+                  disabled={submitting}
+                  onClick={() => handleDecision("reject")}
+                >
+                  {texts.join_request_decline}
+                </Button>
+                <Button
+                  variant="contained"
+                  disabled={submitting}
+                  onClick={() => handleDecision("approve")}
+                >
+                  {texts.join_request_approve}
+                </Button>
+              </>
+            )}
           </Actions>
+        )}
+        {isAdmin && respondEnabled && respondError && (
+          <Typography color="error" variant="caption" role="alert" component="div">
+            {respondError}
+          </Typography>
         )}
       </>
     );

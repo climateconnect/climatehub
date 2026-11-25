@@ -242,6 +242,11 @@ urlpatterns = [
         name="request-join-entity",
     ),
     path(
+        "projects/<str:url_slug>/request_membership/<int:request_id>/respond/",
+        project_views.RespondToJoinRequestView.as_view(),
+        name="respond-to-join-request",
+    ),
+    path(
         "projects/<str:url_slug>/request_membership/<str:request_action>/<str:request_id>/",
         project_views.ManageJoinProjectView.as_view(),
         name="request-membership-action-entity",

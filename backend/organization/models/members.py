@@ -240,6 +240,17 @@ class MembershipRequests(models.Model):
         related_name="decided_membership_requests",
     )
 
+    response_chat = models.ForeignKey(
+        "chat_messages.MessageParticipants",
+        verbose_name="Response chat",
+        help_text="Group chat between the requester and the admins started in response to this request (null until an admin responds)",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        default=None,
+        related_name="membership_requests",
+    )
+
     class Meta:
         unique_together = ("user", "target_project")
         verbose_name = "Membership Request"

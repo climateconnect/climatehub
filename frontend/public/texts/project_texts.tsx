@@ -1290,6 +1290,18 @@ export default function getProjectTexts({ project, user, url_slug, locale, creat
       en: "There are currently no open join requests",
       de: "Keine offenen Anfragen.",
     },
+    respond_to_join_request: {
+      en: "Respond",
+      de: "Antworten",
+    },
+    join_request_conversation_started: {
+      en: "Conversation started",
+      de: "Gespräch gestartet",
+    },
+    could_not_start_join_request_chat: {
+      en: "The conversation could not be started. Please try again later.",
+      de: "Das Gespräch konnte nicht gestartet werden. Bitte versuche es später erneut.",
+    },
     join_request_detail_title: {
       en: "Join request",
       de: "Beitrittsanfrage",

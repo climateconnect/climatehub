@@ -152,7 +152,7 @@ class Message(models.Model):
         help_text=(
             "Context that originated this message. "
             "Valid values: '' (no context), 'project', 'event_registration', "
-            "'organization', 'hub'. Blank means no origin context."
+            "'organization', 'membership_request', 'hub'. Blank means no origin context."
         ),
         verbose_name="Origin Type",
     )
