@@ -47,11 +47,31 @@ const MessageText = styled(Typography)({
   overflowWrap: "anywhere",
 });
 
+// below this viewport width the three buttons no longer fit in one row (portrait phones)
+const PORTRAIT_PHONE_MAX_WIDTH = 480;
+
 const Actions = styled("div")(({ theme }) => ({
   display: "flex",
   gap: theme.spacing(2),
   justifyContent: "flex-end",
   marginTop: theme.spacing(3),
+  // on portrait phones: Respond gets its own full-width row, Decline/Approve share the next one
+  [theme.breakpoints.down(PORTRAIT_PHONE_MAX_WIDTH)]: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: theme.spacing(1.5),
+    "& .MuiButton-root": {
+      whiteSpace: "nowrap",
+      paddingLeft: theme.spacing(1),
+      paddingRight: theme.spacing(1),
+    },
+  },
+}));
+
+const RespondButton = styled(Button)(({ theme }) => ({
+  [theme.breakpoints.down(PORTRAIT_PHONE_MAX_WIDTH)]: {
+    gridColumn: "1 / -1",
+  },
 }));
 
 type Props = {
@@ -252,7 +272,9 @@ export default function JoinRequestDetailDialog({
             </Typography>
           )}
         </Section>
-        <Section>
+        <Section
+          sx={isAdmin && respondEnabled && request.response_chat_uuid ? { mb: 1 } : undefined}
+        >
           <Typography variant="body2" color="text.secondary">
             {texts.join_request_message}
           </Typography>
@@ -264,50 +286,52 @@ export default function JoinRequestDetailDialog({
             </Typography>
           )}
         </Section>
-        {isAdmin && respondEnabled && (
-          <Section>
-            {request.response_chat_uuid && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <ChatBubbleOutlineIcon
-                  fontSize="inherit"
-                  sx={{ verticalAlign: "middle", marginRight: 0.5 }}
-                />
-                {texts.join_request_conversation_started}
-              </Typography>
-            )}
-            <Button
-              variant="outlined"
-              disabled={responding}
-              aria-busy={responding}
-              onClick={handleRespond}
-              startIcon={responding ? <CircularProgress size={14} /> : undefined}
-            >
-              {texts.respond_to_join_request}
-            </Button>
-            {respondError && (
-              <Typography color="error" variant="caption" role="alert" component="div">
-                {texts.could_not_start_join_request_chat}
-              </Typography>
-            )}
-          </Section>
+        {isAdmin && respondEnabled && request.response_chat_uuid && (
+          <Typography variant="body2" color="text.secondary">
+            <ChatBubbleOutlineIcon
+              fontSize="inherit"
+              sx={{ verticalAlign: "middle", marginRight: 0.5 }}
+            />
+            {texts.join_request_conversation_started}
+          </Typography>
         )}
-        {isAdmin && !decided && (
+        {isAdmin && (respondEnabled || !decided) && (
           <Actions>
-            <Button
-              variant="outlined"
-              disabled={submitting}
-              onClick={() => handleDecision("reject")}
-            >
-              {texts.join_request_decline}
-            </Button>
-            <Button
-              variant="contained"
-              disabled={submitting}
-              onClick={() => handleDecision("approve")}
-            >
-              {texts.join_request_approve}
-            </Button>
+            {respondEnabled && (
+              <RespondButton
+                variant="outlined"
+                disabled={responding}
+                aria-busy={responding}
+                onClick={handleRespond}
+                startIcon={responding ? <CircularProgress size={14} /> : undefined}
+              >
+                {texts.respond_to_join_request}
+              </RespondButton>
+            )}
+            {!decided && (
+              <>
+                <Button
+                  variant="outlined"
+                  disabled={submitting}
+                  onClick={() => handleDecision("reject")}
+                >
+                  {texts.join_request_decline}
+                </Button>
+                <Button
+                  variant="contained"
+                  disabled={submitting}
+                  onClick={() => handleDecision("approve")}
+                >
+                  {texts.join_request_approve}
+                </Button>
+              </>
+            )}
           </Actions>
+        )}
+        {isAdmin && respondEnabled && respondError && (
+          <Typography color="error" variant="caption" role="alert" component="div">
+            {texts.could_not_start_join_request_chat}
+          </Typography>
         )}
       </>
     );
