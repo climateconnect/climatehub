@@ -3,9 +3,15 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from chat_messages.models import Message, MessageParticipants, Participant
+from chat_messages.utility.message_origin import (
+    ORIGIN_TYPE_MEMBERSHIP_REQUEST,
+    resolve_membership_request_origin,
+    resolve_message_origin,
+)
 from climateconnect_api.models import Availability, Language, Role, UserProfile
 from organization.models import Project, ProjectMember
 from organization.models.members import MembershipRequests
@@ -177,3 +183,75 @@ class TestJoinRequestResponseChat(APITestCase):
             self.assertEqual(response.data["project_url_slug"], "solar-p")
         self.client.force_authenticate(self.stranger)
         self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_resolver_accepts_participant_in_response_chat(self):
+        self.client.force_authenticate(self.admin)
+        self._respond()
+        self.join_request.refresh_from_db()
+        chat = self.join_request.response_chat
+        for user in (self.requester, self.admin2):
+            self.assertEqual(
+                resolve_membership_request_origin(user, chat, self.join_request.id),
+                (ORIGIN_TYPE_MEMBERSHIP_REQUEST, self.join_request.id),
+            )
+
+    def test_resolver_rejects_unknown_request(self):
+        self.client.force_authenticate(self.admin)
+        self._respond()
+        self.join_request.refresh_from_db()
+        with self.assertRaises(ValidationError):
+            resolve_membership_request_origin(
+                self.admin, self.join_request.response_chat, 999999
+            )
+
+    def test_resolver_rejects_chat_that_is_not_the_response_chat(self):
+        self.client.force_authenticate(self.admin)
+        self._respond()
+        other = self._request(self.stranger, "other")
+        self.client.force_authenticate(self.admin)
+        other_chat = MessageParticipants.objects.create(
+            chat_uuid="00000000-0000-0000-0000-000000000001", name="x"
+        )
+        Participant.objects.create(
+            user=self.admin, chat=other_chat, role=self.admin_role
+        )
+        with self.assertRaises(ValidationError):
+            resolve_membership_request_origin(
+                self.admin, other_chat, self.join_request.id
+            )
+        # request without any response chat never matches a chat
+        with self.assertRaises(ValidationError):
+            resolve_membership_request_origin(self.admin, other_chat, other.id)
+
+    def test_resolver_rejects_non_participant(self):
+        self.client.force_authenticate(self.admin)
+        self._respond()
+        self.join_request.refresh_from_db()
+        with self.assertRaises(ValidationError):
+            resolve_membership_request_origin(
+                self.stranger, self.join_request.response_chat, self.join_request.id
+            )
+
+    def test_resolver_rejects_inactive_participant(self):
+        self.client.force_authenticate(self.admin)
+        self._respond()
+        self.join_request.refresh_from_db()
+        chat = self.join_request.response_chat
+        Participant.objects.filter(chat=chat, user=self.requester).update(
+            is_active=False
+        )
+        with self.assertRaises(ValidationError):
+            resolve_membership_request_origin(
+                self.requester, chat, self.join_request.id
+            )
+
+    def test_resolve_message_origin_dispatches_membership_request(self):
+        self.client.force_authenticate(self.admin)
+        self._respond()
+        self.join_request.refresh_from_db()
+        result = resolve_message_origin(
+            self.requester,
+            self.join_request.response_chat,
+            {"origin_membership_request_id": self.join_request.id},
+        )
+        self.assertEqual(result, (ORIGIN_TYPE_MEMBERSHIP_REQUEST, self.join_request.id))

@@ -1830,11 +1830,15 @@ class ListProjectRequestersView(ListAPIView):
 
         # Only show requests that are currently open, as
         # in they haven't been approved nor rejected.
-        open_membership_requests = MembershipRequests.objects.filter(
-            target_project=project,
-            rejected_at=None,
-            approved_at=None,
-        ).order_by("-requested_at")
+        open_membership_requests = (
+            MembershipRequests.objects.filter(
+                target_project=project,
+                rejected_at=None,
+                approved_at=None,
+            )
+            .select_related("response_chat")
+            .order_by("-requested_at")
+        )
 
         print(
             f"Total number of OPEN membership requests for this project: {len(open_membership_requests)}"

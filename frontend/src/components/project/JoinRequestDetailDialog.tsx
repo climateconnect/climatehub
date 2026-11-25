@@ -110,7 +110,7 @@ export default function JoinRequestDetailDialog({
   const { isEnabled } = useFeatureToggles();
   const respondEnabled = isEnabled("PROJECT_JOIN_REQUEST_RESPOND_CHAT", false);
   const [responding, setResponding] = useState(false);
-  const [respondError, setRespondError] = useState(false);
+  const [respondError, setRespondError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,13 +170,19 @@ export default function JoinRequestDetailDialog({
   const handleRespond = async () => {
     if (responding || !request) return;
     setResponding(true);
-    setRespondError(false);
+    setRespondError(null);
     try {
       const { chat_uuid } = await respondToJoinRequest(projectUrlSlug, request.id, locale, token);
       router.push(`${getLocalePrefix(locale)}/chat/${chat_uuid}/`);
     } catch (e: any) {
       console.log(e);
-      setRespondError(true);
+      // 403 carries a user-facing reason from the backend (e.g. chat-start rate limit)
+      const backendMessage = e?.response?.status === 403 ? e?.response?.data?.message : null;
+      setRespondError(
+        typeof backendMessage === "string" && backendMessage
+          ? backendMessage
+          : (texts.could_not_start_join_request_chat as string)
+      );
       setResponding(false);
     }
   };
@@ -330,7 +336,7 @@ export default function JoinRequestDetailDialog({
         )}
         {isAdmin && respondEnabled && respondError && (
           <Typography color="error" variant="caption" role="alert" component="div">
-            {texts.could_not_start_join_request_chat}
+            {respondError}
           </Typography>
         )}
       </>

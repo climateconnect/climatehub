@@ -196,6 +196,20 @@ describe("JoinRequestDetailDialog", () => {
       expect(mockPush).not.toHaveBeenCalled();
     });
 
+    it("shows the backend message on a 403 (rate limit)", async () => {
+      mockRespondEnabled = true;
+      mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null, is_admin: true });
+      mockedRespond.mockRejectedValue({
+        response: { status: 403, data: { message: "You can start a new chat in 12 minutes." } },
+      });
+      jest.spyOn(console, "log").mockImplementation(() => {});
+      renderDialog();
+      fireEvent.click(await screen.findByRole("button", { name: "Respond" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "You can start a new chat in 12 minutes."
+      );
+    });
+
     it("shows the indicator only when a chat exists", async () => {
       mockRespondEnabled = true;
       mockedGet.mockResolvedValue({
