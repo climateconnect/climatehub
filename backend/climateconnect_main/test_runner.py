@@ -1,11 +1,44 @@
+import os
+import shutil
+import tempfile
+
 from django.db import connections
 from django.test.runner import DiscoverRunner
+from django.test.utils import override_settings
 
 from climateconnect_api.models import Language
 
 
 class ClimateConnectTestRunner(DiscoverRunner):
     """Custom test runner that sets up required initial data for all tests."""
+
+    def setup_test_environment(self, **kwargs):
+        """Point ``MEDIA_ROOT`` at a throwaway directory for the whole run.
+
+        ``MEDIA_ROOT`` comes from the environment and points at the developer's
+        real media directory, and test databases hand out primary keys that
+        collide with real rows — so without this, any test that uploads an
+        image drops files into e.g. ``media/projects/34/`` next to real ones.
+        Doing it here covers every test, including ones written later.
+        """
+        super().setup_test_environment(**kwargs)
+        self._media_root = tempfile.mkdtemp(prefix="cc-test-media-")
+        # Parallel workers started with "spawn" (macOS) re-import settings
+        # instead of inheriting this process's overrides, so set the env var
+        # that settings.py reads as well.
+        self._original_media_root_env = os.environ.get("MEDIA_ROOT")
+        os.environ["MEDIA_ROOT"] = self._media_root
+        self._media_override = override_settings(MEDIA_ROOT=self._media_root)
+        self._media_override.enable()
+
+    def teardown_test_environment(self, **kwargs):
+        self._media_override.disable()
+        if self._original_media_root_env is None:
+            os.environ.pop("MEDIA_ROOT", None)
+        else:
+            os.environ["MEDIA_ROOT"] = self._original_media_root_env
+        shutil.rmtree(self._media_root, ignore_errors=True)
+        super().teardown_test_environment(**kwargs)
 
     def setup_databases(self, **kwargs):
         """Set up test databases and populate with required initial data."""

@@ -14,6 +14,7 @@ import UserContext from "../context/UserContext";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import ElementOnScreen from "../hooks/ElementOnScreen";
 import ElementSpaceToRight from "../hooks/ElementSpaceToRight";
+import { useFeatureToggles } from "../featureToggle";
 import ProjectInteractionButtons from "./Buttons/ProjectInteractionButtons";
 import ProjectCommentsContent from "./ProjectCommentsContent";
 import ProjectContent from "./ProjectContent";
@@ -24,6 +25,7 @@ import ChatDrawer from "../communication/chat/ChatDrawer";
 import { ProjectSocialMediaShareButton } from "../shareContent/ProjectSocialMediaShareButton";
 import ProjectAddToCalendarButton from "../calendar/ProjectAddToCalendarButton";
 import { trackGA4Event } from "../../utils/analytics";
+import { replaceUrlKeepingRouterState } from "../../utils/replaceUrl";
 import ProjectRegistrationsContent from "./ProjectRegistrationsContent";
 import EventRegistrationModal from "./EventRegistrationModal";
 import CancelRegistrationModal from "./CancelRegistrationModal";
@@ -303,7 +305,7 @@ export default function ProjectPageRoot({
     const url = new URL(window.location.href);
     if (url.searchParams.has("openContactChat")) {
       url.searchParams.delete("openContactChat");
-      window.history.replaceState({}, "", url.toString());
+      replaceUrlKeepingRouterState(url.toString());
     }
   };
 
@@ -609,9 +611,18 @@ export default function ProjectPageRoot({
     setLikes(retrievedLikes);
   };
 
+  const { isEnabled, isLoading: featureTogglesLoading } = useFeatureToggles();
+  const joinRequestsEnabled = isEnabled("PROJECT_JOIN_REQUEST_CONFIRMATION", false);
+
   const [showRequesters, setShowRequesters] = useState(false);
   const toggleShowRequests = () => {
-    setShowRequesters(!showRequesters);
+    if (joinRequestsEnabled) {
+      // The open requests are listed on the team tab; the legacy modal isn't used
+      handleTabChange(null, typesByTabValue.indexOf("team"));
+      projectTabsRef.current?.scrollIntoView?.();
+    } else {
+      setShowRequesters(!showRequesters);
+    }
     handleReadNotifications(NOTIFICATION_TYPES.indexOf("join_project_request"));
   };
 
@@ -621,10 +632,21 @@ export default function ProjectPageRoot({
       const params = getParams(window.location.href);
       if (params.show_followers && !showFollowers) toggleShowFollowers();
       if (params.show_likes && !showLikes) toggleShowLikes();
-      if (params.show_join_requests && !showRequesters) toggleShowRequests();
       setGotParams(true);
     }
   });
+
+  // Links in join request emails and notifications use ?show_join_requests=true.
+  // Wait for the feature toggles, since they decide between the team tab and the legacy modal.
+  const [gotJoinRequestsParam, setGotJoinRequestsParam] = useState(false);
+  useEffect(() => {
+    if (featureTogglesLoading || gotJoinRequestsParam) return;
+    setGotJoinRequestsParam(true);
+    if (getParams(window.location.href).show_join_requests && !showRequesters) {
+      toggleShowRequests();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featureTogglesLoading, gotJoinRequestsParam]);
   const bindLike = useLongPress(() => {
     toggleShowLikes();
   });
@@ -639,7 +661,7 @@ export default function ProjectPageRoot({
     // Remove the openRegistration query param from the URL when closing the modal
     const url = new URL(window.location.href);
     url.searchParams.delete("openRegistration");
-    window.history.replaceState({}, "", url.toString());
+    replaceUrlKeepingRouterState(url.toString());
   };
 
   return (
@@ -766,7 +788,11 @@ export default function ProjectPageRoot({
           </TabContent>
         )}
         <TabContent value={tabValue} index={showRegistrationsTab ? 2 : 1}>
-          <ProjectTeamContent project={project} handleReadNotifications={handleReadNotifications} />
+          <ProjectTeamContent
+            project={project}
+            handleReadNotifications={handleReadNotifications}
+            onMembersRefreshed={onMembersRefreshed}
+          />
         </TabContent>
 
         <TabContent value={tabValue} index={showRegistrationsTab ? 3 : 2}>

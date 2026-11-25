@@ -14,8 +14,25 @@ const {
 
 const LOCATION_HUBS = (process.env.LOCATION_HUBS || "").split(",").filter(Boolean);
 
+// Hosts that permanently redirect to https://climatehub.org (regex, anchored by Next.js)
+const CANONICAL_REDIRECT_HOSTS = "(?:(?:www\\.)?climateconnect\\.earth|www\\.climatehub\\.org)";
+
 module.exports = withBundleAnalyzer({
   generateBuildId: async () => process.env.BUILD_SHA || "dev",
+  // Emit .next/standalone with only the traced runtime files. The App Service
+  // deploy ships that instead of the full node_modules (~150k files), which
+  // made Kudu's rsync step run into its timeout.
+  output: "standalone",
+  outputFileTracingRoot: __dirname,
+  // The tracer ignores the "module-sync" export condition, but Node 22 resolves
+  // it, so these packages' require.mjs entry points must be added explicitly.
+  outputFileTracingIncludes: {
+    "/**": [
+      "./node_modules/async-function/*.mjs",
+      "./node_modules/async-generator-function/*.mjs",
+      "./node_modules/generator-function/*.mjs",
+    ],
+  },
   // Workaround for Next 15 pages-router dev HMR crash when receiving malformed
   // `isrManifest` payloads (data can be `{}` before router is ready).
   devIndicators: false,
@@ -217,6 +234,12 @@ module.exports = withBundleAnalyzer({
         destination: `https://climatehub.org/de/hubs/potsdam/crowdfunding`,
         permanent: false,
       },
+      {
+        source: "/100",
+        has: [{ type: "host", value: "em.climatehub.org" }],
+        destination: `https://climatehub.org/de/hubs/em/crowdfunding`,
+        permanent: false,
+      },
       // 2. Cross-domain subdomain redirects (German first, then English fallback)
       // Must be permanent: false (302) — 301s are cached by browsers, breaking language switching.
       ...LOCATION_HUBS.map((hubSlug) => ({
@@ -284,16 +307,18 @@ module.exports = withBundleAnalyzer({
         permanent: false,
       },
       // 5. Main domain catch-all (locale: false to preserve /de prefix in external redirect)
+      // Covers the old domain and all www aliases. Next.js anchors host values as ^value$,
+      // so www hosts must be listed explicitly.
       {
         source: "/de/:path*",
-        has: [{ type: "host", value: "climateconnect.earth" }],
+        has: [{ type: "host", value: CANONICAL_REDIRECT_HOSTS }],
         destination: `https://climatehub.org/de/:path*`,
         permanent: true,
         locale: false,
       },
       {
         source: "/:path*",
-        has: [{ type: "host", value: "climateconnect.earth" }],
+        has: [{ type: "host", value: CANONICAL_REDIRECT_HOSTS }],
         destination: `https://climatehub.org/:path*`,
         permanent: true,
       },

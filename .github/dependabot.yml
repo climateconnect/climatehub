@@ -21,7 +21,7 @@ updates:
       - "pip dependencies"
 
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/frontend"
     schedule:
       interval: "weekly"
       day: "sunday"

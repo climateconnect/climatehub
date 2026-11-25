@@ -9,17 +9,18 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Case, Prefetch, Q, When
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
     ListAPIView,
+    RetrieveAPIView,
     RetrieveUpdateAPIView,
     RetrieveUpdateDestroyAPIView,
 )
@@ -35,6 +36,11 @@ from climateconnect_api.models import (
 from climateconnect_api.models.language import Language
 from climateconnect_api.tasks import calculate_project_rankings
 from climateconnect_api.utility.content_shares import save_content_shared
+from climateconnect_api.utility.rich_text_image_html import (
+    RichTextImageHtmlError,
+    resolve_rich_text_images,
+    sync_project_description_usages,
+)
 from climateconnect_api.utility.html import (
     PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
     PROJECT_DESCRIPTION_ALLOWED_TAGS,
@@ -46,7 +52,7 @@ from climateconnect_api.utility.translation import (
 from climateconnect_main.utility.general import get_image_from_data_url
 from hubs.models.hub import Hub
 from location.models import Location
-from location.utility import get_location, get_location_with_range
+from location.utility import get_location
 
 # Organization models
 from organization.models import (
@@ -92,6 +98,7 @@ from organization.serializers.event_registration import (
 from organization.serializers.project import (
     EditProjectSerializer,
     InsertProjectMemberSerializer,
+    JoinRequestDetailSerializer,
     ProjectFollowerSerializer,
     ProjectLikeSerializer,
     ProjectMemberSerializer,
@@ -119,8 +126,11 @@ from organization.utility.notification import (
 )
 from organization.utility.organization import check_organization
 from organization.utility.project import (
+    LocationLookupError,
     apply_hub_filter,
+    apply_location_filter,
     create_new_project,
+    get_location_filter_data,
     get_project_admin_creators,
     get_project_translations,
     get_similar_projects,
@@ -304,33 +314,10 @@ class ListProjectsView(ListAPIView):
             elif has_children_param == "false":
                 projects = projects.filter(has_children=False)
 
-        if (
-            "osm_id" in self.request.query_params
-            and "osm_type" in self.request.query_params
-        ) or "place_id" in self.request.query_params:
-            location_data = get_location_with_range(self.request.query_params)
-            projects = (
-                projects.filter(
-                    Q(loc__country=location_data["country"])
-                    & (
-                        Q(
-                            loc__multi_polygon__distance_lte=(
-                                location_data["location"],
-                                location_data["radius"],
-                            )
-                        )
-                        | Q(
-                            loc__centre_point__distance_lte=(
-                                location_data["location"],
-                                location_data["radius"],
-                            )
-                        )
-                    )
-                )
-                .annotate(
-                    distance=Distance("loc__centre_point", location_data["location"])
-                )
-                .order_by("distance")
+        location_data = get_location_filter_data(self.request.query_params)
+        if location_data:
+            projects = apply_location_filter(
+                projects, location_data, annotate_distance=True
             )
 
         if (
@@ -412,6 +399,26 @@ class ListProjectsView(ListAPIView):
         return context
 
 
+LOCATION_UNRESOLVABLE_MESSAGE = "Location could not be resolved."
+
+
+def _resolve_location_filter_or_400(query_params):
+    """Resolve location filter params for the event endpoints.
+
+    Returns None when no location is requested. An invalid ``radius`` raises
+    a 400 on ``radius`` (from ``get_location_filter_data``).
+
+    Lookup errors can contain upstream details (internal service URL, raw
+    upstream response), so they're logged and replaced by a generic 400 on
+    ``location``.
+    """
+    try:
+        return get_location_filter_data(query_params)
+    except LocationLookupError as e:
+        logger.warning("Could not resolve event location filter: %s", e.detail)
+        raise ValidationError({"location": [LOCATION_UNRESOLVABLE_MESSAGE]})
+
+
 class ListEventsView(ListAPIView):
     """
     Lists event-type projects chronologically for the Event Calendar feature.
@@ -465,6 +472,11 @@ class ListEventsView(ListAPIView):
         # --- Hub scoping ---
         if "hub" in self.request.query_params:
             queryset = apply_hub_filter(queryset, self.request.query_params["hub"])
+
+        # --- Location (+ radius) filter, same semantics as browse ---
+        queryset = apply_location_filter(
+            queryset, _resolve_location_filter_or_400(self.request.query_params)
+        )
 
         # The sector filter joins project_sector_mapping, which can produce
         # multiple rows for a single event (e.g. an event matching several
@@ -573,6 +585,10 @@ class EventCalendarCountsView(APIView):
         if "hub" in request.query_params:
             queryset = apply_hub_filter(queryset, request.query_params["hub"])
 
+        queryset = apply_location_filter(
+            queryset, _resolve_location_filter_or_400(request.query_params)
+        )
+
         # Deduplicate: the sector filter joins project_sector_mapping and can
         # yield multiple rows per event (matching several topics, or a topic
         # and its parent sector). Without this, multi-topic events would be
@@ -674,27 +690,9 @@ class ListUpcomingEventsView(APIView):
                 | Q(translation_project__name_translation__icontains=search)
             )
 
-        if (
-            "osm_id" in request.query_params and "osm_type" in request.query_params
-        ) or "place_id" in request.query_params:
-            location_data = get_location_with_range(request.query_params)
-            queryset = queryset.filter(
-                Q(loc__country=location_data["country"])
-                & (
-                    Q(
-                        loc__multi_polygon__distance_lte=(
-                            location_data["location"],
-                            location_data["radius"],
-                        )
-                    )
-                    | Q(
-                        loc__centre_point__distance_lte=(
-                            location_data["location"],
-                            location_data["radius"],
-                        )
-                    )
-                )
-            )
+        queryset = apply_location_filter(
+            queryset, get_location_filter_data(request.query_params)
+        )
 
         queryset = queryset.distinct().order_by("start_date")[:4]
 
@@ -710,6 +708,39 @@ class ListUpcomingEventsView(APIView):
             return parse(value)
         except (ValueError, OverflowError):
             return None
+
+
+def _check_description_html_length(raw):
+    """Return an error message if a description is too long, else None."""
+    if len(raw) > 20000:
+        return "Description HTML is too long (max 20000 characters)."
+    if len(re.sub(r"<[^>]+>", "", raw)) > 4000:
+        return "Your description text is too long (max 4000 characters). Please shorten it."
+    return None
+
+
+def _resolve_translated_descriptions(request, project):
+    """Resolve the images in every description_html of request.data["translations"].
+
+    Runs before anything is written, so a rejected translation never leaves a
+    half-saved project. Returns an error message or None.
+    """
+    translations = request.data.get("translations")
+    if not isinstance(translations, dict):
+        return None
+    for texts in translations.values():
+        if not isinstance(texts, dict) or not texts.get("description_html"):
+            continue
+        error = _check_description_html_length(texts["description_html"])
+        if error:
+            return error
+        try:
+            texts["description_html"] = resolve_rich_text_images(
+                texts["description_html"], request.user, request, project=project
+            )
+        except RichTextImageHtmlError as exc:
+            return exc.message
+    return None
 
 
 class CreateProjectView(APIView):
@@ -812,13 +843,19 @@ class CreateProjectView(APIView):
                 )
         # --- end registration_config validation ---
 
-        # Sanitize description_html before saving
-        if "description_html" in request.data:
-            request.data["description_html"] = sanitize_html(
-                request.data["description_html"],
-                allowed_tags=PROJECT_DESCRIPTION_ALLOWED_TAGS,
-                allowed_attributes=PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
+        # Sanitize description_html and resolve its images before saving
+        try:
+            if "description_html" in request.data:
+                request.data["description_html"] = resolve_rich_text_images(
+                    request.data["description_html"], request.user, request
+                )
+        except RichTextImageHtmlError as exc:
+            return Response(
+                {"message": exc.message}, status=status.HTTP_400_BAD_REQUEST
             )
+        error = _resolve_translated_descriptions(request, None)
+        if error:
+            return Response({"message": error}, status=status.HTTP_400_BAD_REQUEST)
 
         translations_object = None
         # Only process translations if both source_language and translations are provided
@@ -881,6 +918,8 @@ class CreateProjectView(APIView):
                                 language
                             )
                         )
+
+        sync_project_description_usages(project)
 
         project_parents = ProjectParents.objects.create(
             project=project, parent_user=request.user
@@ -1088,24 +1127,21 @@ class ProjectAPIView(APIView):
 
         if "description_html" in request.data:
             raw = request.data["description_html"]
-            if len(raw) > 20000:
-                return Response(
-                    {"message": "Description HTML is too long (max 20000 characters)."},
-                    status=status.HTTP_400_BAD_REQUEST,
+            error = _check_description_html_length(raw)
+            if error:
+                return Response({"message": error}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                project.description_html = resolve_rich_text_images(
+                    raw, request.user, request, project=project
                 )
-            stripped = re.sub(r"<[^>]+>", "", raw)
-            if len(stripped) > 4000:
+            except RichTextImageHtmlError as exc:
                 return Response(
-                    {
-                        "message": "Your description text is too long (max 4000 characters). Please shorten it."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"message": exc.message}, status=status.HTTP_400_BAD_REQUEST
                 )
-            project.description_html = sanitize_html(
-                raw,
-                allowed_tags=PROJECT_DESCRIPTION_ALLOWED_TAGS,
-                allowed_attributes=PROJECT_DESCRIPTION_ALLOWED_ATTRIBUTES,
-            )
+        # Before any write below (sectors, save, translations).
+        error = _resolve_translated_descriptions(request, project)
+        if error:
+            return Response({"message": error}, status=status.HTTP_400_BAD_REQUEST)
 
         if "name" in request.data and request.data["name"] != project.name:
             project.name = request.data["name"]
@@ -1251,6 +1287,11 @@ class ProjectAPIView(APIView):
                 project_parents.save()
 
         project.save()
+        # Right after the save: this request is not atomic, so an error in the
+        # translations below must not leave saved images without usage rows.
+        # Unconditional, because the legacy "description" also replaces
+        # description_html.
+        sync_project_description_usages(project)
 
         items_to_translate = [
             {"key": "name", "translation_key": "name_translation"},
@@ -1270,6 +1311,7 @@ class ProjectAPIView(APIView):
         ]
         if "translations" in request.data:
             edit_translations(items_to_translate, request.data, project, "project")
+            sync_project_description_usages(project)
         calculate_project_rankings([project.id])
         return Response(
             {
@@ -1731,6 +1773,45 @@ class ListProjectFollowersView(ListAPIView):
         return get_list_of_project_followers(self)
 
 
+class JoinRequestDetailView(RetrieveAPIView):
+    """Returns a single join request of a project.
+
+    Readable by project admins (full payload) and by the requesting user
+    (without `decided_by`).
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = JoinRequestDetailSerializer
+
+    def get_object(self):
+        project = get_object_or_404(Project, url_slug=self.kwargs["url_slug"])
+        join_request = get_object_or_404(
+            MembershipRequests.objects.select_related(
+                "user__user_profile", "decided_by__user_profile"
+            ),
+            id=self.kwargs["request_id"],
+            target_project=project,
+        )
+        user = self.request.user
+        self.is_admin = ProjectMember.objects.filter(
+            Q(user=user)
+            & Q(project=project)
+            & Q(is_active=True)
+            & Q(
+                Q(role__role_type=Role.ALL_TYPE)
+                | Q(role__role_type=Role.READ_WRITE_TYPE)
+            )
+        ).exists()
+        if not self.is_admin and join_request.user_id != user.id:
+            raise PermissionDenied()
+        return join_request
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["include_decided_by"] = getattr(self, "is_admin", False)
+        return context
+
+
 class ListProjectRequestersView(ListAPIView):
     permission_classes = [ReadWriteSensibleProjectDataPermission]
     """This is the endpoint view to return a list of users
@@ -1753,7 +1834,7 @@ class ListProjectRequestersView(ListAPIView):
             target_project=project,
             rejected_at=None,
             approved_at=None,
-        )
+        ).order_by("-requested_at")
 
         print(
             f"Total number of OPEN membership requests for this project: {len(open_membership_requests)}"
@@ -1985,6 +2066,12 @@ class ManageJoinProjectView(RetrieveUpdateDestroyAPIView):
                 return Response(
                     {"message": "Request Does Not Exist"},
                     status=status.HTTP_404_NOT_FOUND,
+                )
+
+            if request_manager.already_decided:
+                return Response(
+                    {"message": "Request has already been decided"},
+                    status=status.HTTP_409_CONFLICT,
                 )
 
             if request_manager.validation_failed:

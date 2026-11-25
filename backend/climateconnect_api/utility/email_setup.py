@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import List
@@ -13,10 +14,67 @@ from user_agents import parse as parse_user_agent
 
 logger = logging.getLogger(__name__)
 
-mailjet_send_api = Client(
-    auth=(settings.MJ_APIKEY_PUBLIC, settings.MJ_APIKEY_PRIVATE), version="v3.1"
-)
-mailjet_api = Client(auth=(settings.MJ_APIKEY_PUBLIC, settings.MJ_APIKEY_PRIVATE))
+
+class _ConsoleResponse:
+    """The parts of a Mailjet API response that our code reads."""
+
+    text = ""
+
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+    def json(self):
+        return {"Data": [{"ID": 0}]}
+
+
+class _ConsoleEndpoint:
+    def __init__(self, name):
+        self.name = name
+
+    def get(self, id=None, **kwargs):
+        return self._print("GET", id, None, 200)
+
+    def create(self, data=None, id=None, **kwargs):
+        # Mailjet answers 201 Created, except the Send API, which answers 200.
+        return self._print("POST", id, data, 200 if self.name == "send" else 201)
+
+    def _print(self, method, id, data, status_code):
+        data = json.loads(json.dumps(data, default=str))
+        for message in (data or {}).get("Messages", []):
+            for attachment in message.get("Attachments", []):
+                attachment["Base64Content"] = "<omitted>"
+        print(f"[Mailjet console] {method} {self.name} {id or ''}".rstrip())
+        if data:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+        return _ConsoleResponse(status_code)
+
+
+class ConsoleMailjetClient:
+    """
+    Stand-in for mailjet_rest.Client when no Mailjet API keys are configured,
+    e.g. in local development: prints every API call (including the emails'
+    template variables, such as activation links) instead of sending it.
+    """
+
+    def __getattr__(self, name):
+        return _ConsoleEndpoint(name)
+
+
+def _mailjet_client(**kwargs):
+    if settings.MJ_APIKEY_PUBLIC and settings.MJ_APIKEY_PRIVATE:
+        return Client(
+            auth=(settings.MJ_APIKEY_PUBLIC, settings.MJ_APIKEY_PRIVATE), **kwargs
+        )
+    # mailjet-rest rejects empty credentials when the client is created.
+    logger.warning(
+        "MJ_APIKEY_PUBLIC/MJ_APIKEY_PRIVATE not set: Mailjet API calls are printed "
+        "to the console instead of being sent"
+    )
+    return ConsoleMailjetClient()
+
+
+mailjet_send_api = _mailjet_client(version="v3.1")
+mailjet_api = _mailjet_client()
 
 
 def get_formatted_user_agent_info(user_agent_string):

@@ -18,6 +18,7 @@ import { getLocalePrefix } from "../../../../public/lib/apiOperations";
 import JoinButton from "./JoinButton";
 import theme from "../../../themes/theme";
 import EditEventRegistrationModal from "../EditEventRegistrationModal";
+import { JOIN_REQUESTS_CHANGED_EVENT } from "../../../../public/lib/joinRequestOperations";
 
 const MemberButtons = styled("div")({
   float: "right",
@@ -145,6 +146,14 @@ export default function ProjectContentSideButtons({
     (async () => {
       await refreshRequesters();
     })();
+  }, []);
+
+  // Refresh the badge when a request was decided in the join request dialog
+  useEffect(() => {
+    const handler = () => void refreshRequesters();
+    window.addEventListener(JOIN_REQUESTS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(JOIN_REQUESTS_CHANGED_EVENT, handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const ShowRequestsButton = () => {

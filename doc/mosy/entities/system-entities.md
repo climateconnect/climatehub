@@ -19,6 +19,7 @@ This document defines the core system entities for Climate Connect, serving as t
   - Has Many `UserBadge` (Gamification).
   - Has Many `Skill` (Capabilities).
   - Belongs to `Location`.
+  - Owns Many `RichTextImage` (uploads for rich-text descriptions).
 
 ### Role
 - **Definition**: Access control definition for members of groups.
@@ -63,6 +64,7 @@ This document defines the core system entities for Climate Connect, serving as t
   - Has Many `ProjectMember` (Team).
   - Has Many `Post` (Updates).
   - Has One `EventRegistrationConfig` (Registration configuration, introduced in [#1820](https://github.com/climateconnect/climateconnect/issues/1820)).
+  - Has Many `RichTextImageUsage` (images used in its description, any language version).
 
 ### EventRegistrationConfig
 - **Definition**: Event registration configuration. Presence of this record signals that registration is enabled for an event.
@@ -244,3 +246,36 @@ This document defines the core system entities for Climate Connect, serving as t
   - At most one goal per Twingle project id (unique constraint on non-blank values).
   - `current_amount` is edited by admins and incremented by the Twingle webhook (flow 11). The Twingle project mapping and the unit price aren't exposed by the public API.
 
+## 9. Rich-Text Images
+
+Images inside rich-text descriptions. v1: project description only; built to serve other rich-text fields (e.g. organisation description) without redesign. Spec: `doc/spec/20260708_1302_rich_text_image_support.md`.
+
+### RichTextImage
+- **Definition**: One uploaded image. Uploaded before and independently of the entity save; owned by the uploading user, not by a project or organisation.
+- **Properties**:
+  - `original`: Image file. The upload unchanged except for losslessly removed metadata (GPS, camera data); orientation kept. Never linked publicly.
+  - `variants`: JSON. Storage paths and real pixel sizes of the WebP variants (600 and 1200 px wide, never upscaled).
+  - `width`, `height`: Positive integers (original, after orientation).
+  - `file_size`: Positive integer (bytes); `format`: `jpeg` / `png` / `webp` (detected from content).
+  - `created_at`: DateTime (upload date).
+- **Relationships**:
+  - FK → `User` (owner), nullable, SET_NULL.
+  - Has Many `RichTextImageUsage`.
+- **Rules**:
+  - Referenced in stored HTML by its id (`data-image-id` on the `<img>`); the `<img>` carries the variant URLs (`srcset`, `src` = largest variant).
+  - Unused images (no usage) are kept; a cleanup job is a follow-up.
+  - When the owner's account is deleted, unused images are deleted and used images are kept with the owner cleared.
+  - Deleting an image deletes its original and variant files.
+
+### RichTextImageUsage
+- **Definition**: Records that an image appears in one rich-text field of one entity, in any of its language versions.
+- **Properties**:
+  - `field`: Choice (v1: `project_description`).
+  - `created_at`: DateTime.
+- **Relationships**:
+  - FK → `RichTextImage` (CASCADE).
+  - FK → `Project`, nullable (CASCADE: deleting the project unlinks its images, the images stay). Further entity types get their own nullable FK.
+- **Rules**:
+  - Exactly one entity FK is set. UNIQUE `(image, project, field)`.
+  - Maintained only by the save-time sync: after each save the usages are reconciled with the image ids found in the persisted HTML of the original and all translations.
+  - An image may be added to an entity's text only if the saving user owns it or it is already used in that entity.

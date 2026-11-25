@@ -67,6 +67,114 @@
     "en": "Remove",
     "de": "Entfernen"
   },
+  "rich_text_image_insert": {
+    "en": "Insert image",
+    "de": "Bild einfügen"
+  },
+  "rich_text_image_limit_reached": {
+    "en": "You can add up to 10 images.",
+    "de": "Du kannst bis zu 10 Bilder einfügen."
+  },
+  "rich_text_image_choose_file": {
+    "en": "Choose image",
+    "de": "Bild auswählen"
+  },
+  "rich_text_image_choose_other_file": {
+    "en": "Choose another image",
+    "de": "Anderes Bild auswählen"
+  },
+  "rich_text_image_file_hint": {
+    "en": "JPEG, PNG or WebP, up to 20 MB",
+    "de": "JPEG, PNG oder WebP, bis zu 20 MB"
+  },
+  "rich_text_image_alt_label": {
+    "en": "Image description (alt text)",
+    "de": "Bildbeschreibung (Alt-Text)"
+  },
+  "rich_text_image_alt_hint": {
+    "en": "Describe the image for people who can't see it. Credits belong in the caption.",
+    "de": "Beschreibe das Bild für Menschen, die es nicht sehen können. Bildnachweise gehören in die Bildunterschrift."
+  },
+  "rich_text_image_uploading": {
+    "en": "Uploading image…",
+    "de": "Bild wird hochgeladen…"
+  },
+  "rich_text_image_processing": {
+    "en": "Processing image…",
+    "de": "Bild wird verarbeitet…"
+  },
+  "rich_text_image_cancel": {
+    "en": "Cancel",
+    "de": "Abbrechen"
+  },
+  "rich_text_image_save": {
+    "en": "Save",
+    "de": "Speichern"
+  },
+  "rich_text_image_error_unsupported_type": {
+    "en": "Please choose a JPEG, PNG or WebP image.",
+    "de": "Bitte wähle ein JPEG-, PNG- oder WebP-Bild."
+  },
+  "rich_text_image_error_file_too_large": {
+    "en": "The image is larger than 20 MB.",
+    "de": "Das Bild ist größer als 20 MB."
+  },
+  "rich_text_image_error_too_many_pixels": {
+    "en": "The image resolution is too high.",
+    "de": "Die Auflösung des Bildes ist zu hoch."
+  },
+  "rich_text_image_error_unreadable_image": {
+    "en": "The image could not be read. Please try another file.",
+    "de": "Das Bild konnte nicht gelesen werden. Bitte versuche eine andere Datei."
+  },
+  "rich_text_image_error_too_many_requests": {
+    "en": "You've uploaded a lot of images in a short time. Please try again later.",
+    "de": "Du hast in kurzer Zeit viele Bilder hochgeladen. Bitte versuche es später noch einmal."
+  },
+  "rich_text_image_error_generic": {
+    "en": "The upload failed. Please try again.",
+    "de": "Das Hochladen ist fehlgeschlagen. Bitte versuche es noch einmal."
+  },
+  "rich_text_image_caption_placeholder": {
+    "en": "Add a caption (e.g. image credits)",
+    "de": "Bildunterschrift hinzufügen (z. B. Bildnachweis)"
+  },
+  "rich_text_image_size_small": {
+    "en": "Small",
+    "de": "Klein"
+  },
+  "rich_text_image_size_medium": {
+    "en": "Medium",
+    "de": "Mittel"
+  },
+  "rich_text_image_size_full": {
+    "en": "Full width",
+    "de": "Volle Breite"
+  },
+  "rich_text_image_align_left": {
+    "en": "Align left",
+    "de": "Linksbündig"
+  },
+  "rich_text_image_align_center": {
+    "en": "Center",
+    "de": "Zentriert"
+  },
+  "rich_text_image_align_right": {
+    "en": "Align right",
+    "de": "Rechtsbündig"
+  },
+  "rich_text_image_edit_alt": {
+    "en": "Edit alt text",
+    "de": "Alt-Text bearbeiten"
+  },
+  "rich_text_image_missing_alt": {
+    "en": "This image has no alt text yet",
+    "de": "Dieses Bild hat noch keinen Alt-Text"
+  },
+  "rich_text_image_remove": {
+    "en": "Remove image",
+    "de": "Bild entfernen"
+  },
   "table_insert_column_before": {
     "en": "Insert column before",
     "de": "Spalte davor einfügen"

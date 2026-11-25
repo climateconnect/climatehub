@@ -13,9 +13,25 @@ from climateconnect_api.utility.translation import get_user_lang_url
 
 PRODID = "-//Climate Hub Network//EN"
 
+# Query params that are part of a feed subscription and therefore covered by
+# the feed token signature. Location params mirror the browse page filter.
+FEED_PARAM_KEYS = (
+    "hub",
+    "sectors",
+    "search",
+    "date",
+    "tz",
+    "lang",
+    "osm_id",
+    "osm_type",
+    "osm_class",
+    "place_id",
+    "radius",
+)
+
 
 def canonicalize_query(params: dict) -> str:
-    allowed_keys = {"hub", "sectors", "search", "date", "tz", "lang"}
+    allowed_keys = set(FEED_PARAM_KEYS)
     filtered = {}
     for k, v in params.items():
         if k in allowed_keys and v is not None and v != "":

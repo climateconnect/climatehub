@@ -32,6 +32,17 @@ const CallToActionText = styled(Typography)(({ theme }) => ({
   fontSize: 20,
   [theme.breakpoints.down("sm")]: {
     fontSize: 15,
+    paddingRight: 0,
+    paddingLeft: 0,
+  },
+}));
+
+// On phones only the bar needs the side margin to stay clear of the close button,
+// so the call to action text can use the full width
+const CampaignDonationGoal = styled(DonationGoal)(({ theme }) => ({
+  [theme.breakpoints.down("sm")]: {
+    paddingRight: "40px",
+    paddingLeft: "40px",
   },
 }));
 
@@ -61,14 +72,18 @@ const DonateButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const TextAndBarContainer = styled("div")({
+const TextAndBarContainer = styled("div")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-around",
   alignItems: "center",
   marginRight: "40px",
   marginLeft: "40px",
-});
+  [theme.breakpoints.down("sm")]: {
+    marginRight: 0,
+    marginLeft: 0,
+  },
+}));
 
 type Props = {
   hubUrl?: string;
@@ -102,7 +117,7 @@ export default function DonationCampaignInformation({ hubUrl }: Props) {
           <div>
             <TextAndBarContainer>
               {donationGoal && (
-                <DonationGoal
+                <CampaignDonationGoal
                   current={donationGoal?.current_amount}
                   goal={donationGoal?.goal_amount}
                   name={donationGoal?.goal_name}

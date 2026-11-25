@@ -45,6 +45,8 @@ type Props = {
   search: string;
   sectors: string[];
   date: string;
+  /** Location filter params (osm_id, osm_type, osm_class, radius), signed into the feed URL. */
+  locationParams?: Record<string, string>;
   variant?: "button" | "icon";
   defaultOpen?: boolean;
 };
@@ -55,6 +57,7 @@ export default function SubscribeToCalendarButton({
   search,
   sectors,
   date,
+  locationParams,
   variant = "button",
   defaultOpen = false,
 }: Props) {
@@ -74,6 +77,7 @@ export default function SubscribeToCalendarButton({
       if (sectors.length) params.sectors = sectors.join(",");
       if (search) params.search = search;
       if (date) params.date = date;
+      Object.assign(params, locationParams || {});
       params.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       params.lang = locale;
 
@@ -96,7 +100,7 @@ export default function SubscribeToCalendarButton({
       buildAndFetchUrl();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, hubUrl, search, sectors.join(","), date, locale]);
+  }, [open, hubUrl, search, sectors.join(","), date, locale, JSON.stringify(locationParams || {})]);
 
   const handleCopy = async () => {
     if (!feedUrl) return;
