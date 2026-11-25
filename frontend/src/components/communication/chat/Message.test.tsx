@@ -110,3 +110,33 @@ describe("Message organization origin chip", () => {
     expect(screen.getByText(/Diese Nachricht betrifft die Organisation/)).toBeInTheDocument();
   });
 });
+
+describe("Message membership request origin chip", () => {
+  const membershipRequestOrigin = () => {
+    mockApiRequest.mockResolvedValue({
+      data: { project_name: "Solar Roofs", project_url_slug: "solar-roofs", request_status: 0 },
+    });
+    return { origin_type: "membership_request", origin_id: nextId++ };
+  };
+
+  it("renders the join request line linking to the project", async () => {
+    renderMessage(membershipRequestOrigin());
+    await waitFor(() => expect(screen.getByText("Solar Roofs")).toBeInTheDocument());
+    expect(screen.getByText(/via join request for/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Solar Roofs" })).toHaveAttribute(
+      "href",
+      "/projects/solar-roofs"
+    );
+    expect(mockApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: expect.stringMatching(/^\/api\/chat\/origin\/membership_request\/\d+\/$/),
+      })
+    );
+  });
+
+  it("renders German wording", async () => {
+    renderMessage(membershipRequestOrigin(), "de");
+    await waitFor(() => expect(screen.getByText("Solar Roofs")).toBeInTheDocument());
+    expect(screen.getByText(/über die Beitrittsanfrage für/)).toBeInTheDocument();
+  });
+});

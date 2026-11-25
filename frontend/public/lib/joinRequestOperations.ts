@@ -24,6 +24,8 @@ export type JoinRequestDetail = {
   is_admin: boolean;
   // only present for project admins
   decided_by?: JoinRequestUserStub | null;
+  // only present for project admins; null until an admin responded
+  response_chat_uuid?: string | null;
 };
 
 export async function getJoinRequest(
@@ -55,4 +57,20 @@ export async function decideJoinRequest(
     token,
     payload: {},
   });
+}
+
+export async function respondToJoinRequest(
+  urlSlug: string,
+  requestId: number | string,
+  locale: string,
+  token?: string
+): Promise<{ chat_uuid: string; created: boolean }> {
+  const resp = await apiRequest<{ chat_uuid: string; created: boolean }>({
+    method: "post",
+    url: `/api/projects/${urlSlug}/request_membership/${requestId}/respond/`,
+    locale: locale as any,
+    token,
+    payload: {},
+  });
+  return resp.data;
 }

@@ -1351,11 +1351,11 @@ A duplicate request returns `400` ("Request already exists to join project"). Su
 
 `GET /api/projects/<url_slug>/join_requests/<request_id>/` (authenticated)
 
-Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, is_admin }`
+Response: `{ id, user_profile, message, requested_at, request_status, decided_at, decided_by, response_chat_uuid, is_admin }`
 
 - `request_status`: `pending` | `approved` | `rejected`; `decided_at` is the approval/rejection time or `null`; `message` is `""` if none (plain text, returned as stored).
 - Project admins (active members with role type All or ReadWrite; inactive members are treated like any other user) get the full payload including `decided_by` (profile stub or `null`).
-- The requesting user can read their own request; `decided_by` is **omitted** from their response.
+- The requesting user can read their own request; `decided_by` is **omitted** from their response. `response_chat_uuid` (chat UUID or `null`, issue #2311) is likewise admin-only.
 - Anyone else: `403` (`401` if not authenticated). `404` if the project/request doesn't exist or the request belongs to another project or an organization.
 
 `GET /api/projects/<url_slug>/requesters/` (admins) lists open requests, newest first, now with `message` and `requested_at` in addition to `id` and `user_profile`.

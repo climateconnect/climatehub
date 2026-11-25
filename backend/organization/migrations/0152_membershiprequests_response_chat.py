@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("chat_messages", "0019_message_origin_fields"),
-        ("organization", "0150_membershiprequests_decided_by"),
+        ("organization", "0151_organization_image_variants_project_image_variants"),
     ]
 
     operations = [

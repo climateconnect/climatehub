@@ -7,15 +7,31 @@ import theme from "../../themes/theme";
 import UserContext from "../context/UserContext";
 import FeedbackContext from "../context/FeedbackContext";
 import JoinRequestDetailDialog from "./JoinRequestDetailDialog";
-import { decideJoinRequest, getJoinRequest } from "../../../public/lib/joinRequestOperations";
+import {
+  decideJoinRequest,
+  getJoinRequest,
+  respondToJoinRequest,
+} from "../../../public/lib/joinRequestOperations";
 
 jest.mock("universal-cookie", () => {
   return jest.fn().mockImplementation(() => ({ get: () => "token" }));
 });
 jest.mock("../../../public/lib/joinRequestOperations");
 
+const mockPush = jest.fn();
+jest.mock("next/router", () => ({ useRouter: () => ({ push: mockPush }) }));
+
+let mockRespondEnabled = false;
+jest.mock("../featureToggle", () => ({
+  useFeatureToggles: () => ({
+    isEnabled: (name: string, fallback: boolean) =>
+      name === "PROJECT_JOIN_REQUEST_RESPOND_CHAT" ? mockRespondEnabled : fallback,
+  }),
+}));
+
 const mockedGet = getJoinRequest as jest.Mock;
 const mockedDecide = decideJoinRequest as jest.Mock;
+const mockedRespond = respondToJoinRequest as jest.Mock;
 
 const profile = (slug: string) => ({
   url_slug: slug,
@@ -58,6 +74,9 @@ describe("JoinRequestDetailDialog", () => {
   beforeEach(() => {
     mockedGet.mockReset();
     mockedDecide.mockReset();
+    mockedRespond.mockReset();
+    mockPush.mockReset();
+    mockRespondEnabled = false;
   });
 
   it("renders fields, message as text, and admin actions for a pending request", async () => {
@@ -153,5 +172,47 @@ describe("JoinRequestDetailDialog", () => {
     renderDialog(null);
     expect(screen.getByText("Please log in to view this join request.")).toBeInTheDocument();
     expect(mockedGet).not.toHaveBeenCalled();
+  });
+
+  describe("Respond", () => {
+    it("starts the chat and navigates to it", async () => {
+      mockRespondEnabled = true;
+      mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null, is_admin: true });
+      mockedRespond.mockResolvedValue({ chat_uuid: "abc-123", created: true });
+      renderDialog();
+      fireEvent.click(await screen.findByRole("button", { name: "Respond" }));
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/chat/abc-123/"));
+      expect(mockedRespond).toHaveBeenCalledWith("proj", 7, "en", "token");
+    });
+
+    it("shows inline error on failure", async () => {
+      mockRespondEnabled = true;
+      mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null, is_admin: true });
+      mockedRespond.mockRejectedValue({ response: { status: 403 } });
+      jest.spyOn(console, "log").mockImplementation(() => {});
+      renderDialog();
+      fireEvent.click(await screen.findByRole("button", { name: "Respond" }));
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it("shows the indicator only when a chat exists", async () => {
+      mockRespondEnabled = true;
+      mockedGet.mockResolvedValue({
+        ...baseRequest,
+        decided_by: null,
+        is_admin: true,
+        response_chat_uuid: "abc-123",
+      });
+      renderDialog();
+      expect(await screen.findByText("Conversation started")).toBeInTheDocument();
+    });
+
+    it("renders no button when the toggle is off or the viewer is not an admin", async () => {
+      mockedGet.mockResolvedValue({ ...baseRequest, decided_by: null, is_admin: true });
+      renderDialog();
+      await screen.findByText(/alice Doe/);
+      expect(screen.queryByRole("button", { name: "Respond" })).not.toBeInTheDocument();
+    });
   });
 });
