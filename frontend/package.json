@@ -27,7 +27,7 @@
     "@floating-ui/dom": "^1.0.0",
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
-    "@mui/x-data-grid": "^7.29.13",
+    "@mui/x-data-grid": "^9.18.0",
     "@mui/x-date-pickers": "^7.29.4",
     "@next/bundle-analyzer": "^15.5.23",
     "@sentry/nextjs": "^10.75.2",
