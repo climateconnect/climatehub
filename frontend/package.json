@@ -100,7 +100,7 @@
     "@types/react-linkify": "^1.0.1",
     "@types/react-mentions": "^4.1.8",
     "@types/react-timeago": "^4.1.3",
-    "@webflow/webflow-cli": "^2.3.0",
+    "@webflow/webflow-cli": "^2.18.0",
     "babel-loader": "^8.2.2",
     "eslint": "^8.0.0",
     "eslint-import-resolver-typescript": "^4.4.4",
