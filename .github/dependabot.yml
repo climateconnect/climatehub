@@ -11,14 +11,9 @@ updates:
       day: "sunday"
     target-branch: "master"
 
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-    target-branch: "master"
-    labels:
-      - "pip dependencies"
+  # No backend (Python) entry: Dependabot cannot update pdm.lock. Security
+  # alerts for the backend come from the backend-dependency-submission
+  # workflow instead.
 
   - package-ecosystem: "npm"
     directory: "/frontend"
