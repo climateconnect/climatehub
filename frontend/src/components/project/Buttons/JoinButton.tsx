@@ -48,7 +48,7 @@ type Props = {
   hasAdminPermissions?: Boolean;
   screenSize?: any;
   // With a message the request is sent from the confirmation dialog; resolves to true if the
-  // dialog should close. Without arguments it sends the legacy default message.
+  // dialog should close. Without arguments it sends the request with an empty message.
   handleSendProjectJoinRequest: (_message?: string) => Promise<boolean | void> | void;
   requestedToJoin: boolean;
   className?: string;

@@ -319,6 +319,17 @@ All email template variables follow the pattern: `{TEMPLATE_NAME}_TEMPLATE_ID[_D
 | `OrganiserName` | Organisation name, or organiser's full name / username |
 | `OrganizerMessage` | The plain-text cancellation message provided by the admin |
 
+**Project join request template variables** (define in both EN and DE Mailjet templates, `PROJECT_JOIN_REQUEST_TEMPLATE_ID` and `PROJECT_JOIN_REQUEST_TEMPLATE_ID_DE`; email to project admins, issue #2308):
+| Variable | Content |
+|---|---|
+| `RequesterName` | Full name of the user who requested to join |
+| `FirstName` | Recipient's (the project admin's) first name |
+| `ProjectName` | Name of the project |
+| `url` | Language-aware link to the project page that opens the join requests (`?show_join_requests=true`, plus `&hub=...` for hub users) |
+| `RequesterMessage` | The optional message the requester wrote. **Plain text**, exactly as stored (no escaping, no `<br>`, line breaks as `\n`). Always sent; **empty string** when the request has no message. Print it with normal double braces (`{{var:RequesterMessage}}`, no `Escape()`) inside an element with `white-space: pre-wrap` so line breaks stay visible; the drag-and-drop text block cannot carry that style, so use a **raw HTML block** that repeats the template's own text styling. Wrap the block in `{% if var:RequesterMessage:"" != "" %}...{% endif %}` so nothing is shown when it is empty, and **keep the `:""` default** so the template does not fail if the variable is ever missing. |
+
+The templates are edited manually in the Mailjet dashboard (they are not in the repo). The deploy order does not matter as long as the condition keeps the empty-string default (`var:RequesterMessage:""`): a template that runs before the backend sends the variable treats it as empty and hides the block, and sending the variable to a template that does not use it yet is harmless. Without the default, Mailjet raises a template error for the undefined variable and blocks the email.
+
 The email envelope `Subject` header is set directly to the organiser-provided subject (no wrapping platform prefix). These templates must be created in Mailjet and their IDs configured before any organiser emails will be delivered.
 
 **Template Configuration**:

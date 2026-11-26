@@ -365,8 +365,8 @@ export default function ProjectPageRoot({
         method: "post",
         url: `/api/projects/${strippedProjectName}/request_membership/${user.url_slug}/`,
         payload: {
-          // Without a message (legacy flow, toggle off) keep sending the old default text
-          message: message ?? "Would like to join the project!",
+          // Without a message (legacy flow, toggle off) an empty message is sent
+          message: message ?? "",
           // TODO: currently, we default user's availability to 4. In
           // the future, we could consider customizing this option
           user_availability: "4",
