@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:d54c5ee4a76a5a345627ce2c68a0798063af4c432d4055cf0cf972aa95458892"
+content_hash = "sha256:946617e9bec5e462265fc5d47d6c62d531e2bb96b99931fa713b11d06b0c2917"
 
 [[metadata.targets]]
 requires_python = ">=3.12"
@@ -207,13 +207,13 @@ files = [
 
 [[package]]
 name = "billiard"
-version = "4.3.2"
-requires_python = ">=3.10"
+version = "4.2.4"
+requires_python = ">=3.7"
 summary = "Python multiprocessing fork with improvements and bugfixes"
 groups = ["default"]
 files = [
-    {file = "billiard-4.3.2-py3-none-any.whl", hash = "sha256:37735a7b4117aafa73532b3b493db4c02fb85c0e69d5f3447f113fd30ff27872"},
-    {file = "billiard-4.3.2.tar.gz", hash = "sha256:9eb83c99b1cf7acb1fed86c1dfd477157000a1a2c0108005c1e5837b55d2acba"},
+    {file = "billiard-4.2.4-py3-none-any.whl", hash = "sha256:525b42bdec68d2b983347ac312f892db930858495db601b5836ac24e6477cde5"},
+    {file = "billiard-4.2.4.tar.gz", hash = "sha256:55f542c371209e03cd5862299b74e52e4fbcba8250ba611ad94276b369b6a85f"},
 ]
 
 [[package]]
