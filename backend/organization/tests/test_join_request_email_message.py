@@ -98,6 +98,8 @@ class SendJoinProjectRequestEmailMessageTest(TestCase):
             'I <3 climate & Tom &amp; Jerry "quoted"',
             "&lt;script&gt;alert(1)&lt;/script&gt;",
             "line1\nline2",
+            # The create endpoint normalises \r\n on write, so the API never stores it;
+            # rows from other paths (e.g. Django admin) can, and must pass through unchanged.
             "line1\r\nline2\n\nline4",
             "Planet 🌍 und Umlaute: äöüß",
             "Ampersand & less < greater > 'single' \"double\"",

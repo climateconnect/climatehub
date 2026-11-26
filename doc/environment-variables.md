@@ -325,10 +325,10 @@ All email template variables follow the pattern: `{TEMPLATE_NAME}_TEMPLATE_ID[_D
 | `RequesterName` | Full name of the user who requested to join |
 | `FirstName` | Recipient's (the project admin's) first name |
 | `ProjectName` | Name of the project |
-| `url` | Language-aware link to the project's join requests (`?show_join_requests=true`, plus `&hub=...` for hub users) |
-| `RequesterMessage` | The optional message the requester wrote. **Plain text**, exactly as stored (no escaping, no `<br>`, line breaks as `\n`). Always sent; **empty string** when the request has no message. Show it as text (double braces, no raw-HTML form, no `Escape()`) inside a `div` with `white-space: pre-wrap` so line breaks stay visible, and wrap the block in `{% if var:RequesterMessage != "" %}...{% endif %}` so nothing is shown when it is empty. |
+| `url` | Language-aware link to the project page that opens the join requests (`?show_join_requests=true`, plus `&hub=...` for hub users) |
+| `RequesterMessage` | The optional message the requester wrote. **Plain text**, exactly as stored (no escaping, no `<br>`, line breaks as `\n`). Always sent; **empty string** when the request has no message. Print it with normal double braces (`{{var:RequesterMessage}}`, no `Escape()`) inside an element with `white-space: pre-wrap` so line breaks stay visible; the drag-and-drop text block cannot carry that style, so use a **raw HTML block** that repeats the template's own text styling. Wrap the block in `{% if var:RequesterMessage:"" != "" %}...{% endif %}` so nothing is shown when it is empty, and **keep the `:""` default** so the template does not fail if the variable is ever missing. |
 
-The templates are edited manually in the Mailjet dashboard (they are not in the repo). Deploy the backend **before or together with** the template edit: sending the new variable to a template that does not use it yet is harmless, but a template that references `RequesterMessage` before the backend sends it raises a Mailjet template error.
+The templates are edited manually in the Mailjet dashboard (they are not in the repo). The deploy order does not matter as long as the condition keeps the empty-string default (`var:RequesterMessage:""`): a template that runs before the backend sends the variable treats it as empty and hides the block, and sending the variable to a template that does not use it yet is harmless. Without the default, Mailjet raises a template error for the undefined variable and blocks the email.
 
 The email envelope `Subject` header is set directly to the organiser-provided subject (no wrapping platform prefix). These templates must be created in Mailjet and their IDs configured before any organiser emails will be delivered.
 

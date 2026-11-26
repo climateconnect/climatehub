@@ -358,7 +358,8 @@ def send_join_project_request_email(user, request, requester, notification, hub_
         - ``RequesterName``    — full name of the user who requested to join
         - ``FirstName``        — recipient's (the admin's) first name
         - ``ProjectName``      — name of the project
-        - ``url``              — language-aware link to the project's join requests
+        - ``url``              — language-aware link to the project page that opens
+          the join requests (``?show_join_requests=true``, plus ``&hub=`` for hub users)
         - ``RequesterMessage`` — the optional message the requester wrote, as plain
           text exactly as stored (no escaping, no ``<br>``).  Always present;
           an empty string when the request has no message (``""`` or ``NULL``).
