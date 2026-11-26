@@ -1,6 +1,6 @@
 # Project Join Requests — 2. Include the optional message in the email to admins
 
-**Status**: IMPLEMENTATION (spec complete, no open questions; branch `send-optional-join-request-message-in-email`)
+**Status**: CODE_REVIEW (implementation committed on branch `send-optional-join-request-message-in-email`; manual local tests passed)
 **Type**: Full-stack, small: backend email variable + frontend default-message removal + manual Mailjet template change (EN + DE)
 **Date created**: 2026-11-26
 **GitHub Issue**: [#2308](https://github.com/climateconnect/climatehub/issues/2308) (milestone "Join Requests v2")
@@ -65,7 +65,7 @@ Consequence: with the toggle off nobody has a message, so the admin email stays 
 - **AC-1.4** The stored message is never modified, neither in the database or API responses nor when building the email variables (apart from `NULL` becoming `""`, AC-1.2).
 - **AC-1.5** All existing variables (`RequesterName`, `FirstName`, `ProjectName`, `url`), the subject lines, the user-setting check (`email_on_join_request`) and the hub handling are unchanged.
 - **AC-1.6** The message is **not** added to the in-app notification text (`Notification.text`) or anywhere else. Scope is the email only.
-- **AC-1.7** Deploy-order: sending the new variable to a template that does not (yet) reference it is harmless, so the **backend can go live before the template edit**. The reverse order is **not** safe: the templates follow the existing convention (no default values, as in the event templates), and Mailjet raises a template error for a completely undefined variable. So the template edit must happen **after or together with** the backend deployment.
+- **AC-1.7** Deploy order: the real template uses `{% if var:RequesterMessage:"" != "" %}` (with the empty-string default), so a template that runs before the backend is deployed treats the missing variable as empty and skips the block instead of raising a template error. Sending the new variable to a template that does not reference it is harmless. Either order is therefore safe, **provided the default `:""` is kept in the template** (without it Mailjet raises an error for an undefined variable and blocks the email). Verify once in the Mailjet preview with `RequesterMessage` removed from the test variables.
 
 ### AC-2: Frontend: old default message is gone
 
@@ -79,7 +79,7 @@ Consequence: with the toggle off nobody has a message, so the admin email stays 
 
 - **AC-3.1** Both templates (`PROJECT_JOIN_REQUEST_TEMPLATE_ID` EN and `..._DE`) show the message block **only when the message is non-empty**.
 - **AC-3.2** The template prints `RequesterMessage` with the normal double-brace output inside a `div` (as text), never with a raw-HTML variable form, and without wrapping functions.
-- **AC-3.3** Line breaks typed by the requester are visible: the `div` that holds the message preserves line breaks through its styling (`white-space: pre-wrap`). **Manual test result (2026-11-26): not met in the rendered email, accepted as a known limitation** (maintainer). The backend delivers the `\n` characters unchanged (covered by backend tests), so this is purely a rendering matter in the Mailjet template or mail client. Not a blocker; a possible follow-up is the template or a `<br>` conversion in the backend.
+- **AC-3.3** Line breaks typed by the requester are visible: the element that holds the message preserves line breaks through its styling (`white-space: pre-wrap`). **Manual test result (2026-11-26): met.** The Mailjet drag-and-drop text block cannot carry that style, so each template uses a **raw HTML block** that repeats the template's own text styling (side padding 25px, Verdana 13px wrapper, message in Open Sans 15px / line-height 22px / colour `#55575d`, centred) and holds the message in a `span` with `display:block; white-space:pre-wrap`. `{% if %}` and `{% endif %}` enclose whole elements, so an empty message leaves no stray markup.
 - **AC-3.4** A request without a message renders an email with **no** message block, no heading and no empty quotation marks.
 - **AC-3.0** Testing set-up: local development uses the **same Mailjet templates** as the other environments, so the maintainer edits the templates once, before local testing; the special-character check (AC-3.5) is then done locally with real join requests. Implementation must therefore be testable locally with the real send path (no mocking in manual tests). Until the maintainer has edited the templates, the backend variable is simply ignored (AC-1.7).
 - **AC-3.5** Both templates are verified with Mailjet's preview/test send for: with message, without message, and a message with special characters and line breaks as they can really be stored (`I <3 climate & Tom &amp; Jerry "quoted"`, entity-encoded text like `&lt;script&gt;`, emoji, several lines). Expected: the text appears exactly as written, nothing is interpreted as markup, and the lines stay separate. **If the preview shows any character mangled or interpreted as markup, stop and report it: the spec then needs the escaping variant (backend escapes before sending).**
@@ -269,6 +269,7 @@ Verified accurate: the only occurrence of the old default in application code is
 | 2026-11-26 | Correction of the reference hint (twice): there are two cancellation flows. Admin cancels a guest: optional message goes into the Mailjet variable `OrganizerMessage` (email only triggered when a message is given), this is the model. Guest self-cancels: optional message is stored as `cancellation_reason` and sent to the organiser as a chat message, no Mailjet variable, not a model. Hint reworded accordingly. |
 | 2026-11-26 | All questions resolved. Maintainer will edit the Mailjet templates himself and test locally (same templates locally and elsewhere), including the special-character check. Spec committed on branch `send-optional-join-request-message-in-email`; status set to IMPLEMENTATION; handed to an implementation sub-agent. |
 | 2026-11-26 | Implementation done by sub-agent (backend variable, frontend default removed, tests, env docs); verified independently: 30 backend and 24 frontend tests pass, formatting clean. Maintainer's manual local tests with the edited templates passed (message shown, no-message email without block, special characters as written). Only line breaks do not show in the rendered email: accepted as a known limitation (AC-3.3). Open point noted: Mailjet blocks an email on an undefined variable without default, so the template edit must not reach production before the backend (see AC-1.7), unless defaults are added to the template. |
+| 2026-11-26 | Maintainer fixed line breaks by using a raw HTML block in the Mailjet templates (text block cannot hold `white-space`); template also uses the `:""` default in the condition, so deploy order is safe (AC-1.7). Manual tests passed; implementation committed (`dc0611496`). Status set to CODE_REVIEW; review delegated to a sub-agent. |
 
 ## AI Agent Insights and Additions
 
@@ -294,3 +295,4 @@ Verified accurate: the only occurrence of the old default in application code is
 | 0.7 (Draft) | 2026-11-26 | Reference-implementation hint (admin cancellation email) added to AC-1; `doc/mosy/` flow change approved, optional entity note skipped. |
 | 0.8 | 2026-11-26 | Status IMPLEMENTATION; AC-3.0 (testing set-up with shared templates) added; open questions closed. |
 | 0.9 | 2026-11-26 | Manual test results recorded; AC-3.3 line breaks accepted as known limitation. |
+| 1.0 | 2026-11-26 | Status CODE_REVIEW; AC-3.3 met via raw HTML block; AC-1.7 updated (default in template makes deploy order safe). |
