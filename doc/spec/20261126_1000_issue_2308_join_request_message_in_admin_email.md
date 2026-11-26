@@ -1,6 +1,6 @@
 # Project Join Requests — 2. Include the optional message in the email to admins
 
-**Status**: CODE_REVIEW (implementation committed on branch `send-optional-join-request-message-in-email`; manual local tests passed)
+**Status**: VALIDATION (implementation committed on branch `send-optional-join-request-message-in-email`; manual local tests passed; code review: approve with minor changes, fixed)
 **Type**: Full-stack, small: backend email variable + frontend default-message removal + manual Mailjet template change (EN + DE)
 **Date created**: 2026-11-26
 **GitHub Issue**: [#2308](https://github.com/climateconnect/climatehub/issues/2308) (milestone "Join Requests v2")
@@ -94,7 +94,7 @@ Consequence: with the toggle off nobody has a message, so the admin email stays 
 ### AC-5: Documentation
 
 - **AC-5.1** `doc/environment-variables.md`: add a "Project join request template variables" table (EN and DE templates) in the style of the existing template tables, listing `RequesterName`, `FirstName`, `ProjectName`, `url` and the new `RequesterMessage` (plain text, may be empty, show it as text in a `div` with `white-space: pre-wrap`, wrap in a condition).
-- **AC-5.2** `doc/mosy/flows/project-join-request-flow.md`: replace the statement that the legacy flow sends the default message "Would like to join the project!" with the new behaviour (empty message), and mention that the admin email includes the message when present.
+- **AC-5.2** `doc/mosy/flows/project-join-request-flow.md`: replace the statement that the legacy flow sends the default message "Would like to join the project!" with the new behaviour (empty message), and mention that the admin email includes the message when present. **Done 2026-11-26** (applied by Archie in VALIDATION; also adds a short "Notification of project admins" section).
 - **AC-5.3** The docstring of `send_join_project_request_email` lists the Mailjet variables (same style as `send_organizer_message_to_guest`).
 
 ---
@@ -106,8 +106,9 @@ Consequence: with the toggle off nobody has a message, so the admin email stays 
 ### How it works (what matters for the instructions)
 
 - The backend already sends `"TemplateLanguage": true`, so Mailjet's template language is active: `{{var:Name}}` prints a variable, `{% if ... %} ... {% endif %}` is a condition. (Source: Mailjet Template Language Reference, dev.mailjet.com.)
-- **Follow the pattern of the existing templates.** The backend always sends the variable (empty string when there is no message), so the template needs no default values and uses the same condition style as the event emails, e.g. `{% if var:OrganizerMessage != "" %}{{var:OrganizerMessage}}{% endif %}` (admin cancellation) and `{% if var:OrganiserName != "" %}...{% endif %}`.
-- **Plain text in a `div`.** The backend sends `RequesterMessage` as plain text, exactly as the requester wrote it. The template prints it with normal double braces inside a `div` (like `{{var:OrganizerMessage}}` in the cancellation template). Do not use a raw-HTML variable form and do not wrap it in `Escape()`. Line breaks are kept by `white-space: pre-wrap` on the `div`.
+- **Follow the pattern of the existing templates.** The backend always sends the variable (empty string when there is no message), so the template could do without default values and use the same condition style as the event emails, e.g. `{% if var:OrganizerMessage != "" %}{{var:OrganizerMessage}}{% endif %}` (admin cancellation) and `{% if var:OrganiserName != "" %}...{% endif %}`. **For this template the `:""` default is added on purpose** (see below and AC-1.7), because production shares the template and may run it before the backend is deployed.
+- **Use the `:""` default in the condition** (`var:RequesterMessage:""`): Mailjet raises an error for an undefined variable without a default, so the default makes the template safe even before the backend sends the variable (AC-1.7).
+- **Plain text in a `div`.** The backend sends `RequesterMessage` as plain text, exactly as the requester wrote it. The template prints it with normal double braces inside a `div` (like `{{var:OrganizerMessage}}` in the cancellation template). Do not use a raw-HTML variable form (triple braces) and do not wrap it in `Escape()`. Line breaks are kept by `white-space: pre-wrap` on the element that holds the message, which requires a raw HTML block in the template (see steps).
 - Unused variables sent by the backend are ignored, so the backend may go live **before** the template edit. Not the other way round: a template that references a variable the backend does not send yet raises a template error (see AC-1.7).
 
 ### New variable
@@ -120,44 +121,40 @@ Existing variables (unchanged): `RequesterName`, `FirstName`, `ProjectName`, `ur
 
 The name is case-sensitive and must match exactly between template and backend.
 
-### Steps
+### Steps (as implemented and tested)
 
-1. Mailjet → **Transactional** → **Templates**. Open the template with the ID from `PROJECT_JOIN_REQUEST_TEMPLATE_ID` (EN). Edit it in place (do not create a new one, the ID must stay). Tip: duplicate it first as a backup.
-2. Decide where the message goes: **between the sentence "<name> requested to join <project>" and the button/link** that opens the project. Keep it visually secondary to the button.
-3. Add the block. In the drag-and-drop editor use three consecutive blocks, because a condition may open and close in different blocks:
-   1. a **Template Language** block containing exactly: `{% if var:RequesterMessage != "" %}`
-   2. a **Text** (or HTML) block with the visible content, see below
-   3. a **Template Language** block containing exactly: `{% endif %}`
-
-   Visible content (adapt the look to the template). If the **Text** block cannot keep line breaks, use the HTML block variant below instead; the message must sit in a `div` with `white-space: pre-wrap`:
+1. Mailjet → **Transactional** → **Templates**. Open the template with the ID from `PROJECT_JOIN_REQUEST_TEMPLATE_ID` (EN). Edit it in place (the ID must stay).
+2. Put the message block **between the sentence "<name> requested to join <project>" and the button/link**. The drag-and-drop **text block cannot carry `white-space: pre-wrap`**, so use a **raw HTML block** that repeats the template's own text styling (side padding 25px, Verdana 13px wrapper, Open Sans 15px / line-height 22px / colour `#55575d`, centred, message in italics):
 
    ```
-   Message from {{var:RequesterName}}:
-   {{var:RequesterMessage}}
-   ```
-
-   If you prefer a single HTML block (keep condition and HTML together in the same HTML block as Mailjet recommends):
-
-   ```
-   {% if var:RequesterMessage != "" %}
-   <p style="margin:0 0 4px 0;"><strong>Message from {{var:RequesterName}}:</strong></p>
-   <div style="margin:0 0 16px 0; padding:8px 16px; border-left:4px solid #cccccc; white-space:pre-wrap;">{{var:RequesterMessage}}</div>
+   {% if var:RequesterMessage:"" != "" %}
+   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+     <tr>
+       <td align="left" style="font-size:0px;padding:0px 25px 0px 25px;word-break:break-word;">
+         <div style="font-family:Verdana, Helvetica, Arial, sans-serif;font-size:13px;letter-spacing:normal;line-height:1;text-align:left;color:#000000;">
+           <p style="text-align:center;margin:10px 0 0 0;">
+             <span style="color:#55575d;font-family:'Open Sans', Arial, sans-serif;font-size:15px;line-height:22px;">Message from {{var:RequesterName}}:</span>
+           </p>
+           <p style="text-align:center;margin:10px 0 10px 0;">
+             <span style="display:block;white-space:pre-wrap;color:#55575d;font-family:'Open Sans', Arial, sans-serif;font-size:15px;line-height:22px;font-style:italic;">{{var:RequesterMessage}}</span>
+           </p>
+         </div>
+       </td>
+     </tr>
+   </table>
    {% endif %}
    ```
 
-   Rules: normal double braces only, message inside a `div` with `white-space: pre-wrap`, no `Escape()`, every `{% if %}` has its `{% endif %}`.
-4. **German template**: same structure, German copy. Suggested heading: `Nachricht von {{var:RequesterName}}:`.
-5. **Do not change** the template ID. The subject is set by the backend, so leave it.
-6. **Verify** each template with Mailjet *Preview* / *Send a test email*, using the test variables (JSON):
-   - With message:
-     `{"RequesterName":"Ada Lovelace","FirstName":"Sam","ProjectName":"Solar Roof","url":"https://example.org","RequesterMessage":"Hi!\nI <3 climate &amp; Tom \"quoted\" &lt;script&gt; 🌍"}`
-     (the backend sends the stored text unchanged). Expected: block visible, text shown exactly as written (`I <3 climate &amp; Tom "quoted" &lt;script&gt;` literally), two separate lines, emoji renders, layout intact.
-   - Without message: same JSON with `"RequesterMessage":""`. Expected: **no** heading, no box, no stray gap.
-   (The backend always sends the variable, so there is no "variable missing" case to support. Mailjet raises a template error for a completely undefined variable; that is acceptable because the backend and the template are changed for the same release, but **deploy the backend first or together with the template edit** so the template never runs without the variable. See AC-1.7.)
-7. Repeat steps 1-6 for the German template; check umlauts.
-8. After the backend is deployed, do an end-to-end check on staging (toggle on): one join request with a message and one without; check both emails in EN and DE (switch the admin's language).
+   Rules: normal double braces only, no `Escape()`; **keep `{{var:RequesterMessage}}` on the same line as its `span` tags** (with `pre-wrap` any extra whitespace would show); keep the `:""` default in the condition; `{% if %}` and `{% endif %}` enclose whole elements so an empty message leaves no stray markup. If the HTML block's own section already adds the side padding, remove the `table`/`td` wrapper.
+3. **German template**: same block, German copy. Suggested heading: `Nachricht von {{var:RequesterName}}:`.
+4. **Do not change** the template ID. The subject is set by the backend.
+5. **Verify** each template with Mailjet *Preview* / *Send a test email*, using the test variables (JSON):
+   - With message: `{"RequesterName":"Ada Lovelace","FirstName":"Sam","ProjectName":"Solar Roof","url":"https://example.org","RequesterMessage":"Hi!\nI <3 climate &amp; Tom \"quoted\" &lt;script&gt; 🌍"}`. Expected: text exactly as written, two separate lines, emoji renders, layout intact.
+   - Without message: same JSON with `"RequesterMessage":""`. Expected: no heading, no box, no stray gap.
+   - Variable missing: remove the `RequesterMessage` key. Expected: same as without message and no template error (thanks to the `:""` default).
+6. Repeat for the German template; check umlauts.
 
-> **Syntax confirmed**: the condition style `{% if var:X != "" %}...{% endif %}` is already used in production by the event templates (admin cancellation message, organiser name), so no syntax doubt remains. A Mailjet preview is still part of the verification (step 6).
+> **Result (2026-11-26)**: maintainer's manual local tests with the edited templates passed (message shown as written, special characters unchanged, line breaks visible with the raw HTML block, no block for an empty message).
 
 ---
 
@@ -270,6 +267,8 @@ Verified accurate: the only occurrence of the old default in application code is
 | 2026-11-26 | All questions resolved. Maintainer will edit the Mailjet templates himself and test locally (same templates locally and elsewhere), including the special-character check. Spec committed on branch `send-optional-join-request-message-in-email`; status set to IMPLEMENTATION; handed to an implementation sub-agent. |
 | 2026-11-26 | Implementation done by sub-agent (backend variable, frontend default removed, tests, env docs); verified independently: 30 backend and 24 frontend tests pass, formatting clean. Maintainer's manual local tests with the edited templates passed (message shown, no-message email without block, special characters as written). Only line breaks do not show in the rendered email: accepted as a known limitation (AC-3.3). Open point noted: Mailjet blocks an email on an undefined variable without default, so the template edit must not reach production before the backend (see AC-1.7), unless defaults are added to the template. |
 | 2026-11-26 | Maintainer fixed line breaks by using a raw HTML block in the Mailjet templates (text block cannot hold `white-space`); template also uses the `:""` default in the condition, so deploy order is safe (AC-1.7). Manual tests passed; implementation committed (`dc0611496`). Status set to CODE_REVIEW; review delegated to a sub-agent. |
+| 2026-11-26 | Code review by sub-agent: approve with minor changes (no must-fix). Should-fix: outdated deploy-order text and missing `:""` default in `doc/environment-variables.md`, plus `url` wording and a `\r\n` test comment: all fixed (commit `5eca5ac08`). |
+| 2026-11-26 | VALIDATION: Archie applied the approved `doc/mosy/flows/project-join-request-flow.md` change (empty message instead of default text; new "Notification of project admins" section); no other mosy file needed a change. Mailjet instructions in this spec replaced by the final, tested raw HTML block. |
 
 ## AI Agent Insights and Additions
 
@@ -279,6 +278,16 @@ Verified accurate: the only occurrence of the old default in application code is
 - Existing rows holding the old default text are deliberately not touched here (separate cleanup task, see Out of Scope).
 - `send_email` always sends `"TemplateLanguage": True`, so conditionals are available and always sending the variable (empty string) keeps the template condition simple.
 - **System impact** analysis was done by Archie on 2026-11-26 (see section above).
+
+---
+
+## Deviations from the original draft (validation)
+
+- **Template block**: the draft proposed a Text block (or three blocks). The Mailjet text block cannot hold `white-space: pre-wrap`, so the final solution is a raw HTML block that repeats the template's text styling. The backend is unaffected.
+- **Condition with default**: the draft used `{% if var:RequesterMessage != "" %}`. The final template uses `{% if var:RequesterMessage:"" != "" %}` so that the deploy order is irrelevant (AC-1.7).
+- **No escaping in the backend**: the first draft had the backend escape the message and add `<br>`; replaced by the plain-text decision (AC-1.3).
+- **Reference implementation**: the admin-cancel email (`OrganizerMessage`) was the model, not the guest self-cancel flow.
+- **Not done / out of scope**: cleaning up existing rows that contain the old default text (separate task by the issue author); the optional entity note in `system-entities.md` (not approved).
 
 ---
 
@@ -296,3 +305,4 @@ Verified accurate: the only occurrence of the old default in application code is
 | 0.8 | 2026-11-26 | Status IMPLEMENTATION; AC-3.0 (testing set-up with shared templates) added; open questions closed. |
 | 0.9 | 2026-11-26 | Manual test results recorded; AC-3.3 line breaks accepted as known limitation. |
 | 1.0 | 2026-11-26 | Status CODE_REVIEW; AC-3.3 met via raw HTML block; AC-1.7 updated (default in template makes deploy order safe). |
+| 1.1 | 2026-11-26 | Status VALIDATION; Mailjet instructions updated to the final tested raw HTML block; AC-5.2 done; review and validation recorded. |

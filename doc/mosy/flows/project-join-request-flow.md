@@ -16,7 +16,11 @@ The backend always (independent of the toggle) treats `message` as optional, rej
 
 ## Toggle off, or logged-out user
 
-Clicking **Join** sends the request immediately with the default message "Would like to join the project!" (unchanged legacy behaviour).
+Clicking **Join** sends the request immediately with an empty message (no default text any more; spec `20261126_1000_issue_2308_join_request_message_in_admin_email.md`). Otherwise unchanged legacy behaviour.
+
+## Notification of project admins (independent of the toggle)
+
+After a join request is created, the backend notifies every project admin in-app and by email (spec `20261126_1000_issue_2308_join_request_message_in_admin_email.md`). The email contains the requester's message only when one was written (optional plain text; no message block when empty). The EN/DE Mailjet templates are maintained by hand in Mailjet (not in the repo) and must show the message block conditionally. The in-app notification text does not include the message.
 
 ## Viewing a join request (toggle on; spec `20261109_1000_issue_2310_show_join_request_dialog.md`)
 
