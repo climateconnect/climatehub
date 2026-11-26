@@ -346,6 +346,37 @@ def send_project_like_email(user, project_like, notification, hub_url=None):
 
 
 def send_join_project_request_email(user, request, requester, notification, hub_url):
+    """
+    Notify a project admin by email that a user requested to join the project.
+
+    Called once per project admin from ``create_project_join_request_notification``.
+    Delegates to ``send_email()`` using the ``PROJECT_JOIN_REQUEST_TEMPLATE_ID``
+    Mailjet template (EN) or ``PROJECT_JOIN_REQUEST_TEMPLATE_ID_DE`` (DE),
+    selected automatically based on the recipient's language preference.
+
+    **Mailjet template variables**:
+        - ``RequesterName``    — full name of the user who requested to join
+        - ``FirstName``        — recipient's (the admin's) first name
+        - ``ProjectName``      — name of the project
+        - ``url``              — language-aware link to the project's join requests
+        - ``RequesterMessage`` — the optional message the requester wrote, as plain
+          text exactly as stored (no escaping, no ``<br>``).  Always present;
+          an empty string when the request has no message (``""`` or ``NULL``).
+          The template hides the message block when it is empty and keeps line
+          breaks via ``white-space: pre-wrap``.
+
+    **Required env variables** (configured in ``climateconnect_main/settings.py``):
+        ``PROJECT_JOIN_REQUEST_TEMPLATE_ID``    — Mailjet template ID (EN)
+        ``PROJECT_JOIN_REQUEST_TEMPLATE_ID_DE`` — Mailjet template ID (DE)
+
+    Args:
+        user:         Django ``User`` instance of the recipient (project admin).
+        request:      ``MembershipRequests`` instance (``target_project`` and
+                      ``message`` are read).
+        requester:    Django ``User`` instance who requested to join.
+        notification: ``Notification`` instance linked to the email.
+        hub_url:      Hub URL slug or ``None``/empty.
+    """
     lang_code = get_user_lang_code(user)
     requester_name = requester.first_name + " " + requester.last_name
     subjects_by_language = {
@@ -365,6 +396,8 @@ def send_join_project_request_email(user, request, requester, notification, hub_
         "FirstName": user.first_name,
         "ProjectName": request.target_project.name,
         "url": base_url + get_user_lang_url(lang_code) + url_ending,
+        # Plain text exactly as stored; NULL becomes "" so the variable is always defined.
+        "RequesterMessage": request.message or "",
     }
     send_email(
         user=user,

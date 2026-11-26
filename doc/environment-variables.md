@@ -319,6 +319,17 @@ All email template variables follow the pattern: `{TEMPLATE_NAME}_TEMPLATE_ID[_D
 | `OrganiserName` | Organisation name, or organiser's full name / username |
 | `OrganizerMessage` | The plain-text cancellation message provided by the admin |
 
+**Project join request template variables** (define in both EN and DE Mailjet templates, `PROJECT_JOIN_REQUEST_TEMPLATE_ID` and `PROJECT_JOIN_REQUEST_TEMPLATE_ID_DE`; email to project admins, issue #2308):
+| Variable | Content |
+|---|---|
+| `RequesterName` | Full name of the user who requested to join |
+| `FirstName` | Recipient's (the project admin's) first name |
+| `ProjectName` | Name of the project |
+| `url` | Language-aware link to the project's join requests (`?show_join_requests=true`, plus `&hub=...` for hub users) |
+| `RequesterMessage` | The optional message the requester wrote. **Plain text**, exactly as stored (no escaping, no `<br>`, line breaks as `\n`). Always sent; **empty string** when the request has no message. Show it as text (double braces, no raw-HTML form, no `Escape()`) inside a `div` with `white-space: pre-wrap` so line breaks stay visible, and wrap the block in `{% if var:RequesterMessage != "" %}...{% endif %}` so nothing is shown when it is empty. |
+
+The templates are edited manually in the Mailjet dashboard (they are not in the repo). Deploy the backend **before or together with** the template edit: sending the new variable to a template that does not use it yet is harmless, but a template that references `RequesterMessage` before the backend sends it raises a Mailjet template error.
+
 The email envelope `Subject` header is set directly to the organiser-provided subject (no wrapping platform prefix). These templates must be created in Mailjet and their IDs configured before any organiser emails will be delivered.
 
 **Template Configuration**:
