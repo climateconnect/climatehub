@@ -23,6 +23,8 @@ const Root = styled("div", {
 
 const GoalContainer = styled(Container)({
   position: "relative",
+  // Keep the bar text's z-index local so it can't paint over header menus
+  isolation: "isolate",
   paddingLeft: 0,
   paddingRight: 0,
 });
@@ -45,7 +47,7 @@ const BarText = styled("div")(({ theme }) => ({
   position: "absolute",
   top: "50%",
   transform: "translate(0, -50%)", // Center the text
-  zIndex: 1000,
+  zIndex: 1,
   color: theme.palette.primary.main,
   fontWeight: "bold",
   fontSize: 20,
